@@ -128,3 +128,21 @@ CPU collector1922942最多90000s，三臂完成后自动调用summarize_shared_a
 不更改12k判别/训练协议，不用早期单seed差异关闭shared路线；forecast固定DEV没有同步改善。
 快照`outputs/ptv3-shared-wam-v2/shared-actor-interface-20261015-r1/interim-step3000.json`。
 step1000/2000及当前selected/最近阶段真实权重存在，完整阶段保留规则继续生效。
+
+
+## 同步5000步平台检查 / 2026-10-15 18:48 CST
+
+实际三臂进程存活，最新约5300–5560，GPU0–5约11GiB/卡。共同固定DEV256同一步5000：
+
+| 接口 | action L1 | first-control XYZ mean / p95 mm | hand+scene forecast normalized L1 |
+| --- | ---: | ---: | ---: |
+| state+pred_tau | 0.400537 | 64.539 / 215.737 | 4.810608 |
+| state+shared | 0.421649 | 64.058 / 188.836 | 4.798572 |
+| state+shared+pred_tau | 0.423789 | 64.705 / 178.473 | 4.806513 |
+
+4000→5000动作L1分别下降1.46%/2.10%/2.29%，尚未完全平台；位置均值收益明显放缓。
+shared两臂尾部p95较A改善12.5%/17.3%，mean基本持平，仍未达到原定两指标均>=20%。
+TRAIN按相邻1000步平均的action/forecast仍下降，DEV forecast却上升，有泛化退化迹象；
+不把TRAIN与DEV不同采样的绝对loss直接比较。A/C新增5500点不用于跨臂5000匹配排序。
+三臂按原12k预算继续，约余3–3.5h；不因本次中期结果改输入、选点或延长预算。
+证据`shared-actor-interface-20261015-r1/plateau-step5000.{json,png}`。

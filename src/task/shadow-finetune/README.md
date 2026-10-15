@@ -20,8 +20,10 @@ Shadow成功不单独证明Inspire失败由数据量造成。
 这只是BC候选，不等价稳定抓持认证。当前实际7TRAIN物体41条/6232窗、2DEV物体10条/1520窗。
 一个被选TRAIN物体没有合格候选，记录后不制造样本。完整候选cache现已从2066物体来源准备：
 筛选后TRAIN1567物体/10118轨迹/1536897窗、DEV388物体/2338轨迹/354761窗，物体交集0。
-当前固定预算大小数据Probe已在GPU6启动：small1000步后依次进行native、full1000步和native；
-尚无该对照结果。实际状态见[Task状态](docs/STATE.md)。
+固定预算大小数据Probe已完成：首拍MAE仅改善6.21%，forecast改善约37–41%，但学生官方
+sticky成功small7/16、full2/16，同步抬升保持3/16、0/16；局部UNCLEAR，不归因Inspire或
+排除充分训练后的数据量收益。GPU6已释放，后续先做现有权重的分阶段拟合诊断。
+证据与执行状态见[Task状态](docs/STATE.md)。
 
 入口：
 
@@ -50,7 +52,7 @@ python tools/run/launch_probe.py --data <cache> --panel <panel.json> --output <f
 `tools/audit/audit_cache.py --cache <cache> --output <fresh audit directory>`复核；
 报告在`outputs/shadow-finetune/full-cache-audit-20261015-r1/report.json`。
 
-下一步大小数据对照用`tools/run/prepare_scale_comparison.py`生成共享controls与命令，
+复现大小数据对照用`tools/run/prepare_scale_comparison.py`生成共享controls与命令，
 两臂均以small TRAIN拟合state/action统计、使用同full DEV64窗及同父模型/初始化/预算。
 `train.py --controls <controls.json>`会拒绝settings、输入manifest或DEV物理身份漂移。
 准备入口不启动GPU，执行由`launch_scale.py`在固定工作树中监督，整轮只占一张GPU、≤1小时。

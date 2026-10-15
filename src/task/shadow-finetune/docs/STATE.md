@@ -1,28 +1,33 @@
 # ShadowHand 原生微调当前状态
 
-2026-10-15：固定计算预算的小数据/全量对照已在GPU6启动，实验
-[P-20261015-shadow-data-scale](experiments/probes/P-20261015-shadow-data-scale.md)。
-固定代码57737b7b、detached工作树`tmp/shadow-scale-code-20261015-r2`，supervisor2083589。
-small1000步及原生终点评估已完成，full已更新到100/1000，之后自动进行相同起点评估与汇总。
-父权重同80k WAM-v2、新Shadow动作头，seed214、batch64、共同full DEV64窗和small TRAIN统计。
-small7物体/41轨迹/6232窗，full1567物体/10118轨迹/1536897窗；数据合同及nested逐值核验通过。
+2026-10-15：固定计算预算的小数据/全量对照已完成，两臂1000步和相同16env闭环，
+五个stage均exit0，耗时25.8分钟。运行固定57737b7b，输出
+`outputs/shadow-finetune/shadow-scale-controls-20261015-r2`，当前没有Shadow训练进程。
+GPU6已释放，GPU7空闲；原Inspire GPU0–5与远端训练独立继续。
 
-用户已允许临时一张空卡做小规模测试；本轮仅GPU6、总≤1小时/14GB，GPU7空闲，原Inspire
-GPU0–5及远端训练继续。GPU6首轮采样平均77.8%利用率/最大3.6GiB，当前约0.55秒/步；
-full实际约0.80秒/步、峰值allocated3017MiB，剩余更新暂估12分钟。
-非有限/超时/磁盘<20GiB/预算/外来进程触发仅停止own组。
-首次r1因工作树第三方依赖缺失在训练前退出，失败记录保留，r2已补齐并通过真实更新。
+共同DEV64首拍canonical MAE small0.11705/full0.10978，仅改善6.21%；
+hand/scene forecast normalized L1改善36.8%/41.4%，不能直接换算成毫米。
+原生学生官方sticky成功small7/16、full2/16；末帧2/16、1/16；同步抬升保持60帧3/16、0/16。
+DEV学生官方均1/8，teacher官方8/16、保持7/16（DEV仅1/8）。这些不是接触稳定认证。
+结果UNCLEAR，未达到首拍>=20%改善和DEV成功+2/8；不关闭数据量假设或归因Inspire。
 
-先前工程/小pilot已经完成，学生16env官方success1/16（TRAIN1/8、DEV0/8），teacher5/16；
-这不是当前匹配数据量对照的一臂，也没有证明跨物体泛化或Inspire失败的数据量归因。
-当前对照尚未完成，不能作数据量收益判断。实际进程/进度以
-`outputs/shadow-finetune/shadow-scale-controls-20261015-r2/process.json`与各臂progress为准。
+matching与独立raw复算均通过：51个实际初始actor张量完全相同、共同DEV物理身份/统计一致；
+两臂teacher完整200状态轨迹逐值相同，初态与命令时钟误差0，无invalid。
+两臂250/500/750/1000八个完整checkpoint实际加载审计通过，optimizer/模型有限、统计一致。
+采样重放最终RNG精确匹配：small覆盖6231/6232独立query，full62636/1536897（4.08%），
+虽覆盖所有1567物体，每条已见轨迹平均只抽6.34次，尚不能评价full收敛后的能力。
 
-本次matched small终点学生官方success7/16（TRAIN6/8、DEV1/8），末帧2/16、同步抬升保持60帧3/16；
-teacher官方8/16（7/8、1/8），末帧/保持均7/16。独立raw计数与命令时钟复核一致，初态误差0、
-无invalid，不将sticky7/16说成稳定抓持。small与full实际初始actor51个张量完全相同。
+全量TRAIN1536897首拍label已用官方冻结300D actor穷举重放，PASS：
+max1.1206e-5、MAE6.0609e-8、1e-4阈值下异常0，20.09秒/peak77.1MiB。
+这排除准入首拍的粗大标签/teacher身份问题，不覆盖全部未来命令或保证闭环。
+报告`outputs/shadow-finetune/full-teacher-label-audit-20261015-r1/report.json`。
 
-CPU阶段覆盖诊断：完整forecast要求只保留安全action8候选中351321/706676个近目标query；
-7868条含近目标query，action-only可达9791条（TRAIN10118条）。原始数据不是没有保持阶段，
-但完整未来支持显著减少晚期BC监督；当前对照仍冻结原规则，结果后再决定是否做尾段最小对照。
-完整数字与解释边界见实验卡，不提前下数据量结论。
+完整forecast支持只保留安全action8候选中351321/706676个近目标query，晚期BC覆盖明显减少。
+但当前仍有7868/10118条TRAIN含近目标query，不能说完全没有保持阶段。
+原生同初态首拍root torque MAE small0.605/full0.641；先对现有终点权重做固定TRAIN/startup/
+near-goal/安全tail分层推理，重推原DEV64校验，再决定先补拟合还是尾段BC；不直接扩长训。
+该诊断沿用用户临时单空卡小测试授权，GPU6≤10分钟/4GiB模型分配/100MB报告，GPU7保留。
+
+详见[P-20261015-shadow-data-scale](experiments/probes/P-20261015-shadow-data-scale.md)，
+比较图/CSV及独立审计在r2的`summary/`目录。
+先前pilot（seed213、selected500、学生1/16）不是当前matched小数据臂，不跨种子混报。

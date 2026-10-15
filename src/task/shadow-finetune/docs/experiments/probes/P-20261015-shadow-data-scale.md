@@ -13,11 +13,15 @@ seed_pool: probe
 seeds: [214, 215, 216]
 decision_changed_if_positive: prioritize larger native Shadow dataset and broader paired success panel
 decision_changed_if_negative: inspect fitting and closed-loop distribution shift before longer scaling
-status: RUNNING
+status: UNCLEAR
 run_id: shadow-scale-controls-20261015-r2
 ---
 
-# ShadowHand：固定计算预算的小数据/全量数据对照准备
+# ShadowHand：固定计算预算的小数据/全量数据对照
+
+执行已COMPLETED，五个stage均exit0，总1549.4秒（25.8分钟），GPU6已释放。
+最终信号UNCLEAR：full改善forecast与离线动作误差，但未改善本次闭环保持。
+以下准备/启动段是历史回执，当前结果以后文“匹配终点结果”为准。
 
 Class: Decision。用户要先在ShadowHand自身环境微调并看成功率，以检验现有DExplore数据覆盖
 不足的猜想。该Task服务独立策略资格，Shadow收益不能自动成为Inspire失败的数据量归因。
@@ -55,7 +59,7 @@ Shadow GPU6两臂各1000步、总1小时，GPU7空闲。每训练入口2400秒/1
 输入manifest、父checkpoint、native panel保存size/mtime身份；启动拒绝settings/panel/input漂移。
 `tools/run/prepare_scale_comparison.py`只生成controls和命令，`train.py --controls`才消费同一份配置。
 6项Task合同测试涵盖物理同一子集与标签变动拒绝、同DEV/同归一化，以及设置/输入漂移拒绝。
-当前已进入GPU训练，尚无本实验最终对照或成功率结果。
+执行已完成，最终对照与成功率见下文；准备记录保留以供复现。
 
 ## 真实输入准备回执
 
@@ -154,8 +158,9 @@ query/706676个近目标query。完整forecast额外舍弃404720个query，其�
 这是位置阶段覆盖，不证明接触质量或说明训练必须包含连续60条query。
 
 证据`outputs/shadow-finetune/full-phase-coverage-20261015-r1/{summary.json,sequences.jsonl}`。
-这排除了“近目标监督完全没有”的说法，同时暴露明显晚期覆盖缺口；若full固定预算仍不能改善
-保持，下一轮优先以相同full数据做partial-forecast/尾段BC最小对照，而非立即归因总轨迹数不足。
+这排除了“近目标监督完全没有”的说法，同时暴露明显晚期覆盖缺口。full终点没有改善保持，
+先用现有权重区分起步拟合与尾段误差，再决定是否做partial-forecast/尾段BC最小对照，
+不立即归因总轨迹数不足。
 
 ## 终点结果后的标签有效性检查
 
@@ -169,6 +174,63 @@ paired pipeline已正常完成，所有matching检查通过；full首命令MAE�
 模型分配≤2GiB、报告≤50MB，不训练、不改任何cache/指标/原checkpoint，GPU7保持空闲。
 该检查沿用用户的一张空卡小测试授权；上轮pipeline实际25.8分钟已退出并释放GPU6，不延长它。
 动作clip与原采集一致，FP32关闭TF32，容忍1e-4以容纳批大小/后端GEMM浮点差异。
+
+检查已PASS：10118条TRAIN、全部1536897个准入首拍label，最大绝对误差1.1206e-5，
+MAE6.0609e-8，1e-4容忍度下异常0；耗时20.09秒、peak allocated77.1MiB。
+报告`outputs/shadow-finetune/full-teacher-label-audit-20261015-r1/report.json`。
+这排除所审计首拍label的粗大错钟/策略身份/随机噪声问题，不覆盖全部未来8拍或闭环资格。
+
+## 匹配终点结果 / 2026-10-15
+
+运行代码57737b7b，两臂均1000更新/batch64，未按有利DEV阶段重新选择闭环checkpoint。
+small训练564.8秒，full809.3秒；原Inspire三臂没有暂停或改配置。
+共同DEV64，归一化forecast数值不能直接解释为物理毫米：
+
+| 指标 | small | full |
+| --- | ---: | ---: |
+| action normalized L1（8拍） | 0.276286 | 0.229957 |
+| 首拍canonical command MAE | 0.117048 | 0.109784 |
+| 首拍root6 MAE | 0.213011 | 0.191747 |
+| 首拍finger18 MAE | 0.085060 | 0.082463 |
+| hand forecast normalized L1 | 0.197780 | 0.125006 |
+| scene forecast normalized L1 | 1.158441 | 0.678305 |
+
+首拍误差改善6.21%（未达20%），hand/scene forecast分别改善36.8%/41.4%。
+同seed216、同16个起点的终点闭环：
+
+| 角色 | 官方sticky成功 TRAIN / DEV | 末帧5cm TRAIN / DEV | 同步抬升保持60帧 TRAIN / DEV |
+| --- | --- | --- | --- |
+| teacher（两臂相同） | 7/8 / 1/8 | 6/8 / 1/8 | 6/8 / 1/8 |
+| small学生 | 6/8 / 1/8 | 2/8 / 0/8 | 2/8 / 1/8 |
+| full学生 | 1/8 / 1/8 | 0/8 / 1/8 | 0/8 / 0/8 |
+
+局部UNCLEAR：没有达到预设首拍改善和DEV成功+2/8的联合门槛；不证明更多数据无用。
+teacher本身DEV仅1/8、仅2个DEV物体；full尚未收敛，不能用它关闭数据量假设或归因Inspire。
+
+审计证据均位于本run，原始产物没有改写：
+
+- `summary/comparison.json`：自动matching与判别；实际51个初始actor张量逐值相同，
+  父权重/统计/DEV物理IDs/配置一致。
+- `summary/independent-native-audit.json`：从raw独立重算三种计数；初态九字段误差0，
+  跨臂teacher完整200状态轨迹也逐值相同；命令时钟误差0、无invalid。
+- `summary/training-exposure-audit.json`：重放采样，最终RNG与两臂checkpoint精确相同。
+  small见过6231/6232个独立query（99.98%）；full62636/1536897（4.08%），覆盖全部1567物体，
+  但每个已见轨迹平均只抽6.34次。full干预确实进入训练，曝光仍有限。
+- `checkpoint-audit-all-eight.json`：两臂250/500/750/1000八个完整阶段均实际加载核验，
+  模型/optimizer有限、normalizer一致、586参数的optimizer state及三组LR保留。
+- `summary/offline-curves.csv`、`summary/paired-scale-comparison.{png,svg}`：完整四阶段曲线与比较图。
+
+## 下一步最小诊断：现有权重的分阶段拟合
+
+Class: Decision。原生同初态首拍root torque MAE small0.605/full0.641，随机DEV整体均值掩盖
+起步误差；同时已发现晚期BC支持不足。区分三个具体猜想：一般拟合不足（TRAIN也差）、
+起步控制误差集中（tick0 torque显著大）、晚期覆盖缺失（安全尾段更差）。
+最便宜使用两臂1000步权重做固定、共享的small TRAIN/full TRAIN/startup/near-goal/tail面板，
+不训练、不改变采样准入。首先重推原DEV64以验证读取/模型数值一致，再按root force/torque/
+finger报告首拍raw及clip后误差。tail仅假设性action8安全支持，不能冒充现有准入TRAIN。
+若起步即拟合差先解决actor拟合；若已见状态好但尾段差，再优先尾段BC；只有离线拟合好而
+执行差才扩大闭环分布移位分析。GPU6单卡≤10分钟/4GiB模型分配/100MB报告，GPU7保持空闲；
+用户临时一张空卡小测试授权内执行，不启动下一轮长训。
 
 ## Limitations / future evidence
 
