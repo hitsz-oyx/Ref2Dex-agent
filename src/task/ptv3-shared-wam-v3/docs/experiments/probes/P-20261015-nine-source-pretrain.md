@@ -189,3 +189,17 @@ Original domains: hand point estimates improve1.1–2.3%, scene2.6–7.2%; most 
 Both v2final80k/global256 and v3 40k/global512 are20.48M sample draws; seeds136/170, schedules, domain exposure, normalization, cleaning and training-loss aggregation differ. Oldbest was selected on this DEV panel; native comparison measures zero-shot oldmodel versus native-trained currentmodel. Do not compare normalized objectives or infer grasp/Cm/RL benefits. Keep current9-source lowLR trajectory; revisit matched80k and downstream utility before claiming robust transfer.
 
 Fixed comparison013105b1,248.7s, GPU0peak1181.3MiB/reserved1450MiB within3GiB cap, final diagnostic GPU released. Parent training observed41680/1.446updates/s, four99–100%util; no interruption/config change. Independent implementation review corrected list-index and CleanIdentity capture-key assumptions before execution;2 regression tests passed. H2O fragments merged by originaltake, UniDex batch identity retained. Artifacts/report `outputs/ptv3-shared-wam-v3/main3-v2-v3-comparison-20261015-r1/` contain exactpanel, all three per-window metrics, pairedCI, oldreproduction checks and comparison.png.
+
+## 2026-10-15 23:58 CST: lower-LR effect through49k
+
+Read-only snapshot49220/80000, both actual LRs3e-5, four GPUs99–100%,33011/33669/33181/23451MiB,1.44–1.47updates/s; remaining roughly6–6.5h including validation/save overhead. No live process/config/data changes. Same256-window eight-source panel is retained (DexYCB has no DEV in current recipe).
+
+| Block (five fixed evaluations) | TRAIN logged loss mean | DEV macro objective | Hand all24 macro EPE mm | Scene all24 macro EPE mm |
+|---|---:|---:|---:|---:|
+| Before LR drop33–37k |0.317882|1.108337|34.3179|13.7361|
+| Early lower LR38–42k |0.232934|1.054580|33.5270|12.9528|
+| Recent lower LR45–49k |0.222904|1.071974|33.9586|13.3371|
+
+Early DEV mean improves4.85% and scene5.70% versus preceding block, with smaller descriptive oscillation. Recent DEV mean remains3.28% below preceding high-LR block but is1.65% above early lower-LR block; hand/scene improve only1.05%/2.91% versus before. Low-LR best41k1.03699393 still fails to beat old31k1.03455000 (0.236% worse). Latest49k1.06541250 recovers from48k1.09741866; a single spike is not persistent divergence. TRAIN continues falling overall but has transient spikes near47–48k. All these metrics are lower-is-better.
+
+Interpretation: limited descriptive mean improvement; no breakthrough of historical best or validation plateau. Adaptive single trajectory, no matched constant-LR arm, small correlated DEV, so neither LR causality nor formal overfitting is established. Current authorized80k run remains unchanged; keep historical31k best as cross-stage comparator rather than treating stage-local best.pt as global best. CPU reductions/plotting only, no new model inference. Artifacts `outputs/ptv3-shared-wam-v3/lr-effect-20261015-2353/{snapshot.json,refresh.json,analyze.py,summary.json,lr_effect.png}`.
