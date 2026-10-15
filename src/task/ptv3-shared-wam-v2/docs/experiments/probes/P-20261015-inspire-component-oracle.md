@@ -5,7 +5,7 @@ experiment_id: P-20261015-inspire-component-oracle
 date: 2026-10-15
 task: ptv3-shared-wam-v2
 branch: main
-git_commit: 509a47f8
+git_commit: c1d2dca1
 claim_id: C1
 hypothesis_family: HF-inspire-component-oracle
 probe_index_in_family: 1
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [148]
 decision_changed_if_positive: prioritize the deficient wrist or finger control group identified by teacher assistance
 decision_changed_if_negative: retain combined control and observation mismatch hypotheses rather than infer one component is sufficient
-status: PLANNED
+status: RUNNING
 run_id: inspire-component-oracle-20261015-r1
 ---
 
@@ -83,7 +83,10 @@ split，继续检查闭环拟合。它不是新增数据量/跨手因果实验�
 
 首条及TRAIN含smoke预计<=30min，单组native launcher<=600s、每组CPU audit<=120s、总产物<=4GB、
 磁盘保留20GiB；失败、非有限、合同不匹配停止自己的组。无需新长期身份或外部写入。
-当前只是已实现并测试的待执行诊断，git_commit字段为准备前HEAD，实际执行前必须更新。
+运行代码固定c1d2dca1、工作树tmp/inspire-component-oracle-code-20261015-r1；PointWorld链接
+与主动作表示Probe相同固定依赖。监督器2365418已启动并经ps确认存活，当前WAITING，
+附着已确认存活的上游2298258/starttime537092721，尚未启动GPU或得到oracle结果。
+输出outputs/ptv3-shared-wam-v2/inspire-component-oracle-20261015-r1/process.json。
 
 准备验证：native_execution 8项单测通过，包含own-row组件替换/耦合维保持/输入无修改；
 新audit在原control-airplane和forecast-mug日志回归通过，原18项合同与held复算均保留；

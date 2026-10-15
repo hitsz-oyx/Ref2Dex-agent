@@ -351,7 +351,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261015-inspire-component-oracle](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-inspire-component-oracle.md) | Inspire shared7k 腕部/手指 teacher 混控定位 | 见原卡 | 见原卡 | probes/PLANNED |
+| [P-20261015-inspire-component-oracle](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-inspire-component-oracle.md) | Inspire shared7k 腕部/手指 teacher 混控定位 | 见原卡 | 见原卡 | probes/RUNNING |
 
 ## HF-mse-conditional-multimodality
 
