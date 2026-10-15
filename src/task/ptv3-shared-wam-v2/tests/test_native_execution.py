@@ -55,3 +55,23 @@ def test_native_shared_checkpoint_needs_explicit_shared_bridge(tmp_path):
                                         action_representation='native-command.v1')
     with pytest.raises(ValueError):validate_robot_packet(p)
     assert validate_robot_packet(p,allow_shared=True)['config']['action_representation']=='native-command.v1'
+
+
+def test_component_oracle_uses_own_row_and_only_active_fingers():
+    import torch
+    from ptv3_shared_wam_v2.native_execution import mix_teacher_components
+    from trajectory_policy.retargeter_data import ACTIVE
+    student = torch.arange(54, dtype=torch.float32).reshape(3,18)
+    teacher = student + 100
+    before_student, before_teacher = student.clone(), teacher.clone()
+    mixed = mix_teacher_components(student, teacher)
+    assert torch.equal(mixed[0], student[0])
+    assert torch.equal(mixed[1,:6], teacher[1,:6])
+    assert torch.equal(mixed[1,6:], student[1,6:])
+    fingers = list(ACTIVE)[6:]
+    assert torch.equal(mixed[2,fingers], teacher[2,fingers])
+    untouched = [i for i in range(18) if i not in fingers]
+    assert torch.equal(mixed[2,untouched], student[2,untouched])
+    assert torch.equal(student, before_student) and torch.equal(teacher, before_teacher)
+    with pytest.raises(ValueError):
+        mix_teacher_components(student[:2], teacher)

@@ -38,6 +38,22 @@ def audit(path):
     check("clamped_commands", d["applied"], d["intended"].clip(-1, 1))
     check("native_PD", d["pd_targets"], independent_pd(d["applied"], d["q"][:-1], manifest["native_controller"]))
     check("clipping_flags", d["clipped"], np.abs(d["intended"] - d["applied"]).max(-1) > 1e-6)
+    student_intended=d['intended'][:,1:]
+    if manifest.get('diagnostic_hybrid'):
+        if (manifest.get('no_teacher_intervention') is not False
+                or manifest.get('training_allowed') is not False
+                or not manifest.get('shared_actor') or steps != 1
+                or manifest.get('roles') != ['teacher', 'teacher_wrist_student_fingers',
+                                             'student_wrist_teacher_fingers']):
+            raise ValueError('Oracle component probe cannot claim autonomous student execution')
+        if d['teacher_obs'].shape != (controls,3,1442):
+            raise ValueError('Own-row full teacher observations required')
+        mixed=d['student_intended'].copy()
+        mixed[:,1,:6]=d['teacher_actions'][:,1,:6]
+        mixed[:,2,list(ACTIVE)[6:]]=d['teacher_actions'][:,2,list(ACTIVE)[6:]]
+        check('teacher_components_only',d['intended'],mixed)
+        check('teacher_row_command',d['intended'][:,0],d['teacher_actions'][:,0])
+        student_intended=d['student_intended'][:,1:]
     ticks = np.arange(controls)
     query_ticks = ticks - ticks % steps
     check("query_tick", d["query_tick"], np.repeat(query_ticks[:, None], 2, axis=1))
@@ -45,7 +61,7 @@ def audit(path):
     representation=manifest.get('action_representation','native-command.v1')
     if representation=='native-command.v1':
         target=d['R_output_chunk'][np.arange(controls)[:,None],np.arange(2)[None,:],(ticks%steps)[:,None]]
-        check('native_chunk_to_intended_command',d['intended'][:,1:,ACTIVE],target)
+        check('native_chunk_to_intended_command',student_intended[:,:,ACTIVE],target)
     if representation!='native-command.v1':
         check('physical_query_q',d['R_query_q'],d['q'][query_ticks,1:])
         target=d['R_output_chunk'][np.arange(controls)[:,None],np.arange(2)[None,:],(ticks%steps)[:,None]]
@@ -59,7 +75,7 @@ def audit(path):
             # separate prerequisite for admitting this representation.
             target_rotation=(current*relative).as_matrix()
             live=d['q'][:-1,1:]
-            intended_pd=independent_pd(d['intended'][:,1:],live,manifest['native_controller'])
+            intended_pd=independent_pd(student_intended,live,manifest['native_controller'])
             actual_rotation=Rotation.from_euler('XYZ',intended_pd[...,3:6].reshape(-1,3)).as_matrix()
             if representation != 'wrist-geometry-continuous-lift.v1':
                 check('geometry_buffer_orientation',actual_rotation,target_rotation)
@@ -101,10 +117,10 @@ def audit(path):
             reconstructed_angles=(controller['offset'][3:6]+controller['scale'][3:6]*raw[...,3:6])+live[...,3:6]
             check('geometry_controller_orientation',actual_rotation,
                   Rotation.from_euler('XYZ',reconstructed_angles.reshape(-1,3)).as_matrix())
-        if representation in ('pd-relative-current.v1','wrist-geometry-continuous-lift.v1'):check('query_frozen_target_to_live_command',d['intended'][:,1:,ACTIVE],raw)
+        if representation in ('pd-relative-current.v1','wrist-geometry-continuous-lift.v1'):check('query_frozen_target_to_live_command',student_intended[:,:,ACTIVE],raw)
         else:
-            check('geometry_buffer_position',d['intended'][:,1:,:3],raw[...,:3])
-            check('geometry_buffer_fingers',d['intended'][:,1:,ACTIVE][...,6:],raw[...,6:])
+            check('geometry_buffer_position',student_intended[:,:,:3],raw[...,:3])
+            check('geometry_buffer_fingers',student_intended[:,:,ACTIVE][...,6:],raw[...,6:])
     past = np.maximum(query_ticks[:, None] + np.arange(-3, 1), 0)
     check("own_H4_hand_at_query", d["wam_hand_history"], d["hand"][past, 2])
     check("own_H4_object_at_query", d["wam_object_history"], d["obj"][past, 2])

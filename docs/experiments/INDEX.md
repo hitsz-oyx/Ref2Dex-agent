@@ -347,6 +347,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261015-inspire-action-representation](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-inspire-action-representation.md) | Inspire shared：原生action与q_PD几何编码的配对Probe | 见原卡 | 见原卡 | probes/RUNNING |
 
+## HF-inspire-component-oracle
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261015-inspire-component-oracle](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-inspire-component-oracle.md) | Inspire shared7k 腕部/手指 teacher 混控定位 | 见原卡 | 见原卡 | probes/PLANNED |
+
 ## HF-mse-conditional-multimodality
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

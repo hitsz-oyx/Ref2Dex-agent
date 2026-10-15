@@ -105,3 +105,32 @@ expanded2k held TRAIN4/8、DEV1/8。不能混用Shadow TRAIN+DEV与Inspire val�
 train-panel-audit.json提供三条按字典序/同pass动作/有strict startup窗选择的TRAIN候选，
 源补采无surface/support/table字段，未伪造源held认证；需要后续teacher正控制。
 若两臂val均失败，优先补TRAIN/val资格对照以区分拟合与泛化，再决定输入完整性实验。
+
+中途500步共同DEV：native/geometry首拍PD XYZ mean101.23/94.43mm、finger MAE
+0.10145/0.11318rad、applied command MAE0.10351/0.11404。手指及总体命令略好、XYZ略差，
+尚不能认为native全面改善；最终仍以固定2000步及后续K1抓取判读，不按此改选点/提前停。
+
+
+## 并行CPU诊断：forecast相对运动基线
+
+Class: Decision，先判断跨手122.5mm与30.5mm差距有多少来自目标运动幅度。固定此前
+Inspire DEV256和Shadow common/startup DEV64，计算零位移与当前速度外推的hand ADE，
+与已保存模型指标形成相对比值。若幅度解释绝对误差差距，不再把mm差距当表示质量的
+直接证据；若归一化相对基线后Shadow仍明显好，再优先查forecast域覆盖。纯读取数组
+和统计，无神经网络forward，使用CPU以免争用已授权的训练GPU；不新增训练/数据准入。
+
+已完成NumPy统计与独立只读复核：
+
+| 同30Hz/未来24拍 hand ADE | Inspire DEV256 | Shadow common DEV64 | Shadow startup DEV64 |
+| --- | ---: | ---: | ---: |
+| 零位移基线 mm | 279.393 | 63.380 | 141.632 |
+| 当前速度外推 mm | 328.020 | 85.248 | 141.632 |
+| 已保存模型 mm | 122.517 | 30.466 | 28.449 |
+| 模型/零位移 | 0.439 | 0.481 | 0.201 |
+| 模型/速度外推 | 0.374 | 0.357 | 0.201 |
+
+Inspire与Shadow common面板的绝对forecast误差差4.02倍，零位移目标幅度差4.41倍；
+相对基线质量相近，暂不据mm差距认为WAM表征差4倍。各自面板/任务不匹配，这不证明
+两手表征同等好，也不是控制成功率证据。脚本的wrist_motion字段是landmark0掌部运动
+代理，不等于腕部PD控制误差。采样身份、24×11覆盖计数、固定query物体坐标的位移范数
+不变性均核对通过。输出hand-motion-scale-audit.json；工具compare_hand_motion_scale.py。

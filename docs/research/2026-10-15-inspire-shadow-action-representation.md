@@ -95,3 +95,8 @@ Inspire [robot_loss](../../src/task/ptv3-shared-wam-v2/src/ptv3_shared_wam_v2/ro
 DEV1/8。2k teacher保持也从7变9，不能把学生4→5解释为匹配训练增益。
 独立raw核对与三条TRAIN候选见[split/面板审计](../../outputs/ptv3-shared-wam-v2/inspire-action-representation-20261015-r1/train-panel-audit.json)。
 旧Inspire面板是sequence-heldout，Shadow DEV是object-heldout；不能把不同split混成跨手成功率。
+
+同24拍/30Hz的运动基线也不支持直接用绝对forecast mm差推断表征好坏：Inspire DEV256
+模型122.52mm、零位移279.39mm；Shadow common DEV64模型30.47mm、零位移63.38mm。
+相对零位移为0.439与0.481，相对速度外推为0.374与0.357。目标幅度不同可解释绝对误差
+的大部分差距；任务/面板仍未匹配。完整统计与复核范围见动作表示实验卡的CPU基线段落。

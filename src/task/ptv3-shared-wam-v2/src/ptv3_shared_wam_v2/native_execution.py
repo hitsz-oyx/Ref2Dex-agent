@@ -59,3 +59,14 @@ def predict_shared_action(model, batch, state):
     tau = native_trajectory(prediction['trajectory'], batch['start_hand_valid'])
     chunk = model.retargeter(state, tau, prediction['shared_tokens'], prediction['shared_valid'])
     return chunk, tau
+
+
+def mix_teacher_components(student_intended, teacher_action):
+    """Diagnostic oracle intervention in command units; never a deployable student policy."""
+    from trajectory_policy.retargeter_data import ACTIVE
+    if student_intended.shape != (3,18) or teacher_action.shape != (3,18):
+        raise ValueError('Three teacher/diagnostic rows of18 commands required')
+    mixed=student_intended.clone()
+    mixed[1,:6]=teacher_action[1,:6]
+    mixed[2,list(ACTIVE)[6:]]=teacher_action[2,list(ACTIVE)[6:]]
+    return mixed

@@ -29,6 +29,7 @@ def main():
     p.add_argument("--preflight-only", action="store_true", help="validate inputs and R on CPU without starting GPU peers")
     p.add_argument("--model-version", choices=("v1", "v2"), default="v1")
     p.add_argument('--shared-actor', action='store_true', help='Explicit v2 shared bridge; both student rows use their own measured inputs')
+    p.add_argument('--diagnostic-hybrid', action='store_true', help='Oracle wrist/finger component attribution; shared bridge only')
     a = p.parse_args()
     execution_task = TASK if a.model_version == "v1" else TASK.parent / "ptv3-shared-wam-v2"
     if a.model_version == "v2":
@@ -55,6 +56,8 @@ def main():
         from ptv3_shared_wam_v2.native_execution import load_robot_checkpoint as load_checkpoint
     if a.shared_actor and (a.model_version != 'v2' or a.retargeter):
         raise ValueError('shared bridge requires v2 and its original jointly trained actor')
+    if a.diagnostic_hybrid and (not a.shared_actor or a.execution_steps != 1):
+        raise ValueError('Diagnostic teacher components require the explicit shared bridge and K=1')
     packet = load_checkpoint(a.checkpoint, allow_shared=True) if a.shared_actor else load_checkpoint(a.checkpoint)
     if packet["stage"] != "robot" or (not engineering and packet["provenance"].get("engineering_only")):
         raise ValueError("robot pair required; engineering weights only admit engineering smoke")
@@ -107,6 +110,7 @@ def main():
                   scratch=str(scratch), engineering_only=engineering)
     status["native_input"] = selected
     status['shared_actor'] = a.shared_actor
+    status['diagnostic_hybrid'] = a.diagnostic_hybrid
     status["retargeter_override"] = str(a.retargeter.resolve()) if a.retargeter else None
     def write():
         from ptv3_shared_wam.checkpoint import atomic_json
@@ -132,6 +136,8 @@ def main():
                 "--deadline-seconds", str(a.deadline_seconds)]
             if kind == "native" and engineering:
                 extra.append("--engineering-only")
+            if kind == 'native' and a.diagnostic_hybrid:
+                extra.append('--diagnostic-hybrid')
             process = subprocess.Popen([python, str(script), *common, "--socket", str(address),
                 "--output", str(out / kind), *extra], cwd=ROOT, stdout=log, stderr=subprocess.STDOUT,
                 start_new_session=True, env=dict(os.environ, TMPDIR=str(scratch), PYTHONDONTWRITEBYTECODE="1"))

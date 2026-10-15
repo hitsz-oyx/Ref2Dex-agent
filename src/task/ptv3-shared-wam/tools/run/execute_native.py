@@ -37,6 +37,7 @@ def main():
     p.add_argument("--retargeter", type=Path)
     p.add_argument("--model-version", choices=("v1", "v2"), default="v1")
     p.add_argument('--shared-actor', action='store_true')
+    p.add_argument('--diagnostic-hybrid', action='store_true')
     a = p.parse_args()
     execution_task = TASK if a.model_version == "v1" else TASK.parent / "ptv3-shared-wam-v2"
     if a.model_version == "v2":
@@ -82,6 +83,8 @@ def main():
         from ptv3_shared_wam_v2.paths import SCHEMA
     if a.shared_actor and (a.model_version != 'v2' or a.retargeter):
         raise ValueError('shared bridge requires v2 without an R override')
+    if a.diagnostic_hybrid and (not a.shared_actor or a.execution_steps != 1):
+        raise ValueError('Diagnostic teacher components require shared bridge and K=1')
     packet = load_checkpoint(a.checkpoint, allow_shared=True) if a.shared_actor else load_checkpoint(a.checkpoint)
     from ptv3_shared_wam.native_inputs import resolve_native_inputs, load_native_arrays
     selected = resolve_native_inputs(packet, a.sequence)
@@ -137,7 +140,7 @@ def main():
                     execution_steps=a.execution_steps, checkpoint=str(a.checkpoint),
                     roles=["teacher", "GT_tau_R", "shared_WAM_R"], training_allowed=False,
                     engineering_only=a.engineering_only,
-                    no_teacher_intervention=True, native_controller=packet["config"]["native_controller"])
+                    no_teacher_intervention=not a.diagnostic_hybrid, native_controller=packet["config"]["native_controller"])
     manifest["measurement_assets"] = str(measurement_assets.resolve())
     manifest["native_input"] = selected
     manifest["retargeter_override"] = override
@@ -145,6 +148,10 @@ def main():
     manifest['shared_actor'] = a.shared_actor
     if a.shared_actor:
         manifest['roles'] = ['teacher', 'shared_actor_repeat', 'shared_actor']
+    manifest['diagnostic_hybrid'] = a.diagnostic_hybrid
+    if a.diagnostic_hybrid:
+        manifest['roles'] = ['teacher', 'teacher_wrist_student_fingers', 'student_wrist_teacher_fingers']
+        manifest['scope'] = 'Oracle component attribution only; teacher-assisted rows are not student policy successes'
     atomic_json(a.output / "manifest.json", manifest)
     install_legacy_player_compat(native, common_player, base_player); install_reset_patch()
     from ptv3_shared_wam.native_inputs import install_selected_motion_contract
@@ -201,6 +208,8 @@ def main():
             logs.update({key: [] for key in keys})
             if a.shared_actor:
                 logs.update({key: [] for key in ('repeat_hand_history','repeat_object_history','repeat_R_state')})
+            if a.diagnostic_hybrid:
+                logs.update({key: [] for key in ('student_intended','teacher_actions','teacher_obs')})
             def record():
                 hand, gap = geometry.measure(task)
                 sup, foot = support.measure(task, geometry)
@@ -216,9 +225,11 @@ def main():
             own_state = own_tau = None
             for tick in range(a.controls):
                 with torch.no_grad():
-                    # Only row0 uses teacher actions; both shared students use their own measurements.
+                    # Students query their own measurements; optional component oracles are mixed below.
+                    teacher_obs = obs['obs'][:3].clone() if a.diagnostic_hybrid else None
                     padded = obs["obs"].repeat(22, 1)[:64]
                     action = self.get_action(dict(obs, obs=padded), True)[:3].clamp(-1, 1).clone()
+                    teacher_actions = action.clone() if a.diagnostic_hybrid else None
                     intended = action.clone()
                     if buffers[1].needs_query:
                         past = np.maximum(tick + np.arange(-3, 1), 0)
@@ -260,6 +271,11 @@ def main():
                         raw, receipt = buffer.pop(); receipts.append(receipt)
                         intended[env],action[env],_=consume_target(torch.as_tensor(raw,device=task.device),
                               current['q'][env],representation,packet['config']['native_controller'])
+                    if a.diagnostic_hybrid:
+                        from ptv3_shared_wam_v2.native_execution import mix_teacher_components
+                        student_intended = intended.clone()
+                        intended = mix_teacher_components(student_intended, teacher_actions)
+                        action = intended.clamp(-1,1)
                     expected = pd_from_action(action, current["q"], offset, scale)
                     obs, _, done, _ = self.env_step(self.env, action.clone()); executed += 1
                     if not isinstance(obs, dict):
@@ -277,6 +293,9 @@ def main():
                     if a.shared_actor:
                         values.update(repeat_hand_history=repeat_hh, repeat_object_history=repeat_oh,
                                       repeat_R_state=repeat_state)
+                    if a.diagnostic_hybrid:
+                        values.update(student_intended=student_intended,teacher_actions=teacher_actions,
+                                      teacher_obs=teacher_obs)
                     for key, value in values.items():
                         logs[key].append(value.cpu().numpy().copy() if isinstance(value, torch.Tensor) else np.asarray(value).copy())
                     current = record()
