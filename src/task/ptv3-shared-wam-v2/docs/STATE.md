@@ -1,3 +1,15 @@
+## 2026-10-15 shared原生抓取初筛完成，资源调整
+
+用户要求shared_tau停止、GPU4/5转Shadow双卡扩大训练。supervisor1922941已SIGTERM退出；
+停止进度7920，最近完整7000，1k/2k/4k/6k/7k保留。A=pred_tau/B=shared仍继续12k，
+C没有12k结果，原三臂联合12k协议未完成，signal15不是数值失败。
+
+新增明确shared bridge，GPU6/7并行测试当时control_best7k和forecast_best1k，各3条val
+飞机/小球/杯子、seed148、30Hz K1。teacher held分别62/76/92和62/74/95；学生两点均
+三条held0、最大抬升<=3.289mm，两student工程重复也相同。6组执行和独立PD/输入审计PASS。
+局部UNPROMISING，不全局refute shared，不将Shadow成功率与此不同metric横比。
+详见P-20261015-shared-native-grasp，输出shared-native-grasp-20261015-r1，6/7已释放。
+
 ## 2026-10-15 shared actor同步6000步：尾部改善，均值未改善
 
 三臂实际进程仍存活，最新约6040–6340步。固定共同DEV256、同一步6000：

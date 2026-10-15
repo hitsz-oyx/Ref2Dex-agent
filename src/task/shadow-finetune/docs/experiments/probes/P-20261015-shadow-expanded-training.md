@@ -5,7 +5,7 @@ experiment_id: P-20261015-shadow-expanded-training
 date: 2026-10-15
 task: shadow-finetune
 branch: main
-git_commit: pending
+git_commit: 98fd8c6c
 claim_id: C1
 hypothesis_family: HF-shadow-expanded-training
 probe_index_in_family: 1
@@ -56,3 +56,26 @@ best按common DEV normalized action L1；另存forecast_best与各阶段，防�
 续训同时改变训练曝光和batch，非单因素数据规模对照；normalizer来自早期匹配小TRAIN统计。
 DEV64对总体泛化代表有限；独立seed、大DEV面板、完整teacher-state-only基线和正式成功率验证
 待有可决策信号后再做。当前Probe仅能PROMISING/UNPROMISING/UNCLEAR。
+
+
+## 实际启动 / 2026-10-15
+
+固定detached代码98fd8c6c，tmp/shadow-expanded-code-20261015-r1。双卡global512、4更新
+工程smoke r2 COMPLETED，完整step1004 CPU审计PASS：optimizer step1004、两rank RNG、
+模型有限、起点DEV action与原读出差5.48e-7。原normalizer/模型/优化器严格恢复。
+独立review指出的elastic rank进程组归属误判已改为父子树；best含1k起点评估，存档保留
+sampler/comparison与rank RNG以支持后续恢复。DDP沿用Inspire的rank-local masked loss平均，
+scene motion权重分母每rank独立，不宣称与单卡pooled512比值严格相等。
+
+正式不继承smoke更新，重新从原startup1000启动，supervisor2250275/GPU4,5，
+输出outputs/shadow-finetune/shadow-expanded-20261015-r1。启动baseline两个固定DEV面板已记录。
+当前RUNNING，首步1001有限；吞吐/ETA待稳定若干更新，不用首步启动开销外推。
+
+
+稳定启动读出：1140/20000，1.672s/update、预计余8.76h（不含将来的保存/评估开销）。
+20秒六次采样GPU4/5平均利用率95.83%/99.67%，nvidia显存10379/10327MiB，
+峰值allocated8847.9MiB。资源合理，仍在12h预算内，不据短期TRAIN loss判断拟合收益。
+报告startup-resource-readout.json。两rank完整optimizer起点1000/原三LR已审计PASS。
+固定step2000单次16env/seed216闭环watcher2254836已启动，等待checkpoint和GPU6空闲；
+最多等1h+评估20min，不阻塞训练，不自动扩展到其他阶段。程序为evaluate_milestone.py。
+21项相关合同测试通过，workflow verify PASS；当前仅启动和工程验证，无充分训练后的科学结论。

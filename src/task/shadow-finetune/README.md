@@ -25,7 +25,9 @@ sticky成功small7/16、full2/16，同步抬升保持3/16、0/16；局部UNCLEAR
 排除充分训练后的数据量收益。分阶段诊断发现small已见41个起点仍拟合较差（首拍MAE0.223），
 full在近目标/安全尾段误差较小。已完成[起步采样短Probe](docs/experiments/probes/P-20261015-shadow-startup-sampling.md)，
 相同16起点官方成功由2→8、保持由0→4，但起步DEV首拍误差反而增加21%，复合门仍UNCLEAR。
-GPU6/7现空闲，下一步拟固定权重换reset复核；原Inspire三臂继续。
+用户随后授权停止Inspire shared_tau，将GPU4/5改为Shadow扩大训练：从startup1000完整续训到20k，
+global512，每1k留档，原normalizer/采样/loss不变。正式已启动，详见
+[扩大训练卡](docs/experiments/probes/P-20261015-shadow-expanded-training.md)；原Inspire另外两臂继续。
 证据与执行状态见[Task状态](docs/STATE.md)。
 
 入口：

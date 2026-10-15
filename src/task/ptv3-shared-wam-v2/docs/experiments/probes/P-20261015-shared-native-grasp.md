@@ -5,7 +5,7 @@ experiment_id: P-20261015-shared-native-grasp
 date: 2026-10-15
 task: ptv3-shared-wam-v2
 branch: main
-git_commit: pending
+git_commit: f6f1b080
 claim_id: C1
 hypothesis_family: HF-shared-native-grasp
 probe_index_in_family: 1
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [148]
 decision_changed_if_positive: prioritize shared actor native qualification with broader heldout sequences
 decision_changed_if_negative: inspect fitting and early closed-loop action errors before additional scaling
-status: RUNNING
+status: UNPROMISING
 run_id: shared-native-grasp-20261015-r1
 ---
 
@@ -54,3 +54,36 @@ teacher不能复现该序列的正控制则不把该序列的student失败解释
 两种checkpoint按不同离线标准选择，完整报告两者，禁止只展示有利阶段。扩大序列面板、
 独立reset、多seed和完整hold/place验证待正向信号后再做。当前仅Probe，结论PROMISING/
 UNPROMISING/UNCLEAR，不与Shadow的60Hz/5cm目标保持指标直接比较。
+
+
+## 已完成结果 / 2026-10-15
+
+执行代码f6f1b080（固定工作树tmp/shared-native-code-20261015-r1），GPU6/7两个checkpoint
+并行、各三条序列。driver2240975已COMPLETED；先4-step smoke和独立审计PASS，随后6个
+完整短episode全部双peer exit0、独立审计PASS。检查同时覆盖两student本行H4/87D、
+原goal、geometry-lift冻结目标、实际PD、命令时钟和独立held计数。
+
+| sequence | teacher held(control / forecast组) | shared7k held | shared1k held |
+| --- | ---: | ---: | ---: |
+| s10_airplane_pass_1 | 62 / 62 | 0 | 0 |
+| s4_spheresmall_pass_1 | 76 / 74 | 0 | 0 |
+| s10_mug_pass_1 | 92 / 95 | 0 | 0 |
+
+两种checkpoint、两student行在三条序列全部held0。主student最大抬升仅2.663/0/3.289mm，
+未达到3cm阈值。7k主student动作裁剪帧比例38.26%/37.59%/1.16%；1k为75.17%/57.45%/61.63%。
+杯子7k低裁剪也失败，不能将全部失败简单归因控制饱和。
+
+选择身份：7k是当时位置P95最优（DEV XYZ mean62.70/p95171.07mm，action0.41059）；
+1k是总loss和forecast物理误差和最优（mean79.96/p95215.14mm，action0.49407）。
+Inspire best按total objective、control_best按XYZ p95再mean、forecast_best按hand+scene物理
+ADE和；Shadow best按common DEV normalized action L1。不得说两边使用同一选点规则。
+动作都是normalized L1，forecast都是同实现horizon-normalized MSE（scene motion加权），
+但动作含义/normalizer、状态profile、优化曝光不同，不能比较绝对loss推断跨手能力。
+
+本固定三条已知teacher正控制面板上未出现shared抓取信号，局部UNPROMISING；
+不等于整个shared方法或数据量假设被REFUTED。Inspire A/B原12k继续，不追加本轮native
+checkpoint sweep或修改控制补救。下一步由Shadow扩大训练和已有拟合证据决定是否扩大面板。
+
+结果：outputs/ptv3-shared-wam-v2/shared-native-grasp-20261015-r1/panel-status.json；
+紧凑指标compact-results.json；每组native/trajectory.npz、result.json、independent_audit.json
+保留。输入是硬链接快照，后续训练移动alias或清理恢复点不影响本轮权重。

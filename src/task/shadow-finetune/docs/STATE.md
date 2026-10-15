@@ -1,3 +1,14 @@
+## 2026-10-15 用户授权双卡扩大训练已启动
+
+Inspire shared_tau已停止，GPU4/5改为Shadow：从startup1000模型和完整optimizer续训到总20k，
+每卡256/global512、原全量数据/50%起步/normalizer/三LR/loss不变。固定98fd8c6c，
+supervisor2250275，run=shadow-expanded-20261015-r1，两个原DEV64面板持续报告。
+每1k完整checkpoint，best按common DEV动作L1（含续训起点），另存forecast_best。
+同batch双卡4更新smoke和实际CPU checkpoint审计PASS，当前正式RUNNING，尚无长训结论。
+已至1140，1.67s/步、余约8.8h；GPU利用率约96%/100%，显存约10.4/10.3GiB。
+step2000固定16env/seed216单次评估watcher2254836已等待（GPU6，最多等1h）。
+详见P-20261015-shadow-expanded-training。GPU6/7刚完成Inspire六组shared抓取评估并已释放。
+
 # ShadowHand 原生微调当前状态
 
 ## 2026-10-15 起步采样Probe已完成：保持有改善，复合门仍UNCLEAR

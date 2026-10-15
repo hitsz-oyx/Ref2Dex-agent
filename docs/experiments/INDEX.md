@@ -610,7 +610,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261015-shared-native-grasp](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-shared-native-grasp.md) | Inspire shared-only 原生抓取初筛 | 见原卡 | 见原卡 | probes/RUNNING |
+| [P-20261015-shared-native-grasp](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-shared-native-grasp.md) | Inspire shared-only 原生抓取初筛 | 见原卡 | 见原卡 | probes/UNPROMISING |
 
 ## HF-spatial-action-fidelity
 
