@@ -9,6 +9,23 @@ from ptv3_shared_wam_v3.review_data import Catalog,NAMES
 from pose_mesh_data.motion_diagnostics import transition_diagnostics
 
 
+CAPS={'object_speed_mps':5.,'hand_speed_mps':5.,'angular_speed_radps':40.}
+
+
+def threshold_candidate(metrics):
+    # Full native observation transitions can partly enter an interpolated window
+    # while their second native endpoint is outside retained-window coverage.
+    return any(metrics[name].get('full_capture',{}).get('maximum',{}).get('value',0.)>cap
+               for name,cap in CAPS.items())
+
+
+def require_unfiltered_base(recipe):
+    # Catalog global offsets and descriptor identity must share the same base.
+    # This entry rebuilds exclusions; it cannot compose an already-filtered view.
+    if recipe.get('quality_admission'):
+        raise ValueError('rebuild from the original unfiltered quality base; do not overwrite existing exclusions')
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     for k in ('recipe','audit','output'):p.add_argument('--'+k,type=Path,required=True)
@@ -16,13 +33,12 @@ def main():
     if out.exists() or ROOT/'outputs'/TASK.name not in out.parents:raise ValueError('fresh Task output required')
     if json.loads((a.audit/'progress.json').read_text())['status']!='COMPLETED':raise ValueError('complete scan required')
     c=Catalog(a.recipe);r=json.loads((a.recipe/'recipe.json').read_text());stats=json.loads((a.recipe/'horizon-stats.json').read_text())
+    require_unfiltered_base(r)
     candidates=set()
     with gzip.open(a.audit/'records.jsonl.gz','rt') as f:
         for line in f:
             row=json.loads(line)
-            for metric,cap in [('object_speed_mps',5.),('hand_speed_mps',5.),('angular_speed_radps',40.)]:
-                v=row['metrics'][metric].get('retained_window_context')
-                if v and v['maximum']['value']>cap:candidates.add((row['source_id'],row['split'],row['row']))
+            if threshold_candidate(row['metrics']):candidates.add((row['source_id'],row['split'],row['row']))
     candidates.add((10,'train',37130))
     main_offsets={split:np.cumsum([0]+[len(c.indices[sid,split]) for sid in (0,1,2)]) for split in ('train','dev')}
     banned={s:[] for s in ('train','dev')};events=[];removed=Counter()
@@ -37,6 +53,7 @@ def main():
                 reasons[name]=end[hit].tolist()
                 for lo,hi in zip(start[hit],end[hit]):bad[lo:hi+1]=True
         if sid==10 and row==37130:
+            if record.sequence!='ZY20210800003/H3/C1/N30/S83/s01/T2':raise ValueError('manual row identity changed; remap by source sequence')
             bad[:31]=True;reasons['user_confirmed_bad_initial_hand_fit']=[0,30]
         if not bad.any():continue
         if sid==4:bad[np.flatnonzero(bad)[0]:]=True
