@@ -81,11 +81,13 @@ def main():
     recipe.update(main3_root=str(main3), native_root=str(native))
     recipe['native_engineering_recipe']['data_manifest'] = str(native/'manifest.json')
     stats = read(recipe_dir/'horizon-stats.json')
+    origin_numeric = {k:stats[k] for k in ('hand','scene')}
     if stats['recipe'] != old_recipe:
         raise ValueError('export stats/recipe binding mismatch')
     stats['recipe'] = recipe
     write(recipe_dir/'recipe.json', recipe)
     write(recipe_dir/'horizon-stats.json', stats)
+    write(recipe_dir/'origin-horizon-numeric.json',origin_numeric)
     receipt = dict(schema='ref2dex.portable-nine-import.v1', status='IMPORTED_PENDING_READER_AUDIT',
         native_root=str(native),main3_root=str(main3),recipe_root=str(recipe_dir.resolve()),
         source_counts=recipe['source_counts'],original_recipe=old_recipe,

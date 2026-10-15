@@ -56,7 +56,7 @@ def main():
                 raise ValueError('non-finite tensor '+key)
         checked[split]=dict(windows=dataset.counts,samples=len(samples),
             source_ids=sorted({int(p['source_id']) for p in batch['provenance']}))
-    original = json.loads((root/'recipe/horizon-stats.json').read_text())
+    original = json.loads((root/'recipe/origin-horizon-numeric.json').read_text())
     if any(original[k]!=stats[k] for k in ('hand','scene')):
         raise ValueError('numeric stats drift during reader check')
     result=dict(status='CPU_READER_PASS',elapsed_s=time.monotonic()-start,
