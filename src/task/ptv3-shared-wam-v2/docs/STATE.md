@@ -1,5 +1,21 @@
 # PTv3-Shared-WAM v2 当前状态
 
+## 2026-10-15 10:21 CST 当前参考/表面几何信息 Probe
+
+用户允许当前参考目标及误差，排除新增未来参考。GPU0启动四臂matched R-only
+Probe：baseline/current_reference/current_geometry/both，各3000更新、batch128，
+统一从主训练step500的R快照开始，GT τ、数据抽样和新增encoder容量相同。新增输入为
+同tick参考q/物体相对误差24D，以及11手点到CAD最近点的当前位移33D；没有新增接触力
+或16-body动力学测量。独立审查和3项已知值/未来不变性测试通过。此为oracle τ下的
+离线预测诊断，不能用作抓取或部署性能结论；四卡主训练保持运行。
+详见[实验卡](experiments/probes/P-20261015-R-current-information.md)。
+
+首轮3000步已完成并独立复算。baseline/reference/geometry/both 的dev腕部XYZ
+mean/p95分别59.43/219.86、60.85/199.81、58.65/209.09、59.67/187.94mm。
+两输入合用尾部改善14.5%，平均不变，按预设门为UNCLEAR；四臂曲线仍在下降。
+据此启动唯一一次预算延长：r3两卡并行、同初始R重新训练每臂12000步；不再自动延长。
+GPU0 baseline/geometry，GPU1 reference/both，每worker900s/150MB，合计300MB。
+
 ## 2026-10-15 10:01 CST 远端80k权重的四卡q_PD微调已启动
 
 用户明确要求无warmup、q_PD监督，并改用四卡/更大batch。远端科学step80000已取回，
