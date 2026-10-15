@@ -54,6 +54,7 @@ def main():
     p.add_argument('--resume',type=Path)
     p.add_argument('--stop-after',type=int)
     p.add_argument('--loader-workers',type=int,default=2)
+    p.add_argument('--experiment-card',type=Path,default=TASK/'docs/experiments/probes/P-20261015-nine-source-pretrain.md')
     a=p.parse_args()
     out,artifacts=a.output.resolve(),a.artifact_root.resolve()
     if artifacts/'outputs'/TASK.name not in out.parents or out.exists():
@@ -61,6 +62,10 @@ def main():
     config=json.loads(a.config.read_text())
     recipe=json.loads((a.recipe/'recipe.json').read_text())
     stats=json.loads((a.recipe/'horizon-stats.json').read_text())
+    import yaml
+    experiment=yaml.safe_load(a.experiment_card.read_text().split('---',2)[1])
+    if experiment.get('task')!=TASK.name or config['seed'] not in experiment.get('seeds',[]):
+        raise ValueError('Task-local experiment and training seed required')
     if config['schema']!=SCHEMA or stats.get('recipe')!=recipe or recipe.get('training_allowed') is not True:
         raise ValueError('v3 admitted recipe and matching common statistics required')
     if config['hand_weight']!=1 or config['scene_weight']!=1:
@@ -82,6 +87,7 @@ def main():
         weight_decay=config['weight_decay'],fused=True)
     first=0; previous_elapsed=0.; parent=None
     provenance=dict(task=TASK.name,git_commit=git_commit(),code_root=str(ROOT),
+        experiment_id=experiment['experiment_id'],run_id=out.name,branch=experiment['branch'],
         world_size=world,recipe=str(a.recipe.resolve()),initialization='all weights from scratch',
         scope='offline nine-source pretraining Probe; robot benefit untested')
     if a.resume:
@@ -92,6 +98,7 @@ def main():
         restore_optimizer(optimizer,parent['optimizer'])
         first=parent['step']; previous_elapsed=parent['provenance'].get('elapsed_s',0.)
         provenance.update(resume_parent=str(a.resume.resolve()),parent_step=first,
+            parent_git_commit=parent['provenance']['git_commit'],
             initialization='full v3 optimizer/model/per-rank RNG resume')
     target=a.stop_after or config['updates']
     if not 0<=first<target<=config['updates']:
@@ -189,6 +196,9 @@ def main():
             if (out/'STOP').exists() or shutil.disk_usage(artifacts).free<20*2**30:
                 raise RuntimeError('STOP or free disk floor')
         if rank==0:
+            progress=json.loads((out/'progress.json').read_text())
+            progress['status']='COMPLETED' if target==config['updates'] else 'PARTIAL'
+            atomic_json(out/'progress.json',progress)
             atomic_json(out/'result.json',dict(status='COMPLETED' if target==config['updates'] else 'PARTIAL',
                 final_step=target,elapsed_s=time.monotonic()-started,provenance=provenance))
             atomic_json(out/'manifest.json',dict(status='COMPLETED' if target==config['updates'] else 'PARTIAL',

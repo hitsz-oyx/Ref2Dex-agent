@@ -5,7 +5,7 @@ experiment_id: P-20261015-nine-source-pretrain
 date: 2026-10-15
 task: ptv3-shared-wam-v3
 branch: main
-git_commit: 0e4cdc03
+git_commit: f62ca8f8
 claim_id: C1
 hypothesis_family: HF-nine-source-pretrain
 probe_index_in_family: 1
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [170]
 decision_changed_if_positive: continue nine-source pretraining when sustained full-batch updates and recovery pass and fixed physical DEV errors improve
 decision_changed_if_negative: inspect source semantics and actual input/loss chain before spending the remaining training budget
-status: PLANNED
+status: RUNNING
 run_id: pretrain-nine-80k-20261015-r1
 ---
 
@@ -44,7 +44,16 @@ DexYCB没有 DEV，不虚构；八源宏平均 objective用于恢复点选择，
 
 ## Results
 
-PENDING. 所有运行保留独立目录；运行中的首步、资源、吞吐、恢复证据在此补充。
+统计 `nine-source-recipe-20261015-r1` 完成，146.71秒CPU，TRAIN总数4,806,144。
+九源概率顺序OakInk2/GRAB/ARCTIC/UniDex/TACO/HOT/DexYCB/H2O/HOI4D：
+46.0886/10.6770/13.0795/12.0626/4.1012/6.2535/0.4395/1.7696/5.5285%。
+main3抽样标签在九源collate中逐tensor与旧collate完全一致（九项）；九源混合真实batch通过。
+5项测试通过，包括不等有效点DDP归一化的loss及梯度等价、stateless抽样恢复、完整optimizer/RNG保存。
+
+启动检查 `startup-nine-ddp-20261015-r1` 已完成4步，每卡128/global256，固定代码f62ca8f8，
+GPU1/3，耗时52.26秒（含梯度检查、DEV和worker启动）；保存step1与step4完整checkpoint。
+首步实际optimizer batch覆盖全部九源；梯度与loss有限。rank0峰值分配11.35GiB，reserved13.06GiB。
+下一步从step4原样恢复至80000步，继续观察稳态吞吐与物理DEV误差。
 
 多卡损失按各rank有效点/scene运动权重分母全局归一化，补偿DDP的梯度平均；
 不引入来源loss乘数。checkpoint milestone40k，保留step1、best/latest和恢复点，
