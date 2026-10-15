@@ -108,6 +108,7 @@ def main():
         if not full_assets.is_dir():
             raise FileNotFoundError(full_assets)
         assets.symlink_to(full_assets, target_is_directory=True)
+    measurement_assets = (full_assets if selected["kind"] == "rl660" else native_root / "data/assets")
     connection = socket.socket(socket.AF_UNIX)
     connection.settimeout(120); connection.connect(str(a.socket))
     if peer_pid(connection) != a.server_pid:
@@ -128,6 +129,7 @@ def main():
                     roles=["teacher", "GT_tau_R", "shared_WAM_R"], training_allowed=False,
                     engineering_only=a.engineering_only,
                     no_teacher_intervention=True, native_controller=packet["config"]["native_controller"])
+    manifest["measurement_assets"] = str(measurement_assets.resolve())
     manifest["native_input"] = selected
     manifest["retargeter_override"] = override
     manifest['action_representation']=representation
@@ -163,8 +165,8 @@ def main():
                 names = [Path(task.motion_file[int(i)]).name for i in task.data_id.cpu().tolist()]
                 if names != [a.sequence] * 3 or any(n != selected["object"] for n in task.object_name):
                     raise ValueError("native reset motion/object differs from selected RL660 record")
-            geometry = PhysicalGeometry(task, native_root / "data/assets", distance_device=task.device)
-            support = TableSupport(native_root / "data/assets", task.device)
+            geometry = PhysicalGeometry(task, measurement_assets, distance_device=task.device)
+            support = TableSupport(measurement_assets, task.device)
             offset, scale = task._pd_action_offset.clone(), task._pd_action_scale.clone()
             controller = dict(offset=offset.tolist(), scale=scale.tolist())
             if controller != manifest["native_controller"] or hello["native_controller"] != controller:

@@ -54,6 +54,7 @@ def main():
     p.add_argument('--archive', type=Path, required=True)
     p.add_argument('--card', type=Path, required=True)
     p.add_argument('--gpus', default='0,1,2')
+    p.add_argument('--previous-output', type=Path, help='reuse only completed matching physical groups; never overwrite them')
     a = p.parse_args()
     out, archive = a.output.resolve(), a.archive.resolve()
     gpus = [int(x) for x in a.gpus.split(',')]
@@ -84,6 +85,23 @@ def main():
             if sum(f.stat().st_size for f in out.rglob('*') if f.is_file()) > 2_000_000_000:
                 raise RuntimeError('panel artifact budget')
             run = out / ('step%d-%s' % (step, short))
+            previous = a.previous_output.resolve() / run.name if a.previous_output else None
+            if previous and (previous / 'group_status.json').is_file():
+                prior = json.loads((previous / 'group_status.json').read_text())
+                expected = archive / ('finetune-step%d.pt' % step)
+                if (prior.get('status') == 'COMPLETED' and prior.get('checkpoint') == str(expected)
+                        and prior.get('controls') == controls and prior.get('execution_steps') == 4
+                        and prior.get('seed') == 148 and prior.get('native_input',{}).get('sequence') == sequence):
+                    if not (previous / 'native/independent_audit.json').exists():
+                        audit = subprocess.run([sys.executable,str(LEGACY/'tools/audit/audit_native.py'),
+                            '--native',str(previous/'native')],cwd=ROOT,capture_output=True,text=True)
+                        (out / (run.name+'-previous-audit.log')).write_text(audit.stdout+audit.stderr)
+                        if audit.returncode:
+                            raise RuntimeError('completed previous group still fails audit; diagnose before replay')
+                    reports.append(dict(step=step,sequence=sequence,status='COMPLETED',
+                        reused_from=str(previous),outcomes=summarize(previous,step,sequence)))
+                    write(out/('%s-progress.json'%short),reports)
+                    continue
             cmd = [sys.executable, str(LEGACY/'tools/run/launch_native.py'), '--model-version','v2',
                    '--checkpoint',str(archive/('finetune-step%d.pt'%step)), '--output',str(run),
                    '--gpu',str(gpu),'--controls',str(controls),'--execution-steps','4',

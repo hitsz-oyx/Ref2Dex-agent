@@ -61,7 +61,10 @@ def audit(path):
             check('geometry_buffer_orientation',actual_rotation,target_rotation)
             if representation=='wrist-geometry-continuous-lift.v1':
                 reference=target[...,12:15]+d['R_query_q'][...,3:6]
-                absolute=current*relative
+                # The executed buffer stores absolute rotvec in model dtype.
+                # Reconstruct that quantization before lifting near-singular
+                # Euler angles; double precision alone changes the command.
+                absolute=Rotation.from_rotvec((current*relative).as_rotvec().astype(target.dtype))
                 import warnings
                 with warnings.catch_warnings():
                     warnings.simplefilter('ignore',UserWarning)
@@ -79,7 +82,7 @@ def audit(path):
                 mismatch=(Rotation.from_euler('XYZ',reference.reshape(-1,3)).inv()*absolute).magnitude().reshape(reference.shape[:-1])
                 desired[...,3:6]=np.where((mismatch<1e-6)[...,None],reference,angles)
         elif representation!='pd-relative-current.v1':raise ValueError('unknown physical target units')
-        controller=manifest['native_controller'];live=d['q'][:-1,1:]
+        controller={key:np.asarray(value,dtype=d['q'].dtype) for key,value in manifest['native_controller'].items()};live=d['q'][:-1,1:]
         raw=(desired-np.asarray(controller['offset'])[ACTIVE])/np.asarray(controller['scale'])[ACTIVE]
         raw[...,:6]=(desired[...,:6]-live[...,:6]-np.asarray(controller['offset'])[:6])/np.asarray(controller['scale'])[:6]
         raw[...,6:]=raw[...,6:]*2-1
