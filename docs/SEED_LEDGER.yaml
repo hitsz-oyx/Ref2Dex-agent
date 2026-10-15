@@ -25,6 +25,13 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261015-full-teacher-input:
+    seed_pool: probe
+    student_initialization_seed: 180
+    matched_draw_seed: 181
+    panel_seed: 162
+    reuse_reason: retain prior native-current panels and membership; new matched upper-bound students, not independent replication
+
   P-20261015-v2-stage-grasp:
     seed_pool: probe
     paired_physics_seed: 148
