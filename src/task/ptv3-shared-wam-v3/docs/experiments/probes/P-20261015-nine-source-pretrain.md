@@ -104,3 +104,14 @@ compact与raw[::2]完全一致，query重建误差2.38e-7m；60Hz某帧16.7ms位
 远端独立`data-motion-r1/recipe`已CPU验收通过（37,591payload/2,638CAD及36 TRAIN/32 DEV mixed样本）；与本地新的数值统计完全一致，已知row14909的59/67/75不准入但raw仍可读。原数据和旧配方保留。新配方改变了目标归一化，下一轮从头初始化，不直接恢复旧统计下的step4优化器状态。这里只记录数据工程进展，不形成模型效果结论。
 
 规则是保守疑点隔离，不保证物理异常全覆盖；边界9674/17266仍列可视化复核清单。完整协议和限制见[清洗记录](../../../../3d-data-preparation/docs/research/2026-10-15-unidex-motion-cleaning.md)。
+
+
+## 远端四卡motion全量启动 Decision Note（2026-10-15）
+
+用户已明确要求“你直接开始吧”。本次run_id为`pretrain-nine-motion-remote4-80k-20261015-r1`，执行固定代码`6e535bc1077e1593d28a83d01b485b5a09cb8075`，短代码目录`/home/wbcd/workspace/oyx_ws/wam-v3-20261015/repo`；该版本的模型、采样、TRAIN归一化/训练循环与当前实现相同，PointWorld只读借用已部署vendor。输入为远端`data-motion-r1/recipe`，4,806,030 TRAIN/821,613 DEV。所有模型和优化器从头初始化，不加载旧归一化下checkpoint。
+
+继续原实验问题：九源统一模型能否稳定优化，固定八源DEV物理误差是否改善，结果决定是否继续80k预算或先诊断；不改变最终claim。清洗前本地只验证了双卡工程链路；现在由启动阶段的九源梯度审计、初始DEV、第一步完整保存及随后的连续四卡更新，最低成本检验新视图/远端DDP路径。
+
+资源核查：本地8卡当前均无计算占用，远端4×4090各49,140MiB空闲，使用远端0/1/2/3，符合全项目6卡上限。采用既定world4配置，每卡128/global512、80,000更新、warmup500、lr1e-4、bf16/TF32、每1000步DEV/保存；最长48h、产物8GB/run、磁盘余量20GiB。rank0初始DEV/保存期间其他rank等待，首步后再估计稳态吞吐与ETA。只允许停止own进程组；非有限loss/grad、资源超限、无进度30min、STOP或期限停止。
+
+当前执行：准备启动；实际状态以远端process/progress.json为准。启动成功后记录PID、GPU实测、速率和ETA。
