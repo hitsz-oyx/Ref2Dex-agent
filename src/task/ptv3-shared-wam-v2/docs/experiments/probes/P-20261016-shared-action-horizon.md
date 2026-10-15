@@ -70,7 +70,10 @@ GPU 异常，step4000 权重和日志完整保留。随后从这两个 step4000 
 但对本 Probe 的“8拍”臂标为 `INVALID_IMPLEMENTATION`，不用于四组因果比较。single-
 masked1/single-delta01 显式设为1，语义有效。
 
-修正臂从原 shared-current 1k checkpoint 恢复完整 Adam/RNG，只增加明确的
+由于 shared-current 1k checkpoint 本身已经在错误的24拍语义下更新，直接从它续接会把
+错误的前1k历史带入“8拍”臂。为恢复四组的共同起点，root 选择从同一个 shared7k+
+weight-only robot parent fresh 重跑两条 8拍臂；这比继续污染的 optimizer state 多花约3小时，
+但仍在本卡 deadline 和 GPU 预算内。新配置显式写入
 `action_supervision_steps=8`，并使用稀疏 validation/checkpoint cadence 以满足每臂7GB
-artifact budget。修正输出目录为 `continuation-masked8-corrected` 和
-`continuation-delta08-corrected`；这两个臂完成后才形成本卡四组结果。
+artifact budget；输出目录为 `fresh8-masked` 和 `fresh8-delta0`。原 continuation
+输出保留作资源与错误实现证据，不参与四组比较。
