@@ -1,3 +1,13 @@
+## 2026-10-15 新训练切换补采660与失败前50帧严筛
+
+用户要求物体位置偏离当前参考>10cm时连同前50帧不训练。新robot入口统一默认
+补采dexplore-current-rollout-20261015-r1，旧数据/manifest/checkpoint保留。
+按H4历史至future24全部support排除交叠窗口；超过阈值与非有限均视为坏帧，等于阈值保留。
+独立逐窗interval审计PASS：TRAIN93680（546/589条有窗），dev10376（68/71条有窗），
+合计104056；原workspace后122299减少18243窗，约14.92%。startup TRAIN7205/dev971。
+这是位置准入而非成功抓取标签；人工备注未自动应用。新旧dev不同，后续三臂共同使用
+新dev，不能与旧实验绝对指标作单因素归因。报告rollout-admission-current-20261015-r1。
+
 # PTv3-Shared-WAM v2 当前状态
 
 ## 2026-10-15 s1人工备注已与审计核对

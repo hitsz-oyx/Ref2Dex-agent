@@ -90,7 +90,7 @@ def parser():
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--config", type=Path, required=True)
     p.add_argument("--stats", type=Path, required=True)
-    p.add_argument("--source", type=Path, required=True)
+    p.add_argument("--source", type=Path, default=V2_OUTPUTS / "dexplore-current-rollout-20261015-r1")
     p.add_argument("--init-shared", type=Path, required=True)
     p.add_argument("--experiment-card", type=Path, required=True)
     p.add_argument("--gpus", default="4,6")

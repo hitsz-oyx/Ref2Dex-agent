@@ -12,12 +12,45 @@
   "patch_size": 128,
   "scene_tokens": 256,
   "ptv3": {
-    "enc_channels": [32, 64, 96, 128, 256],
-    "enc_depths": [2, 2, 2, 4, 2],
-    "enc_heads": [4, 4, 6, 8, 16],
-    "dec_channels": [128, 64, 96, 128],
-    "dec_depths": [1, 1, 1, 1],
-    "dec_heads": [8, 4, 6, 8],
+    "enc_channels": [
+      32,
+      64,
+      96,
+      128,
+      256
+    ],
+    "enc_depths": [
+      2,
+      2,
+      2,
+      4,
+      2
+    ],
+    "enc_heads": [
+      4,
+      4,
+      6,
+      8,
+      16
+    ],
+    "dec_channels": [
+      128,
+      64,
+      96,
+      128
+    ],
+    "dec_depths": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "dec_heads": [
+      8,
+      4,
+      6,
+      8
+    ],
     "drop_path": 0.1
   },
   "object_points": 32,
@@ -25,7 +58,11 @@
   "history": 4,
   "horizon": 24,
   "voxel_m": 0.01,
-  "voxel_origin_m": [-2.0, -2.0, -2.0],
+  "voxel_origin_m": [
+    -2.0,
+    -2.0,
+    -2.0
+  ],
   "position_scale_m": 0.05,
   "velocity_scale_mps": 0.5,
   "acceleration_scale_mps2": 5.0,
@@ -33,9 +70,9 @@
   "explicit_hand": true,
   "horizon_normalization": true,
   "checkpoint_interaction": true,
-  "geometry_lr": 0.000005,
-  "shared_lr": 0.00001,
-  "robot_lr": 0.00005,
+  "geometry_lr": 5e-06,
+  "shared_lr": 1e-05,
+  "robot_lr": 5e-05,
   "weight_decay": 0.01,
   "clip_grad": 1.0,
   "batch_size": 32,
@@ -59,5 +96,12 @@
   "artifact_budget_bytes": 8000000000,
   "fused_optimizer": true,
   "action_representation": "wrist-geometry-continuous-lift.v1",
-  "remote_parent_git_commit": "1650ffce293fb201fd7d12d5797ed71608dff5c5"
+  "remote_parent_git_commit": "1650ffce293fb201fd7d12d5797ed71608dff5c5",
+  "rollout_admission": {
+    "schema": "ref2dex.rollout-position-prebuffer.v1",
+    "max_object_error_m": 0.1,
+    "preceding_frames": 50,
+    "history": 4,
+    "horizon": 24
+  }
 }

@@ -45,7 +45,7 @@ shared85,054,464；其余为输入融合、goal与双预测头。
   src/task/ptv3-shared-wam-v2/tools/run/train_robot.py \
   --config src/task/ptv3-shared-wam-v2/configs/robot_remote_finetune.json \
   --stats outputs/ptv3-shared-wam-v2/horizon-stats-main3-20261014-r1/stats.json \
-  --source outputs/ptv3-shared-wam/rl660-corpus-20261014-r2 \
+  --source outputs/ptv3-shared-wam-v2/dexplore-current-rollout-20261015-r1 \
   --init-shared outputs/ptv3-shared-wam-v2/<remote-parent>.pt \
   --output outputs/ptv3-shared-wam-v2/<fresh-run> \
   --experiment-card src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-ptv3-shared-v2-robot-finetune.md
@@ -58,7 +58,7 @@ shared85,054,464；其余为输入融合、goal与双预测头。
   src/task/ptv3-shared-wam-v2/tools/run/launch_robot_finetune.py --detach \
   --gpus 4,6 --config src/task/ptv3-shared-wam-v2/configs/robot_remote_finetune.json \
   --stats outputs/ptv3-shared-wam-v2/horizon-stats-main3-20261014-r1/stats.json \
-  --source outputs/ptv3-shared-wam/rl660-corpus-20261014-r2 \
+  --source outputs/ptv3-shared-wam-v2/dexplore-current-rollout-20261015-r1 \
   --init-shared outputs/ptv3-shared-wam-v2/<remote-parent>.pt \
   --output outputs/ptv3-shared-wam-v2/<fresh-run> \
   --experiment-card src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-ptv3-shared-v2-robot-finetune.md \
@@ -187,3 +187,13 @@ TMPDIR="$PWD/tmp" PYTHONDONTWRITEBYTECODE=1 /home2/wyy/miniconda3/envs/graspenv/
 先经原teacher确定性重放检查；缓存准备入口`tools/run/prepare_full_teacher_membership.py`
 与`prepare_full_teacher_data.py`，训练入口`tools/run/probe_full_teacher.py`。
 结果、曲线和完整误差表在`outputs/ptv3-shared-wam-v2/full-teacher-input-20261015-r1/summary/`。
+
+## 新微调统一数据与严格位置准入
+
+新robot训练默认使用补采`dexplore-current-rollout-20261015-r1`，保留其原TRAIN/dev序列划分。
+实际物体位置相对当前参考偏差严格大于0.1m或非有限时，将该帧及此前50帧标为不可信；
+任何H4历史至future24标签覆盖不可信帧的窗口都不参与采样、归一化和评估。
+例如坏帧100会隔离50…100，query26…103随窗口排除。阈值恰好10cm不排除。
+这只是位置质量准入，不保证接触、旋转、手姿和持续抓取成功。人工备注仍独立保存。
+原始660文件、原manifest和历史checkpoint不改写；旧实验复现可显式构造无新准入的reader。
+报告入口`tools/audit/audit_rollout_admission.py`，训练run保存独立`rollout_admission.json`。

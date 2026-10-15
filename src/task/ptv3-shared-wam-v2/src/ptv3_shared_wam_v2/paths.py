@@ -11,3 +11,5 @@ add_dependencies()
 DEFAULT_DATA = ROOT / "outputs/cm-pointflow-effect-pretrain/pointworld-main3-sharedstats-20261009/data-main-worktree"
 SCHEMA = "ref2dex.ptv3-shared-wam.v2"
 STATS_SCHEMA = "ref2dex.horizon-displacement-stats.v1"
+
+DEFAULT_ROBOT_SOURCE = ROOT / "outputs/ptv3-shared-wam-v2/dexplore-current-rollout-20261015-r1"

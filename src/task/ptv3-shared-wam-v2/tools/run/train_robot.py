@@ -25,7 +25,7 @@ from ptv3_shared_wam_v2.checkpoint import (atomic_json, directory_bytes, git_com
 from ptv3_shared_wam_v2.robot_data import V2RLRobotWindows, robot_collate
 from ptv3_shared_wam_v2.robot_model import SharedWAMV2Robot, robot_loss
 from ptv3_shared_wam_v2.training import gpu_snapshot
-from ptv3_shared_wam_v2.paths import SCHEMA as V2_SCHEMA
+from ptv3_shared_wam_v2.paths import SCHEMA as V2_SCHEMA, DEFAULT_ROBOT_SOURCE
 
 sys.path.insert(0, str(TASK.parent / "ptv3-shared-wam" / "src"))
 from ptv3_shared_wam.action_targets import NATIVE, validate_representation
@@ -37,7 +37,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--stats", type=Path, required=True)
-    parser.add_argument("--source", type=Path, required=True)
+    parser.add_argument("--source", type=Path, default=DEFAULT_ROBOT_SOURCE)
     parser.add_argument("--init-shared", type=Path, required=True)
     parser.add_argument("--resume", type=Path,
                         help="optional robot checkpoint; writes resumed state into a fresh output")
@@ -181,8 +181,16 @@ def main():
     if config.get('encoder_workspace_admission') is not None:
         workspace = dict(schema=config['encoder_workspace_admission'],
                          origin_m=config['voxel_origin_m'], voxel_m=config['voxel_m'])
-    train = V2RLRobotWindows(args.source, "train", config["object_points"], representation, workspace)
-    dev = V2RLRobotWindows(args.source, "val", config["object_points"], representation, workspace)
+    admission = config.get('rollout_admission')
+    if admission is None:
+        from ptv3_shared_wam_v2.rollout_admission import DEFAULT_POLICY
+        admission=dict(DEFAULT_POLICY)
+        config['rollout_admission']=admission
+    source_manifest=json.loads((args.source/'manifest.json').read_text())
+    if not source_manifest.get('capture_current_observation'):
+        raise ValueError('new robot training uses native supplementary660 corpus; historical artifacts remain read-only')
+    train = V2RLRobotWindows(args.source, "train", config["object_points"], representation, workspace, admission)
+    dev = V2RLRobotWindows(args.source, "val", config["object_points"], representation, workspace, admission)
     parent = torch.load(args.init_shared, map_location="cpu", weights_only=False)
     expected_parent_commit = None if args.smoke else config.get("remote_parent_git_commit")
     if not args.smoke and (not isinstance(expected_parent_commit, str) or not expected_parent_commit):
@@ -234,6 +242,7 @@ def main():
         provenance.update(resume_parent=str(args.resume.resolve()), resume_step=start_step)
     if rank == 0:
         out.mkdir(parents=True, exist_ok=False)
+        atomic_json(out / "rollout_admission.json", {"train":train.rollout_admission,"val":dev.rollout_admission})
         np.save(out / "validation.npy", validation)
         if workspace is not None:
             atomic_json(out / 'encoder_workspace_admission.json',
