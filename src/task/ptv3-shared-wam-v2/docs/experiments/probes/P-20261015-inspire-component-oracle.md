@@ -68,15 +68,28 @@ H4/87D/goal/clock与held计数；不得因加入oracle跳过旧student预测检�
 
 ## Decision Note / 预算与停止条件
 
-当前动作表示2k配对Probe优先，GPU0..7均忙时不启动本项。用户已临时授权剩余卡实验，
-因此只在自己原有工作释放一张卡、nvidia-smi确认空闲之后执行；不停止其他训练。
-代码/输入固定在执行前提交与工作树。首条含smoke<=30min，单组<=600s、总产物<=2GB、
+当前动作表示2k配对Probe优先，GPU0..7均忙时不启动本项GPU计算。用户已临时授权剩余卡实验，
+因此只在该配对pipeline成功完成、两臂所有学生均未held45、GPU6/7释放且nvidia-smi确认
+空闲后执行；若配对已有held45正信号则跳过本项，优先分析该信号。不停止其他训练。
+监督器只附着已确认存活的upstream PID和/proc启动身份，最多等2h，不自行重启上游；
+上游失败/退出/替换则本项失败退出。代码/输入固定在执行前提交与工作树。
+
+4-step混控smoke及audit通过后，两卡并行：GPU6上述149步组件诊断；GPU7使用同一shared7k
+做一条自主TRAIN资格对照s1_airplane_pass_1、195controls、seed148/K1，无任何teacher混入。
+该TRAIN候选在主动作表示卡的train-panel-audit.json中按字典序/同pass/strict startup选择，
+不是挑结果。自身row0 teacher held45认证后才解读训练集表现；teacher失败只记未认证，
+不自动追加序列。若TRAIN能抓而已有val不能，优先泛化；若TRAIN也不能，不能只归因val
+split，继续检查闭环拟合。它不是新增数据量/跨手因果实验。
+
+首条及TRAIN含smoke预计<=30min，单组native launcher<=600s、每组CPU audit<=120s、总产物<=4GB、
 磁盘保留20GiB；失败、非有限、合同不匹配停止自己的组。无需新长期身份或外部写入。
 当前只是已实现并测试的待执行诊断，git_commit字段为准备前HEAD，实际执行前必须更新。
 
 准备验证：native_execution 8项单测通过，包含own-row组件替换/耦合维保持/输入无修改；
 新audit在原control-airplane和forecast-mug日志回归通过，原18项合同与held复算均保留；
 语法和仓库verify通过。尚未运行GPU工程smoke或采集oracle结果，不能据此形成方法结论。
+条件接续监督器已独立只读审查通过：上游条件门、PID身份、GPU空闲、smoke顺序、固定
+输入与两组角色均未见blocker。其CPU audit增加120s timeout，native沿用原有600s监督。
 
 ## Limitations / future evidence
 
