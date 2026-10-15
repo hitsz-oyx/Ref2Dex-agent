@@ -101,8 +101,8 @@ def main():
     p.add_argument('--checkpoint',type=Path,required=True);p.add_argument('--recipe',type=Path,required=True)
     p.add_argument('--output',type=Path,required=True);p.add_argument('--trainer-progress',type=Path,required=True)
     p.add_argument('--train-per-source',type=int,default=2048);p.add_argument('--dev-per-source',type=int,default=128)
-    p.add_argument('--sources',type=int,nargs='+');p.add_argument('--seed',type=int,default=214);p.add_argument('--gpu',type=int,default=0);p.add_argument('--seconds',type=int,default=3600)
-    a=p.parse_args();out=a.output.resolve();assert not out.exists() and 1<=a.train_per_source<=4096 and 1<=a.dev_per_source<=256 and 60<=a.seconds<=3600
+    p.add_argument('--batch-size',type=int,default=1);p.add_argument('--bank-sources',type=int,nargs='+');p.add_argument('--sources',type=int,nargs='+');p.add_argument('--seed',type=int,default=214);p.add_argument('--gpu',type=int,default=0);p.add_argument('--seconds',type=int,default=3600)
+    a=p.parse_args();out=a.output.resolve();assert not out.exists() and 1<=a.train_per_source<=4096 and 1<=a.dev_per_source<=256 and 60<=a.seconds<=3600 and 1<=a.batch_size<=8
     if shutil.disk_usage(out.parent).free<20*2**30:raise RuntimeError('20GiB disk floor')
     torch.set_num_threads(2);torch.cuda.set_device(a.gpu);free,total=torch.cuda.mem_get_info()
     if free<8*2**30:raise RuntimeError('8GiB GPU headroom required before co-located diagnostic')
@@ -118,7 +118,7 @@ def main():
     model.geometry.register_forward_hook(lambda module,args,result:stored.update(geometry=result))
     model.interaction.register_forward_hook(lambda module,args,result:stored.update(shared=result.detach()))
     progress=dict(status='RUNNING',pid=os.getpid(),checkpoint=str(a.checkpoint),checkpoint_step=step,parent_checkpoint=parent,
-        recipe=str(a.recipe),seed=a.seed,gpu=a.gpu,allocator_limit_bytes=3*2**30,batch_size=1,max_seconds=a.seconds,
+        recipe=str(a.recipe),seed=a.seed,gpu=a.gpu,allocator_limit_bytes=3*2**30,batch_size=a.batch_size,max_seconds=a.seconds,
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip())
     try:
         dev=NineWindows(recipe['main3_root'],recipe['native_root'],'dev',recipe);sources=sorted(dev.counts,key=int) if a.sources is None else list(map(str,a.sources))
@@ -126,12 +126,13 @@ def main():
         for split,target in [('dev',a.dev_per_source),('train',a.train_per_source)]:
             data=dev if split=='dev' else NineWindows(recipe['main3_root'],recipe['native_root'],'train',recipe)
             for sid in sources:
-                ids=select_indices(data,sid,target,a.seed);rows=[];meta=[];started=time.monotonic();skipped=0
-                loader=DataLoader(Selected(data,ids),batch_size=1,collate_fn=pack,num_workers=2,multiprocessing_context='spawn',worker_init_fn=worker_init,prefetch_factor=2,
+                if split=='train' and a.bank_sources is not None and int(sid) not in a.bank_sources:continue
+                ids=select_indices(data,sid,target,a.seed);rows=[];meta=[];started=time.monotonic();skipped=0;progress['source_log_bucket']=-1
+                loader=DataLoader(Selected(data,ids),batch_size=a.batch_size,collate_fn=pack,num_workers=2,multiprocessing_context='spawn',worker_init_fn=worker_init,prefetch_factor=2,
                     generator=torch.Generator().manual_seed(a.seed+int(sid)),timeout=180)
                 for bound in loader:
                     if bound is None:skipped+=1;continue
-                    batch,records=bound;record=records[0]
+                    batch,records=bound
                     if (out/'STOP').exists() or time.monotonic()-start>a.seconds or shutil.disk_usage(out).free<20*2**30:raise RuntimeError('STOP/deadline/free-disk boundary')
                     free,_=torch.cuda.mem_get_info()
                     if free<4*2**30:raise RuntimeError('co-located GPU free headroom below4GiB')
@@ -146,14 +147,18 @@ def main():
                         progress['future_label_invariance']='PASS';del altered,control
                     z=stored['shared'].float();geo=stored['geometry'];offset=geo['tokens'].shape[1]
                     def pooled(values,valid):return (values*valid[...,None]).sum(1)/valid.sum(1).clamp_min(1)[:,None]
-                    embedding=torch.cat((pooled(z[:,:offset],geo['mask']),pooled(z[:,offset:offset+22],batch['start_hand_valid'].flatten(1)),pooled(z[:,offset+22:],batch['object_goal_valid'])),dim=-1)[0].cpu().numpy()
-                    side=record['meta']['side'];delta=pred['trajectory'][0,:,side].float().cpu().numpy();absolute=record['start'][None]+delta
-                    contact=tip_proximity(record,absolute)
-                    target_slot=int(batch['goal_object_slot'][0]);scene_error=torch.linalg.vector_norm(pred['scene'][0,target_slot]-batch['scene_target'][0,target_slot],dim=-1).mean(-1).float().cpu().numpy()
-                    rows.append(dict(z=embedding,future=record['future'],delta=record['delta'],prediction=absolute,pred_delta=delta,start=record['start'],
-                        history=record['history'],goal=record['goal'],scene_history=record['scene_history'],tip_proximity=contact,scene_error=scene_error))
-                    meta.append(record['meta']);stored.clear();del pred,batch
-                    if len(rows)%32==0 or len(rows)==target:
+                    embeddings=torch.cat((pooled(z[:,:offset],geo['mask']),pooled(z[:,offset:offset+22],batch['start_hand_valid'].flatten(1)),pooled(z[:,offset+22:],batch['object_goal_valid'])),dim=-1).cpu().numpy()
+                    for bi,record in enumerate(records):
+                        side=record['meta']['side'];delta=pred['trajectory'][bi,:,side].float().cpu().numpy();absolute=record['start'][None]+delta
+                        contact=tip_proximity(record,absolute)
+                        target_slot=int(batch['goal_object_slot'][bi]);scene_error=torch.linalg.vector_norm(pred['scene'][bi,target_slot]-batch['scene_target'][bi,target_slot],dim=-1).mean(-1).float().cpu().numpy()
+                        rows.append(dict(z=embeddings[bi],future=record['future'],delta=record['delta'],prediction=absolute,pred_delta=delta,start=record['start'],
+                            history=record['history'],goal=record['goal'],scene_history=record['scene_history'],tip_proximity=contact,scene_error=scene_error))
+                        meta.append(record['meta'])
+                        if len(rows)>=target:break
+                    stored.clear();del pred,batch
+                    if len(rows)//32>progress.get('source_log_bucket',-1) or len(rows)==target:
+                        progress['source_log_bucket']=len(rows)//32
                         elapsed=time.monotonic()-start;rate=len(rows)/(time.monotonic()-started)
                         progress.update(split=split,source=sid,source_processed=len(rows),source_target=target,skipped=skipped,elapsed_s=elapsed,
                             samples_per_s=rate,own_peak_allocated_mib=torch.cuda.max_memory_allocated()/2**20,

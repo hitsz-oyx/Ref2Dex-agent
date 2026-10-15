@@ -76,7 +76,7 @@ def choose_neighbors(query,bank,metadata_q,metadata_b,zdist,gate,k=32):
         # RMS in Euclidean metres, across XYZ as a vector (not coordinate RMS).
         h*=3**.5;g*=3**.5;scene*=3**.5
         if max(h,g,scene)<=gate:candidates.append((j,h,g,scene))
-    candidates.sort(key=lambda x:float(zdist[x[0]]))
+    candidates.sort(key=(lambda x:float(zdist[x[0]])) if zdist is not None else (lambda x:x[1]**2+x[2]**2+x[3]**2))
     picked=[];seen=set()
     for j,h,g,s in candidates:
         capture=metadata_b[j]['capture']
