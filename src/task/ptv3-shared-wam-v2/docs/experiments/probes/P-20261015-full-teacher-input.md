@@ -172,3 +172,10 @@ results.json/csv、table.md、curves.png、independent-metric-audit.json与manif
 首轮/补充每臂保留curve/result/manifest、selected checkpoint和对应预测；cache有
 逐序列teacher replay审计、source/split/tick、固定面板和数组。输出可追溯，不覆盖原
 660数据、微调权重或既有实验。
+
+## 资源记录更正（后续任务核对）
+
+根STATE显示九源远端四卡已于14:07启动；上一轮首批本地4卡学生短拟合与之重叠，
+实际超过全局6卡上限，原资源段只写本地4卡是不完整的。四臂已全部结束，不影响
+其他任务的进程或权重；不追溯称为临时7卡例外。后续teacher-fit-generalization对照
+已改为仅本地2卡分批，与远端4卡合计6卡。root在继续任务时已向用户说明并纠正。

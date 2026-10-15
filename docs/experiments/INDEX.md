@@ -188,6 +188,7 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261015-full-teacher-input](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-full-teacher-input.md) | Full-teacher-input supervised upper bound | COMPLETED，UNCLEAR。首轮4臂、teacher-RMS补充2臂均正常完成、GPU已释放。 | 停止本轮拟合预算，不立即替换r[t+1]/r[t+16]为tau或继续WAM微调。 | probes/UNCLEAR |
+| [P-20261015-teacher-fit-generalization](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-teacher-fit-generalization.md) | Teacher输入：拟合程度与跨序列泛化 | COMPLETED，UNCLEAR；学习率退火明显改善TRAIN，但dev基本不变。 Class: Decision。用户继续人工审阅660数据，并授权继续对照实验。 | 见原卡 | probes/UNCLEAR |
 
 ## HF-generated-tau-execution
 

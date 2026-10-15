@@ -1,5 +1,17 @@
 # PTv3-Shared-WAM v2 当前状态
 
+## 2026-10-15 teacher输入的优化对照完成：起步训练拟合精确，dev差距未解
+
+用户人工审阅660并授权继续对照；固定缓存/面板，未动态使用标注。full/current输入×
+固定LR/12k后退火4臂各24k，本地仅0/1分批，远端四卡仍保留，合计6卡。
+完整12k前缀权重相同；退火使full TRAIN面板10.14→6.28mm，但dev43.80→43.22mm。
+全量窗口重推：full TRAIN/dev11.33/34.90mm（窗口均匀权重，不能替换原面板指标）。
+关键定位：full TRAIN起步9402帧mean0.466mm，dev起步1134帧47.213mm；current对应
+0.832/53.193mm。可精确拟合见过起步，但未跨序列推广；两split都含相同50物体/10subjects。
+优化/容量尚未排除，结论UNCLEAR；停止此固定预算，不继续同类长训。所有本地GPU
+任务已结束；Viser8768与人工标注保持独立。详见P-20261015-teacher-fit-generalization。
+
+
 ## 2026-10-15 Full-teacher-input upper bound完成：尚未跨过20mm
 
 无tau、fromscratch同MLP，实际1442(delta1+16)对照721(delta0)，同native660准入窗和
