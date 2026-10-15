@@ -132,7 +132,7 @@ class Viewer:
                 raise
             self.sequence=data
             self.frame.max=data.frames-1
-            self.frame.value=int(np.clip(frame if frame is not None else data.ticks[0],0,data.frames-1))
+            self.frame.value=int(np.clip(frame if frame is not None else (data.ticks[0] if len(data.ticks) else 3),0,data.frames-1))
             self.target.options=[f'{i}: {name}' for i,name in enumerate(data.objects)]
             self.target.value=self.target.options[data.target]
             self.anchor_frame=int(self.frame.value)
@@ -223,6 +223,8 @@ class Viewer:
                 f'当前检查物体 `{target}`，未来 {info["seconds"]:.3f}s 最大query位移 **{maximum:.4f}m**。\n\n'
                 if maximum is not None else f'帧{t}：当前物体无同一segment的有效未来标签。\n\n')
             self.info.content+=f'当前质心速度 `{info["speed_mps"]:.3f}` m/s，加速度 `{info["acceleration_mps2"]:.2f}` m/s²。\n\n' if info['speed_mps'] is not None and info['acceleration_mps2'] is not None else '当前速度/加速度不可计算（边界、缺失或跨段）。\n\n'
+            if d.motion_quality:
+                self.info.content+=f'自动筛查：从帧 **{d.motion_quality["first_suspect_frame"]}** 起隔离；类型 `{", ".join(d.motion_quality["reasons"])}`。原始整段仍可回放。\n\n'
             self.info.content+=f'当前anchor是否属于冻结准入索引：**{"是" if info["training_window"] else "否（仅原始轨迹检查）"}**。白线长度 **0.1m**。\n\n文件：`{d.origin}`'
 
     def fit(self,mode):
@@ -312,7 +314,7 @@ def main():
     if a.check_only:
         reports=[]
         for sid in NAMES:
-            record=catalog.select(sid,'train')[0];sequence=catalog.load(record);t=int(sequence.ticks[0])
+            record=catalog.select(sid,'train')[0];sequence=catalog.load(record);t=int(sequence.ticks[0]) if len(sequence.ticks) else 3
             sequence.frame(t)
             reports.append(dict(source_id=sid,train_sequences=len(catalog.select(sid,'train')),
                 dev_sequences=len(catalog.select(sid,'dev')),train_windows=sum(r.windows for r in catalog.select(sid,'train')),

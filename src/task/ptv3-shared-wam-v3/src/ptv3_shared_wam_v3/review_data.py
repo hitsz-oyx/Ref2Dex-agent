@@ -61,13 +61,16 @@ class Catalog:
             for split in ('train','dev'):
                 rows=z['verified_'+split].copy()
                 ids,counts=np.unique(rows[:,0],return_counts=True)
-                for row,count in zip(ids,counts):
-                    meta=self.native['sequences'][row];sid=int(meta['source_id'])
-                    if sid not in NAMES:continue
-                    # Batch path disambiguates repeated simulator episode/env names.
+                windows_by_row=dict(zip(ids,counts))
+                for row,meta in enumerate(self.native['sequences']):
+                    if meta['split']!=split:continue
+                    count=int(windows_by_row.get(row,0));sid=int(meta['source_id'])
+                    if sid not in NAMES or (count==0 and not meta.get('motion_quality')):continue
+                    # Fully quarantined captures remain available for visual review.
                     batches=[p for p in Path(meta['source_manifest']).parts if p.startswith('batch')]
                     hint=batches[-1] if batches else str(meta.get('profile',''))[:28]
-                    self.records[sid].append(Record(sid,int(row),meta['source_sequence'],split,int(count),self.native_root,'native',hint))
+                    if meta.get('motion_quality'):hint+=' [整段隔离]' if count==0 else ' [尾段隔离]'
+                    self.records[sid].append(Record(sid,row,meta['source_sequence'],split,count,self.native_root,'native',hint))
                 self.indices['native',split]=rows
         for sid in self.records:self.records[sid].sort(key=lambda r:(r.split,r.row))
         # Reuse the canonical compact decoder without invoking an eager dataset constructor.
@@ -122,11 +125,13 @@ class Catalog:
                 clouds.append(cloud);queries.append(query)
             target=int(row['target_slot']);ticks=rows[:,1]
             objects=list(row['objects']);origin=str(path)
-        return Sequence(record,data,clouds,queries,objects,target,rows,np.asarray(ticks),origin)
+        return Sequence(record,data,clouds,queries,objects,target,rows,np.asarray(ticks),origin,
+            self.native['sequences'][record.row].get('motion_quality') if record.kind=='native' else None)
 
 
 class Sequence:
-    def __init__(self,record,data,clouds,queries,objects,target,rows,ticks,origin):
+    def __init__(self,record,data,clouds,queries,objects,target,rows,ticks,origin,motion_quality=None):
+        self.motion_quality=motion_quality
         self.record,self.data,self.clouds,self.queries=record,data,clouds,queries
         self.objects,self.target,self.rows,self.ticks,self.origin=objects,target,rows,ticks,origin
         self.frames=len(data['time']);self.time=np.asarray(data['time'],float)

@@ -26,7 +26,7 @@ def test_gravity_drop_and_floor_stop_are_retained():
     assert not any(len(v) for v in events(motion_features(t,obj,hand),POLICY).values())
 
 
-def test_fast_smooth_motion_and_hand_carried_motion_retained():
+def test_initial_flight_is_flagged_without_treating_constant_speed_as_impulse():
     t,obj,hand=inputs();obj[:,0]=t*6
     ev=events(motion_features(t,obj,hand),POLICY)
     assert not len(ev['translational_impulse'])

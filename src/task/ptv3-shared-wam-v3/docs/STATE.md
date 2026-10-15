@@ -1,3 +1,13 @@
+# 当前：九源motion清洗版本已生成，远端尚未训练
+
+按用户“先筛查清洗”要求，全量扫描UniDex33,056条，版本化规则隔离25条中的136窗（TRAIN114/DEV22）。保留15条的可信完整前缀，10条无剩余窗；不按抓取成功过滤、不改原始payload，其余八源窗集合不变。
+
+新native view：`outputs/3d-data-preparation/native3d-clean-motion-20261015-r1`；新九源recipe：`outputs/ptv3-shared-wam-v3/nine-source-motion-recipe-20261015-r1`，TRAIN4,806,030/DEV821,613。原三源4096/source统计抽样保持，扣除114个TRAIN窗的精确贡献后重新计算配比和24-horizon hand/scene mean/std；DEV不参与拟合。114窗独立reader重算并回加统计误差≤7.28e-12；已知row14909移除59/67/75、保留3..51。
+
+规则针对高冲量、共同手物强冲量、最初两个转换已高速飞行、极端转速的保守疑点隔离；不宣称排除了所有物理异常。纯旋转接触与正常掉落要继续视觉复核。详见[清洗记录](../../3d-data-preparation/docs/research/2026-10-15-unidex-motion-cleaning.md)。原清洗view、raw数据和本地旧训练全部保留。
+
+以下为先前运行与部署记录；当前状态以上述清洗版本为准。
+
 # 九源统一预训练状态
 
 用户已要求第一轮合并九源并尝试大规模训练。九源 TRAIN 共4,806,144窗，

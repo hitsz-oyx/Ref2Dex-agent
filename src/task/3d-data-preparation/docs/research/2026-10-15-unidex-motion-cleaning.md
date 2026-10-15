@@ -22,3 +22,11 @@ Independent review checked first-event window boundaries, quaternion-sign invari
 - Commands: `tools/audit/audit_unidex_motion.py`, `tools/run/prepare_motion_view.py`; v3 `tools/run/refresh_nine_recipe.py`.
 
 The earlier audit r1 was stopped for uncompressed artifact growth and is not used. Audit r2 retains per-frame diagnostics in gzip; event decisions are applied by the separately versioned policy, preserving the scan's identity.
+
+## Completed result
+
+Policy v1 isolates25 captures (TRAIN21/DEV4), excluding114 TRAIN/22 DEV windows. Ten captures have no remaining full windows;15 retain their earlier complete prefix. Four flagged TRAIN captures are marked successful and17 unsuccessful: success is not an admission condition. Source4 retains264,325 TRAIN and66,052 DEV windows. Other eight source window sets are unchanged. Nine-source total is4,806,030 TRAIN/821,613 DEV.
+
+All114 excluded TRAIN windows were independently replayed through `CleanPoseMeshWindows`; adding their moments back to the new statistics reconstructs the parent moments within7.28e-12 maximum absolute difference. The original three-source TRAIN moment sample is unchanged; new mixture weights and24×3 hand/scene statistics are bound to the new frozen view. Known row14909 retains ticks3/11/19/27/35/43/51 and excludes59/67/75.
+
+Important residual cases: independent review identified rows9674/17266 with later fast falling/sliding that do not meet this conservative impulse rule. They remain explicit visual-review candidates, not certified valid; do not turn a few-metres displacement or floor contact into automatic failure. Further physical adjudication would need raw simulator contact/velocity replay. No training was started during cleaning.

@@ -53,3 +53,31 @@ def test_fixed_anchor_does_not_follow_moving_object():
     current=data.frame(3,anchor)[0][0];future=data.frame(27,anchor)[0][0]
     assert np.allclose(future-current,[.24,0,0])
     assert np.allclose(data.frame(10)[0][0],np.empty((0,3)))
+
+
+
+def test_fully_quarantined_native_sequence_remains_in_catalog(tmp_path):
+    main=tmp_path/'main';native=tmp_path/'native';recipe=tmp_path/'recipe'
+    for root in (main/'processed',native,recipe):root.mkdir(parents=True)
+    idx=main/'empty.npy';np.save(idx,np.empty((0,4),np.int64))
+    sources=[]
+    for sid in range(3):
+        root=tmp_path/str(sid);(root/'processed').mkdir(parents=True)
+        (root/'processed/manifest.json').write_text(json.dumps(dict(sequences=[])))
+        sources.append(dict(root=str(root),indices={s:dict(path=str(idx)) for s in ('train','val')}))
+    (main/'processed/manifest.json').write_text(json.dumps(dict(status='COMPLETED',sources=sources)))
+    (recipe/'recipe.json').write_text(json.dumps(dict(main3_root=str(main),native_root=str(native))))
+    row=dict(source_id=4,split='train',source_sequence='bad',source_manifest='batch001/manifest.json',
+        motion_quality=dict(first_suspect_frame=1,reasons={'initial_fast_flight':[1]}))
+    (native/'manifest.json').write_text(json.dumps(dict(status='COMPLETED',objects=[],sequences=[row],window_index='windows.npz')))
+    np.savez(native/'windows.npz',verified_train=np.empty((0,2),np.int64),verified_dev=np.empty((0,2),np.int64))
+    catalog=Catalog(recipe);records=catalog.select(4,'train')
+    assert len(records)==1 and records[0].windows==0
+    assert '整段隔离' in records[0].hint
+    assert catalog.rows(records[0]).shape==(0,2)
+
+
+def test_empty_training_ticks_still_allow_raw_sequence_review():
+    data=sequence();data.rows=np.empty((0,2),np.int64);data.ticks=np.empty(0,np.int64)
+    assert not data.horizon_info(3,0)['training_window']
+    assert len(data.frame(3)[0][0])==32
