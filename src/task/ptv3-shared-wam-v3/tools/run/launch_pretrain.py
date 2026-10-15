@@ -1,4 +1,4 @@
-"""Own and supervise only this frozen two-GPU training process group."""
+"""Own and supervise only this frozen one-to-four-GPU training process group."""
 import argparse
 import json
 import os

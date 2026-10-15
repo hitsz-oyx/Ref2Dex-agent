@@ -16,6 +16,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261015-R-current-information](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-R-current-information.md) | Can current reference and hand-object geometry improve q_PD prediction? | UNCLEAR; all four12000-update arms completed. Added current reference | keep production inputs unchanged; do not extend this fitting run. | probes/UNCLEAR |
 
+## HF-R-native-current
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261015-R-native-current](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-R-native-current.md) | Native DExplore current information for q_PD | 见原卡 | 见原卡 | probes/UNCLEAR |
+
 ## HF-action-intervention
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
@@ -130,7 +136,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261015-dexplore-current-rollout](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-dexplore-current-rollout.md) | Complete same-execution DExplore current-input rollout collection | RUNNING. Engineering/data Blocker for Objective A, not an input-benefit | collect the actually missing native current observation/contact/body | probes/RUNNING |
+| [P-20261015-dexplore-current-rollout](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-dexplore-current-rollout.md) | Complete same-execution DExplore current-input rollout collection | Engineering capture/audit COMPLETE and PASS; native-input benefit remains | collect the actually missing native current observation/contact/body | probes/UNCLEAR |
 
 ## HF-egodex-shared-track-admission
 
@@ -341,7 +347,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261015-nine-source-pretrain](../../src/task/ptv3-shared-wam-v3/docs/experiments/probes/P-20261015-nine-source-pretrain.md) | 九源统一预训练启动与持续运行 | 见原卡 | 见原卡 | probes/RUNNING |
+| [P-20261015-nine-source-pretrain](../../src/task/ptv3-shared-wam-v3/docs/experiments/probes/P-20261015-nine-source-pretrain.md) | 九源统一预训练启动与持续运行 | 见原卡 | 见原卡 | probes/STOPPED |
 
 ## HF-oakink2-action-effect-wm30
 

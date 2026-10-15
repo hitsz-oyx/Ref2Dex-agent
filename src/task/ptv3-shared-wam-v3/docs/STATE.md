@@ -38,3 +38,13 @@ UniDex未来24帧最大7.387m；后续loss恢复通常范围。暂未修改冻�
 远端四卡准备：已提供显式world4配置`pretrain_nine_remote4_80k.json`（每卡128/global512），
 launcher允许1–4卡，保持单机合计6卡保护；只提升自己的soft nofile至hard内最多65536。
 训练代码部署短路径以满足loader Unix socket108字节限制。当前没有启动远端GPU训练。
+
+## Viser已部署
+
+`http://127.0.0.1:8769`（转发8769），PID1622883，固定代码cfc45d24，
+工作树`tmp/nine-source-viewer-code-20261015-r1`，默认row14909/frame75。
+脚本`tools/audit/review_nine_sources.py`。覆盖全量39,528条TRAIN/DEV完整序列，
+4,806,144个TRAIN窗/821,635个DEV窗，不是抽样面板。
+九项Task测试通过；九源真实Viser控件切换、空DEV、坐标、播放、标记通过；
+HTTP200、版本匹配的WebSocket下发九源控件与曲线并接受交互事件通过。
+服务CPU运行、最长24小时；标记保存在独立`nine-source-review-20261015-r1/annotations/`。
