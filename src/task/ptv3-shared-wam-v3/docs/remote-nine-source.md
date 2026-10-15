@@ -13,6 +13,7 @@
 /mnt/ugreen_nas/storage/oyx_storage/ptv3-shared-wam-v3-nine-source-20261015-r1/
   staging/                     # 可断点传输的4块归档、portable.json、固定代码包
   code/                        # 已提交版本92f3127c的训练依赖闭包
+  training-code/               # 真实detached Git checkout，初始9356a834
   data/native/                 # 新六源的完整运行依赖与原始manifest副本
   data/recipe/                 # 九源recipe/common horizon stats及原数值副本
   data/import-receipt.json      # 原始recipe与位置变更的明确记录
@@ -20,6 +21,7 @@
   remote-launch.json
   remote-progress.json
   remote-supervisor.log
+  training-code-deployment.json
 ```
 
 原三源远端已存在，保留原目录并只读复用：
@@ -30,6 +32,17 @@
 
 其原 source manifest 与索引身份与本地 main3 一致；导入工具复核既有身份，不改写这些
 manifest。原三源 TRAIN 窗口为 OakInk2 3,860,393、GRAB 207,179、ARCTIC 310,906。
+
+`code/` 是约 1 MB 的固定代码归档，供本次 CPU 迁移审计使用；真实训练使用另建的
+`training-code/`。后者 detached 在 `9356a834`，通过约 577 KB 增量 Git bundle 部署，
+只读借用旧 v2 repo 的 Git 对象和 PointWorld vendor；原 repo 保持不变。它已经通过
+`checkpoint.git_commit()` 与九源数据模块的 CPU 导入检查，不需要伪造 Git 身份或放宽
+核心 checkpoint 合同。旧 Git 对象库目前是明确依赖，应保留；如未来要删除旧 repo，
+须先为新 clone 补齐其借用对象。
+
+后续 viewer/四卡入口修订可继续向这个独立 checkout 导入增量 bundle，再 detached 到新的
+已提交代码。当前代码的 launcher 仍限制最多两卡；正式四卡部署需主任务实现并验收，
+不在此数据迁移中绕过。
 
 新增部分包含 37,591 条 native payload 和 2,638 个 CAD，共 40,229 个 NPZ、2,457,338,191 字节。
 归档加入清洗manifest、原始manifest副本、冻结窗口索引、统计与配方后为 2,689,935,360 字节。
