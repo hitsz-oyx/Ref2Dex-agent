@@ -13,11 +13,41 @@ seed_pool: probe
 seeds: [196, 197, 148]
 decision_changed_if_positive: add captured current teacher information or repair wrist optimization before further joint training
 decision_changed_if_negative: prioritize generalization or missing temporal intent over another equivalent joint training extension
-status: UNCLEAR
+status: PROMISING
 run_id: current-wrist-mlp-20261015-r1
 ---
 
 # 当前腕部监督 MLP 配对 Probe
+
+**行为结果PROMISING，仅限两条飞机：** 当前721D腕部+原shared自身手指首次恢复TRAIN
+held49；对应A腕部+同原shared手指held0。VAL为41/0，未达到held45。无teacher动作干预。
+两组独立audit通过。离线预设>=20%均值改善仍未满足，offline输入增量维持UNCLEAR；
+本卡PROMISING来自随后独立预定的行为筛查，不事后修改offline门槛。
+
+| Native K1/seed148 | teacher | A腕部+shared手指 | B当前721腕部+shared手指 |
+| --- | ---: | ---: | ---: |
+| TRAIN飞机 maximum held | 106 | 0 | 49 |
+| TRAIN飞机 max lift m | 0.577 | 0 | 0.605 |
+| VAL飞机 maximum held | 62 | 0 | 41 |
+| VAL飞机 max lift m | 0.690 | 0.003 | 0.769 |
+
+TRAIN B连续保持tick56–104，随后掉落，terminal height变化-0.903m，不能称稳定完成。
+VAL B有54–94（41帧）和114–149（36帧，终点仍保持）两个区间；不能把它们相加成连续
+成功，也不能把最长41说成整个41段被终点截断。当前只能确认终点第二段被截断，未达45。
+两组初始q角色间差0；A与B腕部命令clipping均0。B总clipping22.56%/30.20%来自原shared
+手指，不能归因为新腕部动作饱和。最小surface gap A为0.120/0.512m，B两组均0。
+
+两组原有command/PD/own-feature审计max<=3.01e-7，MLP CPU replay通过；原始轨迹、
+independent_audit.json及native-summary.json保留。正式native执行7b2576d5，总69.20s。
+GPU6/7显存各约19GB，control64采样利用率38%/42%（3行串行交互Probe），现均释放。
+首轮并行launcher在物理启动前因占用保护退出，无物理结果；保留native-process.json/
+native-{TRAIN,VAL}.log。以不暴露GPU给launcher（子peer独立设置设备）的方式重启成功，
+实际完成记录为native-process-r2.json；不计失败启动为方法负结果。
+
+当前决策：优先把完整当前teacher条件接回shared腕部学习，再检验多对象行为；不再把
+主要资源用于q_PD/native互换或仅延长原joint训练。这个配对支持当前信息bundle在本例
+具有行为价值，不证明缺信息是唯一根因，也不单独确定contact/q_ref/IG哪项起作用。
+Shadow/Inspire数据量、teacher任务分布仍未严格匹配；不能由此形成最终跨手因果结论。
 
 结果摘要：两臂6000步已完成，20.13/19.97s，总产物555MiB。相同起始面板预测完全一致、
 首batch draw逐项相同；只读独立review未发现关键输入/标签/单位/时钟/匹配错误。

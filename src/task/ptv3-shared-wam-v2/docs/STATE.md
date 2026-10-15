@@ -1,3 +1,15 @@
+## 2026-10-15 当前完整teacher信息腕部恢复局部抓取信号
+
+current-wrist-mlp两臂固定6k离线后，替换原shared7k腕部6D、保留各自shared手指，
+无teacher动作干预。TRAIN飞机teacher/A现有状态/B加当前721 held106/0/49，
+VAL飞机62/0/41。B分别抬升0.605/0.769m；TRAIN随后掉落，VAL有两段保持（最长41、
+末段36至评估终点），尚不能称稳定泛化成功。两组audit通过，max<=3.01e-7，初始q差0。
+B手指clipping约23–30%，腕部clipping0。局部行为PROMISING，offline预设强信号仍UNCLEAR。
+支持优先补回当前teacher输入bundle，不单归因contact/q_ref，也不直接证明数据量无影响。
+归档runtime新6D MLP单样本CUDA偏差经逐层重放定位，仅在新入口重复batch2解决，复核
+CPU replay约3e-8；不影响原shared在graspenv batch2的历史执行。训练f816b3d5、
+native7b2576d5，详见P-20261015-current-wrist-mlp。6/7释放，Shadow4/5继续。
+
 ## 2026-10-15 腕部拟合诊断完成，当前信息MLP配对Probe
 
 shared7k精确stored TRAIN256首拍XYZ66.42mm，startup76.42mm；DEV256为62.70mm，
