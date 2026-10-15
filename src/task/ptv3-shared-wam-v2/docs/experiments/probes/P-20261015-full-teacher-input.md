@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [180, 181, 162]
 decision_changed_if_positive: replace teacher future reference blocks incrementally with tau after qualifying the supervised full-input mapping
 decision_changed_if_negative: diagnose fitting and same-execution labels before attributing failure to WAM or tau
-status: RUNNING
+status: UNCLEAR
 run_id: full-teacher-input-20261015-r1
 ---
 
@@ -127,3 +127,48 @@ teacher仅提供固定预处理统计，仍无官方网络权重初始化。它�
 不是与首轮单因素input对照；本轮input因果对照仍在每个相同预处理内部进行。
 GPU0/1并行，各12k、1200秒、768MB；与首轮合计仍在6GB/6卡资源边界内。
 完成后停止预算，不追加无界模型/优化器搜索；保留首轮全部结果。
+
+## 最终结果与独立审查
+
+Result: COMPLETED，UNCLEAR。首轮4臂、teacher-RMS补充2臂均正常完成、GPU已释放。
+主运行代码f1b7026c，补充代码16d964e4。缓存重建38.21秒，全660序列共122299个
+准入监督tick通过teacher replay（不是全部165677个原始动作）：action max2.89e-6、
+PDXYZ最大0.000795mm。原始同次观测、label时钟及deterministic teacher mapping成立；
+这个工程证据不等同源rollout是成功抓取示范。
+
+| Input / target | Selected step | TRAIN mean mm | dev mean mm | dev p95 mm |
+|---|---:|---:|---:|---:|
+| 1442 absolute PD | 3000 | 62.69 | 126.33 | 308.06 |
+| 1442 relative PD | 4000 | 22.78 | 45.70 | 134.35 |
+| 721 relative PD | 4000 | 26.88 | 49.77 | 149.58 |
+| 1442 memory (TRAIN only) | 4000 | 3.16 | 88.75 | 299.49 |
+| 1442 relative PD + teacher RMS | 11000 | 14.46 | 42.80 | 135.03 |
+| 721 relative PD + teacher RMS | 9500 | 19.51 | 48.97 | 144.02 |
+
+表中按预定dev p95优先选点；memory单独按训练集选点，其dev仅为说明不能泛化。
+首轮最终12k全量TRAIN/dev mean：full_relative14.11/44.01mm，current17.26/50.05mm。
+teacher RMS selected full14.46/42.80mm，对照19.51/48.97mm，mean改善12.60%，
+p95改善6.24%；TRAIN-only归一化mean改善8.18%，p95改善10.18%。均没有达到20mm
+目标，也没有出现相对721的>=50%改善，不确认主要问题就是缺teacher未来输入。
+
+memory使用509个唯一TRAIN样本，mean3.16mm/p957.70mm；说明小集合可以拟合，
+不证明全量函数已经学会或dev泛化合格。literal absolutePD为126.33mm，结合relative
+显著更好、原生控制需加live q，不能将此失败解释成teacher label/时钟必然错误。
+
+独立只读review：重算6臂selected XYZ mean/p95与选择步数一致；TRAIN589/dev71
+序列不交叠，固定TRAIN512/dev512面板逐项等同旧native-current实验，均256startup+
+256later；full/current同4107788参数、step0权重逐tensor一致、relative目标统计相同。
+所有学生fromscratch、无tau、无官方网络初始化；RMS仅为固定预处理。source admitted
+q_PD/action/q同tick已审计，teacher重放进一步减弱了时钟错位/采样随机性解释。
+
+Decision: 停止本轮拟合预算，不立即替换r[t+1]/r[t+16]为tau或继续WAM微调。
+完整teacher输入在当前学生训练下仍存在独立于WAM/tau的拟合/跨序列泛化瓶颈。
+接下来应先围绕全量TRAIN14mm与dev43mm差距、稀疏/异常状态和学习目标定位；
+数据示范质量风险仍在，但不能直接归因于坏示范。当前单seed未完成优化/容量/质量
+的matched因果区分，不把UNCLEAR升级成information mismatch被否定的结论。
+
+产物：`outputs/ptv3-shared-wam-v2/full-teacher-input-20261015-r1/summary/`保存
+results.json/csv、table.md、curves.png、independent-metric-audit.json与manifest.json。
+首轮/补充每臂保留curve/result/manifest、selected checkpoint和对应预测；cache有
+逐序列teacher replay审计、source/split/tick、固定面板和数组。输出可追溯，不覆盖原
+660数据、微调权重或既有实验。

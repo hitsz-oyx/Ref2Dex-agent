@@ -179,3 +179,11 @@ TMPDIR="$PWD/tmp" PYTHONDONTWRITEBYTECODE=1 /home2/wyy/miniconda3/envs/graspenv/
 `result.json`保存每阶段/序列/角色的held45、最长保持、抬升、手物误差和饱和；
 各子目录保留轨迹、运行回执与独立控制审计。GTτ→R是oracle轨迹经过学得R的诊断，
 并非直接GT q_PD重放；teacher校准不足的序列不能作为模型抓取失败的独立证据。
+
+## 完整teacher输入监督上限
+
+[Full-teacher-input实验卡](docs/experiments/probes/P-20261015-full-teacher-input.md)
+记录无tau的1442→单步q_PD拟合及matched721对照。数据从原660同次状态/参考重建，
+先经原teacher确定性重放检查；缓存准备入口`tools/run/prepare_full_teacher_membership.py`
+与`prepare_full_teacher_data.py`，训练入口`tools/run/probe_full_teacher.py`。
+结果、曲线和完整误差表在`outputs/ptv3-shared-wam-v2/full-teacher-input-20261015-r1/summary/`。

@@ -183,6 +183,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261006-frozen-critic-ranking](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261006-frozen-critic-ranking.md) | Can frozen PPO critic replace short-Y candidate ranking? | 见原卡 | 见原卡 | probes/UNPROMISING |
 
+## HF-full-teacher-input
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261015-full-teacher-input](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-full-teacher-input.md) | Full-teacher-input supervised upper bound | COMPLETED，UNCLEAR。首轮4臂、teacher-RMS补充2臂均正常完成、GPU已释放。 | 停止本轮拟合预算，不立即替换r[t+1]/r[t+16]为tau或继续WAM微调。 | probes/UNCLEAR |
+
 ## HF-generated-tau-execution
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

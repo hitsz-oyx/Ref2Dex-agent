@@ -1,5 +1,17 @@
 # PTv3-Shared-WAM v2 当前状态
 
+## 2026-10-15 Full-teacher-input upper bound完成：尚未跨过20mm
+
+无tau、fromscratch同MLP，实际1442(delta1+16)对照721(delta0)，同native660准入窗和
+旧dev512面板。全660/122299准入tick的冻结teacher重放最大PDXYZ0.000795mm。
+完整1442 relativePD selected mean/p95为45.70/134.35mm，对照49.77/149.58；
+teacher RMS补充为42.80/135.03，对照48.97/144.02，仅约8–13%mean改善，未达到20mm。
+509样本memory训练3.16/7.70mm；全量最终TRAIN14.11、dev44.01mm，拟合/跨序列
+泛化需先定位，不能只归因WAM或坐实主要information mismatch。literal absolutePD
+126.33mm涉及world坐标合同，不与relative混因果。6臂完成、独立指标/代码审查通过、
+GPU已释放。详见P-20261015-full-teacher-input和full-teacher-input-20261015-r1/summary。
+
+
 ## 2026-10-15 九阶段实际抓取面板完成：K4下均未达held45
 
 9个完整微调checkpoint × 飞机/杯子/小球3条dev序列，seed148，GPU0/1/2并行完成。
