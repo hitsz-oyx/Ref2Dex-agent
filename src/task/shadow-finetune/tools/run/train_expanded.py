@@ -54,8 +54,8 @@ def main():
     packet=torch.load(a.resume,map_location='cpu',weights_only=False)
     if (packet.get('schema')!=paths.SCHEMA or packet.get('engineering_only')
             or packet.get('sampler',{}).get('startup_fraction')!=.5
-            or packet.get('comparison')!=controls or packet.get('step')!=1000):
-        raise ValueError('Existing completed startup1000 checkpoint and original controls required')
+            or packet.get('comparison')!=controls or not 1000<=packet.get('step',0)<20000):
+        raise ValueError('Startup-route checkpoint at or after1000 and original controls required')
     first=int(packet['step']);target=first+4 if a.smoke else a.updates
     if not first<target<=20000:
         raise ValueError('Bounded continuation through total20000')
@@ -72,7 +72,11 @@ def main():
     optimizer.load_state_dict(packet['optimizer'])
     initial_optimizer_steps=sorted({int(v['step'].item()) for v in optimizer.state.values() if 'step' in v})
     if initial_optimizer_steps!=[first]:
-        raise ValueError('Optimizer did not resume at1000')
+        raise ValueError('Optimizer step differs from checkpoint step')
+    saved_rng=packet.get('rank_rng')
+    if saved_rng is not None:
+        if len(saved_rng)!=world:raise ValueError('Resume world size differs')
+        torch.set_rng_state(saved_rng[rank]['torch']);torch.cuda.set_rng_state(saved_rng[rank]['cuda'],local)
     del packet
     data=controls['training_caches']['startup']
     dev=ShadowWindows(controls['validation_cache'],'dev')
@@ -82,12 +86,14 @@ def main():
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=TASK,text=True).strip(),
         code_root=str(TASK.parents[2]),resume=str(a.resume.resolve()),resume_step=first,
         config=config,stats=stats,data=data,controls=str(a.controls.resolve()),
+        comparison=controls,sampler=dict(startup_fraction=.5,startup_max_tick=7),
         target_step=target,world_size=world,batch_per_rank=a.batch_size,global_batch=a.batch_size*world,
         startup_fraction=.5,seed=seed,validation_panels=panels,
         initial_optimizer_steps=initial_optimizer_steps,
         optimizer_groups=[dict(name=g['name'],lr=g['lr']) for g in optimizer.param_groups],
         sampling='Per-step deterministic new streams after global batch/world-size change; original TRAIN-only normalizers retained',
         selection=dict(best='common DEV normalized action L1',forecast_best='common DEV hand+scene normalized MSE'),
+        ddp_loss='Mean of per-rank masked objectives, including per-rank motion-weighted scene means; same convention as Inspire DDP',
         max_seconds=a.max_seconds,artifact_budget_bytes=32*10**9)
     def write(name,value):
         t=out/(name+'.part');t.write_text(json.dumps(value,indent=2,allow_nan=False)+'\n');t.replace(out/name)
@@ -97,6 +103,27 @@ def main():
         np.savez(out/'initial-actor.npz',**{k:v.detach().cpu().numpy() for k,v in model.actor.state_dict().items()})
         write('resume-audit.json',dict(status='PASS',resume_step=first,optimizer_steps=initial_optimizer_steps,
             strict_model_load=True,normalizers_retained=True,groups=manifest['optimizer_groups']))
+    def evaluate_panels():
+        metrics={};model.eval()
+        for panel,ids in panels.items():
+            sums={}
+            with torch.no_grad():
+                for off in range(0,len(ids),16):
+                    selected=ids[off:off+16]
+                    b=to_device(collate([dev[int(i)] for i in selected]),'cuda:'+str(local))
+                    pred=model(b);value,terms=loss(pred,b,config,model)
+                    row=dict(total=value,**terms,
+                        command_first_mae=(pred['action'][:,0]-b['action_target'][:,0]).abs().mean())
+                    for k,v in row.items():sums[k]=sums.get(k,0.)+float(v)*len(selected)/len(ids)
+            metrics[panel]=sums
+        return metrics
+    curve=[];best=forecast_best=float('inf')
+    if rank==0:
+        baseline=evaluate_panels();curve.append(dict(step=first,panels=baseline,continuation_baseline=True))
+        best=baseline['common_dev']['action']
+        forecast_best=baseline['common_dev']['hand']+baseline['common_dev']['scene']
+        write('curve.json',curve)
+        for alias in ('best.pt','forecast_best.pt'):(out/alias).symlink_to(a.resume.resolve())
     dist.barrier()
     class Batches(IterableDataset):
         def __iter__(self):
@@ -114,7 +141,7 @@ def main():
     if a.workers:kwargs.update(prefetch_factor=2)
     loader=iter(DataLoader(Batches(),**kwargs))
     wrapped=torch.nn.parallel.DistributedDataParallel(model,device_ids=[local],gradient_as_bucket_view=True)
-    started=time.monotonic();curve=[];best=float('inf');forecast_best=float('inf')
+    started=time.monotonic()
     counts=torch.zeros(3,device='cuda',dtype=torch.long)
     try:
         for step in range(first+1,target+1):
@@ -140,18 +167,7 @@ def main():
             if step%a.validation_interval==0 or step==target:
                 dist.barrier();metrics={}
                 if rank==0:
-                    model.eval()
-                    for panel,ids in panels.items():
-                        sums={}
-                        with torch.no_grad():
-                            for off in range(0,len(ids),16):
-                                selected=ids[off:off+16]
-                                b=to_device(collate([dev[int(i)] for i in selected]),'cuda:'+str(local))
-                                pred=model(b);value,terms=loss(pred,b,config,model)
-                                row=dict(total=value,**terms,
-                                    command_first_mae=(pred['action'][:,0]-b['action_target'][:,0]).abs().mean())
-                                for k,v in row.items():sums[k]=sums.get(k,0.)+float(v)*len(selected)/len(ids)
-                        metrics[panel]=sums
+                    metrics=evaluate_panels()
                     curve.append(dict(step=step,panels=metrics));write('curve.json',curve)
                     for k,v in normalization.items():
                         if not torch.equal(model.actor.state_dict()[k].cpu(),v):raise ValueError('Normalizer drift')
