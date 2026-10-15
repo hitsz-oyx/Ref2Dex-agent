@@ -1,0 +1,84 @@
+{
+  "schema": "ref2dex.native-cleaning-policy.v1",
+  "policy": {
+    "stride": 8,
+    "min_future_hand_fraction": 0.9,
+    "alignment_limit_ms": 16.0,
+    "normal_min_norm": 1e-06,
+    "drop_nonquery_zero_normals": true
+  },
+  "sources": {
+    "4": {
+      "name": "unidexgrasp",
+      "clock_kind": "simulator",
+      "source_fps": 60,
+      "output_fps": 30,
+      "clock_evidence": [
+        "src/task/3d-data-preparation/tools/run/index_unidexgrasp.py",
+        "per-file action_time[::2] equals observed time"
+      ],
+      "target_semantics": "single recorded simulator object; robot profile is ShadowHand, not Inspire"
+    },
+    "5": {
+      "name": "taco",
+      "clock_kind": "fixed_fps",
+      "source_fps": 30,
+      "clock_evidence": [
+        "https://openaccess.thecvf.com/content/CVPR2024/papers/Liu_TACO_Benchmarking_Generalizable_Bimanual_Tool-ACtion-Object_Understanding_CVPR_2024_paper.pdf#page=3",
+        "native hand frame IDs preserved by converter; no temporal subsampling"
+      ],
+      "target_semantics": "native annotated tool slot; not automatically the task's manipulated target"
+    },
+    "6": {
+      "name": "hot3d",
+      "clock_kind": "timestamps",
+      "source_fps": 30,
+      "clock_evidence": [
+        "per-file native_timestamp_ns, grid_timestamp_ns and alignment_residual_ns",
+        "https://github.com/facebookresearch/hot3d"
+      ],
+      "target_semantics": "first metadata object is an engineering anchor; intended manipulated target unverified"
+    },
+    "7": {
+      "name": "hocap",
+      "clock_kind": "pending",
+      "source_fps": null,
+      "clock_evidence": [
+        "native array indices retained; author capture frequency under review"
+      ],
+      "target_semantics": "first object is an engineering anchor; entire source remains DEV"
+    },
+    "8": {
+      "name": "dexycb",
+      "clock_kind": "fixed_fps",
+      "source_fps": 30,
+      "clock_evidence": [
+        "https://dex-ycb.github.io/assets/chao_cvpr2021.pdf",
+        "native label frame IDs, one fixed camera; no temporal subsampling"
+      ],
+      "target_semantics": "native ycb_grasp_ind"
+    },
+    "9": {
+      "name": "h2o",
+      "clock_kind": "fixed_fps",
+      "source_fps": 30,
+      "clock_evidence": [
+        "https://openaccess.thecvf.com/content/ICCV2021/papers/Kwon_H2O_Two_Hands_Manipulating_Objects_for_First_Person_Interaction_Recognition_ICCV_2021_paper.pdf",
+        "native IDs split at gaps; camera4 pose labels; official TEST separate"
+      ],
+      "target_semantics": "single native object class"
+    },
+    "10": {
+      "name": "hoi4d",
+      "clock_kind": "resampled_fixed_fps",
+      "source_fps": 15,
+      "output_fps": 30,
+      "clock_evidence": [
+        "https://arxiv.org/abs/2203.01577",
+        "300 contiguous native frames and 20-second action duration; 75 conflicting/unresolved sequences isolated"
+      ],
+      "resampling": "Keep 300 observations; insert 299 marked midpoints, linear points/translation and short-arc SO(3) SLERP; no missing-label bridging or extrapolation",
+      "target_semantics": "native primary rigid object; deformable categories excluded by native converter"
+    }
+  }
+}

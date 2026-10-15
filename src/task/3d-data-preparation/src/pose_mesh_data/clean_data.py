@@ -21,6 +21,13 @@ class CleanIdentity:
     profile: str
     clock_verified: bool
     split: str
+    source_fps: object
+    geometry_keys: tuple
+    active_object_slots: tuple
+    target_slot: int
+    anchor_world_to_sample: tuple
+    observed_history: tuple
+    observed_future: tuple
 
 
 @dataclass(frozen=True)
@@ -95,8 +102,14 @@ class CleanPoseMeshWindows(PoseMeshWindows):
             raise ValueError('filtered target horizon no longer valid')
         sample = pose_mesh_sample(sequence, [self.geometry[k] for k in row['objects']], tick,
             row['target_slot'], row['source_id'], [sequence_id, tick], row['profile'])
+        active = tuple(int(i) for i in np.flatnonzero(sequence['object_pose_valid'][tick-3:tick+1].all(0)))
+        observed = sequence.get('observed_frame',np.ones(len(sequence['time']),bool))
         record = CleanIdentity(str(self.root/'manifest.json'), row['source_manifest'], row['source_id'],
-            row['source_sequence'], sequence_id, tick, row['profile'], row['clock_verified'], row['split'])
+            row['source_sequence'], sequence_id, tick, row['profile'], row['clock_verified'], row['split'],
+            self.meta['source_profiles'][str(row['source_id'])].get('source_fps'),
+            tuple(row['objects'][i] for i in active), active, row['target_slot'],
+            tuple(tuple(float(v) for v in line) for line in sample['anchor_world_to_sample']),
+            tuple(bool(v) for v in observed[tick-3:tick+1]), tuple(bool(v) for v in observed[tick+1:tick+25]))
         return CleanWindow(sample, record)
 
 
@@ -111,7 +124,9 @@ def clean_collate(windows, scene_cap=4096):
         if (int(sample['source_id']) != record.source_id
                 or not np.array_equal(sample['sample_id'], [record.row, record.tick])
                 or str(sample['source_profile']) != record.profile
-                or bool(sample['training_allowed']) or len(sample['xyz']) > scene_cap):
+                or bool(sample['training_allowed']) or len(sample['xyz']) > scene_cap
+                or not np.allclose(sample['anchor_world_to_sample'],record.anchor_world_to_sample,atol=1e-6,rtol=0)
+                or int(sample['goal_object_slot']) != record.active_object_slots.index(record.target_slot)):
             raise ValueError('clean batch identity/admission/truncation mismatch')
     from ptv3_shared_wam.egodex_data import forecasting_collate
     tensors = forecasting_collate([w.model_inputs for w in windows], scene_cap=scene_cap)

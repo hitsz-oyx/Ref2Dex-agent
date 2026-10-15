@@ -8,7 +8,7 @@ import pytest
 
 from pose_mesh_data.cleaning import (CleaningPolicy, clean_sequence, normalize_geometry,
     reconcile_files, window_ticks)
-from pose_mesh_data.clean_data import CleanPoseMeshWindows, clean_collate
+from pose_mesh_data.clean_data import CleanPoseMeshWindows, CleanWindow, clean_collate
 from pose_mesh_data.windows import PoseMeshWindows
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]/'tools/run'))
@@ -150,6 +150,13 @@ def test_frozen_pipeline_reads_both_splits_and_blocks_legacy_bypass(tmp_path, mo
     batch = clean_collate([sample])
     assert batch['training_allowed'] is False and batch['provenance'][0].clock_verified
     assert batch['model_inputs']['source_id'].tolist() == [8]
+    assert len(batch['provenance'][0].observed_future) == 24
+    assert all(batch['provenance'][0].observed_future)
+    forged = dict(sample.model_inputs)
+    forged['anchor_world_to_sample'] = forged['anchor_world_to_sample'].copy()
+    forged['anchor_world_to_sample'][0,3] += 1
+    with pytest.raises(ValueError, match='identity'):
+        clean_collate([CleanWindow(forged,sample.provenance)])
     np.testing.assert_allclose(sample.model_inputs['scene_target'][0, -1, :, 1], .024, atol=1e-6)
     with pytest.raises(ValueError, match='truncation'):
         clean_collate([sample], scene_cap=16)

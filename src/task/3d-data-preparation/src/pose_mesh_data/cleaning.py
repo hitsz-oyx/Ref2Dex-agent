@@ -119,6 +119,12 @@ def clean_sequence(values, row, profile, policy):
             native_gaps=int(gaps.sum()), native_quality_rejected=int((~qa).sum()),
             residual_rejected=int((abs(residual) > policy.alignment_limit_ms*1e6).sum()))
         clock_verified = True
+    elif profile['clock_kind'] == 'resampled_fixed_fps':
+        from .resampling import validate_resampled_clock
+        validate_resampled_clock(sequence, profile['source_fps'])
+        report.update(observed_frames=int(sequence['observed_frame'].sum()),
+                      interpolated_frames=int(sequence['interpolated_frame'].sum()))
+        clock_verified = True
     else:
         ids = sequence['native_frame_id']
         if ids.shape != (n,) or ids.dtype.kind not in 'iu':
