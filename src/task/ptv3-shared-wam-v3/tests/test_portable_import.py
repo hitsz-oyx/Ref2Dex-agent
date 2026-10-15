@@ -39,6 +39,7 @@ class PortableImportTest(unittest.TestCase):
                 indices={s:dict(path=str(source),sha256=sha(source)) for s in ('train','val','test')})])
             write(main3/'processed/manifest.json',main_meta)
             recipe=dict(native_root=str(native),main3_root=str(main3),training_allowed=True,
+                native_index_stamp=[index.stat().st_size,index.stat().st_mtime_ns],
                 main3_identity='frozen-main3',source_counts={'4':1},
                 native_engineering_recipe=dict(data_manifest=str(native/'manifest.json')))
             stats=dict(recipe=recipe,hand=dict(mean=[[1,2,3]],std=[[.1,.2,.3]]),scene=dict(mean=[[4,5,6]],std=[[.4,.5,.6]]))

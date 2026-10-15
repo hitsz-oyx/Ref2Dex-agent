@@ -21,6 +21,12 @@ def main():
     recipe = json.loads((a.recipe/'recipe.json').read_text())
     if recipe['native_root'] != str(root) or not recipe['training_allowed']:
         raise ValueError('explicit admitted recipe must bind this snapshot')
+    stamp = (root/meta['window_index']).stat()
+    expected = (meta['window_index_size_bytes'],meta['window_index_mtime_ns'])
+    if (stamp.st_size,stamp.st_mtime_ns) != expected or recipe['native_index_stamp'] != list(expected):
+        raise ValueError('frozen native window index changed before export')
+    if json.loads((a.recipe/'horizon-stats.json').read_text())['recipe'] != recipe:
+        raise ValueError('statistics do not bind the exported recipe')
     paths = sorted({str((root/r['path']).resolve()) for r in meta['sequences']+meta['objects']})
     sizes = {path: Path(path).stat().st_size for path in paths}
     needed = sum(sizes.values()) + 500_000_000
@@ -66,6 +72,9 @@ def main():
                 if (a.output/'STOP').exists():
                     raise RuntimeError('requested STOP; partial export preserved')
                 print(json.dumps(dict(files=i,total=len(entries),elapsed_s=time.monotonic()-started)), flush=True)
+            actual = Path(entry['origin']).stat()
+            if (actual.st_size,actual.st_mtime_ns) != (entry['size'],entry['mtime_ns']):
+                raise ValueError('source file changed during export')
             tar.add(entry['origin'], entry['path'], recursive=False)
     os.rename(a.output/'native-and-recipe.tar.part', a.output/'native-and-recipe.tar')
     descriptor.update(status='EXPORTED', archive_bytes=(a.output/'native-and-recipe.tar').stat().st_size,
