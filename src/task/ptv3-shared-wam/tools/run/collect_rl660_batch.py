@@ -192,6 +192,11 @@ def main():
                     if not bool((task.progress_buf == tick).all()):
                         raise ValueError('unexpected reset/tick drift during same-execution capture')
                     env_ids = torch.arange(n,device=task.device)
+                    def physical_state():
+                        return torch.cat((task._dof_pos,task._dof_vel,
+                            task._rigid_body_state.reshape(n,-1),task._target_states,
+                            task._contact_forces.reshape(n,-1)),-1)
+                    original_physics = physical_state()
                     original_actor_obs = task.obs_buf.clone()
                     native_current = task._compute_observations_iter(env_ids,0)
                     if native_current.shape != (n,721) or not torch.equal(task.obs_buf,original_actor_obs):
@@ -218,6 +223,8 @@ def main():
                             raise ValueError('audit changed original teacher observation')
                         manifest['observation_contract']['live_future_invariance_passed'] = True
                         write(out/'manifest.json',manifest)
+                    if not torch.equal(physical_state(),original_physics):
+                        raise ValueError('observation capture mutated measured physics state')
                     body_state = torch.cat((task._rigid_body_pos,task._rigid_body_rot,
                                             task._rigid_body_vel,task._rigid_body_ang_vel),-1)
                     if body_state.shape[1] != len(body_names):
