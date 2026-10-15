@@ -1,3 +1,9 @@
+## 2026-10-15 22:30 同样本比较：原三域约持平，新增域预测改善
+
+对v2 best59k/final80k与v3降LR后40k，在完全相同384旧三域DEV窗+160native窗重评，模型各自normalizer/同物理mm指标；旧日志重放偏差<1e-6mm。相对v2final，原三域手all24改善1.1–2.3%、scene改善2.6–7.2%，多数原域配对CI跨零，视作基本持平。相对旧best仍有ARCTIC手0.86%/GRABscene2.63%退步。五新增域手误差下降12.2–65.8%，但每源32窗，HOT目标物体first8还由3.58→4.00mm。诊断PROMISING支持继续广域预训练，不作九源因果/抓取收益结论。旧80k/global256与新40k/global512均20.48M抽取，但seed/曝光/训练过程不同。
+
+代码013105b1，1632次窗口推理248.7s、显存峰值1.15GiB，独立审查/2测试通过；诊断显存已释放，主四卡41680步、3e-5/约1.446步每秒。报告与图 `outputs/ptv3-shared-wam-v3/main3-v2-v3-comparison-20261015-r1/`；详见[预训练卡](experiments/probes/P-20261015-nine-source-pretrain.md)。
+
 ## 2026-10-15 21:37 已按用户要求降LR并恢复四卡持续训练
 
 当前活动run为 `pretrain-nine-strict-lr3e5-remote4-80k-20261015-r1`（390ac393），短目录 `/home/wbcd/workspace/oyx_ws/wam-v3-lr/repo`，supervisor1925134/torchrun1925207。两组LR1e-4→3e-5，旧strict在37k完整点停止；20步四卡恢复检查后，从完整37020模型/AdamW/四rank RNG继续，目标仍累计80k/48h。同recipe/normalizer/数据配比/DEV/global512；未切Dex扩充或boundary配方。旧31k best和37k checkpoint保留。
