@@ -1,3 +1,14 @@
+## 2026-10-15 九源复审确认插值边界漏筛，修正版仅派生未部署
+
+本轮只读复审40161条序列，确认HOI4D8个TRAIN窗口的未来23→24帧包含5.65–8.11m/s
+插值半段，旧strict与expanded都有；原生转换两端AND候选预选导致遗漏。root独立复算
+8个raw/valid标签通过，未见TEST/group泄漏或payload变更。详见2026-10-15-nine-source-reaudit.md。
+修复代码ea5c78f6用full_capture选候选，再执行原inclusive窗口隔离；拒绝从已有quality
+配方重复重建，防全局索引漂移。4回归通过。新strict-boundary与expanded-boundary两份
+快照均额外排78TRAIN/8DEV并保留旧排除；8个真实异常均被隔离。统计数值沿用各自父参考。
+**远端当前训练仍用旧strict，未在运行中替换输入**；新快照待后续显式数据切换。
+数据修复与当前Inspire/Shadow任务互不修改。完整Decision Note见motion-boundary-fix-20261015.md。
+
 # 数据更新：DexYCB全被试已补齐，本地与远端新九源配方验收通过
 
 按用户要求已下载/转换DexYCB全部10被试1000段/72,746帧，官方s1原始700 TRAIN/100 DEV/200 TEST；一条TRAIN因手有效覆盖不足无准入窗，清洗后699 TRAIN/100 DEV、3,096 TRAIN窗/382 DEV窗。TEST200段独立保存。相较旧346个TRAIN窗约增加至8.95倍，未重复八相机。

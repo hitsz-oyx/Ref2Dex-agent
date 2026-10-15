@@ -5,7 +5,7 @@ experiment_id: P-20261015-shadow-native-policy
 date: 2026-10-15
 task: shadow-finetune
 branch: main
-git_commit: c6bacb7d
+git_commit: 5cf32aa5
 claim_id: C1
 hypothesis_family: HF-shadow-native-policy
 probe_index_in_family: 1
@@ -46,3 +46,17 @@ Class: Decision；服务独立执行底座，用户明确要暂不做Inspire迁�
 3项合同测试覆盖60/30Hz对应、startup重复、未来扰动不改变输入、语义点顺序、动作梯度达WAM。
 GPU首轮尚待启动。具体commit/命令/status保存在各run manifest/process；源码准备阶段git_commit
 记录前一调查提交，启动后补实际代码身份。不形成正式成功率或data-size归因结论。
+
+## 已执行的工程核验
+
+代码5cf32aa5，supervisor2028217，GPU6，实际四步完整模型smoke已完成，峰值allocated1799MiB。
+paired native16env smoke完成，初始q/object/hand及独立扩展dq/root/observation300/goal/reset均差0；
+学生分支controller-audit明确student=true，无invalid fallback。teacher sticky5/16、terminal4/16、
+位置held60+lift3/16；四步学生均0，不作拟合能力负证据。TRAIN/DEV分别计数已由raw后处理输出，
+其源脚本在项目tmp/shadow_native_group_metrics_20261015.py。原student result.json继承collector
+policy文本不准确，实际角色以controller-audit和comparison.json为准；原始结果保留，后续版本修正元数据。
+独立审查153个状态复算官方actor与label max2.861e-6，上一拍action观测完全对应，无teacher泄漏。
+细节tmp/shadow-semantics-review-20261015-r1/review.md。本轮3项合同测试及verify通过。
+
+1000步pilot正在运行，250/500/750固定dev action归一化L1分别0.23122/0.21082/0.22324；
+对应首拍原生命令MAE0.12697/0.09541/0.09113。科学终点评估尚未完成；未使用全量33056轨迹。

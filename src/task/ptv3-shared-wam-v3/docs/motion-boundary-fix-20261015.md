@@ -24,3 +24,14 @@ reader blocked=false及sampling pool均一致。行动：按full_capture超阈�
 
 4项回归通过：原生两端未全覆盖但插值半段监督的候选选择、inclusive边界，以及冻结索引身份
 /重复已有quality descriptor拒绝。生成后检查旧排除集合为新集合子集、来源数量逐项相符。
+
+## 派生结果
+
+代码ea5c78f6已生成`nine-source-strict-boundary-20261015-r1`，相比原strict额外排除
+78TRAIN/8DEV，旧排除集合完整保留，8个真实HOI4D漏筛窗口全部在新排除集合。
+按稳定source+payload+target_slot+split+tick将相同86窗映射到扩充DexYCB基准，另生成
+`nine-source-expanded-boundary-20261015-r1`；DexYCB3096TRAIN/382DEV窗口保持，
+其余八源与fixed strict集合对应。映射脚本和回执保存在派生输出，未修改任何raw或旧索引。
+新快照numeric horizon stats/source probabilities沿用各自父参考（仅过滤视图），未重新拟合或
+启动训练。当前正在运行的远端strict仍是旧版本，仍有8个已知漏筛窗口暴露；不把派生成功
+表述成远端已切换。后续显式切换需保留checkpoint/optimizer/RNG并记录DEV变化。
