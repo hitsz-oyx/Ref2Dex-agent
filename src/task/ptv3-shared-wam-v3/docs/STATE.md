@@ -1,3 +1,7 @@
+## 2026-10-15 19:41 训练约28k：训练loss下降，DEV接近平台
+
+远端strict28040/80000，best27000，四卡正常、1.44–1.47步/秒，剩余约10–11h。21–24k与25–28k评估块相比，TRAIN均值降9.65%，DEV宏objective仅降1.11%，手all24 EPE34.554→34.418mm（0.39%）；best22k→27k仅改善0.87%。HOT/H2O部分手指标停滞或回升，TACO手/GRAB物体/ARCTIC短期手仍改善。判断为验证收益放缓/近平台，非整体训练收敛；固定DEV仅256窗。保持本次运行与LR不变，建议40k里程碑再检查、必要时做降LR小对照。证据 `outputs/ptv3-shared-wam-v3/plateau-check-20261015-1941/`，详见[预训练卡](experiments/probes/P-20261015-nine-source-pretrain.md)。
+
 ## 2026-10-15 MSE/FM现有权重诊断：衰减存在，多模态证据不足
 
 冻结step16000完成1024 DEV/11216 TRAIN诊断，按原始录制去重570次。幅度中位数0.72–0.92xGT、移动速度0.46–0.82；各源ADE中位数均优于零运动/匀速。2cm下无>=8独立邻居的查询，5cm下仅ARCTIC2/H2O2，未见稳健双空间多模态，判断UNCLEAR，继续MSE基线；本轮未训练FM。H2O拆段去重已修正，UniDex跨batch相对名保持独立。最终分析56a1da34、artifact analysis-20261015-r4，4测试与独立审查通过。远端80k主训练持续，诊断GPU已释放。详见[MSE/FM报告](mse-flowmatching-audit-20261015.md)。

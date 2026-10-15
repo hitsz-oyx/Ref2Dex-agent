@@ -135,3 +135,13 @@ step1完整checkpoint已写入1,183,806,235bytes并越过多卡保存barrier；�
 原motion-r1在完整step6000后切manual-r2；manual-r2在完整step8000后切严格版本。新run_id `pretrain-nine-strict-remote4-80k-20261015-r1`，supervisor1892360/torchrun1892489，远端0/1/2/3，每卡128/global512，仍总80k/48h。完整checkpoint中的4个normalizer buffers与strict stats逐个相等、4rank RNG及optimizer保留。已实际继续至8080，loss0.6652/grad4.5147有限，初始八源DEV和九源gradient audit通过；约1.465步/秒，显存17.7–36.1GiB、利用率82–99%，剩余暂估14–16h。工程证据在远端scope的strict-quality-startup-audit.json及本地同名快照；不形成预训练效果/机器人收益结论。
 
 Future evidence：速度阈值无法覆盖缓慢错误、手物空间错配、接触质量及原始标注系统性误差；不为当前继续训练追加全量接触重演。将来形成模型收益结论须固定共同评估集合，避免DEV panel变化混淆。
+
+## 2026-10-15 19:41 CST plateau check (same strict DEV panel)
+
+Read-only snapshot: remote strict run28040/80000 (35.1%), best step27000, latest28000; four GPUs82–100% utilization,29355/42775/41581/38051MiB, finite loss/gradient. Steady1.44–1.47updates/s, remaining about10–11h including periodic validation/checkpoints. No process, LR, input, checkpoint or schedule was changed.
+
+Compare means of the four fixed DEV evaluations at21–24k versus25–28k: TRAIN logged-batch mean0.42597→0.38488 (-9.65%); eight-source macro DEV objective1.11788→1.10543 (-1.11%); macro hand-all24 physical EPE34.554→34.418mm (-0.39%), hand-first8 11.445→11.311mm (-1.17%), scene-all24 14.228→13.943mm (-2.00%). Best DEV at22k1.076592 versus27k1.067248, only0.87% lower over5k. This is slow validation improvement/near-plateau behavior, not completed optimization: TRAIN is still descending. HOT hand/scene essentially flat, H2O hand worsens28.03→29.28mm across these blocks; TACO hand26.37→25.29mm (-4.08%), GRAB scene24.53→23.41mm (-4.58%), ARCTIC first8 13.687→13.088mm (-4.37%). Source trajectories differ, so neither a blanket convergence nor blanket healthy-generalization claim is justified.
+
+Panel is only32windows/source (256 total), correlated fixed samples; these are descriptive Probe trends, not formal convergence or overfitting validation. Constant LR1e-4 after500warmup has no later decay. Decision: keep authorized run to40k milestone (~2.4h from snapshot), recheck same-panel and per-source physical metrics; if improvements stay this small, a bounded lower-LR continuation comparison is more informative than blindly extending at the same LR. Do not autonomously alter the live run in response to this status request. No architecture or FM conclusion follows from the plateau check.
+
+Evidence: `outputs/ptv3-shared-wam-v3/plateau-check-20261015-1941/{snapshot.json,summary.json,learning_curves.png}`. Analysis script is an artifact beside the immutable snapshot; CPU array reduction/plotting only, no new model evaluation.
