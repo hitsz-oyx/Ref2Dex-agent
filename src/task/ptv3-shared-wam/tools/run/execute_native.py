@@ -35,11 +35,15 @@ def main():
     p.add_argument("--engineering-only", action="store_true")
     p.add_argument("--sequence")
     p.add_argument("--retargeter", type=Path)
+    p.add_argument("--model-version", choices=("v1", "v2"), default="v1")
     a = p.parse_args()
+    execution_task = TASK if a.model_version == "v1" else TASK.parent / "ptv3-shared-wam-v2"
+    if a.model_version == "v2":
+        sys.path.insert(0, str(execution_task / "src"))
     a.output, a.checkpoint = a.output.resolve(), a.checkpoint.resolve()
     runtime = Path("/home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train")
     if (Path(sys.prefix).resolve() != runtime.resolve() or a.output.exists()
-            or ROOT / "outputs/ptv3-shared-wam" not in a.output.parents or not 1 <= a.controls <= 542):
+            or ROOT / "outputs" / execution_task.name not in a.output.parents or not 1 <= a.controls <= 542):
         raise ValueError("pinned runtime, fresh Task output and bounded episode required")
     os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu), TMPDIR=str(a.socket.parent),
                       TORCH_EXTENSIONS_DIR=str(ROOT / "tmp/consequence-official-generator/torch201-extensions"),
@@ -72,6 +76,9 @@ def main():
     if torch.__version__ != "2.0.1+cu118" or sha(OFFICIAL) != OFFICIAL_SHA:
         raise ValueError("pinned native runtime and official calibration teacher required")
     torch.set_num_threads(2); torch.manual_seed(a.seed)
+    if a.model_version == "v2":
+        from ptv3_shared_wam_v2.native_execution import load_robot_checkpoint as load_checkpoint
+        from ptv3_shared_wam_v2.paths import SCHEMA
     packet = load_checkpoint(a.checkpoint)
     from ptv3_shared_wam.native_inputs import resolve_native_inputs, load_native_arrays
     selected = resolve_native_inputs(packet, a.sequence)

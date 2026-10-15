@@ -27,9 +27,13 @@ def main():
     p.add_argument("--sequence", help="required exact corpus record for RL660 checkpoints")
     p.add_argument("--retargeter", type=Path, help="compatible R-only eight-action candidate")
     p.add_argument("--preflight-only", action="store_true", help="validate inputs and R on CPU without starting GPU peers")
+    p.add_argument("--model-version", choices=("v1", "v2"), default="v1")
     a = p.parse_args()
+    execution_task = TASK if a.model_version == "v1" else TASK.parent / "ptv3-shared-wam-v2"
+    if a.model_version == "v2":
+        sys.path.insert(0, str(execution_task / "src"))
     out = a.output.resolve()
-    if (out.exists() or ROOT / "outputs/ptv3-shared-wam" not in out.parents
+    if (out.exists() or ROOT / "outputs" / execution_task.name not in out.parents
             or not 1 <= a.controls <= 542 or not 1 <= a.deadline_seconds <= 600):
         raise ValueError("fresh Task output and bounded controls/deadline required")
     engineering = a.smoke or a.controls <= 4
@@ -40,12 +44,14 @@ def main():
     if a.experiment_card:
         import yaml
         card = a.experiment_card.resolve()
-        if TASK / "docs/experiments" not in card.parents:
+        if execution_task / "docs/experiments" not in card.parents:
             raise ValueError("Task-local experiment card required")
         experiment = yaml.safe_load(card.read_text().split("---", 2)[1])
-        if experiment.get("task") != TASK.name or a.seed not in experiment.get("seeds", []):
+        if experiment.get("task") != execution_task.name or a.seed not in experiment.get("seeds", []):
             raise ValueError("task and assigned rollout seed must match the card")
     from ptv3_shared_wam.checkpoint import directory_bytes, load_checkpoint,check_shared_storage
+    if a.model_version == "v2":
+        from ptv3_shared_wam_v2.native_execution import load_robot_checkpoint as load_checkpoint
     packet = load_checkpoint(a.checkpoint)
     if packet["stage"] != "robot" or (not engineering and packet["provenance"].get("engineering_only")):
         raise ValueError("robot pair required; engineering weights only admit engineering smoke")
@@ -83,12 +89,12 @@ def main():
     if len(os.fsencode(str(address))) >= 108:
         raise ValueError("project socket address too long")
     checkpoint = a.checkpoint.resolve()
-    common = ["--checkpoint", str(checkpoint), "--gpu", str(a.gpu), "--controls", str(a.controls)]
+    common = ["--model-version", a.model_version, "--checkpoint", str(checkpoint), "--gpu", str(a.gpu), "--controls", str(a.controls)]
     if a.sequence:
         common.extend(["--sequence", a.sequence])
     if a.retargeter:
         common.extend(["--retargeter", str(a.retargeter.resolve())])
-    status = dict(status="STARTING", checkpoint=str(checkpoint), controls=a.controls,
+    status = dict(model_version=a.model_version, status="STARTING", checkpoint=str(checkpoint), controls=a.controls,
                   execution_steps=a.execution_steps, physical_gpu=a.gpu, seed=a.seed,
                   scratch=str(scratch), engineering_only=engineering)
     status["native_input"] = selected
