@@ -101,7 +101,7 @@ def main():
     p.add_argument('--checkpoint',type=Path,required=True);p.add_argument('--recipe',type=Path,required=True)
     p.add_argument('--output',type=Path,required=True);p.add_argument('--trainer-progress',type=Path,required=True)
     p.add_argument('--train-per-source',type=int,default=2048);p.add_argument('--dev-per-source',type=int,default=128)
-    p.add_argument('--seed',type=int,default=214);p.add_argument('--gpu',type=int,default=0);p.add_argument('--seconds',type=int,default=3600)
+    p.add_argument('--sources',type=int,nargs='+');p.add_argument('--seed',type=int,default=214);p.add_argument('--gpu',type=int,default=0);p.add_argument('--seconds',type=int,default=3600)
     a=p.parse_args();out=a.output.resolve();assert not out.exists() and 1<=a.train_per_source<=4096 and 1<=a.dev_per_source<=256 and 60<=a.seconds<=3600
     if shutil.disk_usage(out.parent).free<20*2**30:raise RuntimeError('20GiB disk floor')
     torch.set_num_threads(2);torch.cuda.set_device(a.gpu);free,total=torch.cuda.mem_get_info()
@@ -121,7 +121,8 @@ def main():
         recipe=str(a.recipe),seed=a.seed,gpu=a.gpu,allocator_limit_bytes=3*2**30,batch_size=1,max_seconds=a.seconds,
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip())
     try:
-        dev=NineWindows(recipe['main3_root'],recipe['native_root'],'dev',recipe);sources=sorted(dev.counts,key=int)
+        dev=NineWindows(recipe['main3_root'],recipe['native_root'],'dev',recipe);sources=sorted(dev.counts,key=int) if a.sources is None else list(map(str,a.sources))
+        assert set(sources)<=set(dev.counts)
         for split,target in [('dev',a.dev_per_source),('train',a.train_per_source)]:
             data=dev if split=='dev' else NineWindows(recipe['main3_root'],recipe['native_root'],'train',recipe)
             for sid in sources:
