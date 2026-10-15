@@ -2,6 +2,7 @@
 import argparse
 from concurrent.futures import ThreadPoolExecutor
 import json
+import gzip
 from pathlib import Path
 import shutil
 import subprocess
@@ -44,11 +45,11 @@ def main():
         (out/'progress.json').write_text(json.dumps(progress,indent=2)+'\n')
         if progress['elapsed_s']>1200 or shutil.disk_usage(out).free<20*2**30 or (out/'STOP').exists():
             raise RuntimeError('motion scan deadline/disk/STOP')
-        if (out/'records.jsonl').exists() and (out/'records.jsonl').stat().st_size>300_000_000:
+        if (out/'records.jsonl.gz').exists() and (out/'records.jsonl.gz').stat().st_size>300_000_000:
             raise RuntimeError('motion scan artifact budget')
     try:
         checkpoint()
-        with (out/'records.jsonl').open('x') as handle,ThreadPoolExecutor(max_workers=a.workers) as pool:
+        with gzip.open(out/'records.jsonl.gz','xt',compresslevel=1) as handle,ThreadPoolExecutor(max_workers=a.workers) as pool:
             for first in range(0,len(rows),512):
                 for record in pool.map(read,rows[first:first+512]):
                     handle.write(json.dumps(record,separators=(',',':'))+'\n')
