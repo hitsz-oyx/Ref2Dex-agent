@@ -582,6 +582,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261015-shadow-data-scale](../../src/task/shadow-finetune/docs/experiments/probes/P-20261015-shadow-data-scale.md) | ShadowHand：固定计算预算的小数据/全量数据对照 | 见原卡 | 见原卡 | probes/UNCLEAR |
 
+## HF-shadow-expanded-training
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261015-shadow-expanded-training](../../src/task/shadow-finetune/docs/experiments/probes/P-20261015-shadow-expanded-training.md) | Shadow shared 全量数据双卡扩大训练 | 见原卡 | 见原卡 | probes/RUNNING |
+
 ## HF-shadow-native-policy
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

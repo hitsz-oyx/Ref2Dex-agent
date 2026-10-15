@@ -25,6 +25,14 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261015-shadow-expanded-training:
+    seed_pool: probe
+    continuation_seed: 214
+    common_DEV_panel_seed: 215
+    paired_native_reset_seed: 216
+    startup_DEV_panel_seed: 218
+    reuse_reason: continuation of startup1000 weights and optimizer with larger global batch, same evaluation panels
+
   P-20261015-shared-native-grasp:
     seed_pool: probe
     execution_seed: 148
