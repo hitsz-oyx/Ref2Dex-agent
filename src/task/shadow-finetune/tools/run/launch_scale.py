@@ -19,6 +19,8 @@ def main():
     p.add_argument('--detach',action='store_true');a=p.parse_args();run=a.run.resolve()
     if ROOT/'outputs/shadow-finetune' not in run.parents or (run/'process.json').exists():
         raise ValueError('prepared Task output without previous execution required')
+    if not (TASK.parents[2]/'third_party/PointWorld/ptv3/ptv3.py').is_file():
+        raise RuntimeError('fixed worktree needs its pinned PointWorld/ptv3 dependency before launch')
     if a.detach:
         with (run/'supervisor.log').open('x') as f:
             child=subprocess.Popen([sys.executable,str(Path(__file__).resolve()),'--run',str(run),'--gpu',str(a.gpu)],
