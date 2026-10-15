@@ -13,6 +13,19 @@ TASK=Path(__file__).resolve().parents[2]
 ROOT=Path(os.environ.get('REF2DEX_RUN_ROOT',TASK.parents[2])).resolve()
 
 
+def is_descendant(pid, ancestor):
+    """Elastic ranks start their own sessions, so process groups cannot identify ownership."""
+    seen=set()
+    while pid>1 and pid not in seen:
+        if pid==ancestor:return True
+        seen.add(pid)
+        try:
+            status=Path('/proc/%d/status'%pid).read_text()
+        except FileNotFoundError:return False
+        pid=int(next(line.split()[1] for line in status.splitlines() if line.startswith('PPid:')))
+    return False
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--resume',type=Path,required=True);p.add_argument('--controls',type=Path,required=True)
@@ -59,9 +72,7 @@ def main():
             if time.monotonic()-started>43800:raise TimeoutError('12h training+startup deadline')
             if shutil.disk_usage(ROOT).free<20*2**30:raise RuntimeError('20GiB free floor')
             for pid in gpu_pids():
-                try:group=os.getpgid(pid)
-                except ProcessLookupError:continue
-                if group!=child.pid:raise RuntimeError('Foreign selected-GPU process')
+                if not is_descendant(pid,child.pid):raise RuntimeError('Foreign selected-GPU process')
             path=out/'progress.json'
             if path.exists():
                 progress=json.loads(path.read_text());status['progress']=progress
