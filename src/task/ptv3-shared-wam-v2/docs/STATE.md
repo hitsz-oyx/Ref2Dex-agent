@@ -1,3 +1,17 @@
+## 2026-10-15 腕部拟合诊断完成，当前信息MLP配对Probe
+
+shared7k精确stored TRAIN256首拍XYZ66.42mm，startup76.42mm；DEV256为62.70mm，
+两面板起步占比不同，不用总均值判泛化。四条起步状态/H4/goal与原native一致，batch
+1/2/16所查差<0.1mm。闭式回归加入当前腕姿误差DEV82.13→82.53mm无改善。
+当前优先区分信息和学习设置，不能只怪闭环、val或数据少。详见shared-execution-gap卡。
+
+current-wrist-mlp配对已20s完成6000步：完全匹配的小MLP、first native wrist6，A输入
+state87+已有object goal24，B再加captured current delta0 721D。DEV256均值42.60/37.83mm，
+相同原shared7k为62.70mm；全DEV48.23/40.13mm，起步85.09/56.93mm。当前信息有增益，
+但均值改善未达预设20%强信号线，UNCLEAR。两臂均优于旧shared是不同网络/损失/学习率/
+goal显式入口的联合变化，不能只归因学习率或压缩。没有未来手参考，无抓取成功结论。
+代码f816b3d5、独立review无blocker，6/7释放；详见current-wrist-mlp卡。Shadow4/5继续。
+
 ## 2026-10-15 混控定位到腕部瓶颈，动作表示2k未恢复抓取
 
 动作表示driver2298258完成，同2000步native/q_PD的XYZ mean78.66/77.37mm、finger

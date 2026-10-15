@@ -38,6 +38,7 @@ def main():
     p.add_argument("--model-version", choices=("v1", "v2"), default="v1")
     p.add_argument('--shared-actor', action='store_true')
     p.add_argument('--diagnostic-hybrid', action='store_true')
+    p.add_argument('--wrist-probe', type=Path)
     a = p.parse_args()
     execution_task = TASK if a.model_version == "v1" else TASK.parent / "ptv3-shared-wam-v2"
     if a.model_version == "v2":
@@ -85,6 +86,13 @@ def main():
         raise ValueError('shared bridge requires v2 without an R override')
     if a.diagnostic_hybrid and (not a.shared_actor or a.execution_steps != 1):
         raise ValueError('Diagnostic teacher components require shared bridge and K=1')
+    if a.wrist_probe and (not a.shared_actor or a.execution_steps != 1 or a.diagnostic_hybrid):
+        raise ValueError('Wrist probe requires shared K1 without teacher overrides')
+    wrist_probes = None
+    if a.wrist_probe:
+        from ptv3_shared_wam_v2.wrist_probe import load_wrist_probe, predict_wrist, override_wrist
+        wrist_probes = [load_wrist_probe(a.wrist_probe/arm/'step06000.pt', arm, 'cuda')
+                        for arm in ('state_goal', 'plus_current')]
     packet = load_checkpoint(a.checkpoint, allow_shared=True) if a.shared_actor else load_checkpoint(a.checkpoint)
     from ptv3_shared_wam.native_inputs import resolve_native_inputs, load_native_arrays
     selected = resolve_native_inputs(packet, a.sequence)
@@ -149,6 +157,10 @@ def main():
     if a.shared_actor:
         manifest['roles'] = ['teacher', 'shared_actor_repeat', 'shared_actor']
     manifest['diagnostic_hybrid'] = a.diagnostic_hybrid
+    manifest['wrist_probe'] = str(a.wrist_probe.resolve()) if a.wrist_probe else None
+    if a.wrist_probe:
+        manifest['roles'] = ['teacher', 'state_goal_wrist_shared_fingers', 'current721_wrist_shared_fingers']
+        manifest['scope'] = 'Current-only supervised wrist substitution; own shared fingers, no teacher intervention'
     if a.diagnostic_hybrid:
         manifest['roles'] = ['teacher', 'teacher_wrist_student_fingers', 'student_wrist_teacher_fingers']
         manifest['scope'] = 'Oracle component attribution only; teacher-assisted rows are not student policy successes'
@@ -210,6 +222,8 @@ def main():
                 logs.update({key: [] for key in ('repeat_hand_history','repeat_object_history','repeat_R_state')})
             if a.diagnostic_hybrid:
                 logs.update({key: [] for key in ('student_intended','teacher_actions','teacher_obs')})
+            if wrist_probes:
+                logs.update({key: [] for key in ('pre_wrist_intended', 'wrist_features', 'wrist_prediction', 'native_current_obs')})
             def record():
                 hand, gap = geometry.measure(task)
                 sup, foot = support.measure(task, geometry)
@@ -276,6 +290,30 @@ def main():
                         student_intended = intended.clone()
                         intended = mix_teacher_components(student_intended, teacher_actions)
                         action = intended.clamp(-1,1)
+                    if wrist_probes:
+                        actor_obs = task.obs_buf.clone()
+                        delta0 = task._compute_observations_iter(torch.arange(3, device=task.device), 0)
+                        if delta0.shape != (3, 721) or not torch.equal(task.obs_buf, actor_obs):
+                            raise ValueError('Current delta0 capture changed teacher observation')
+                        if not bool((task.progress_buf == tick).all()):
+                            raise ValueError('Current wrist input tick drift')
+                        if tick == 0:
+                            saved_future = task.hoi_data[:, 1:].clone()
+                            try:
+                                task.hoi_data[:, 1:] = 0
+                                check = task._compute_observations_iter(torch.arange(3, device=task.device), 0)
+                                if not torch.equal(delta0, check):
+                                    raise ValueError('Future reference leaked into wrist current input')
+                            finally:
+                                task.hoi_data[:, 1:] = saved_future
+                        states = torch.as_tensor(np.stack((repeat_state, own_state)), device=task.device)
+                        goal_xyz = torch.as_tensor(goal[:3, 3], device=task.device)-current['obj'][1:, :3, 3]
+                        wrist_features = torch.cat((states, goal_xyz, delta0[1:]), -1)
+                        wrist_prediction = torch.cat([predict_wrist(probe, wrist_features[row:row+1])
+                            for row, probe in enumerate(wrist_probes)])
+                        pre_wrist_intended = intended.clone()
+                        intended = override_wrist(intended, wrist_prediction)
+                        action = intended.clamp(-1, 1)
                     expected = pd_from_action(action, current["q"], offset, scale)
                     obs, _, done, _ = self.env_step(self.env, action.clone()); executed += 1
                     if not isinstance(obs, dict):
@@ -296,6 +334,9 @@ def main():
                     if a.diagnostic_hybrid:
                         values.update(student_intended=student_intended,teacher_actions=teacher_actions,
                                       teacher_obs=teacher_obs)
+                    if wrist_probes:
+                        values.update(pre_wrist_intended=pre_wrist_intended, wrist_features=wrist_features,
+                                      wrist_prediction=wrist_prediction, native_current_obs=delta0)
                     for key, value in values.items():
                         logs[key].append(value.cpu().numpy().copy() if isinstance(value, torch.Tensor) else np.asarray(value).copy())
                     current = record()

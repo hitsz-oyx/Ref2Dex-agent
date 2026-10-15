@@ -54,6 +54,17 @@ def audit(path):
         check('teacher_components_only',d['intended'],mixed)
         check('teacher_row_command',d['intended'][:,0],d['teacher_actions'][:,0])
         student_intended=d['student_intended'][:,1:]
+    if manifest.get('wrist_probe'):
+        if (not manifest.get('shared_actor') or steps != 1 or manifest.get('diagnostic_hybrid')
+                or manifest.get('no_teacher_intervention') is not True
+                or manifest['roles'] != ['teacher', 'state_goal_wrist_shared_fingers', 'current721_wrist_shared_fingers']):
+            raise ValueError('Current-only wrist probe roles/contract differ')
+        if d['native_current_obs'].shape != (controls, 3, 721):
+            raise ValueError('Own-row current721 required')
+        mixed = d['pre_wrist_intended'].copy()
+        mixed[:, 1:, :6] = d['wrist_prediction']
+        check('supervised_wrist_only', d['intended'], mixed)
+        student_intended = d['pre_wrist_intended'][:, 1:]
     ticks = np.arange(controls)
     query_ticks = ticks - ticks % steps
     check("query_tick", d["query_tick"], np.repeat(query_ticks[:, None], 2, axis=1))
@@ -133,6 +144,23 @@ def audit(path):
         dummy = np.repeat(d['hand'][query_ticks,1][:,None],24,axis=1)
         repeat_state, _ = independent_features(d,query_ticks,np.full(controls,1),dummy)
         check('repeat_own_R_state', d['repeat_R_state'], repeat_state)
+    if manifest.get('wrist_probe'):
+        independent_state = np.stack((repeat_state, state), 1)
+        goal_delta = d['wam_goal'][:, None, :3, 3]-d['obj'][:-1, 1:, :3, 3]
+        expected_features = np.concatenate((independent_state, goal_delta, d['native_current_obs'][:, 1:]), -1)
+        check('wrist_own_current_features', d['wrist_features'], expected_features)
+        import torch
+        sys.path.insert(0, str(TASK.parent/'ptv3-shared-wam-v2/src'))
+        from ptv3_shared_wam_v2.wrist_probe import load_wrist_probe, predict_wrist
+        torch.set_num_threads(2)
+        for row, arm in enumerate(('state_goal', 'plus_current')):
+            probe = load_wrist_probe(Path(manifest['wrist_probe'])/arm/'step06000.pt', arm, 'cpu')
+            replay = predict_wrist(probe, torch.from_numpy(d['wrist_features'][:, row])).numpy()
+            error = float(np.abs(replay-d['wrist_prediction'][:, row]).max())
+            errors['wrist_model_replay_'+arm] = error
+            # CPU/GPU matmul rounding is separate from exact command mixing/PD audits.
+            if error > 1e-4:
+                raise ValueError('Wrist model replay differs beyond float32 device tolerance')
     import torch
     # Metadata-only historical audit also accepts old goal contracts. It never
     # instantiates a model or reinterprets legacy weights under the new goal.

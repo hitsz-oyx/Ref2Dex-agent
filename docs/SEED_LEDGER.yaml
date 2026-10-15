@@ -29,6 +29,7 @@ allocations:
     seed_pool: probe
     model_seed: 196
     train_draw_seed: 197
+    native_reset_seed: 148
     reuse_reason: matched two-arm current-input wrist-only fit, not independent validation
 
   P-20261015-shared-execution-gap:

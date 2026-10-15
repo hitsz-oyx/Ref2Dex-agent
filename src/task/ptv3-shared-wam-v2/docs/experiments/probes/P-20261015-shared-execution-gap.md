@@ -5,7 +5,7 @@ experiment_id: P-20261015-shared-execution-gap
 date: 2026-10-15
 task: ptv3-shared-wam-v2
 branch: main
-git_commit: d5f438e5
+git_commit: 8d031624
 claim_id: C1
 hypothesis_family: HF-shared-execution-gap
 probe_index_in_family: 1
@@ -13,11 +13,35 @@ seed_pool: probe
 seeds: [148, 149, 192]
 decision_changed_if_positive: correct inference or reset mismatch before attributing failure to policy learning
 decision_changed_if_negative: use stored TRAIN fit to distinguish optimization and information gaps from closed-loop drift
-status: RUNNING
+status: PROMISING
 run_id: shared-execution-gap-20261015-r1
 ---
 
 # Shared7k 训练状态拟合与执行输入一致性
+
+已完成：GPU推理27.05s（8d031624），线性对照3.38s（c48361b4）。PROMISING仅指
+诊断排除了所查起步输入/批量合同的粗大偏差，且定位到stored TRAIN状态也拟合不足；
+不代表策略抓取改善，也不确定学习不足来自信息、优化还是覆盖。
+
+| 固定面板 | XYZ mean mm | startup mean mm | later mean mm |
+| --- | ---: | ---: | ---: |
+| TRAIN balanced256 | 66.42 | 76.42 | 56.41 |
+| 原DEV256 | 62.70 | 100.13 | 59.36 |
+| TRAIN飞机195 | 57.27 | 45.24 | 58.35 |
+| VAL飞机149 | 63.59 | 46.90 | — |
+
+TRAIN256含128起步点、DEV256仅21，不能从这两个总均值推断泛化好坏。
+四条所查轨迹native reset的q/dq/hand/object/velocity、state87、H4和goal24与源差均0。
+同样本batch2/16相对batch1的首拍XYZ差0.0306/0.0896mm；seed重复差0。
+重复batch2与既有native首拍预测差0.0218–0.0668mm，远小于策略误差。
+这些检查限于所查起步点，不代表所有运行状态已穷尽认证。
+
+全strict窗口线性A/B结果：DEV XYZ82.127/82.527mm，TRAIN76.512/76.471mm；
+加入当前腕姿误差无正向信号。线性容量有限，不将其负结果升级为当前参考无用。
+各线性臂使用相同全窗口指标；不与balanced256的shared均值直接因果比较。
+下一步为P-20261015-current-wrist-mlp匹配神经网络对照，直接检验当前完整delta0增量。
+完整结果位于outputs/ptv3-shared-wam-v2/shared-execution-gap-20261015-r1/result.json及
+reference-ridge/result.json；identity与预测均保留。
 
 Class: Decision。混控飞机teacher腕部+student手指held59、反向held0，TRAIN飞机仍held0。
 服务当前目标：解释Inspire/Shadow抓取差异。先区分精确训练状态腕部本身拟合差、仿真

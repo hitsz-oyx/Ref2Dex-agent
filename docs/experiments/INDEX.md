@@ -132,6 +132,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261008-contactpose-transport-auxiliary](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261008-contactpose-transport-auxiliary.md) | Does a separate rigid-transport auxiliary help measured dynamic prediction? | Main-three completed and two-update engineering r2 passes; the300-update Probe fails when a DataLoader worker aborts after control update112 | Preserve the failed run; repair the data-loader execution before any bounded retry, keeping the frozen scientific comparison unchanged. | probes/UNCLEAR |
 
+## HF-current-wrist-mlp
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261015-current-wrist-mlp](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-current-wrist-mlp.md) | 当前腕部监督 MLP 配对 Probe | 见原卡 | 见原卡 | probes/UNCLEAR |
+
 ## HF-dexplore-current-observation
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
@@ -622,7 +628,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261015-shared-execution-gap](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-shared-execution-gap.md) | Shared7k 训练状态拟合与执行输入一致性 | 见原卡 | 见原卡 | probes/RUNNING |
+| [P-20261015-shared-execution-gap](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-shared-execution-gap.md) | Shared7k 训练状态拟合与执行输入一致性 | 见原卡 | 见原卡 | probes/PROMISING |
 
 ## HF-shared-native-grasp
 

@@ -30,6 +30,7 @@ def main():
     p.add_argument("--model-version", choices=("v1", "v2"), default="v1")
     p.add_argument('--shared-actor', action='store_true', help='Explicit v2 shared bridge; both student rows use their own measured inputs')
     p.add_argument('--diagnostic-hybrid', action='store_true', help='Oracle wrist/finger component attribution; shared bridge only')
+    p.add_argument('--wrist-probe', type=Path, help='Directory containing paired current-wrist fixed6000 checkpoints')
     a = p.parse_args()
     execution_task = TASK if a.model_version == "v1" else TASK.parent / "ptv3-shared-wam-v2"
     if a.model_version == "v2":
@@ -58,6 +59,8 @@ def main():
         raise ValueError('shared bridge requires v2 and its original jointly trained actor')
     if a.diagnostic_hybrid and (not a.shared_actor or a.execution_steps != 1):
         raise ValueError('Diagnostic teacher components require the explicit shared bridge and K=1')
+    if a.wrist_probe and (not a.shared_actor or a.execution_steps != 1 or a.diagnostic_hybrid):
+        raise ValueError('Wrist probe requires shared K1 without teacher component overrides')
     packet = load_checkpoint(a.checkpoint, allow_shared=True) if a.shared_actor else load_checkpoint(a.checkpoint)
     if packet["stage"] != "robot" or (not engineering and packet["provenance"].get("engineering_only")):
         raise ValueError("robot pair required; engineering weights only admit engineering smoke")
@@ -111,6 +114,7 @@ def main():
     status["native_input"] = selected
     status['shared_actor'] = a.shared_actor
     status['diagnostic_hybrid'] = a.diagnostic_hybrid
+    status['wrist_probe'] = str(a.wrist_probe.resolve()) if a.wrist_probe else None
     status["retargeter_override"] = str(a.retargeter.resolve()) if a.retargeter else None
     def write():
         from ptv3_shared_wam.checkpoint import atomic_json
@@ -138,6 +142,8 @@ def main():
                 extra.append("--engineering-only")
             if kind == 'native' and a.diagnostic_hybrid:
                 extra.append('--diagnostic-hybrid')
+            if kind == 'native' and a.wrist_probe:
+                extra.extend(['--wrist-probe', str(a.wrist_probe.resolve())])
             process = subprocess.Popen([python, str(script), *common, "--socket", str(address),
                 "--output", str(out / kind), *extra], cwd=ROOT, stdout=log, stderr=subprocess.STDOUT,
                 start_new_session=True, env=dict(os.environ, TMPDIR=str(scratch), PYTHONDONTWRITEBYTECODE="1"))
