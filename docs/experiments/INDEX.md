@@ -604,7 +604,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261015-shadow-expanded-training](../../src/task/shadow-finetune/docs/experiments/probes/P-20261015-shadow-expanded-training.md) | Shadow shared 全量数据双卡扩大训练 | 见原卡 | 见原卡 | probes/RUNNING |
+| [P-20261015-shadow-expanded-training](../../src/task/shadow-finetune/docs/experiments/probes/P-20261015-shadow-expanded-training.md) | Shadow shared 全量数据双卡扩大训练 | 见原卡 | 见原卡 | probes/UNCLEAR |
 
 ## HF-shadow-native-policy
 
@@ -622,7 +622,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261015-shared-actor-interface](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-shared-actor-interface.md) | Shared表示直接预测q_PD：匹配三臂 | 见原卡 | 见原卡 | probes/RUNNING |
+| [P-20261015-shared-actor-interface](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-shared-actor-interface.md) | Shared表示直接预测q_PD：匹配三臂 | 见原卡 | 见原卡 | probes/UNCLEAR |
 
 ## HF-shared-current-continuation
 

@@ -1,3 +1,12 @@
+## 2026-10-15 旧Inspire两臂12k已完成，不再延长
+
+实际result.json均COMPLETED、完整step12000.pt存在；旧collector因用户停止C而提前退出，
+其FAILED_ARM不是A/B训练仍在跑。固定DEV256，pred_tau/shared的action为0.38060/0.39818，
+XYZ mean59.48/60.51mm、p95186.34/183.07mm；shared未满足mean/p95同时改善20%门。
+10k→12k动作仅降约1.02%/0.91%，不延长原输入训练。shared按p95选点仍7k，当前新对照
+从此7k起步；不把7k失败自动推广成未测试的12k抓取结果。C停7920、最新完整7k保留。
+用户询问是否可停止，旧Inspire现已无需再停；Shadow9k仍慢降，另做原16env最新行为读出。
+
 ## 2026-10-15 原shared联合目标的当前信息配对已启动
 
 用户要求继续对照，新增shared-current-continuation：从同一shared7k旧权重起步，

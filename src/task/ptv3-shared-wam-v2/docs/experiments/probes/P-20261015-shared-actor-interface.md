@@ -13,16 +13,33 @@ seed_pool: probe
 seeds: [190, 192]
 decision_changed_if_positive: prioritize shared-token action interface for native grasp qualification
 decision_changed_if_negative: inspect fitting and rollout quality before additional interface scaling
-status: RUNNING
+status: UNCLEAR
 run_id: shared-actor-interface-20261015-r1
 ---
 
 # Shared表示直接预测q_PD：匹配三臂
 
-Class: Decision；当前仅离线Probe，结论待运行。服务独立执行底座；用户参考
+Class: Decision；A/B已完成12k，C按用户要求停止，三臂协议未完整完成。服务独立执行底座；用户参考
 [ref1](../../user/ref1.md)要求测试shared压缩表示能否改善动作。检验同一预训练WAM的
 显式预测τ接口与直接shared token接口是否产生可决策的动作误差差异。
 最便宜方法是共用现有native660、不新采集，固定父权重与三组训练预算。
+
+## 最终A/B读出与停止判断
+
+实际两组result.json为COMPLETED，完整step12000.pt均存在。旧collector-result.json因
+C主动停止而提前写FAILED_ARM，不能据其残留RUNNING字段判断A/B仍在训练。
+
+| 原输入接口 / 固定DEV256 | 12k action L1 | XYZ mean mm | XYZ p95 mm |
+| --- | ---: | ---: | ---: |
+| pred_tau | 0.380604 | 59.477 | 186.344 |
+| shared | 0.398180 | 60.506 | 183.074 |
+
+同一步shared均值高1.73%，p95仅低1.76%，未满足原定两项>=20%改善。10k→12k动作L1
+分别仅下降1.02%/0.91%，6k→12k腕部均值62.36→59.48及62.54→60.51mm，收益有限。
+shared以原p95选点仍为7k。当前不延长原输入训练，结果维持Probe级UNCLEAR：C没有12k，
+没有按三臂完整协议形成结论；A/B这组未出现所需强优势，不全局否定shared作用。
+12k没有新抓取评估，不能把已有7k三条held0自动写成12k行为结果。接续新current721
+配对在独立P-20261015-shared-current-continuation中进行，与此旧训练区分。
 
 ## 固定协议
 

@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [214, 215, 216, 218]
 decision_changed_if_positive: prioritize native qualification of a sufficiently trained full-data Shadow shared policy
 decision_changed_if_negative: inspect fitting and closed-loop distribution shift rather than assume data quantity alone
-status: RUNNING
+status: UNCLEAR
 run_id: shadow-expanded-20261015-r1
 ---
 
@@ -38,6 +38,25 @@ CPU raw重算split计数、初态配对、controller invalid都必须核对。GP
 暂停/停止仅涉及已核验的2250275拥有进程，不删除权重。评估期间主训暂继续。
 本次最多1200s/1GB，正常占用0/1/4/5/6/7，保留2/3空闲，磁盘保留20GiB。
 产物shadow-expanded-20261015-r1/native-step9000，执行版本与命令另存native-step9000-launch.json。
+
+## 9k行为读出与停止决定
+
+9k正式评估已完成：student官方sticky/末帧/同步抬升保持=11/10/6（16env），
+TRAIN保持5/8、DEV仍1/8；teacher为11/10/9，TRAIN6/8、DEV3/8。初态各字段角色间
+max差0，controller invalid均空；独立CPU raw保持分split计数另行核对。
+2k学生保持5/16（TRAIN4/8、DEV1/8），9k仅6/16，主要增加在TRAIN，未见DEV保持提升。
+官方sticky和末帧改善不能替代连续保持指标；只有8条DEV，不形成正式成功率结论。
+本次进一步核对2k/9k整个200帧teacher的q/dq/object/hand/hand_root/observation/goal/
+success/reset，逐字段max差均0；所查teacher轨迹具有配对证据。独立raw保持复算6=5TRAIN+
+1DEV，与报告一致。step9000完整CPU加载：模型有限、optimizer586slots、两rank RNG均在。
+
+Decision Note：按预先记录的DEV<=1/8且总体无明显保持增益停止规则，root停止旧Shadow
+20k长训，保留完整9k/历史权重和optimizer。原因是本预算下行为增益不足、剩余约5h机会
+成本，不能称loss已完全平台或方法被refute。只向已核验supervisor2250275发SIGTERM，
+由原监督器清理其torchrun/elastic descendants；不停止新Inspire当前721对照或GPU0作业。
+可恢复点及实际停止进度/身份/结果写入run/stop-after-9k-behavior.json；此前所有证据保留。
+已执行：supervisor2250275回报STOPPED，实际progress9180，最新完整step9000；GPU4/5
+显存回落4MiB、无该训练计算。9180不是已保存checkpoint，不声称可逐步恢复至9180。
 
 Class: Decision，服务独立执行底座。用户主动要求停止Inspire shared_tau，GPU4/5改跑Shadow
 扩大训练，并允许其余空卡用于Inspire抓取评估。之前Shadow仅1k×64，不足以评价全量收敛；

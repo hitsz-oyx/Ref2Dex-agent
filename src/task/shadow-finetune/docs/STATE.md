@@ -1,3 +1,17 @@
+## 2026-10-15 Shadow旧长训已在9k读出后停止，保留可恢复权重
+
+用户询问旧微调是否可以停。9k固定16env/seed216评估完成：学生官方/末帧/同步抬升
+保持11/10/6，TRAIN保持5/8、DEV1/8；teacher11/10/9，DEV3/8。与2k的保持5/16、DEV1/8
+相比增益有限；本次所查完整200帧teacher九字段与2k逐值一致，初态配对差0、invalid空，
+CPU raw保持复算6=5TRAIN+1DEV。仍是小面板位置保持代理，非接触稳定认证。
+
+common DEV action8k→9k为0.18530→0.18151，起步首拍0.02459→0.02263，不能说loss完全
+平台。停止原因为行为泛化收益不足及剩余约5h机会成本，不是方法正式负结论。
+核验2250275身份后SIGTERM，由原监督器清理其子进程；实际STOPPED于progress9180，
+最新完整step9000模型/optimizer586slots/两rank RNG已CPU加载核对，历史阶段均保留。
+9k之后未保存更新不冒称完整checkpoint；以后可从9k恢复。GPU4/5确认释放，不动GPU0
+作业和新Inspire当前721对照。详见run/stop-after-9k-behavior.json及扩大训练卡。
+
 ## 2026-10-15 双卡续训2000阶段抓取读出
 
 2k固定16env评估已完成，student官方9/16、末帧5/16、保持5/16；TRAIN保持4/8、DEV1/8，
