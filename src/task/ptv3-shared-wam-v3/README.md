@@ -17,3 +17,8 @@ hand/scene 1:1，scene motion tau2mm、floor0.1，无额外 source loss 乘数�
 预算：最多2卡且项目合计不超过6卡；每卡batch128、80000更新、48小时、8GB/run，
 可用磁盘至少20GiB。前期执行全模型梯度、大批量、保存/恢复检查；异常只停止自己的进程组。
 这是大规模离线 Probe，不据此宣称机器人收益。
+
+完整九源viser审阅入口为 `tools/audit/review_nine_sources.py`，默认8769端口，
+可按来源/划分/序列选择、播放完整轨迹并保存独立质量标记。
+详见 [浏览说明](docs/nine-source-viewer.md)。默认直接打开7.387m的UniDexGrasp++仿真异常样本。
+本地v3已按用户要求停止；后续转远端四卡，先完成数据迁移和质量审阅。

@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [170]
 decision_changed_if_positive: continue nine-source pretraining when sustained full-batch updates and recovery pass and fixed physical DEV errors improve
 decision_changed_if_negative: inspect source semantics and actual input/loss chain before spending the remaining training budget
-status: RUNNING
+status: STOPPED
 run_id: pretrain-nine-80k-20261015-r1
 ---
 
@@ -81,3 +81,17 @@ step140全局loss22.596（scene21.707），step160回落4.332；step220为3.479�
 
 共同归一化实际手std：h1约5.3–5.6mm，h24约101–117mm；scene h1约2.3–2.5mm，
 h24约39–40mm。hand/scene各24×3，九源共享，只有TRAIN参与拟合；物理EPE仍反归一化。
+
+## 用户停止本地训练 / 后续远端四卡
+
+用户明确要求停止本地WAM v3，后续在远端四卡训练。已写用户STOP回执，GPU1/3确认释放。
+最后日志step440，loss2.197、稳态0.898步/秒；没有到达1000步DEV，因此有效性为UNCLEAR。
+本地长训无新恢复点（checkpoint interval1000）；保留启动step4完整checkpoint与全部日志。
+进程最终资源guard记为FAILED：停止同期GPU0/2有其他任务出现，合计超过6卡，
+supervisor仅终止本run自己的进程组。保留实际失败回执与独立user-stop-receipt，不重写原始证据。
+这不是方法负结果；后续不恢复本地训练，远端等待数据传完和质量审查。
+
+独立raw复核（脚本提交0dbcb1dc）确认7.387m来自原始UniDexGrasp++仿真，
+compact与raw[::2]完全一致，query重建误差2.38e-7m；60Hz某帧16.7ms位移0.465m、
+差分速度27.90m/s、加速度约1677m/s²。CAD约3.45×11.35×3.45cm。
+这是原始物理质量疑点，不能由格式有效性排除；viser可直接查看完整序列与速度曲线。
