@@ -25,6 +25,13 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261015-shared-execution-gap:
+    seed_pool: probe
+    repeat_and_native_seed: 148
+    serialization_sensitivity_seed: 149
+    TRAIN_panel_seed: 192
+    reuse_reason: fixed shared7k offline fit and input/batch contract diagnostics, not independent validation
+
   P-20261015-inspire-component-oracle:
     seed_pool: probe
     execution_seed: 148
