@@ -1,5 +1,14 @@
 # PTv3-Shared-WAM v2 当前状态
 
+## 用户纠正：此前增量实验不是原生DExplore当前观测对照
+
+此前只加可重建的参考q/物体pose误差24D和11手点CAD位移33D；未加实测contact、
+16-key-body姿态/速度/角速度、完整参考误差或原生IG。UNCLEAR结果仅适用于这个
+子集，不能用于否定DExplore信息。真正的当前信息实验尚未执行：应复用原生721D
+单分支在delta0构建（原actor1442D=delta1+delta16），同次执行补采contact/body/
+native observation与q_PD，保留τ合同并做matched对照。不能用原始几何660字段
+伪装实测contact，也不能把11点object-frame近邻位移称为原生IG。详见原卡末尾合同。
+
 ## 2026-10-15 10:21 CST 当前参考/表面几何信息 Probe
 
 用户允许当前参考目标及误差，排除新增未来参考。GPU0启动四臂matched R-only

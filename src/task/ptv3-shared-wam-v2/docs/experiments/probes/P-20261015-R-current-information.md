@@ -23,6 +23,10 @@ Result: UNCLEAR; all four12000-update arms completed. Added current reference
 and CAD geometry show no overall first-PD XYZ gain over the matched baseline.
 The both-input tail advantage at3000 does not persist at the longer budget.
 Decision: keep production inputs unchanged; do not extend this fitting run.
+Scope correction after user review: this was only a reconstructible-feature
+subset, NOT the requested native DExplore current-observation comparison.
+Measured contact and full body/IG/reference observations were not tested;
+the original current-DExplore-information question remains unanswered.
 Decision Probe for Mission Objective A / the robot action
 decoder. The user requests extra DExplore information at the current frame,
 explicitly permits same-tick reference goals/errors, and excludes the16-frame
@@ -187,3 +191,42 @@ Evidence: r3/result.json, current-information.png, input_sensitivity.json,
 each worker's manifest/curves/checkpoints; tools/audit/summarize_current_information.py
 --grouped and audit_current_information_inputs.py. No main-WAM updates were
 made by this experiment. Missing measured contact/body dynamics remain untested.
+
+## Correct native input contract (not yet executed)
+
+User correction: the intended diagnostic is the actual DExplore observation
+information, including contact, restricted to current-time inputs and with
+same-tick reference targets/errors permitted. Choosing only features already
+reconstructible from RL660 silently narrowed that question. The previous
+negative/unclear comparison must not be reported as a DExplore-input result.
+
+Pinned Inspire config has1442 actor inputs: two721D branches at delta1 and
+delta16. The current-time variant must call the same native observation
+functions at delta0, omit delta16, and preserve the existing τ contract;
+it must not slice delta1 or replace native blocks with approximate features.
+Native721D layout, from base_dexplore_task.py:382-431/1453-1609:
+
+- Body646D: root errors/velocities,16 key-body positions/rotations/linear and
+  angular velocities, five measured contact bits, reference body pose and
+  velocity errors/features, five reference-contact errors. Contact comes
+  from any absolute force component>0.1 at the configured contact bodies;
+  these are not raw force vectors or inferred hand-object proximity.
+- Object39D: current object pose/velocities plus reference pose/velocity
+  information and errors, expressed by the original native heading transform.
+- IG36D: six selected key-body nearest-surface vectors and the corresponding
+  reference IG errors, in the native heading convention.
+
+The actual current contact block is [252:257], reference-contact error is
+[401:406] inside the721D branch. These indices must be verified against a
+live native observation before training or masking, not trusted from this
+static arithmetic alone. The current11-point/object-frame33D approximation
+used in this Probe is not this six-point/native-frame18+18D IG contract.
+
+Old trajectory.npz has measured q/dq/11 hand points/object pose+velocity and
+commands; it did not retain measured contacts or the full native body state.
+Raw geometric660-column files contain reference fields and cannot stand in
+for these actual measurements. A corrected experiment needs same-execution
+capture of native delta0 observation AND q_PD labels before each command,
+with raw contact/body state retained for audit, followed by matched baseline/
+contact-only/full-current observations. No such collection or comparison
+has been run yet. The active four-GPU production fine-tune remains unchanged.
