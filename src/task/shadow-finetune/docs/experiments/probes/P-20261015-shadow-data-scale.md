@@ -119,6 +119,44 @@ forecast24支持把关键晚期动作丢掉”。对比现行H4/K24+动作8的qu
 监督，下一步优先检验尾段action-only/partial-forecast支持；否则保持数据量对照解释边界。
 最便宜直接读已审计cache的pose/goal，CPU≤10min/200MB，不调用模型、不改变当前准入或DEV面板。
 
+## small终点完成 / full正在更新
+
+small1000步完成，564.8秒，250/500/750/1000完整权重保留。固定共同DEV64的1000步
+action L1为0.27629，首命令MAE0.11705（root0.21301/finger0.08506），hand0.19778/scene1.15844。
+seed216原生16env结果如下，官方success是sticky位置标志，不能与终点或保持混报：
+
+| 角色 | 官方success TRAIN / DEV | 末帧5cm TRAIN / DEV | 同步抬升保持60帧 TRAIN / DEV |
+| --- | --- | --- | --- |
+| teacher | 7/8 / 1/8 | 6/8 / 1/8 | 6/8 / 1/8 |
+| small学生 | 6/8 / 1/8 | 2/8 / 0/8 | 2/8 / 1/8 |
+
+全部初始q/dq/root/hand/object/observation300/goal/reset一致、无invalid；独立NumPy从raw重算
+sticky/终点/同步连续保持计数与报告完全一致，teacher/student的observation[t+1]上一拍命令
+与action[t]均max0，命令有限且[-1,1]。证据r2下`native-small-independent-audit.json`。
+该面板teacher DEV只有1/8，预设DEV增加2/8门槛的功效有限；仍保留原门槛，不据此改判定或
+用small成功与旧seed213/旧selected500结果作同因素改善归因。
+
+full已真正启动，step100/1000，稳态约0.80秒/步，ETA约12分钟、峰值allocated3017MiB，
+GPU6读出93%/3623MiB，GPU7空闲。实际51个初始actor张量逐值相同，代码/父checkpoint/
+父统计/配置/预算和共同DEV IDs均一致，回执`cross-arm-startup-audit.json`。尚待full终点及
+跨臂native初态核验，当前不能判断数据量收益。
+
+## TRAIN晚期监督覆盖诊断
+
+CPU21.9秒遍历10118条TRAIN候选，未改变训练。现行完整forecast支持保留1536897个query，
+其中当前物体距目标<=5cm的351321个；若只要求安全8步action和同workspace，则有1941617个
+query/706676个近目标query。完整forecast额外舍弃404720个query，其中355355个近目标，
+约占安全action-only近目标候选的一半。末尾action-only支持是审计假设集合，尚未准入或训练。
+
+现行7868/10118条含近目标query，action-only为9791/10118；两者差1923条。首次进入5cm的
+状态tick分位数25%/50%/75%为93/115/147，完整200状态轨迹通常只训练到query151。
+观察到连续近目标60帧的序列7091条，现行query中仍连续保留60帧的2436条，action-only6496条。
+这是位置阶段覆盖，不证明接触质量或说明训练必须包含连续60条query。
+
+证据`outputs/shadow-finetune/full-phase-coverage-20261015-r1/{summary.json,sequences.jsonl}`。
+这排除了“近目标监督完全没有”的说法，同时暴露明显晚期覆盖缺口；若full固定预算仍不能改善
+保持，下一轮优先以相同full数据做partial-forecast/尾段BC最小对照，而非立即归因总轨迹数不足。
+
 ## Limitations / future evidence
 
 固定计算预算衡量更大支持集合在同预算下的收益，不能证明完整数据的收敛性能。只一个seed、
