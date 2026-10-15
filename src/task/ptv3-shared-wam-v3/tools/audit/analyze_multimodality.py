@@ -20,6 +20,20 @@ def load(path):
     return data, meta
 
 
+def bind_recordings(metadata, manifest):
+    """A gap-split file is not an independent recording (notably H2O)."""
+    for m in metadata:
+        m['group']=m['capture']
+        if m['source_id']<4: continue
+        if manifest is None: raise ValueError('Native manifest required for physical recording identities')
+        row=manifest['sequences'][m['row']]
+        assert row['source_id']==m['source_id']
+        assert str(row['objects'][row['target_slot']])==m['geometry_key']
+        m['capture_file']=m['capture']
+        m['capture']=str(m['source_id'])+':'+row.get('source_sequence',row['path'])
+        m['group']=row['group_id']
+
+
 def summary(values):
     a = np.asarray([v for v in values if v is not None and np.isfinite(v)], float)
     if not len(a): return dict(n=0, median=None, mean=None, p25=None, p75=None)
@@ -27,11 +41,11 @@ def summary(values):
                 p25=float(np.quantile(a,.25)), p75=float(np.quantile(a,.75)))
 
 
-def capture_bootstrap(rows, value, seed=214):
+def capture_bootstrap(rows, value, seed=214, unit='capture'):
     """Equal capture weighting; windows within a capture are not independent."""
     groups = defaultdict(list)
     for r in rows:
-        if r.get(value) is not None: groups[(r['source_id'],r['capture'])].append(float(r[value]))
+        if r.get(value) is not None: groups[(r['source_id'],r[unit])].append(float(r[value]))
     a = np.asarray([np.mean(v) for v in groups.values()])
     if not len(a): return dict(captures=0, mean=None, ci95=None)
     rng = np.random.default_rng(seed)
@@ -46,27 +60,30 @@ def reduce_rows(rows):
     return dict(windows=len(rows), captures=len({r['capture'] for r in rows}),
                 metrics={k:summary([r.get(k) for r in rows]) for k in keys},
                 capture_weighted={k:capture_bootstrap(rows,k) for k in ['ade_m','all24_motion_ratio','speed_ratio']},
+                group_weighted={k:capture_bootstrap(rows,k,unit='group') for k in ['ade_m','all24_motion_ratio','speed_ratio']},
                 contact_proxy={k:summary([r.get(k) for r in rows]) for k in
                                ['gt_contact8_10mm','pred_contact8_10mm','gt_contact24_10mm','pred_contact24_10mm',
                                 'gt_contact8_20mm','pred_contact8_20mm','gt_contact24_20mm','pred_contact24_20mm']})
 
 
-def analyze(cache, out):
+def analyze(cache, out, native_manifest=None):
     progress = json.loads((cache/'progress.json').read_text())
     assert progress['status']=='COMPLETED', 'Use a complete frozen cache'
     out.mkdir(parents=True, exist_ok=False)
+    manifest=json.loads(native_manifest.read_text()) if native_manifest else None
     rows=[]; cases=[]; conditional=[]; control_groups=defaultdict(list)
     for path in sorted(cache.glob('dev-*.npz')):
         sid=int(path.stem.split('-')[1]); q,mq=load(path)
         bank_path=cache/f'train-{sid}.npz'
         bank,mb=load(bank_path) if bank_path.exists() else (None,[])
+        bind_recordings(mq,manifest);bind_recordings(mb,manifest)
         if bank is not None:
             # Fit all embedding transforms on TRAIN only, within each source.
             center=bank['z'].mean(0); scale=np.maximum(bank['z'].std(0),.05)
             bz=(bank['z']-center)/scale; bz/=np.maximum(np.linalg.norm(bz,axis=1,keepdims=True),1e-8)
         source_rows=[]
         for i,m in enumerate(mq):
-            row=dict(source_id=sid,query=i,capture=m['capture'],row=m['row'],tick=m['tick'],
+            row=dict(source_id=sid,query=i,capture=m['capture'],group=m['group'],row=m['row'],tick=m['tick'],
                      **motion_metrics(q['pred_delta'][i],q['delta'][i]))
             # Avoid interpreting ratios for nearly static GT as attenuation.
             if row['all24_gt_motion_m']<.005 or row['gt_speed']<.01:
@@ -137,7 +154,8 @@ def analyze(cache, out):
     robust=[r for r in rows if r.get('robust_multimodal')]
     decision=capture_bootstrap(robust,'robust_averaging')
     label='PROMISING' if decision['captures']>=30 and decision['mean']>=.2 else 'UNCLEAR'
-    result=dict(schema='ref2dex.mse-multimodality.v1',checkpoint_step=progress['checkpoint_step'],cache_progress=progress,
+    result=dict(schema='ref2dex.mse-multimodality.v2',checkpoint_step=progress['checkpoint_step'],cache_progress=progress,
+                native_manifest=str(native_manifest),
                 conclusion=label,decision=decision,counts=dict(dev=len(rows),captures=len({(r['source_id'],r['capture']) for r in rows})),
                 sources={str(sid):reduce_rows([r for r in rows if r['source_id']==sid]) for sid in sorted({r['source_id'] for r in rows})},
                 conditional=groups,spread_groups={f'{sid}-{name}':reduce_rows([r for r in rows if r['source_id']==sid and r.get('spread_group')==name])
@@ -197,7 +215,7 @@ def write_report(result,out):
     text+=['','| Source / gate / retrieval | Supported ≥8 | ≥16 | Multimodal in both spaces | Averaging + off support |','|---|---:|---:|---:|---:|']
     for name,r in result['conditional'].items():text.append(f'| {name} | {r["supported"]}/{r["queries"]} | {r["supported16"]} | {r["multimodal"]} | {r["averaging"]} |')
     text+=['',f'Tight-gate/raw-and-latent robust multimodal captures and averaging rate: `{json.dumps(result["decision"])}`. Bootstrap resamples independent DEV captures; window medians in the first table are descriptive.','',
-           'Limits: finite-radius neighbors are not identical continuous H,G conditions. Multimodality requires both absolute and displacement-space separation; primary decision also requires both retrieval methods at 20 mm. Undertraining, missing observations, residual bad data, and finite bank support can explain errors. UniDex/HOI4D have no TRAIN/DEV target geometry overlap and cannot be diagnosed conditionally here. Complete future hand coverage is a selection filter. One neighbor per capture; maximum eight query windows per capture. Embedding whitening is fit on TRAIN only. No future hand label enters retrieval.','',
+           'Limits: finite-radius neighbors are not identical continuous H,G conditions. Multimodality requires both absolute and displacement-space separation; primary decision also requires both retrieval methods at 20 mm. Undertraining, missing observations, residual bad data, and finite bank support can explain errors. UniDex/HOI4D have no TRAIN/DEV target geometry overlap and cannot be diagnosed conditionally here. Complete future hand coverage is a selection filter. One neighbor per physical recording; native split segments are rebound to manifest source_sequence (not file path). A maximum eight windows per file was sampled before this correction; capture/group weighting handles unequal query counts. Session/group bootstrap is also reported in JSON. Embedding whitening is fit on TRAIN only. No future hand label enters retrieval.','',
            'Contact is an unsigned distance to a sparse cached object cloud after a GT rigid transform, not mesh SDF, penetration, or grasp success. Motion ratios exclude GT amplitude below 5 mm; speed/acceleration ratios also exclude all24 GT amplitude below 5 mm or mean GT speed below 0.01 m/s. Sources are reported separately. Correlation with spread alone is not evidence of conditional averaging. Bootstrap intervals are conditional on the fixed TRAIN bank and omit bank sampling/clustering uncertainty.','',
            'A PROMISING audit only justifies a matched frozen-backbone FM versus refitted MSE head probe, with equal data and compute, single-sample accuracy, minADE/FDE@M, mode precision/coverage and sampling cost. UNCLEAR means the existing weights/neighborhoods cannot select the architecture.','',
            '![Per-source prediction diagnostics](prediction_diagnostics.png)','']
@@ -207,4 +225,5 @@ def write_report(result,out):
 
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--cache',type=Path,required=True);p.add_argument('--output',type=Path,required=True)
-    a=p.parse_args();analyze(a.cache,a.output)
+    p.add_argument('--native-manifest',type=Path,help='Exact bound native manifest, for original recording/group IDs')
+    a=p.parse_args();analyze(a.cache,a.output,a.native_manifest)
