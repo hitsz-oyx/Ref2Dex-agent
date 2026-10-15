@@ -61,10 +61,13 @@ batch1/2/16的所查首拍差<0.1mm，四条native起步状态/H4/goal均与源�
 
 固定相同strict全TRAIN93680/DEV10376、单拍native腕部6D label、同TRAIN-only标准化、
 同ridge系数1e-3，不用DEV调参。A输入当前87D+已有物体goal24位置差3，B仅加当前
-q_ref[t]-q_real[t]18；没有参考t+1/t+16或未来实测。报告XYZ及Euler误差、tick0/1..15/later。
+腕部q_ref[t]-q_real[t]6；没有参考t+1/t+16或未来实测。报告XYZ及Euler误差、tick0/1..15/later。
 若A已明显优于shared，优先查模型/优化；若B比A明显改善，则当前参考条件值得进入神经
 网络匹配对照；若两者均差，不把线性负结果当信息无用的证明。与WAM比较只作拟合诊断，
 其loss/容量不同，不能据此声称WAM因果有害。
 
-CPU原因：这是108维以内矩阵充分统计及线性方程求解，没有神经网络forward/backward；
+源几何finger有原生耦合差异，故仅用经reset首帧对齐核对的腕部6D参考，不将raw18D
+全部称为native参考关节。每条读取时再核对首帧腕部6D。
+
+CPU原因：这是96维以内矩阵充分统计及线性方程求解，没有神经网络forward/backward；
 读取参考.pt仅为数据反序列化。<=300s/100MB，输出本run/reference-ridge，已有权重不改。

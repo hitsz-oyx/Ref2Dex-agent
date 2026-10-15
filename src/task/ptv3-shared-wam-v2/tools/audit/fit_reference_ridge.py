@@ -39,13 +39,15 @@ def main():
             raw=torch.load(geometry/name/'interaction_hand_inspire.pt',map_location='cpu',weights_only=False)
             raw=raw.numpy() if isinstance(raw,torch.Tensor) else np.asarray(raw)
             assert len(raw)==len(d['q'])==item['frames'] and ticks.max()+24<len(raw)
-            q_ref=raw[ticks,373:391].astype(np.float32)
+            # Wrist6 is directly preserved by native reset; fingers have native coupling.
+            assert np.max(np.abs(raw[0,373:379]-d['q'][0,:6])) < 1e-5
+            q_ref=raw[ticks,373:379].astype(np.float32)
             rotation=d['obj'][ticks,:3,:3];center=d['obj'][ticks,:3,3]
             local=np.einsum('npj,njk->npk',d['hand'][ticks]-center[:,None],rotation)
             state=np.concatenate((d['q'][ticks],d['dq'][ticks],local.reshape(-1,33),
                 d['obj'][ticks,:3,:].reshape(-1,12),d['velocity'][ticks]),-1)
             goal=d['reference_obj'][ticks+24,:3,3]-center
-            xs.append(np.concatenate((state,goal),-1));refs.append(q_ref-d['q'][ticks])
+            xs.append(np.concatenate((state,goal),-1));refs.append(q_ref-d['q'][ticks,:6])
             ys.append(d['applied'][ticks,:6]);ts.append(ticks);ss.append(np.full(len(ticks),len(names),np.int32));names.append(name)
         data[split]=dict(x=np.concatenate(xs).astype(np.float64),ref=np.concatenate(refs).astype(np.float64),
             y=np.concatenate(ys).astype(np.float64),tick=np.concatenate(ts),sequence=np.concatenate(ss),names=names)
@@ -53,7 +55,7 @@ def main():
     scale=np.asarray(corpus['native_controller']['scale'][:6],dtype=np.float64)
     result=dict(scope='Matched linear ridge predictability only; no learned WAM update or closed-loop claim',
         lambda_=1e-3,cpu_reason='Small normal-equation sufficient statistics, no neural network or simulation',
-        feature_contract='current measured87 + existing object_goal24 delta; optionally current q_ref[t]-q_real[t]18 only',arms={})
+        feature_contract='current measured87 + existing object_goal24 delta; optionally current wrist q_ref[t]-q_real[t]6 only',arms={})
     coefficients={}
     for arm in ('measured_and_object_goal','plus_current_reference_error'):
         x={s:(d['x'] if arm=='measured_and_object_goal' else np.concatenate((d['x'],d['ref']),-1)) for s,d in data.items()}
