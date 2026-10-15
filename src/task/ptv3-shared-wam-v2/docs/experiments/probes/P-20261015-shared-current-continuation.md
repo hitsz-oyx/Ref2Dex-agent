@@ -5,7 +5,7 @@ experiment_id: P-20261015-shared-current-continuation
 date: 2026-10-15
 task: ptv3-shared-wam-v2
 branch: main
-git_commit: 03c4fc58
+git_commit: e3333e76
 claim_id: C1
 hypothesis_family: HF-shared-current-continuation
 probe_index_in_family: 1
@@ -61,3 +61,13 @@ Decision Note：本轮优先验证同架构/目标下的信息干预。GPU6/7并
 保留r1与tmp/smoke-{masked,delta0}原始日志，不计方法负结果。r2连接同旧shared固定工作树
 使用的PointWorld vendor，并使训练output basename包含run suffix，避免复用旧scratch日志。
 实验输入、预算、权重、种子与两臂差异不变；修复后执行提交以r2/process.json为准。
+
+## r2启动核验
+
+冻结e3333e76，supervisor2589005，代码tmp/shared-current-code-20261015-r2。
+配对4步batch256 smoke均完成，initial actor/stat逐tensor一致，原strict准入和DEV256
+逐项相同，初始audit loss均0.2522353232，matched-smoke.json PASS。
+geometry/shared/R组梯度均非零，保持原joint更新。两组native4步独立audit均通过，
+max分别3.28e-7/2.23e-7，包含server own-current721回显/原chunk解码/实际PD检查。
+只读独立review未发现关键语义或匹配问题，相关新增及原合同测试通过。
+监督器已转入train1000阶段；正式离线和抓取结果尚未产生，不用smoke形成科学结论。

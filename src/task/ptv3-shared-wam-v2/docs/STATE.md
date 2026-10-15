@@ -1,3 +1,15 @@
+## 2026-10-15 原shared联合目标的当前信息配对已启动
+
+用户要求继续对照，新增shared-current-continuation：从同一shared7k旧权重起步，
+同原8×15 q_PD、forecast、WAM/R均更新、旧LR，两组fresh optimizer；同721→128→128
+零末层支路，masked对照与delta0实际输入仅值不同。strict93680/10376及原DEV256，
+追加1000步，固定终点三条val K1闭环/独立audit自动接续。不存在GTtau anchor/warmup。
+相关测试与独立review通过，冻结e3333e76，supervisor2589005，GPU6/7配对smoke和
+native4步审计均PASS（max<=3.28e-7），初始loss均0.2522353232、actor/stat/旧DEV一致。
+监督器已进入正式train1000阶段，科学结果尚未产生。
+正式产物shared-current-continuation-20261015-r2；r1因vendor缺失在GPU计算前退出，
+证据保留，不计方法负结果。当前尚无该配对科学结果；详见P-20261015-shared-current-continuation。
+
 ## 2026-10-15 当前完整teacher信息腕部恢复局部抓取信号
 
 current-wrist-mlp两臂固定6k离线后，替换原shared7k腕部6D、保留各自shared手指，
