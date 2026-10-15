@@ -1,12 +1,12 @@
 """Matched teacher/student native simulator replay using the pinned, tested collector."""
 import argparse,importlib.util,json,os,random,subprocess,sys,time
 from pathlib import Path
-TASK=Path(__file__).resolve().parents[2];ROOT=TASK.parents[2]
+TASK=Path(__file__).resolve().parents[2];ROOT=Path(os.environ.get('REF2DEX_RUN_ROOT',TASK.parents[2])).resolve()
 
 
 def worker(a):
     # Importing the pinned collector executes no torch imports; worker imports IsaacGym first.
-    source=ROOT/'src/task/video-data-preparation/tools/run/replay_unidexgrasp.py'
+    source=TASK.parent/'video-data-preparation/tools/run/replay_unidexgrasp.py'
     text=source.read_text()
     old='    records = []\n    begin = time.monotonic()'
     new='''    # Preserve initialization RNG across teacher/student module construction.

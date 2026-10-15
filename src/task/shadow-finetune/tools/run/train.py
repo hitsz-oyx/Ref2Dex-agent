@@ -42,7 +42,8 @@ def main():
     manifest=dict(schema=paths.SCHEMA,status='RUNNING',engineering_only=a.smoke,data=str(a.data.resolve()),
         parent=str((a.parent or paths.PARENT).resolve()),parent_step=parent['step'],config=config,stats=stats,
         parameters=sum(p.numel() for p in model.parameters()),seed=a.seed,updates=4 if a.smoke else a.steps,
-        batch_size=a.batch_size,gpu=a.gpu,git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=paths.ROOT,text=True).strip(),
+        batch_size=a.batch_size,gpu=a.gpu,git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=TASK,text=True).strip(),
+        code_root=str(TASK.parents[2]),
         train_windows=len(train),dev_windows=len(dev),control_hz=60,actor_state='full current native300',
         goal='decision-known task goal position, current orientation',action='canonical pre-transform 24D commands, eight60Hz controls; execute first')
     if controls:
@@ -51,6 +52,8 @@ def main():
     def write(name,payload):
         tmp=out/(name+'.part');tmp.write_text(json.dumps(payload,indent=2,allow_nan=False)+'\n');tmp.replace(out/name)
     write('manifest.json',manifest);np.save(out/'validation.npy',validation)
+    if controls:
+        np.savez(out/'initial-actor.npz',**{k:v.detach().cpu().numpy() for k,v in model.actor.state_dict().items()})
     curves=[];best=float('inf');started=time.monotonic()
     try:
         for step in range(1,manifest['updates']+1):
