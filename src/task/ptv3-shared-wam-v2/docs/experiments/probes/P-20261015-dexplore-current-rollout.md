@@ -160,3 +160,14 @@ rewriting this corpus or automatically changing the training split/windows.
 No GPU or new rollout is required. User explicitly requests parallel native
 input experiments while this review tool is developed; those are a separate
 matched-learning Probe, with the default6-GPU cap restored after collection.
+
+Descriptive full-corpus review prioritization is saved separately under
+`outputs/ptv3-shared-wam-v2/dexplore-review-20261015-r1/quality-review-priority.json`.
+An independently inspected example is `s8_spheresmall_inspect_1`, tick255:
+actual q translation is[5,-5,1.5664]m, mean16-key-body reference error7.9286m,
+but current/future24 object position errors peak at0.030024m and the old
+position-only gate admits that window. This is a concrete screen failure,
+not a general grasp-success statistic. The existing encoder workspace gate
+is a separate compatibility restriction, not a human-quality filter.
+Prioritization uses errors/contact only to choose review candidates; it
+does not generate human verdicts or alter corpus/window membership.
