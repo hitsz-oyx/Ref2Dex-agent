@@ -241,3 +241,33 @@ early-stop from these four points. best.pt is selected by total objective and
 still points to1000, which does not imply action progress stopped.
 Evidence: run plateau-step2220.json/.png, generated without inference or
 production edits by tools/audit/audit_robot_plateau.py.
+
+## Updated plateau inspection at logged step8340
+
+User requests the current action-loss trend. Active r5 is still RUNNING on
+GPU4/5/6/7, target12000/global512. The latest fixed-dev256 evaluation is8000;
+the original r2 and resumed r5 validation index arrays are exactly equal.
+
+| Step | Predicted-τ action | GT-τ anchor | Total dev objective |
+| --- | ---: | ---: | ---: |
+| 5000 | 0.391091 | 0.376277 | 5.391422 |
+| 6000 | 0.384994 | 0.368858 | 5.455194 |
+| 7000 | 0.380777 | 0.362222 | 5.529810 |
+| 7500 | 0.376566 | 0.357895 | 5.518565 |
+| 8000 | 0.376261 | 0.355949 | 5.516710 |
+
+Predicted-τ action improves7.55% since3500,2.27% since6000,1.19% since7000,
+but only0.081% in the last500 updates. GT anchor improves3.50% since6000.
+Rank0 train action means over successive1000-update logged blocks ending
+6000/7000/8000 are0.466486/0.447449/0.443855; the latter improvement is0.80%.
+Thus action fitting is still improving with diminishing returns, approaching
+a plateau; it is not proven completely stalled. Total dev is already flat
+around5.5 and higher than early evaluations; improving action does not imply
+improving forecast or physical grasp behavior. Keep the authorized12000 cap,
+do not extend from falling training loss alone.
+
+Evidence: r5 `plateau-step8340.json/.png`, CPU-only read/plot of existing
+metrics with no model inference or configuration changes. Corrected resume
+ETA at8340 is about60min, using elapsed/(step-3000); the inherited logger's
+elapsed/total-step formula underestimates time remaining. GPU4/5/6/7 observed
+at89/92/100/100% utilization and roughly6.6GiB physical memory per card.
