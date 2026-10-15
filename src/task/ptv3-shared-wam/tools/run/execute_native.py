@@ -12,7 +12,7 @@ import time
 import numpy as np
 
 TASK = Path(__file__).resolve().parents[2]
-ROOT = TASK.parents[2]
+ROOT = Path(os.environ.get('REF2DEX_RUN_ROOT', TASK.parents[2])).resolve()
 sys.path.insert(0, str(TASK / "src"))
 from ptv3_shared_wam.paths import add_dependencies
 
