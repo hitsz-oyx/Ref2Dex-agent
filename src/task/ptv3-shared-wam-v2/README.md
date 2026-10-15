@@ -68,6 +68,34 @@ shared85,054,464；其余为输入融合、goal与双预测头。
 先用 `--smoke --gpu 4` 验证 wiring；科学运行需使用远端 parent，并以
 `torchrun --nproc_per_node=2` 占用 GPU4/6。不得用本地工程 checkpoint 冒充远端结果。
 
+## DExplore rollout 人工审阅（Viser）
+
+直接从新采集的 `body_state`、物体姿态及原始URDF视觉网格重建真实执行状态，
+不重新仿真。蓝色手、橙色物体；绿色为当前参考物体线框和16关键点骨架，
+红色点为原生5个接触body的实测接触（灰色表示无接触）。桌子使用原几何文件中
+与native loader相同的固定pose。参考骨架只连接真实保存的关键点，不补造关节。
+可旋转/缩放、切换660条序列、暂停逐帧、调整速度、选择片段并标注可用/不可用/待定。
+物体位置窗口筛选通过不等于抓取成功；接触力也可能来自桌子等碰撞，不能自动视为手物抓持。
+
+```bash
+TMPDIR="$PWD/tmp" /home2/wyy/miniconda3/envs/graspenv/bin/python \
+  src/task/ptv3-shared-wam-v2/tools/audit/review_dexplore_rollouts.py \
+  --corpus outputs/ptv3-shared-wam-v2/dexplore-current-rollout-20261015-r1 \
+  --output outputs/ptv3-shared-wam-v2/dexplore-review-20261015-r1 \
+  --sequence s1_mug_lift --port 8768 --hours 8
+```
+
+仅监听127.0.0.1。远程使用时在VS Code转发8768端口，再打开 `http://localhost:8768`；
+也可SSH `-L 8768:127.0.0.1:8768`。多浏览器共享播放和标注表单，适合单人审阅。
+CPU读取文件，浏览器绘制，不使用训练GPU；播放默认30Hz且可逐帧。
+8小时后自动退出，可用同一output再次启动；保存的标注会保留。
+
+标注只新增到review output的 `annotations/*.json`，不改变源corpus或TRAIN/dev。
+GUI首尾帧均包含；落盘统一半开区间 `[start_frame,end_frame_exclusive)`，记录source run、
+sequence、split、30Hz、判定、原因及备注。重复审阅保留每次记录，后续冲突合并和
+训练窗口准入需另行显式处理；当前不会把标签自动应用到训练。新标注上限10000条、
+每条备注2000字符；训练窗口的未来24帧与历史上下文也应受坏片段影响，不能只查起始帧。
+
 ## 远端运行条件
 
 远端已部署在 `/home/wbcd/workspace/oyx_ws/wam-v2-20261014/repo`；使用

@@ -13,13 +13,14 @@ seed_pool: probe
 seeds: [120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161]
 decision_changed_if_positive: enable a matched native-current-observation input comparison on the freshly paired corpus
 decision_changed_if_negative: fix capture alignment before any input-benefit training
-status: RUNNING
+status: UNCLEAR
 run_id: dexplore-current-rollout-20261015-r1
 ---
 
 # Complete same-execution DExplore current-input rollout collection
 
-Result: RUNNING. Engineering/data Blocker for Objective A, not an input-benefit
+Result: Engineering capture/audit COMPLETE and PASS; native-input benefit remains
+UNCLEAR. Engineering/data Blocker for Objective A, not an input-benefit
 result. User explicitly requests the complete660-motion recollection on
 physical GPU0/1/2 concurrently, after correcting the previous incomplete
 reference/geometry-only experiment. The source remains the frozen660 motions;
@@ -138,3 +139,24 @@ native actual-body blocks15:252 from saved raw body_state matches within
 6.37e-7 position,3.44e-6 rotation6D,8.59e-6 linear velocity,3.59e-5 angular
 velocity; quaternion norm error3.58e-7. This is engineering evidence that the
 new body observations are actually captured, not a benefit result.
+
+## Completion / human review
+
+Full run completed in1193.60s:660 sequences,166337 state frames,165677 command
+frames;88783 frames contain measured native-hand contact. Full CPU raw audit
+PASS with independently recomputed same-tick PD maximum error0; original
+TRAIN/dev membership preserved. Native payload admission now explicitly
+`training_allowed=true`, audit in `current_observation_audit.json`, original
+pre-admission root manifest retained. Recomputed position tracking admits
+122623 windows. This qualifies payload consistency, not grasp quality.
+
+User requests visual supervision because the current<=100mm object-position
+window gate does not enforce hand tracking, object orientation, penetration,
+held/lift success or contact stability. Viser review entry is
+`tools/audit/review_dexplore_rollouts.py` (Task-relative), using saved actual
+25-body states and object poses, URDF meshes, current reference object/keypoints
+and measured contact. Labels go into separate review output JSON files, never
+rewriting this corpus or automatically changing the training split/windows.
+No GPU or new rollout is required. User explicitly requests parallel native
+input experiments while this review tool is developed; those are a separate
+matched-learning Probe, with the default6-GPU cap restored after collection.
