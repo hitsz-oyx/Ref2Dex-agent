@@ -60,3 +60,17 @@ GPU 异常，step4000 权重和日志完整保留。随后从这两个 step4000 
 `continuation-masked8-sparse`/`continuation-delta08-sparse` 到 step7000。该资源恢复臂
 只改变 validation/checkpoint cadence 为 3000，模型、数据、优化器和学习率字段严格保持
 一致；实际新增配置和 sparse 源码均保存在项目 `tmp/` 与 run 输出中。
+
+## Implementation audit and corrective rerun
+
+2026-10-16 04:55 CST 的结果审查发现，原 `continuation-masked8.json` 和
+`continuation-delta08.json` 没有写入 `action_supervision_steps=8`。在
+`robot_loss` 的默认合同中，缺省值是预测 horizon（24），所以这两条运行实际是
+24-step action supervision；它们的 step7000 权重、训练曲线和 native panel 全部保留，
+但对本 Probe 的“8拍”臂标为 `INVALID_IMPLEMENTATION`，不用于四组因果比较。single-
+masked1/single-delta01 显式设为1，语义有效。
+
+修正臂从原 shared-current 1k checkpoint 恢复完整 Adam/RNG，只增加明确的
+`action_supervision_steps=8`，并使用稀疏 validation/checkpoint cadence 以满足每臂7GB
+artifact budget。修正输出目录为 `continuation-masked8-corrected` 和
+`continuation-delta08-corrected`；这两个臂完成后才形成本卡四组结果。
