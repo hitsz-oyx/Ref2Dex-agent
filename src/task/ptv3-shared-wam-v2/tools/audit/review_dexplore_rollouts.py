@@ -144,8 +144,17 @@ class Viewer:
 
     def center_camera(self):
         with self.lock:
-            center = self.data['obj'][self.tick, :3, 3].astype(float)
-            position = center + [.55, -.65, .4]
+            # At startup the hand may still be approaching the object. Frame
+            # both so an off-screen hand cannot hide a real tracking failure.
+            points = np.concatenate((
+                self.data['body_state'][self.tick, self.corpus.contract['key_body_ids'], :3],
+                self.data['reference_hand'][self.tick],
+                self.data['obj'][self.tick, None, :3, 3],
+                self.data['reference_obj'][self.tick, None, :3, 3]), axis=0)
+            lower, upper = points.min(0), points.max(0)
+            center = (lower + upper) / 2
+            distance = max(float(np.linalg.norm(upper - lower)), .35)
+            position = center + np.array([.8, -1., .65]) * distance
             self.server.initial_camera.position = position
             self.server.initial_camera.look_at = center
             for client in self.server.get_clients().values():
