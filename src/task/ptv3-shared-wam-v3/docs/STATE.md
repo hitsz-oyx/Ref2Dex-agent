@@ -6,6 +6,10 @@
 
 规则针对高冲量、共同手物强冲量、最初两个转换已高速飞行、极端转速的保守疑点隔离；不宣称排除了所有物理异常。纯旋转接触与正常掉落要继续视觉复核。详见[清洗记录](../../3d-data-preparation/docs/research/2026-10-15-unidex-motion-cleaning.md)。原清洗view、raw数据和本地旧训练全部保留。
 
+远端验收已完成：`/mnt/ugreen_nas/storage/oyx_storage/ptv3-shared-wam-v3-nine-source-20261015-r1/data-motion-r1/recipe`。仅传约3.24MB元数据，复用37,591 payload/2,638 CAD；九源36 TRAIN/八源32 DEV真实mixed-reader通过，数值统计与本地完全一致，14909窗口准入和原始坏窗仍可读另检通过。远端无GPU训练；证据`tmp/nine-remote-20261015-r1/motion-r1-evidence/`。
+
+Viser已切换同8769新清洗recipe，PID1686665、固定代码494c2111；10条整段隔离仍可选择回看，真实UI检查通过，HTTP200。新标记目录`nine-source-motion-review-20261015-r1/annotations`；旧标记保留。
+
 以下为先前运行与部署记录；当前状态以上述清洗版本为准。
 
 # 九源统一预训练状态

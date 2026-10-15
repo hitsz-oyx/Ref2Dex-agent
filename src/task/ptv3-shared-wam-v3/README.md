@@ -23,3 +23,12 @@ hand/scene 1:1，scene motion tau2mm、floor0.1，无额外 source loss 乘数�
 可按来源/划分/序列选择、播放完整轨迹并保存独立质量标记。
 详见 [浏览说明](docs/nine-source-viewer.md)。默认直接打开7.387m的UniDexGrasp++仿真异常样本。
 本地v3已按用户要求停止；后续转远端四卡，先完成数据迁移和质量审阅。
+
+
+当前推荐训练输入为清洗后的`nine-source-motion-recipe-20261015-r1`。本地及远端已完成CPU读取和统计一致性验收，尚未启动新训练。远端显式`--recipe`使用：
+
+```text
+/mnt/ugreen_nas/storage/oyx_storage/ptv3-shared-wam-v3-nine-source-20261015-r1/data-motion-r1/recipe
+```
+
+旧`data/recipe`保留用于追溯；新训练应使用上述motion版本。窗口清洗及精确统计复算见[清洗记录](../3d-data-preparation/docs/research/2026-10-15-unidex-motion-cleaning.md)。

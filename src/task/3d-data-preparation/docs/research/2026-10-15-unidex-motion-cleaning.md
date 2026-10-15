@@ -30,3 +30,9 @@ Policy v1 isolates25 captures (TRAIN21/DEV4), excluding114 TRAIN/22 DEV windows.
 All114 excluded TRAIN windows were independently replayed through `CleanPoseMeshWindows`; adding their moments back to the new statistics reconstructs the parent moments within7.28e-12 maximum absolute difference. The original three-source TRAIN moment sample is unchanged; new mixture weights and24×3 hand/scene statistics are bound to the new frozen view. Known row14909 retains ticks3/11/19/27/35/43/51 and excludes59/67/75.
 
 Important residual cases: independent review identified rows9674/17266 with later fast falling/sliding that do not meet this conservative impulse rule. They remain explicit visual-review candidates, not certified valid; do not turn a few-metres displacement or floor contact into automatic failure. Further physical adjudication would need raw simulator contact/velocity replay. No training was started during cleaning.
+
+## Remote and visualization verification
+
+Remote `.../ptv3-shared-wam-v3-nine-source-20261015-r1/data-motion-r1` passed the full dependency check (37,591 sequence payloads/2,638 CAD),36 mixed TRAIN samples across9 sources and32 mixed DEV samples across8 sources. Numeric horizon arrays equal the new local recipe exactly; no payload/CAD recopied. Only3,240,669bytes of compressed metadata were transferred. Known-bad ticks59/67/75 are absent in the new index and remain readable in the retained raw parent. Evidence: `tmp/nine-remote-20261015-r1/motion-r1-evidence/`. No GPU training was launched.
+
+Viser8769 now uses the new recipe; its real-control check loaded all10 fully quarantined sequences and the original7.387m sample, showing the correct admission state. Old annotations are preserved. A watchlist for uncertain rows9674/17266 is stored as `visual-review-watchlist.json` in the new local native view.
