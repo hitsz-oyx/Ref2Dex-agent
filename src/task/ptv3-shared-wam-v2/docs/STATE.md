@@ -1,5 +1,25 @@
 # PTv3-Shared-WAM v2 当前状态
 
+## 2026-10-15 10:01 CST 远端80k权重的四卡q_PD微调已启动
+
+用户明确要求无warmup、q_PD监督，并改用四卡/更大batch。远端科学step80000已取回，
+严格加载parent与其原始数值统计；R/optimizer从头初始化，预测τ动作损失更新WAM+R，
+GT-τ anchor仅更新R。科学run `ptv3-shared-v2-robot-finetune-20261015-r2` 已在本地
+GPU4/5/6/7启动，128/rank/global512、12000更新，supervisor1436540每60秒监督，
+代码dccd77ee。双卡r1按用户新要求正常停止，保留原始FAILED/signal15回执，不作为负证据。
+
+大batch工程门发现原RL660物体跟踪准入仍包含手漂移超过6m的窗口，导致预训练固定
+体素域越界。保留原corpus/voxel origin/坐标/标签，新增显式observed-fixed-grid.v1：
+TRAIN110777→110469，308窗跨6序列排除；DEV11908不变。逐序列排除tick与旧新索引
+写入run的encoder_workspace_admission.json，R归一化和sampler均绑定新TRAIN成员。
+这只验证当前encoder输入域，不代表剩余窗口均为成功示范。17项测试、独立只读审查、
+四卡global512真实四步/评估/保存通过；工程显存约6.5GiB/卡，不形成学习/抓取结论。
+运行协议和首段资源观测见对应实验卡与run的startup_observation.json。
+
+10:03:44 CST 已到step80/12000、loss有限。30秒GPU4/5/6/7平均利用率约87/90/88/91%，
+物理显存峰值约6.6GiB/卡；稳定0.951秒/update、538样本/s，剩余纯训练约3.16h，
+dev/保存开销另计。首段无资源异常，尚未到step500首次dev，不作收敛或抓取判断。
+
 ## 2026-10-15 q 三维合同与远端 WAM 适配
 
 RL660 reference-q raw replay 与 nearest-live branch follow-up 均通过独立
