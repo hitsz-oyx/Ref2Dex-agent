@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [160, 161, 162]
 decision_changed_if_positive: qualify native current inputs under predicted tau before changing the joint WAM recipe
 decision_changed_if_negative: retain uncertainty about data quality and fitting rather than expanding production inputs immediately
-status: RUNNING
+status: UNCLEAR
 run_id: R-native-current-20261015-r1
 ---
 
@@ -100,3 +100,48 @@ to fail closed on the native schema/delta0/future-invariance/full raw-audit
 receipt was implemented before the scientific launch. Full matched workers
 start concurrently on GPU0/2 under the output-owned supervisor. The baseline
 includes the same encoder biases/capacity but no native value access.
+
+## Final12000-update result
+
+Both arms finished12000 updates and exited0; supervisor and automatic matched
+merge completed in247.46s. No budget extension. Same fixed new dev512, with
+256 startup and256 later frames; select by the predeclared p95-then-mean rule:
+
+| Arm | Selected update | XYZ mean mm | XYZ p95 mm | Clipping |
+| --- | ---: | ---: | ---: | ---: |
+| baseline | 9500 | 64.08 | 222.52 | 0% |
+| native_current | 11500 | 57.23 | 192.58 | 0.1953% |
+
+Native current inputs reduce selected mean10.69% and p9513.45%. This is an
+exploratory favorable trend, but neither reaches the predeclared simultaneous
+15%/15% gate: conclusion UNCLEAR. Do not change the production input contract
+or claim better physical grasping from this GT-tau offline diagnostic. The
+final12000-step mean/p95 are63.38/232.50 versus58.29/197.18mm; the direction
+also holds at the common final update. Selected rotation/finger p95 are
+1.1981/0.3510rad versus0.9963/0.3031rad. Results do not attribute any gain
+specifically to contact because the intervention adds the full721D block.
+
+TRAIN110250/dev12049 retained windows are shared exactly. Matched checks pass:
+parent, TRAIN-only native stats, panel indices and sequence/tick identities,
+initial functions, hyperparameters, original selection. Independent raw
+q[t]/q_PD[t] plus saved predictions and native controller XYZ reconstruction
+reproduce both selected mean/p95 exactly. Two known-answer tests, real two-arm
+one-update wiring smoke, independent semantic review and repository path
+verification passed. Source contract rejects future actor branches or missing
+full raw-audit admission. No production model or active R5 snapshot was edited.
+
+Resources: GPU0/2 simultaneous,30 stable samples average utilization16.7%/15.8%,
+physical memory1229MiB each, approximately0.017s/update; small R computation is
+light, with Python/optimizer dispatch limiting utilization. All neural updates
+and inference ran on GPU; file unpacking and independent numeric audit on CPU.
+Aggregate artifacts82,674,903B before this documentation, below300MB; no GPU
+process remains for either worker. Original four-card WAM fine-tune continues.
+
+Evidence: run `result.json`, `native-current.png`, `launch.json`,
+`startup_gpu_samples.json`, `startup_observation.json`, per-arm manifests,
+curves, selected predictions and immutable selected checkpoints. Worker code
+6e08ed66; independent final merge/raw XYZ audit code5a9240d9. Decision: stop
+this fitting budget, retain the modest native-information signal as UNCLEAR,
+and continue the separately authorized human data-quality review. A later
+predicted-tau or native-execution qualification requires a separately scoped
+experiment; none is started by this result.

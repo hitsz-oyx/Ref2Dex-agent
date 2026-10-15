@@ -159,3 +159,11 @@ run `R-native-current-20261015-r1`，supervisor1601232，worker1601234/1601235�
 sequence/tick，不能沿用旧数据行号。此为GTτ离线动作预测诊断，未形成predτ联合
 训练收益或抓取结论；结果自动汇总到run/result.json及native-current.png。
 详见[P-20261015-R-native-current](experiments/probes/P-20261015-R-native-current.md)。
+
+
+原生721D R-only诊断已完成：两臂各12000步、GPU0/2已释放，自动matched检查与
+独立raw q/q_PD XYZ重算通过。固定dev512 selected baseline9500为mean64.08/
+p95222.52mm，native11500为57.23/192.58mm，改善10.69%/13.45%，clipping0/0.1953%。
+未满足预设两者均≥15%门，结论UNCLEAR，不延长或改生产输入；GTτ离线有利趋势
+不能直接解释为predτ联合微调或物理抓取收益，也不能单独归因contact。耗时247.46s、
+总产物82.7MB，主四卡R5未受干扰。卡与run/result.json保存selected/final完整证据。
