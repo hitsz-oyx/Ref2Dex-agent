@@ -23,7 +23,9 @@ def main():
     old=read(parent/'manifest.json');stats=read(root/'source-moments.json');oldstats=read(parent/'source-moments.json')
     before=dict(np.load(parent/'windows.npz',allow_pickle=False));after=dict(np.load(root/'windows.npz',allow_pickle=False))
     removed=dict(np.load(root/'excluded-parent-windows.npz',allow_pickle=False))
-    sid=np.array([r['source_id'] for r in meta['sequences']]);onsets={r['row']:r['first_suspect_frame'] for r in read(root/'quarantine.json')['sequences']}
+    sid=np.array([r['source_id'] for r in meta['sequences']])
+    decisions=read(root/'quarantine.json')['sequences'] if (root/'quarantine.json').exists() else meta['motion_admission']['manual_decisions']['rows']
+    onsets={r['row']:r['first_suspect_frame'] for r in decisions}
     for key,index in before.items():
         bad=np.array([int(r) in onsets and int(t)+24>=onsets[int(r)] for r,t in index])
         assert np.array_equal(index[bad],removed[key]) and np.array_equal(index[~bad],after[key])
