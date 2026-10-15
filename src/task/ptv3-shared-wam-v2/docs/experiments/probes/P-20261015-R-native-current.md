@@ -5,7 +5,7 @@ experiment_id: P-20261015-R-native-current
 date: 2026-10-15
 task: ptv3-shared-wam-v2
 branch: main
-git_commit: HEAD
+git_commit: 6e08ed66
 claim_id: C1
 hypothesis_family: HF-R-native-current
 probe_index_in_family: 1
@@ -90,3 +90,13 @@ frozen membership. Additional information may affect optimization as well
 as identifiability; a null result does not refute DExplore information.
 Positive signals must survive predicted tau and native execution before
 changing the production joint recipe or claiming physical benefit.
+
+## Startup
+
+Code6e08ed66. Two known-answer tests passed. Real new-corpus engineering
+smoke ran both arms one update each, initial functions matched and all metrics
+finite. Independent read-only review found no semantic blocker; its suggestion
+to fail closed on the native schema/delta0/future-invariance/full raw-audit
+receipt was implemented before the scientific launch. Full matched workers
+start concurrently on GPU0/2 under the output-owned supervisor. The baseline
+includes the same encoder biases/capacity but no native value access.

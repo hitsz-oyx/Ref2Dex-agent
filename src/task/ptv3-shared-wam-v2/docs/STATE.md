@@ -139,3 +139,16 @@ step4→5恢复更新均通过，模型/optimizer/RNG恢复、有限梯度和实
 预检报告：`outputs/ptv3-shared-wam-v2/remote-preflight-20261014-r1/summary.json`。
 短工程检查不保证长期吞吐/利用率；正式长训仍需固定预算、完整配置与持续资源观察。
 详见[实验卡](experiments/probes/P-20261014-ptv3-shared-v2-pretrain.md)。
+
+## 2026-10-15 新补采数据的原生721D matched R-only诊断
+
+在原始四卡R5保持运行的同时，GPU0/2并行启动baseline/native_current两臂，
+run `R-native-current-20261015-r1`，supervisor1601232，worker1601234/1601235。
+代码6e08ed66；独立审查和2项关键合同测试、真实新660数据双臂各1步smoke通过。
+使用新采集的同次执行q_PD、继承sequence split，GTτ24合同保持；额外输入是原生
+当前delta0完整721D（含实测contact），没有future16分支。两臂相同step500 R、
+721→128→128容量/初始化/采样，baseline在TRAIN统计归一化后mask；各12000步，
+1200s/150MB一臂，不自动延长，6卡总上限。新执行的dev512面板重新固定并保存
+sequence/tick，不能沿用旧数据行号。此为GTτ离线动作预测诊断，未形成predτ联合
+训练收益或抓取结论；结果自动汇总到run/result.json及native-current.png。
+详见[P-20261015-R-native-current](experiments/probes/P-20261015-R-native-current.md)。
