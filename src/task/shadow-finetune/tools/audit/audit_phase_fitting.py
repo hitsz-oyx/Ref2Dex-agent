@@ -50,6 +50,11 @@ def main():
     panels={'common_dev':(dev,[dev.keys[int(i)] for i in controls['validation_ids']]),
             'small_train':(readers['small'],[readers['small'].keys[i] for i in readers['small'].draw(rng,64)]),
             'full_train':(readers['full'],[readers['full'].keys[i] for i in readers['full'].draw(rng,64)])}
+    # Exhaust all small TRAIN starts to distinguish poor fitting on repeatedly
+    # observed states from the broader full-data startup generalization panel.
+    starts=[(i,0) for i,row in enumerate(readers['small'].records) if 0 in row['ticks']]
+    if not starts:raise ValueError('small TRAIN startup support required')
+    panels['small_startup']=(readers['small'],starts)
     full=readers['full'];phase={'startup':[],'near_goal':[],'tail':[]}
     for i in rng.permutation(len(full.records)):
         i=int(i);row=full.records[i];seq=full.sequence(i)
@@ -83,7 +88,7 @@ def main():
     result=dict(status='RUNNING',run=str(a.run.resolve()),runtime_code_root=str(code),
         runtime_commit=runtime_commit,audit_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True).strip(),
         seed=217,gpu=a.gpu,panels=identities,arms={},
-        scope='fixed small TRAIN/full TRAIN plus matched64 full TRAIN sequences at startup/near-goal/safe omitted tail; tail hypothetical, no training admission; no causal or success claim')
+        scope='fixed small TRAIN/full TRAIN, exhaustive small TRAIN starts, matched64 full TRAIN sequences at startup/near-goal/safe omitted tail; tail hypothetical, no training admission; no causal or success claim')
     def write():
         (out/'report.json').write_text(json.dumps(result,indent=2,allow_nan=False)+'\n')
     write()
