@@ -88,11 +88,11 @@ def test_accumulator_never_reads_dev_and_rejects_a_dev_row_in_train_index(tmp_pa
     row=dict(path='sequence.npz',format='canonical',split='train',clock_verified=True,
         source_id=8,target_slot=0,objects=['test'],payload_size_bytes=s.st_size,payload_mtime_ns=s.st_mtime_ns)
     # Deliberately missing DEV payload: success proves that only TRAIN was read.
-    rows=[row,{**row,'split':'dev','path':'must-not-read-dev.npz'}]
+    rows=[row,{**row,'split':'dev','path':'must-not-read-dev.npz','objects':['dev-only']}]
     np.savez(root/'windows.npz',verified_train=np.array([[0,3],[0,11]],np.int64))
     stamp=(root/'windows.npz').stat()
     meta=dict(cleaning_schema=CLEANING_SCHEMA,status='COMPLETED',training_allowed=False,
-        sequences=rows,objects=[dict(key='test',path='geometry.npz')],
+        sequences=rows,objects=[dict(key='test',path='geometry.npz'),dict(key='dev-only',path='must-not-read-dev-geometry.npz')],
         source_profiles={'8':{'source_fps':30}},window_index='windows.npz',
         window_index_size_bytes=stamp.st_size,window_index_mtime_ns=stamp.st_mtime_ns)
     (root/'manifest.json').write_text(json.dumps(meta))
@@ -103,6 +103,7 @@ def test_accumulator_never_reads_dev_and_rejects_a_dev_row_in_train_index(tmp_pa
     output=parent/'moments'
     result=accumulate_clean_moments.accumulate(root,output,encoder,workers=1)
     assert result['windows']==2 and result['split']=='train' and result['training_allowed'] is False
+    assert result['geometry_files_read']==1
     artifact=json.loads((output/'source-moments.json').read_text())
     assert artifact['source_moments']['8']['hand']['count']==[44]*24
     np.savez(root/'windows.npz',verified_train=np.array([[1,3]],np.int64))

@@ -45,7 +45,11 @@ def accumulate(root,output,encoder_config,workers=4,max_seconds=1800):
         index=z['verified_train'].copy()
     groups={}
     for row,tick in index:
+        if (not 0<=row<len(meta['sequences']) or meta['sequences'][row]['split']!='train'
+                or meta['sequences'][row].get('clock_verified') is not True):
+            raise ValueError('DEV/unverified row in TRAIN moments index')
         groups.setdefault(int(row),[]).append(int(tick))
+    required_geometry={key for row in groups for key in meta['sequences'][row]['objects']}
     output.mkdir(parents=True,exist_ok=False)
     write_json(output/'input-manifest.json',meta)
     write_json(output/'encoder-config.json',config)
@@ -63,7 +67,9 @@ def accumulate(root,output,encoder_config,workers=4,max_seconds=1800):
             raise RuntimeError('statistics deadline/disk/artifact/STOP boundary')
     try:
         checkpoint(0)
-        geometry={g['key']:load_npz(root/g['path']) for g in meta['objects']}
+        geometry={g['key']:load_npz(root/g['path']) for g in meta['objects'] if g['key'] in required_geometry}
+        if set(geometry)!=required_geometry:
+            raise ValueError('missing TRAIN geometry identities')
         def process(item):
             row_id,ticks=item
             row=meta['sequences'][row_id]
@@ -112,6 +118,7 @@ def accumulate(root,output,encoder_config,workers=4,max_seconds=1800):
         save_npz(output/'workspace-incompatible-windows.npz',{'row_tick':np.asarray(failed,np.int64).reshape(-1,2)})
         artifact=dict(schema='ref2dex.native-train-moments.v1',status='COMPLETED',training_allowed=False,
             units='m',split='train',index_subset='verified_train',horizon=24,windows=len(index),
+            geometry_files_read=len(geometry),
             input_manifest=str(root/'manifest.json'),git_commit=progress['git_commit'],
             aggregation='Per-source masked point count/mean/M2, all accepted TRAIN windows; no DEV reads.',
             source_moments=sources,workspace=workspace,workspace_incompatible_windows=len(failed),
