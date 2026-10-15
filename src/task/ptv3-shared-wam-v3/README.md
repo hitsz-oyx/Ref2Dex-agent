@@ -22,13 +22,13 @@ hand/scene 1:1，scene motion tau2mm、floor0.1，无额外 source loss 乘数�
 完整九源viser审阅入口为 `tools/audit/review_nine_sources.py`，默认8769端口，
 可按来源/划分/序列选择、播放完整轨迹并保存独立质量标记。
 详见 [浏览说明](docs/nine-source-viewer.md)。默认直接打开7.387m的UniDexGrasp++仿真异常样本。
-本地v3已按用户要求停止；后续转远端四卡，先完成数据迁移和质量审阅。
+本地v3已按用户要求停止；远端四卡全量训练已运行，当前质量切换及进度见 [STATE](docs/STATE.md)。
 
 
-当前推荐训练输入为清洗后的`nine-source-motion-recipe-20261015-r1`。本地及远端已完成CPU读取和统计一致性验收，尚未启动新训练。远端显式`--recipe`使用：
+当前严格准入输入为 `nine-source-strict-quality-20261015-r1`；九源全序列运动审计后，按用户要求隔离高幅度/模棱两可的窗口。使用独立全局窗口排除索引，不改原始数据；训练采样和DEV面板都实际应用。远端 `--recipe`：
 
 ```text
-/mnt/ugreen_nas/storage/oyx_storage/ptv3-shared-wam-v3-nine-source-20261015-r1/data-motion-r1/recipe
+/mnt/ugreen_nas/storage/oyx_storage/ptv3-shared-wam-v3-nine-source-20261015-r1/data-strict-r1/recipe
 ```
 
-旧`data/recipe`保留用于追溯；新训练应使用上述motion版本。窗口清洗及精确统计复算见[清洗记录](../3d-data-preparation/docs/research/2026-10-15-unidex-motion-cleaning.md)。
+该recipe用于继续既有训练，保留父模型的24-horizon数值normalizer和固定来源概率；它们是此前TRAIN拟合的参考，并非严格子集重新拟合值。跨recipe恢复必须显式使用 `--resume-reviewed-subset`，检查配置、payload、排除集合和normalizer不变，并保留optimizer/各rank RNG。DEV窗口已变更，切换前后曲线不能视为匹配对照。规则、用户判定和切换记录见 [运动复核](docs/motion-followup-20261015.md)。旧recipe、原始payload和checkpoint均保留。

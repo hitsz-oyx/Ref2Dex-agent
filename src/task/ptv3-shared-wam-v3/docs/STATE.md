@@ -1,3 +1,17 @@
+# 当前：九源严格运动准入已完成，远端已从step8000恢复
+
+用户明确授权：模棱两可的高幅度数据直接隔离，阈值可以更紧。全量39,528条运动审计完成；严格规则为物体原点速度>5m/s、有效手部点速度>5m/s或物体SO(3)角速度>40rad/s，使用实际观测时间（HOI4D原生15Hz）。隔离所有覆盖异常转换的H4+K24窗口；UniDex隔离异常之后尾段；HOI4D37130另隔离用户确认的初始0..30帧。
+
+在manual-r2基础上额外排除2,943 TRAIN/204 DEV窗，最终4,803,076 TRAIN/821,409 DEV。TRAIN逐源排除：OakInk2 1803、GRAB4、ARCTIC0、UniDex828、TACO79、HOT16、DexYCB5、H2O4、HOI4D204。原始payload/CAD/index保留。阈值是用户偏好下的保守质量准入，可能丢弃合理快动作，不能保证剩余数据没有异常。
+
+本地recipe `outputs/ptv3-shared-wam-v3/nine-source-strict-quality-20261015-r1`，远端 `data-strict-r1/recipe`（共同scope不变）。固定代码3709c966，远端短目录 `/home/wbcd/workspace/oyx_ws/wam-v3-q1/repo`。6项独立合同测试、实际subset-resume复核、本地/远端mixed-reader和排除采样检查均通过。继续训练保持父模型24-horizon数值normalizer、来源概率、optimizer与各rank RNG；统计是此前TRAIN拟合参考，DEV面板明确变更。
+
+Viser `http://127.0.0.1:8769`，PID1887923、冻结代码3709c966，默认HOI4D37130/frame26；全39,528条完整轨迹可选，被排除片段仍可回看。新标记目录 `nine-source-strict-review-20261015-r1/annotations`；旧标记均保留。九源真实reader和五条已知异常样本准入检查通过、HTTP200。
+
+远端manual-r2已在完整step8000保存后停止own run。实际checkpoint四个normalizer buffer逐个一致、optimizer和四rank RNG恢复校验通过；新run `pretrain-nine-strict-remote4-80k-20261015-r1` 已恢复并稳定更新至step8080，supervisor1892360、torchrun1892489。九源gradient-audit/新八源初始DEV有限，四卡约82–99%利用率、显存17.7–36.1GiB；稳态1.465步/秒（global512），剩余纯更新约13.6h，含验证/保存暂估14–16h。无OOM/非有限量，预算仍总80k/48h/4卡。完整运行/切换回执见远端scope下 `strict-quality-{stop-receipt,checkpoint-audit,training-launch}.json`。CPU文件审计不占GPU；项目远端四卡计入全局6卡预算，其余任务最多2卡。本地v3不恢复。
+
+以下为此前运行历史；当前准入以上述严格版本为准。
+
 # 当前：远端四卡motion九源全量预训练已稳定更新
 
 用户已授权直接开始。运行`pretrain-nine-motion-remote4-80k-20261015-r1`，远端supervisor1877848，固定代码6e535bc1、短目录`/home/wbcd/workspace/oyx_ws/wam-v3-20261015/repo`。使用下述motion清洗recipe，从头初始化、GPU0/1/2/3、每卡128/global512、80k更新/48h/8GB预算；本地GPU当前空闲。启动检查已通过：step120，四卡98–100%利用率、显存约22–32GiB，loss/grad有限；完整step1 checkpoint已保存。近期1.4–1.47更新/秒（global512），80k暂估16–18h；训练后首次固定DEV在step1000。当前具体步数/失败原因以远端process/progress.json及本地`tmp/nine-remote-20261015-r1/training-startup-monitor.jsonl`为准。

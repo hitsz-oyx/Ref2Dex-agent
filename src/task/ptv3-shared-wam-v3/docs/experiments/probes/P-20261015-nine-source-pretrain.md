@@ -124,3 +124,14 @@ compact与raw[::2]完全一致，query重建误差2.38e-7m；60Hz某帧16.7ms位
 step1完整checkpoint已写入1,183,806,235bytes并越过多卡保存barrier；各rank RNG随checkpoint保存。step20–120区间约1.22–1.47更新/秒，近期1.40–1.47（约715–753窗/秒）；纯更新ETA约15–16h，含DEV/保存与吞吐波动暂估16–18h。当前仅为启动与稳定运行工程证据；首个训练后固定DEV在step1000，尚不形成模型效果结论。
 
 输出：`/mnt/ugreen_nas/storage/oyx_storage/ptv3-shared-wam-v3-nine-source-20261015-r1/outputs/ptv3-shared-wam-v3/pretrain-nine-motion-remote4-80k-20261015-r1/`。本地只读快照`tmp/nine-remote-20261015-r1/remote-motion-startup-audit.json`与启动监控JSONL可追溯；远端自己的supervisor持续记录GPU/进度并执行48h、磁盘、产物、无进度和STOP边界。
+
+
+## 人工判定后九源严格准入与连续恢复（2026-10-15）
+
+用户确认UniDex9674/17266与HOI4D37130异常，授权模棱两可者直接隔离、阈值设紧；详细Decision Note见[运动复核](../../motion-followup-20261015.md)。全39,528条运动审计完成；固定物体/有效手点速度>5m/s或SO(3)角速度>40rad/s，使用真实观测间隔，H4+K24覆盖异常转换的窗排除，UniDex异常后尾段排除，HOI4D37130另排初始0..30。manual-r2外再隔离2,943 TRAIN/204 DEV窗，有效4,803,076/821,409窗；可能丢弃正常快动作，不证明剩余物理质量全通过。
+
+远端严格recipe为 `data-strict-r1/recipe`，实际固定代码3709c966。保留父数值normalizer和固定source概率作为此前TRAIN拟合参考，optimizer/每rank RNG/学习率全局步数恢复。新DEV面板已改变，不把前后曲线视为匹配比较。独立6合同测试、实际subset guard及本地/远端真实mixed-reader通过，原始数据不覆盖。
+
+原motion-r1在完整step6000后切manual-r2；manual-r2在完整step8000后切严格版本。新run_id `pretrain-nine-strict-remote4-80k-20261015-r1`，supervisor1892360/torchrun1892489，远端0/1/2/3，每卡128/global512，仍总80k/48h。完整checkpoint中的4个normalizer buffers与strict stats逐个相等、4rank RNG及optimizer保留。已实际继续至8080，loss0.6652/grad4.5147有限，初始八源DEV和九源gradient audit通过；约1.465步/秒，显存17.7–36.1GiB、利用率82–99%，剩余暂估14–16h。工程证据在远端scope的strict-quality-startup-audit.json及本地同名快照；不形成预训练效果/机器人收益结论。
+
+Future evidence：速度阈值无法覆盖缓慢错误、手物空间错配、接触质量及原始标注系统性误差；不为当前继续训练追加全量接触重演。将来形成模型收益结论须固定共同评估集合，避免DEV panel变化混淆。
