@@ -108,6 +108,12 @@ def audit(path):
     dummy_future = np.repeat(d["hand"][query_ticks, 2][:, None], 24, axis=1)
     state, _ = independent_features(d, query_ticks, np.full(controls, 2), dummy_future)
     check("own_R_state_at_query", d["R_state"], state)
+    if manifest.get('shared_actor'):
+        check('repeat_own_H4_hand', d['repeat_hand_history'], d['hand'][past,1])
+        check('repeat_own_H4_object', d['repeat_object_history'], d['obj'][past,1])
+        dummy = np.repeat(d['hand'][query_ticks,1][:,None],24,axis=1)
+        repeat_state, _ = independent_features(d,query_ticks,np.full(controls,1),dummy)
+        check('repeat_own_R_state', d['repeat_R_state'], repeat_state)
     import torch
     # Metadata-only historical audit also accepts old goal contracts. It never
     # instantiates a model or reinterprets legacy weights under the new goal.

@@ -199,6 +199,8 @@ def main():
                     "wam_object_history", "wam_hand_history", "wam_goal", "R_state", "R_tau",
                     "R_output_chunk", "R_query_q")
             logs.update({key: [] for key in keys})
+            if a.shared_actor:
+                logs.update({key: [] for key in ('repeat_hand_history','repeat_object_history','repeat_R_state')})
             def record():
                 hand, gap = geometry.measure(task)
                 sup, foot = support.measure(task, geometry)
@@ -230,8 +232,10 @@ def main():
                         if a.shared_actor:
                             repeat_state, _ = features(*(current[k][1].cpu().numpy() for k in ('q','dq','hand','obj','velocity')),
                                 np.broadcast_to(current['hand'][1].cpu().numpy(), (24,11,3)))
-                            request['repeat'] = dict(object_history=np.stack([logs['obj'][i][1] for i in past]).tolist(),
-                                hand_history=np.stack([logs['hand'][i][1] for i in past]).tolist(),
+                            repeat_oh = np.stack([logs['obj'][i][1] for i in past])
+                            repeat_hh = np.stack([logs['hand'][i][1] for i in past])
+                            request['repeat'] = dict(object_history=repeat_oh.tolist(),
+                                hand_history=repeat_hh.tolist(),
                                 planned_object_goal=goal.tolist(), native_state=repeat_state.tolist())
                         send(connection, request)
                         reply = receive(connection)
@@ -270,6 +274,9 @@ def main():
                         chunk_index=np.array([r["chunk_index"] for r in receipts]),
                         wam_object_history=oh, wam_hand_history=hh, wam_goal=goal, R_state=own_state, R_tau=own_tau)
                     values.update(R_output_chunk=torch.cat(raw_chunks),R_query_q=query_q)
+                    if a.shared_actor:
+                        values.update(repeat_hand_history=repeat_hh, repeat_object_history=repeat_oh,
+                                      repeat_R_state=repeat_state)
                     for key, value in values.items():
                         logs[key].append(value.cpu().numpy().copy() if isinstance(value, torch.Tensor) else np.asarray(value).copy())
                     current = record()
