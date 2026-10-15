@@ -79,3 +79,14 @@ scene motion权重分母每rank独立，不宣称与单卡pooled512比值严格�
 固定step2000单次16env/seed216闭环watcher2254836已启动，等待checkpoint和GPU6空闲；
 最多等1h+评估20min，不阻塞训练，不自动扩展到其他阶段。程序为evaluate_milestone.py。
 21项相关合同测试通过，workflow verify PASS；当前仅启动和工程验证，无充分训练后的科学结论。
+
+
+## 2000阶段读出
+
+GPU6单次固定16env已COMPLETED。student官方/末帧/同步保持=9/5/5（TRAIN官方7/8、保持4/8；
+DEV官方2/8、保持1/8）；teacher=11/10/9，初态各字段配对max误差0。common DEV action
+0.230246→0.194882，startup DEV首拍command MAE0.238111→0.084582，正式训练继续。
+独立CPU raw分split计数一致。旧1k与本2k可见初态相同但teacher整轨迹明显变化、teacher
+保持7→9（DEV1→3），故学生4→5仅作描述，不宣称匹配的训练因果增益；DEV学生仍1/8。
+当前没有数据量/表示已解决的结论。原GPU6 watcher已完成并释放，6/7进入用户新授权
+Inspire动作表示Probe，未中断Shadow主训4/5。

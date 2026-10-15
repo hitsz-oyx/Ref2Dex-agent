@@ -1,3 +1,16 @@
+## 2026-10-15 动作表示配对Probe已并行启动
+
+用户新目标定位Inspire/Shadow抓取差异，提出q_PD对比原生action并临时允许空卡实验。
+独立CPU审计660序列首拍PD逆命令max5.96e-7，暂未见粗大label/clock/旋转branch错误；
+两边均std归一化L1，且Inspire首拍XYZ标签/std与native实际相同。主要待检验变量是
+finger相对编码、额外旋转/维度权重、未来8拍监督及其优化影响。
+
+两臂GPU6/7，同80k/fresh actor/87D+shared/strict数据/dev256/seed195/LR/batch256，
+native12 vs geometry15各2k后自动三条K1抓取；不混完整teacher输入。固定076b5c31，
+driver2298258，run=inspire-action-representation-20261015-r1。smoke及matched初始化PASS，
+15单测PASS，正式RUNNING，约1.8s/步、10.4GiB/卡、预计约1h；暂无结果。
+详见P-20261015-inspire-action-representation及跨Task动作表示research笔记。
+
 ## 2026-10-15 shared原生抓取初筛完成，资源调整
 
 用户要求shared_tau停止、GPU4/5转Shadow双卡扩大训练。supervisor1922941已SIGTERM退出；

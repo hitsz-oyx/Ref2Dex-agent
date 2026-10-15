@@ -5,7 +5,7 @@ experiment_id: P-20261015-inspire-action-representation
 date: 2026-10-15
 task: ptv3-shared-wam-v2
 branch: main
-git_commit: pending
+git_commit: 076b5c31
 claim_id: C1
 hypothesis_family: HF-inspire-action-representation
 probe_index_in_family: 1
@@ -80,3 +80,28 @@ hold45、执行审计PASS。满足则局部PROMISING，优先进一步排除额�
 每臂产物<=9GB、两臂及native总<=24GB，20GiB磁盘底线。稳定吞吐后更新ETA，预算不静默延长。
 外来GPU进程、非有限、输入/初态不匹配、转换审计失败、30min无进展或资源超界停止自己的组。
 固定提交/detached工作树，现有训练源码/数据/checkpoint不覆盖；不新增branch。
+
+
+## 实际启动及独立审查 / 2026-10-15
+
+固定代码076b5c31，detached tmp/inspire-action-repr-code-20261015-r1；PointWorld/PTv3
+复用原Inspire训练相同固定依赖。15项相关单测PASS，包括NATIVE动作梯度到shared、
+动作target选择、同物理命令的跨表示指标和rotvec/lift不一致反例；workflow verify PASS。
+原有GPU0..3和Shadow4/5均未改动。原Shadow2k评估已结束后才取得GPU6/7。
+
+两臂同batch256/4-update smoke均COMPLETED，实际matched-smoke.json为PASS：
+除输出head/action统计外的初始actor trunk+state/tau统计完全相同，DEV索引与准入相同，
+初始hand/scene loss差均0。正式重新从原80k+fresh actor启动，不继承smoke更新。
+Driver2298258拥有两臂pipeline：native GPU6、geometry GPU7，各2000步，之后自动固定
+终点三条native执行及独立审计。当前RUNNING、约1.83–1.86s/update、显存约10.4GiB/卡，
+预计训练另需约1h；暂无DEV/闭环结果，不横比两组TRAIN动作loss做结论。
+
+数值核对first-XYZ-normalization-audit.json：两组首拍XYZ mean最大差2.33e-10、std差0，
+std均[.06822,.07376,.13319]m。即首拍XYZ项的标签和归一化已等价；任何表示包收益应进一步
+检查finger编码、额外旋转、多拍监督和共享特征梯度，而非仅称改变XYZ单位。
+
+另已核对split：此前Inspire三条都val；Shadow startup1k held TRAIN3/8、DEV1/8，
+expanded2k held TRAIN4/8、DEV1/8。不能混用Shadow TRAIN+DEV与Inspire val结果比较。
+train-panel-audit.json提供三条按字典序/同pass动作/有strict startup窗选择的TRAIN候选，
+源补采无surface/support/table字段，未伪造源held认证；需要后续teacher正控制。
+若两臂val均失败，优先补TRAIN/val资格对照以区分拟合与泛化，再决定输入完整性实验。

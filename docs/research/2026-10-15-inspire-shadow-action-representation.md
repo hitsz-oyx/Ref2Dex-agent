@@ -83,3 +83,15 @@ Inspire [robot_loss](../../src/task/ptv3-shared-wam-v2/src/ptv3_shared_wam_v2/ro
 当前证据排除了“GT geometry-lift首拍本来就还原不了teacher动作”这一粗大工程解释，但没有排除表示的优化条件、指关节current-relative监督、额外旋转监督、标准差或闭环分布偏移的影响。完整teacher输入差异依然是独立重要变量。
 
 已完成 Inspire抓取 Probe 的协议明确K=1，6组转换/时钟/输入独立审计均通过；其失败暂不能归因K=4/8冻结语义。见 [shared-native-grasp卡](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-shared-native-grasp.md)。Shadow目前只有小面板位置抬升保持的正向信号，且与Inspire表面间隙/抬升判据不同；以上不是跨手因果结论或正式Validation。
+
+
+## 后续数值核对
+
+配对初始统计显示Inspire首拍XYZ target mean最大差2.33e-10、std差0；std均为
+[.06822,.07376,.13319]m，见[实际归一化核对](../../outputs/ptv3-shared-wam-v2/inspire-action-representation-20261015-r1/first-XYZ-normalization-audit.json)。
+因此若native包有收益，不能单独说是XYZ由q_PD换成归一化action。
+
+还有split不匹配：现有Inspire三条均val，Shadow1k保持TRAIN3/8、DEV1/8；2k为TRAIN4/8、
+DEV1/8。2k teacher保持也从7变9，不能把学生4→5解释为匹配训练增益。
+独立raw核对与三条TRAIN候选见[split/面板审计](../../outputs/ptv3-shared-wam-v2/inspire-action-representation-20261015-r1/train-panel-audit.json)。
+旧Inspire面板是sequence-heldout，Shadow DEV是object-heldout；不能把不同split混成跨手成功率。

@@ -1,3 +1,11 @@
+## 2026-10-15 双卡续训2000阶段抓取读出
+
+2k固定16env评估已完成，student官方9/16、末帧5/16、保持5/16；TRAIN保持4/8、DEV1/8，
+teacher保持9/16。common DEV动作L1 .23025→.19488，起步DEV首拍MAE .23811→.08458。
+与旧1k相比teacher轨迹已变化，不能把学生4→5视为匹配因果提升；DEV保持仍1/8。
+主训练GPU4/5继续总20k，2k评估watcher完成。GPU6/7已用于用户授权的Inspire动作表示对照。
+详见P-20261015-shadow-expanded-training与native-step2000/comparison.json。
+
 ## 2026-10-15 用户授权双卡扩大训练已启动
 
 Inspire shared_tau已停止，GPU4/5改为Shadow：从startup1000模型和完整optimizer续训到总20k，
