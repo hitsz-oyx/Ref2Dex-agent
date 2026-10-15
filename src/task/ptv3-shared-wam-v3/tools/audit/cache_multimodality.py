@@ -100,9 +100,10 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--checkpoint',type=Path,required=True);p.add_argument('--recipe',type=Path,required=True)
     p.add_argument('--output',type=Path,required=True);p.add_argument('--trainer-progress',type=Path,required=True)
+    p.add_argument('--reuse-cache',type=Path,help='Reuse only completed source archives from this same checkpoint/recipe/seed')
     p.add_argument('--train-per-source',type=int,default=2048);p.add_argument('--dev-per-source',type=int,default=128)
     p.add_argument('--batch-size',type=int,default=1);p.add_argument('--bank-sources',type=int,nargs='+');p.add_argument('--sources',type=int,nargs='+');p.add_argument('--seed',type=int,default=214);p.add_argument('--gpu',type=int,default=0);p.add_argument('--seconds',type=int,default=3600)
-    a=p.parse_args();out=a.output.resolve();assert not out.exists() and 1<=a.train_per_source<=4096 and 1<=a.dev_per_source<=256 and 60<=a.seconds<=3600 and 1<=a.batch_size<=8
+    a=p.parse_args();out=a.output.resolve();assert not out.exists() and 1<=a.train_per_source<=4096 and 1<=a.dev_per_source<=256 and 60<=a.seconds<=3600 and 1<=a.batch_size<=32
     if shutil.disk_usage(out.parent).free<20*2**30:raise RuntimeError('20GiB disk floor')
     torch.set_num_threads(2);torch.cuda.set_device(a.gpu);free,total=torch.cuda.mem_get_info()
     if free<8*2**30:raise RuntimeError('8GiB GPU headroom required before co-located diagnostic')
@@ -120,6 +121,13 @@ def main():
     progress=dict(status='RUNNING',pid=os.getpid(),checkpoint=str(a.checkpoint),checkpoint_step=step,parent_checkpoint=parent,
         recipe=str(a.recipe),seed=a.seed,gpu=a.gpu,allocator_limit_bytes=3*2**30,batch_size=a.batch_size,max_seconds=a.seconds,
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip())
+    reuse=None
+    if a.reuse_cache:
+        reuse=json.loads((a.reuse_cache/'progress.json').read_text())
+        for key in ('checkpoint','checkpoint_step','recipe','seed'):
+            if reuse[key]!=progress[key]:raise ValueError('reuse binding mismatch: '+key)
+        if reuse.get('future_label_invariance')!='PASS':raise ValueError('reuse cache must have passed future-label invariance')
+        progress['reuse_cache']=str(a.reuse_cache.resolve())
     try:
         dev=NineWindows(recipe['main3_root'],recipe['native_root'],'dev',recipe);sources=sorted(dev.counts,key=int) if a.sources is None else list(map(str,a.sources))
         assert set(sources)<=set(dev.counts)
@@ -127,6 +135,14 @@ def main():
             data=dev if split=='dev' else NineWindows(recipe['main3_root'],recipe['native_root'],'train',recipe)
             for sid in sources:
                 if split=='train' and a.bank_sources is not None and int(sid) not in a.bank_sources:continue
+                name=split+'-'+sid
+                if reuse and name in reuse['completed']:
+                    source=a.reuse_cache/f'{name}.npz'
+                    with np.load(source,allow_pickle=False) as existing:
+                        count=len(existing['z'])
+                        if count>target:raise ValueError('reused source exceeds requested target')
+                    os.symlink(source.resolve(),out/f'{name}.npz');completed.append(name);counts[name]=count
+                    continue
                 ids=select_indices(data,sid,target,a.seed);rows=[];meta=[];started=time.monotonic();skipped=0;progress['source_log_bucket']=-1
                 loader=DataLoader(Selected(data,ids),batch_size=a.batch_size,collate_fn=pack,num_workers=2,multiprocessing_context='spawn',worker_init_fn=worker_init,prefetch_factor=2,
                     generator=torch.Generator().manual_seed(a.seed+int(sid)),timeout=180)
