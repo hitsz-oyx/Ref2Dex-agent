@@ -25,6 +25,13 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261015-R-native-current:
+    seed_pool: probe
+    model_extra_encoder_and_dropout_seed: 160
+    matched_training_draw_seed: 161
+    TRAIN_and_dev_panel_seed: 162
+    reuse_reason: matched native observation arms extend prior R information diagnostic with identical parent and seed streams; not independent replication
+
   P-20261015-nine-source-pretrain:
     seed_pool: probe
     model_and_training_draw_seed: 170
