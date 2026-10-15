@@ -177,8 +177,12 @@ def main():
     torch.backends.cuda.matmul.allow_tf32 = bool(config.get("tf32", False))
     torch.backends.cudnn.allow_tf32 = bool(config.get("tf32", False))
     torch.manual_seed(config["seed"] + rank)
-    train = V2RLRobotWindows(args.source, "train", config["object_points"], representation)
-    dev = V2RLRobotWindows(args.source, "val", config["object_points"], representation)
+    workspace = None
+    if config.get('encoder_workspace_admission') is not None:
+        workspace = dict(schema=config['encoder_workspace_admission'],
+                         origin_m=config['voxel_origin_m'], voxel_m=config['voxel_m'])
+    train = V2RLRobotWindows(args.source, "train", config["object_points"], representation, workspace)
+    dev = V2RLRobotWindows(args.source, "val", config["object_points"], representation, workspace)
     parent = torch.load(args.init_shared, map_location="cpu", weights_only=False)
     expected_parent_commit = None if args.smoke else config.get("remote_parent_git_commit")
     if not args.smoke and (not isinstance(expected_parent_commit, str) or not expected_parent_commit):
@@ -231,6 +235,12 @@ def main():
     if rank == 0:
         out.mkdir(parents=True, exist_ok=False)
         np.save(out / "validation.npy", validation)
+        if workspace is not None:
+            atomic_json(out / 'encoder_workspace_admission.json',
+                        dict(train=train.workspace_admission, val=dev.workspace_admission))
+            provenance['encoder_workspace_admission'] = dict(
+                schema=workspace['schema'], report='encoder_workspace_admission.json',
+                train_windows=len(train), val_windows=len(dev))
         atomic_json(out / "manifest.json", dict(schema=V2_SCHEMA, stage="robot", status="RUNNING",
             config=config, provenance=provenance, parent=dict(schema=parent["schema"], stage=parent["stage"],
             step=parent["step"]), parameters=sum(p.numel() for p in model.parameters())))

@@ -24,7 +24,8 @@ from ptv3_shared_wam.loading import forecasting_collate
 class V2RLRobotWindows(RLRobotWindows):
     """RL660 windows with immutable geometric reference-q provenance."""
 
-    def __init__(self, source, split, point_count=32, action_representation=None):
+    def __init__(self, source, split, point_count=32, action_representation=None,
+                 encoder_workspace=None):
         if action_representation is None:
             from ptv3_shared_wam.action_targets import NATIVE
             action_representation = NATIVE
@@ -36,6 +37,13 @@ class V2RLRobotWindows(RLRobotWindows):
         self.geometric_root = Path(source_manifest["source_geometric_root"]).resolve()
         if not self.geometric_root.is_dir():
             raise FileNotFoundError(self.geometric_root)
+        self.workspace_admission = None
+        if encoder_workspace is not None:
+            from .robot_workspace import SCHEMA, restrict_observed_workspace
+            if encoder_workspace.get('schema') != SCHEMA:
+                raise ValueError('explicit versioned encoder workspace admission required')
+            self.workspace_admission = restrict_observed_workspace(
+                self, encoder_workspace['origin_m'], encoder_workspace['voxel_m'])
 
     @lru_cache(maxsize=16)
     def reference_sequence(self, seq):
