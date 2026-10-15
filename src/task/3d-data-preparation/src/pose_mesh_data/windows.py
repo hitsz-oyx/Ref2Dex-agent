@@ -111,6 +111,8 @@ class PoseMeshWindows:
     def __init__(self, root, split, engineering=False, stride=8, cache_size=8):
         self.root = Path(root).resolve()
         self.meta = json.loads((self.root/'manifest.json').read_text())
+        if self.meta.get('cleaning_schema'):
+            raise ValueError('cleaned snapshots require CleanPoseMeshWindows and their frozen quality index')
         if self.meta.get('schema') != SCHEMA or self.meta.get('units') != 'm' or self.meta.get('fps') != 30:
             raise ValueError('native3D metre30Hz manifest required')
         if not engineering or self.meta.get('training_allowed') is not False:
