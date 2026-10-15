@@ -23,6 +23,13 @@ OFFICIAL = Path('/home2/wyy/oyx_ws/_external/dexplore_official_v120/checkpoint/i
 FULL_ASSETS = Path('/home2/wyy/oyx_ws/dexplore/dexplore/data/assets')
 
 
+def hold_terminal_references(task, lengths):
+    """Preserve native per-motion end-clamping when resets use a batch length."""
+    for seq, length in enumerate(lengths.tolist()):
+        task.hoi_data[seq,length:] = task.hoi_data[seq,length-1:length]
+        task.hoi_refs[seq,:,length:] = task.hoi_refs[seq,:,length-1:length]
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--selection', type=Path, required=True)
@@ -31,6 +38,7 @@ def main():
     parser.add_argument('--seed', type=int, default=120)
     parser.add_argument('--seconds', type=int, default=900)
     parser.add_argument('--capture-current-observation', action='store_true')
+    parser.add_argument('--terminal-reference-clamp', action='store_true')
     args = parser.parse_args()
     out = args.output.resolve()
     names = json.loads(args.selection.read_text())
@@ -104,6 +112,7 @@ def main():
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         actor_role='official data generator only; no official weights in learned WAM/Chunk-R')
     manifest['capture_current_observation'] = args.capture_current_observation
+    manifest['terminal_reference_clamp'] = args.capture_current_observation or args.terminal_reference_clamp
     write(out/'manifest.json',manifest)
 
     class Player(dexplore_players.DexplorePlayerContinuous):
@@ -124,6 +133,8 @@ def main():
             task._enable_early_termination = False
             lengths = task.max_episode_length.clone()
             maximum = int(lengths.max())
+            if manifest['terminal_reference_clamp']:
+                hold_terminal_references(task,lengths)
             task.max_episode_length[:] = maximum
             task.rollout_length = maximum
             self.has_batch_dimension = True
@@ -157,6 +168,7 @@ def main():
                     timing='state[t]/current_ref[t] before action[t]; q_PD[t] captured in pre_physics_step',
                     contact_slice=[252,257],reference_contact_error_slice=[401,406],
                     body_names=body_names,key_body_ids=task._key_body_ids.tolist(),
+                    measured_hand_body_ids=ids,
                     contact_body_ids=task._contact_body_ids.tolist(),
                     reference_dim=int(task.hoi_data.shape[-1]),
                     body_state_order='xyz, quaternion_xyzw, linear_velocity, angular_velocity',
@@ -256,7 +268,7 @@ def main():
                     reference_position_rmse_m=float(np.sqrt(np.mean(error**2))),
                     saturation_rate=float((np.abs(values['applied'])>=.999999).any(-1).mean()),
                     path=str(folder.relative_to(out))))
-            manifest.update(status='COMPLETED',training_allowed=True,records=records,
+            manifest.update(status='COMPLETED',training_allowed=not args.capture_current_observation,records=records,
                 elapsed_s=time.monotonic()-started)
             write(out/'manifest.json',manifest)
             print(json.dumps(dict(status='COMPLETED',sequences=len(records),elapsed_s=manifest['elapsed_s'])),flush=True)

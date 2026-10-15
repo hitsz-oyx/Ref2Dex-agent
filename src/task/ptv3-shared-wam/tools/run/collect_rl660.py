@@ -256,7 +256,8 @@ def main():
                 count=max(1,round(len(group)*.1))
                 for index,record in enumerate(group):
                     record['split']='val' if index<count else 'train'
-        manifest.update(status='COMPLETED',training_allowed=True,
+        manifest.update(status='COMPLETED',training_allowed=not a.capture_current_observation,
+            capture_complete=True,
             records=sorted(completed,key=lambda r:r['sequence']),elapsed_s=prior_elapsed+time.monotonic()-started)
         import numpy as np
         manifest['max_reference_error_m'] = .1
