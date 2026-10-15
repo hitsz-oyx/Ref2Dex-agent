@@ -1,5 +1,6 @@
 """Separate stored-state fit, native reset drift, and batch-dependent shared inference."""
 import argparse
+import copy
 import json
 import os
 from pathlib import Path
@@ -115,7 +116,8 @@ def main():
             sample = datasets['train'][train_index]
             assert datasets['train'].keys[train_index][0] == 0
             examples = [('single_seed148',[sample],148),('single_repeat148',[sample],148),
-                        ('single_seed149',[sample],149),('duplicate16',[sample]*16,148),
+                        ('single_seed149',[sample],149),('duplicate2',[sample]*2,148),
+                        ('duplicate16',[sample]*16,148),
                         ('mixed16',[sample]+[datasets['val'][int(i)] for i in panels['DEV_fixed256'][1][:15]],148)]
             actions = {}
             for name,samples,seed in examples:
@@ -129,15 +131,25 @@ def main():
             np.savez_compressed(out/'batch-contract-chunks.npz',**actions)
             for name,split,sequence,path in groups:
                 data = datasets[split];index = int(panels[name][1][0]);tick,seq = data.keys[index]
-                assert tick==0
+                in_membership = tick == 0
+                first_admitted_tick = tick
+                if not in_membership:
+                    # Reset contract only: tick0 is excluded from strict fitting metrics.
+                    data = copy.copy(data)
+                    data.keys = [(0,seq)]
+                    index = 0
                 stored,_ = data.sequence(seq)
                 sample = data[index]
                 torch.manual_seed(148)
-                prediction = model(to_device(robot_collate([sample]),'cuda'))['action'][0].cpu().numpy()
+                prediction = model(to_device(robot_collate([sample,sample]),'cuda'))['action'][0].cpu().numpy()
                 with np.load(path/'trajectory.npz') as z:
                     compare = {key:float(np.abs(stored[key][0]-z[key][0,2]).max())
                                for key in ('q','dq','hand','obj','velocity')}
+                    compare.update(tick0_in_strict_membership=in_membership,first_admitted_tick=first_admitted_tick)
                     compare['state87'] = float(np.abs(sample['native_state']-z['R_state'][0]).max())
+                    compare['H4_hand'] = float(np.abs(stored['hand'][[0]*4]-z['wam_hand_history'][0]).max())
+                    compare['H4_object'] = float(np.abs(stored['obj'][[0]*4]-z['wam_object_history'][0]).max())
+                    compare['object_goal24'] = float(np.abs(stored['reference_obj'][24]-z['wam_goal'][0]).max())
                     compare['predicted_first_XYZ_difference_mm'] = float(np.linalg.norm(prediction[0,:3]-z['R_output_chunk'][0,1,0,:3])*1000)
                 result['initial_parity'][name] = compare
         result.update(status='COMPLETED',elapsed_s=time.monotonic()-started)

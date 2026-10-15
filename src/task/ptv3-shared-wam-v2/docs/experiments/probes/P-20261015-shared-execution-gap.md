@@ -32,10 +32,16 @@ TRAIN256按原sequence均匀/half-startup规则、seed192取样；DEV复用原va
 及startup<16/later分项。权重及normalizer不更新；batch16、FP32/TF32与原offline eval一致。
 
 为排除执行合同问题，在同一TRAIN tick0样本上比较：单样本重复同seed148、单样本seed149、
-16个重复样本、首样本加15个DEV样本。同seed的首拍XYZ变化以及不同seed的变化分开记录，
-不能把随机序列化差异直接当作batch缺陷。比较存储tick0的q/dq/hand/object/velocity和
-87D与原native reset；另保存单样本预测与原native预测差，若有差先看输入/随机性再归因。
+2/16个重复样本、首样本加15个DEV样本。实际shared native server合推两学生行，是batch2；
+原offline eval是batch16。eval模式关闭shuffle_orders，seed148/149仅检查重复性，
+不将观察差异直接命名为序列化随机性。比较存储tick0的q/dq/hand/object/velocity、87D、
+H4、goal24与原native reset；另保存重复两样本预测与原native预测差，有差先看输入再归因。
 这些是实现诊断，不作为新seed验证或抓取成功证据。
+
+执行前独立review发现VAL杯子strict准入仅144..171，tick0不在其中。拟合面板仍严格限定
+28窗；reset一致性另从原始记录构造仅诊断用tick0，并标出不在strict membership，绝不将
+该点混入拟合指标或训练。其他三个reset面板tick0均已准入。索引/采样/原native行映射
+已独立审查，未见其他blocker。
 
 Decision Note：此前窗口未见粗大label/clock错误，但未直接量化训练状态拟合与batch1/
 batch16差别。GPU6已空闲，原训练仅GPU2/3和4/5，单卡评估后仍保留至少两卡空闲。
