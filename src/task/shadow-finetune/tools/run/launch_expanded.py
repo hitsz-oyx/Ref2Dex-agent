@@ -26,6 +26,11 @@ def is_descendant(pid, ancestor):
     return False
 
 
+def process_start(pid):
+    try:return Path('/proc/%d/stat'%pid).read_text().rsplit(')',1)[1].split()[19]
+    except FileNotFoundError:return None
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--resume',type=Path,required=True);p.add_argument('--controls',type=Path,required=True)
@@ -59,7 +64,7 @@ def main():
             part=out/'process.json.part';part.write_text(json.dumps(status,indent=2)+'\n');part.replace(out/'process.json')
     stop=[]
     for sig in (signal.SIGTERM,signal.SIGINT):signal.signal(sig,lambda n,f:stop.append(n))
-    started=time.monotonic();child=None;last_step=-1;last_progress=started;write()
+    started=time.monotonic();child=None;last_step=-1;last_progress=started;owned_gpu={};write()
     try:
         env=dict(os.environ,CUDA_VISIBLE_DEVICES=','.join(gpus),REF2DEX_RUN_ROOT=str(ROOT),TMPDIR=str(scratch),
             TORCH_EXTENSIONS_DIR=str(ROOT/'tmp/shared-wam-v2-extensions'),OMP_NUM_THREADS='2',MKL_NUM_THREADS='1',
@@ -73,6 +78,7 @@ def main():
             if shutil.disk_usage(ROOT).free<20*2**30:raise RuntimeError('20GiB free floor')
             for pid in gpu_pids():
                 if not is_descendant(pid,child.pid):raise RuntimeError('Foreign selected-GPU process')
+                owned_gpu[pid]=process_start(pid)
             path=out/'progress.json'
             if path.exists():
                 progress=json.loads(path.read_text());status['progress']=progress
@@ -89,6 +95,12 @@ def main():
             os.killpg(child.pid,signal.SIGTERM)
             try:child.wait(timeout=20)
             except subprocess.TimeoutExpired:os.killpg(child.pid,signal.SIGKILL);child.wait()
+        # Elastic ranks have independent sessions. Reap only previously verified
+        # GPU descendants whose PID birth identity is unchanged after parent exit.
+        for pid,birth in owned_gpu.items():
+            if birth is not None and process_start(pid)==birth:
+                try:os.kill(pid,signal.SIGTERM)
+                except ProcessLookupError:pass
         status['elapsed_s']=time.monotonic()-started;write()
     if status['status']!='COMPLETED':raise SystemExit(1)
 
