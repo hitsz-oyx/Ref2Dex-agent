@@ -160,3 +160,22 @@ stage选择和下游实验之后再做，当前没有改变任何训练输入或
 恢复必须使用该修复。GPU回归工具为 `tools/audit/audit_optimizer_resume.py`，
 `--legacy`复现旧路径，默认路径验证加载后继续更新。
 大规模训练前重新确认GPU空闲、固定预算和配置；工程预检不证明长期预测效果。
+
+## 微调阶段物理抓取评估
+
+入口复用旧Task三路native仿真，必须显式指定`--model-version v2`；v2完整checkpoint
+严格加载WAM+R。批量入口以GPU0/1/2并行测试九个保留阶段与固定三个dev序列，
+详情见[实验卡](docs/experiments/probes/P-20261015-v2-stage-grasp.md)。
+
+```bash
+TMPDIR="$PWD/tmp" PYTHONDONTWRITEBYTECODE=1 /home2/wyy/miniconda3/envs/graspenv/bin/python \
+  src/task/ptv3-shared-wam-v2/tools/run/probe_stage_grasp.py \
+  --archive outputs/ptv3-shared-wam-v2/robot-finetune-stage-archive-20261015-r1 \
+  --output outputs/ptv3-shared-wam-v2/<fresh-stage-grasp-run> \
+  --card src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-v2-stage-grasp.md \
+  --gpus 0,1,2
+```
+
+`result.json`保存每阶段/序列/角色的held45、最长保持、抬升、手物误差和饱和；
+各子目录保留轨迹、运行回执与独立控制审计。GTτ→R是oracle轨迹经过学得R的诊断，
+并非直接GT q_PD重放；teacher校准不足的序列不能作为模型抓取失败的独立证据。

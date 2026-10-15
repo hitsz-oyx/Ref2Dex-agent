@@ -29,7 +29,10 @@ def summarize(run, step, sequence):
     native = run / 'native'
     result = json.loads((native / 'result.json').read_text())
     manifest = json.loads((native / 'manifest.json').read_text())
-    audit = json.loads((native / 'independent_audit.json').read_text())
+    audit_path = native / 'independent_audit_float32.json'
+    if not audit_path.exists():
+        audit_path = native / 'independent_audit.json'
+    audit = json.loads(audit_path.read_text())
     if not audit['pass']:
         raise ValueError('independent command/PD/clock audit failed')
     with np.load(native / 'trajectory.npz') as trajectory, np.load(manifest['native_input']['trajectory']) as source:

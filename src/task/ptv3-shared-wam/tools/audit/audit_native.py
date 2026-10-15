@@ -58,7 +58,8 @@ def audit(path):
             live=d['q'][:-1,1:]
             intended_pd=independent_pd(d['intended'][:,1:],live,manifest['native_controller'])
             actual_rotation=Rotation.from_euler('XYZ',intended_pd[...,3:6].reshape(-1,3)).as_matrix()
-            check('geometry_buffer_orientation',actual_rotation,target_rotation)
+            if representation != 'wrist-geometry-continuous-lift.v1':
+                check('geometry_buffer_orientation',actual_rotation,target_rotation)
             if representation=='wrist-geometry-continuous-lift.v1':
                 reference=target[...,12:15]+d['R_query_q'][...,3:6]
                 # The executed buffer stores absolute rotvec in model dtype.
@@ -80,12 +81,23 @@ def audit(path):
                 angles[...,0]=np.where(singular,reference[...,0]+phase/2,angles[...,0])
                 angles[...,2]=np.where(singular,reference[...,2]+sign*phase/2,angles[...,2])
                 mismatch=(Rotation.from_euler('XYZ',reference.reshape(-1,3)).inv()*absolute).magnitude().reshape(reference.shape[:-1])
-                desired[...,3:6]=np.where((mismatch<1e-6)[...,None],reference,angles)
+                lifted=np.where((mismatch<1e-6)[...,None],reference,angles)
+                check('geometry_buffer_orientation',
+                      Rotation.from_euler('XYZ',lifted.reshape(-1,3)).as_matrix(),absolute.as_matrix())
+                desired[...,3:6]=lifted
+                # Separately report unavoidable buffer/Euler/controller float32
+                # roundoff; validate executed commands against their independent
+                # finite-precision reconstruction below, not ideal real numbers.
+                errors['geometry_float32_pose_roundtrip']=float(np.abs(actual_rotation-absolute.as_matrix()).max())
         elif representation!='pd-relative-current.v1':raise ValueError('unknown physical target units')
         controller={key:np.asarray(value,dtype=d['q'].dtype) for key,value in manifest['native_controller'].items()};live=d['q'][:-1,1:]
         raw=(desired-np.asarray(controller['offset'])[ACTIVE])/np.asarray(controller['scale'])[ACTIVE]
         raw[...,:6]=(desired[...,:6]-live[...,:6]-np.asarray(controller['offset'])[:6])/np.asarray(controller['scale'])[:6]
         raw[...,6:]=raw[...,6:]*2-1
+        if representation=='wrist-geometry-continuous-lift.v1':
+            reconstructed_angles=(controller['offset'][3:6]+controller['scale'][3:6]*raw[...,3:6])+live[...,3:6]
+            check('geometry_controller_orientation',actual_rotation,
+                  Rotation.from_euler('XYZ',reconstructed_angles.reshape(-1,3)).as_matrix())
         if representation in ('pd-relative-current.v1','wrist-geometry-continuous-lift.v1'):check('query_frozen_target_to_live_command',d['intended'][:,1:,ACTIVE],raw)
         else:
             check('geometry_buffer_position',d['intended'][:,1:,:3],raw[...,:3])
@@ -135,7 +147,7 @@ def audit(path):
         if longest != saved["maximum_held_frames"]:
             raise ValueError("independent held count differs")
         outcomes.append(dict(role=saved["role"], maximum_held_frames=int(longest)))
-    return dict(pass_=True, errors=errors, outcomes=outcomes,
+    return dict(pass_=True, audit_contract="float32-buffer-controller.v2", errors=errors, outcomes=outcomes,
                 scope="execution wiring only; no trained-policy utility claim")
 
 
