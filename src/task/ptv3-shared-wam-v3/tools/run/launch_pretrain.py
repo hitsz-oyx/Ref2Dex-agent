@@ -33,6 +33,7 @@ def main():
     p.add_argument('--detach',action='store_true')
     p.add_argument('--stop-after',type=int)
     p.add_argument('--resume',type=Path)
+    p.add_argument('--resume-reviewed-subset',action='store_true')
     a=p.parse_args()
     artifacts,out=a.artifact_root.resolve(),a.output.resolve()
     if artifacts/'outputs'/TASK.name not in out.parents or out.exists():raise ValueError('fresh v3 output required')
@@ -80,6 +81,9 @@ def main():
             '--config',str(a.config.resolve()),'--recipe',str(a.recipe.resolve()),'--output',str(out),
             '--artifact-root',str(artifacts),'--loader-workers',str(a.loader_workers)]
         if a.resume:command+=['--resume',str(a.resume.resolve())]
+        if a.resume_reviewed_subset:
+            if not a.resume:raise ValueError('reviewed subset transition requires parent checkpoint')
+            command+=['--resume-reviewed-subset']
         if a.stop_after:command+=['--stop-after',str(a.stop_after)]
         status.update(status='STARTING',command=command)
         last_progress=time.monotonic();last_step=-1;checked=0.;launched=time.monotonic()

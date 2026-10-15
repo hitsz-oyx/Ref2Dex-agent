@@ -52,6 +52,7 @@ def main():
     p.add_argument('--output',type=Path,required=True)
     p.add_argument('--artifact-root',type=Path,required=True)
     p.add_argument('--resume',type=Path)
+    p.add_argument('--resume-reviewed-subset',action='store_true')
     p.add_argument('--stop-after',type=int)
     p.add_argument('--loader-workers',type=int,default=2)
     p.add_argument('--experiment-card',type=Path,default=TASK/'docs/experiments/probes/P-20261015-nine-source-pretrain.md')
@@ -94,7 +95,10 @@ def main():
         scope='offline nine-source pretraining Probe; robot benefit untested')
     if a.resume:
         parent=load_checkpoint(a.resume)
-        if parent['config']!=config or parent['stats']!=stats or parent['provenance']['world_size']!=world:
+        if a.resume_reviewed_subset:
+            from .data_transition import validate_subset_resume
+            provenance['data_transition']=validate_subset_resume(parent,config,stats,world)
+        elif parent['config']!=config or parent['stats']!=stats or parent['provenance']['world_size']!=world:
             raise ValueError('resume requires identical config/statistics/world size')
         model.load_state_dict(parent['model'],strict=True)
         restore_optimizer(optimizer,parent['optimizer'])
@@ -102,6 +106,7 @@ def main():
         provenance.update(resume_parent=str(a.resume.resolve()),parent_step=first,
             parent_git_commit=parent['provenance']['git_commit'],
             initialization='full v3 optimizer/model/per-rank RNG resume')
+    if a.resume_reviewed_subset and not a.resume:raise ValueError('reviewed subset transition requires parent checkpoint')
     target=a.stop_after or config['updates']
     if not 0<=first<target<=config['updates']:
         raise ValueError('bounded increasing optimizer steps required')
