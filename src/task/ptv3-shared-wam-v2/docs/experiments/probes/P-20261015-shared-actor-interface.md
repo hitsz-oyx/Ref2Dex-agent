@@ -5,7 +5,7 @@ experiment_id: P-20261015-shared-actor-interface
 date: 2026-10-15
 task: ptv3-shared-wam-v2
 branch: main
-git_commit: 27bd9913
+git_commit: 4a712b57
 claim_id: C1
 hypothesis_family: HF-shared-action-interface
 probe_index_in_family: 1
@@ -75,7 +75,7 @@ finger与Euler lift误差、控制饱和比例、hand/scene all24误差。离线
 
 ## 身份、运行与局限
 
-代码commit见运行manifest（本文git_commit先记录数据阶段，代码阶段提交后补齐）；本地main含其他任务未提交
+代码commit见运行manifest（本文git_commit记录模型实现，smoke启动器随后补充）；本地main含其他任务未提交
 变更，运行固定快照仅包含本实验提交及既有已提交依赖。run_id使用共同前缀加接口后缀。
 新head暂不被legacy τ物理执行入口接收，明确fail closed，正向离线信号后再实现桥接。
 本Probe不排除容量/优化/数据覆盖，不动态使用人审标签，不增训已有旧baseline。

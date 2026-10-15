@@ -94,6 +94,8 @@ def parser():
     p.add_argument("--init-shared", type=Path, required=True)
     p.add_argument("--experiment-card", type=Path, required=True)
     p.add_argument("--gpus", default="4,6")
+    p.add_argument("--smoke", action="store_true")
+    p.add_argument("--smoke-batch-size", type=int, default=1)
     p.add_argument("--resume", type=Path)
     p.add_argument("--loader-workers", type=int, default=0)
     p.add_argument("--loader-prefetch", type=int, default=2)
@@ -144,6 +146,8 @@ def child_command(args, out, card, gpus):
                "--loader-workers", str(args.loader_workers),
                "--loader-prefetch", str(args.loader_prefetch),
                "--sequence-cache", str(args.sequence_cache)]
+    if args.smoke:
+        command.extend(["--smoke", "--smoke-batch-size",str(args.smoke_batch_size)])
     if args.resume:
         command.extend(["--resume", str(args.resume.resolve())])
     if args.pin_memory:
@@ -176,6 +180,8 @@ def main():
 
     check_gpu_free(gpus)
     config = json.loads(args.config.read_text())
+    if args.smoke:
+        config.update(updates=4,batch_size=args.smoke_batch_size,max_seconds=600)
     deadline = args.deadline_seconds or int(config.get("max_seconds", 172800))
     if deadline <= 0 or deadline > int(config.get("max_seconds", deadline)):
         raise ValueError("deadline must stay within the v2 robot config budget")
