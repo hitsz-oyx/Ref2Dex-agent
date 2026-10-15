@@ -1,3 +1,7 @@
+## 2026-10-15 MSE/FM现有权重诊断：衰减存在，多模态证据不足
+
+冻结step16000完成1024 DEV/11216 TRAIN诊断，按原始录制去重570次。幅度中位数0.72–0.92xGT、移动速度0.46–0.82；各源ADE中位数均优于零运动/匀速。2cm下无>=8独立邻居的查询，5cm下仅ARCTIC2/H2O2，未见稳健双空间多模态，判断UNCLEAR，继续MSE基线；本轮未训练FM。H2O拆段去重已修正，UniDex跨batch相对名保持独立。最终分析56a1da34、artifact analysis-20261015-r4，4测试与独立审查通过。远端80k主训练持续，诊断GPU已释放。详见[MSE/FM报告](mse-flowmatching-audit-20261015.md)。
+
 ## 2026-10-15 复审后远端实时状态核验
 
 只读SSH检查supervisor1892360与torchrun1892489均存活，strict run实际step18260/80000。
