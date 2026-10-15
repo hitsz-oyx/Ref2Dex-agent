@@ -5,7 +5,7 @@ experiment_id: P-20261015-ptv3-shared-v2-robot-finetune
 date: 2026-10-15
 task: ptv3-shared-wam-v2
 branch: main
-git_commit: dccd77ee
+git_commit: fd83aebd
 claim_id: C1
 hypothesis_family: HF-v2-remote-robot-adapter
 probe_index_in_family: 1
@@ -14,10 +14,23 @@ seeds: [151]
 decision_changed_if_positive: continue v2 remote-WAM fine-tuning with the explicit PD-target action adapter
 decision_changed_if_negative: stop this adapter and diagnose data/model/wiring before spending a long run
 status: RUNNING
-run_id: ptv3-shared-v2-robot-finetune-20261015-r2
+run_id: ptv3-shared-v2-robot-finetune-20261015-r5
 ---
 
 # V2 remote-WAM robot fine-tune
+
+Current execution: r5 restores r2/step3000 under isolated code fd83aebd,
+supervisor1544990, GPU4/5/6/7/global512, target12000. Model/optimizer/rank RNG,
+config and data preserved; no warmup. r2 stopped at logged3340 when concurrent
+src edits triggered the implementation guard. Frozen worktree keeps numeric
+model/data/optimizer code from dccd77ee, changing only artifact/IPC root and
+code-provenance paths and retaining the same vendor ptv3 code. Current working
+tree edits are preserved. r3 dependency-import and r4 long IPC startup failures
+are retained and have no valid training-update evidence. Temporary seven-card
+exception allows native collection GPU0/1/2 to run simultaneously.
+Resume logging has an inherited ETA denominator bug (uses total step rather
+than new updates): derive seconds/update from elapsed_s/(step-3000), not the
+reported minute-scale ETA. First120 new updates took117.5s (~0.98s/update).
 
 This Probe adds a v2 Chunk-R action adapter on top of the remote v2 shared WAM
 checkpoint and trains on the frozen DExplore RL660 corpus. The action loss uses

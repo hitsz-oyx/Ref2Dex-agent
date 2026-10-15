@@ -1,5 +1,27 @@
 # PTv3-Shared-WAM v2 当前状态
 
+## 2026-10-15 三卡完整当前观测补采与四卡隔离续训
+
+用户明确要求GPU0/1/2全量重rollout660条，并临时允许与四卡微调合计7卡。新增原生
+delta0/721D观测、25刚体完整状态、实测接触力、current reference及frame_tick，与
+同次q_PD同步。supervisor1548597，run dexplore-current-rollout-20261015-r1，batch16，
+42批，继承原TRAIN/dev，8GB/10800s/20GiB底线；不导出future actor分支作为新输入。
+完整当前观测不再用可重建近邻特征替代。修复旧collector短序列末尾zero-padding导致
+teacher future查询偏离end-clamp：仅进程内repeat-last；不覆盖原数据。9项测试与
+真实native smoke通过。首48条/9622帧独立raw审查通过，实测contact5252帧，PD重算0误差；
+raw body→native observation独立数值重建一致。CPU auditor1553774在全660完成后自动
+全量核对payload/时序/接触/PD，PASS后才admit。详见对应rollout实验卡。
+
+原四卡r2于10:57在step3340因外部并发修改src触发implementation guard退出，最后完整
+checkpoint3000保留。按用户“保留四卡微调”要求，使用独立detached工作树恢复：
+tmp/robot-finetune-fixed-code-20261015-r3，代码fd83aebd（模型数值代码沿用dccd77ee，
+只调整entry/runtime root与provenance路径，另复制相同PointWorld/ptv3依赖）。
+RUNNING r5，supervisor1544990，GPU4/5/6/7/global512；相同config/source/optimizer/
+4-rank RNG/dev panel，从3000继续至12000，实际已到3300。当前工作树的native模型修改
+没有覆盖/回滚，也不再影响固定训练代码。r3缺少gitlink依赖、r4隔离IPC路径过长的启动
+尝试均保留，未完成科学更新，不作为方法证据。resume日志ETA按累计step计算有误，
+实际应使用elapsed_s/(step-3000)，约1s/新增更新、剩余约2.4h；后续用修正观察文件。
+
 ## 用户纠正：此前增量实验不是原生DExplore当前观测对照
 
 此前只加可重建的参考q/物体pose误差24D和11手点CAD位移33D；未加实测contact、

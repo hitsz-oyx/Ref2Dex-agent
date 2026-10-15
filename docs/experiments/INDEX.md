@@ -126,6 +126,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261008-contactpose-transport-auxiliary](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261008-contactpose-transport-auxiliary.md) | Does a separate rigid-transport auxiliary help measured dynamic prediction? | Main-three completed and two-update engineering r2 passes; the300-update Probe fails when a DataLoader worker aborts after control update112 | Preserve the failed run; repair the data-loader execution before any bounded retry, keeping the frozen scientific comparison unchanged. | probes/UNCLEAR |
 
+## HF-dexplore-current-observation
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261015-dexplore-current-rollout](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-dexplore-current-rollout.md) | Complete same-execution DExplore current-input rollout collection | RUNNING. Engineering/data Blocker for Objective A, not an input-benefit | collect the actually missing native current observation/contact/body | probes/RUNNING |
+
 ## HF-egodex-shared-track-admission
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
