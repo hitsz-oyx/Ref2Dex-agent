@@ -5,7 +5,7 @@ experiment_id: P-20261015-nine-source-pretrain
 date: 2026-10-15
 task: ptv3-shared-wam-v3
 branch: main
-git_commit: f62ca8f8
+git_commit: 67f7af78
 claim_id: C1
 hypothesis_family: HF-nine-source-pretrain
 probe_index_in_family: 1
@@ -52,9 +52,18 @@ main3抽样标签在九源collate中逐tensor与旧collate完全一致（九项�
 
 启动检查 `startup-nine-ddp-20261015-r1` 已完成4步，每卡128/global256，固定代码f62ca8f8，
 GPU1/3，耗时52.26秒（含梯度检查、DEV和worker启动）；保存step1与step4完整checkpoint。
-首步实际optimizer batch覆盖全部九源；梯度与loss有限。rank0峰值分配11.35GiB，reserved13.06GiB。
+首步实际optimizer batch覆盖全部九源；梯度与loss有限。rank0最终峰值分配12.96GiB，reserved17.62GiB。
 下一步从step4原样恢复至80000步，继续观察稳态吞吐与物理DEV误差。
 
 多卡损失按各rank有效点/scene运动权重分母全局归一化，补偿DDP的梯度平均；
 不引入来源loss乘数。checkpoint milestone40k，保留step1、best/latest和恢复点，
 避免80k阶段的checkpoint数量超过8GB预算。
+
+## 持续运行与恢复
+
+`pretrain-nine-80k-20261015-r1` 已从step4完整恢复，固定代码67f7af78，
+GPU1/3，supervisor1584518；recipe、统计、world size和配置完全保持。
+step40/60稳态0.933/0.918步每秒（全局239/235窗每秒），预估80k约24小时。
+两卡利用率接近100%，rank0峰值分配13.64GiB、reserved21.15GiB，当前无OOM/非有限量。
+启动与恢复通过属于工程证据；仍需1000步固定八源DEV变化判断学习进展。
+用户追加九源远端落盘需求，已并行处理；不改变本地训练配方。

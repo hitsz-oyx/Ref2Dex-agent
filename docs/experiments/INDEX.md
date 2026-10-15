@@ -337,6 +337,12 @@
 | [P-20261009-hidden-physx-state-api-audit](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-hidden-physx-state-api-audit.md) | Does the public Isaac Gym API expose a hidden PhysX fork/restore contract? | 见原卡 | 见原卡 | probes/UNPROMISING |
 | [P-20261009-ref13-panel-inventory](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-ref13-panel-inventory.md) | Is the complete ref13 candidate panel recoverable? | 见原卡 | 见原卡 | probes/UNPROMISING |
 
+## HF-nine-source-pretrain
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261015-nine-source-pretrain](../../src/task/ptv3-shared-wam-v3/docs/experiments/probes/P-20261015-nine-source-pretrain.md) | 九源统一预训练启动与持续运行 | 见原卡 | 见原卡 | probes/RUNNING |
+
 ## HF-oakink2-action-effect-wm30
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
