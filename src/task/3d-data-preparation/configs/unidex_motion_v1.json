@@ -1,0 +1,15 @@
+{
+  "schema": "ref2dex.unidex-motion-policy.v1",
+  "scope": "source4 recorded30Hz simulator captures only",
+  "min_step_m": 0.1,
+  "speed_mps": 3.0,
+  "acceleration_mps2": 100.0,
+  "min_object_hand_speed_ratio": 3.0,
+  "severe_step_m": 0.15,
+  "severe_speed_mps": 5.0,
+  "initial_speed_mps": 3.0,
+  "initial_transitions": 2,
+  "extreme_speed_mps": 50.0,
+  "angular_speed_radps": 80.0,
+  "interpretation": "Conservative suspect isolation, not proof of physically impossible motion. Never use grasp success. Initialization rule is simulator-specific; not suitable for arbitrary human motion."
+}

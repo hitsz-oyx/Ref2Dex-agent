@@ -1,0 +1,24 @@
+# UniDex simulator motion screening
+
+User requested screening before remote nine-source pretraining. This is data-quality engineering, not evidence that a method works or all remaining simulator transitions are physically correct.
+
+## Decision Note
+
+The known jar trajectory row14909 moves approximately7.4m in0.8s. Raw60Hz captures and compact30Hz agree exactly, and world-coordinate label reconstruction agrees within2.4e-7m. Thus label-frame conversion is not the observed cause; the recording itself contains a sudden contact ejection. Solver mechanism remains unproven.
+
+Scan all33,056 source4 sequences on CPU (array and file diagnostics; no model computation), preserving simulator success/failure labels only for reporting. Threshold selection uses TRAIN diagnostics, never DEV outcome tuning. Use `configs/unidex_motion_v1.json` to isolate suspect motion: joint large translation/speed/acceleration outrunning the hand; more severe shared hand-object impulses; unusually fast initial capture transitions; and extreme rotation. Rotation and initialization flags mean suspect isolation, not physically impossible motion. Initial-flight rule applies only to these reset-start simulator captures. Normal smooth falling is not rejected solely for speed, net displacement, or distance from the hand.
+
+Quarantine every H4+K24 window ending at or after the first flagged transition, including its subsequent trajectory tail; preserve complete earlier windows. Do not clip targets, interpolate bad motion, stitch tails, filter grasp failures, or edit source payloads. Leave other eight sources unchanged. Recompute exact native TRAIN statistics by subtracting only excluded TRAIN windows; reuse unchanged original-three-source sampled moments and recompute nine-source mixture weights and all24 horizon scales.
+
+Budget:4CPU workers, full audit≤20min/300MB; derived metadata≤20min/200MB; free space≥20GiB. No new GPU training. Preserve old views and annotate quarantined rows so the viewer can still display their full raw trajectory. Stop on identity/moment mismatch or budget breach.
+
+Independent review checked first-event window boundaries, quaternion-sign invariance, gravity drops, and identified shared-impulse and already-fast initial-state blind spots; both are covered by explicit additional rules. Remaining false positives/negatives are possible; these thresholds are conservative operational filters, not universal physical laws.
+
+## Artifacts
+
+- Full completed audit: `outputs/3d-data-preparation/unidex-motion-audit-20261015-r2/`
+- Derived view: `outputs/3d-data-preparation/native3d-clean-motion-20261015-r1/`
+- Derived nine-source recipe: `outputs/ptv3-shared-wam-v3/nine-source-motion-recipe-20261015-r1/`
+- Commands: `tools/audit/audit_unidex_motion.py`, `tools/run/prepare_motion_view.py`; v3 `tools/run/refresh_nine_recipe.py`.
+
+The earlier audit r1 was stopped for uncompressed artifact growth and is not used. Audit r2 retains per-frame diagnostics in gzip; event decisions are applied by the separately versioned policy, preserving the scan's identity.

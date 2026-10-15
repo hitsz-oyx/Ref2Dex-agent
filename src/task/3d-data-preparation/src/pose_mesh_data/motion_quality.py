@@ -27,12 +27,30 @@ def motion_features(time, objects, hand):
     return features
 
 
+def validate_policy(policy):
+    if policy.get('schema') != 'ref2dex.unidex-motion-policy.v1':
+        raise ValueError('versioned simulator motion policy required')
+    positive = ('min_step_m','speed_mps','acceleration_mps2','min_object_hand_speed_ratio',
+                'severe_step_m','severe_speed_mps','initial_speed_mps',
+                'extreme_speed_mps','angular_speed_radps')
+    if any(not np.isfinite(policy[k]) or policy[k] <= 0 for k in positive):
+        raise ValueError('finite positive SI thresholds required')
+    if type(policy['initial_transitions']) is not int or not 1 <= policy['initial_transitions'] <= 2:
+        raise ValueError('initialization check is limited to first two transitions')
+
+
 def events(features,policy):
     """Return transition-end frame IDs; a policy is recorded, never inferred from success."""
+    validate_policy(policy)
     speed=features['speed_mps'];step=features['step_m'];acc=features['acceleration_mps2']
     omega=features['angular_speed_radps']
+    hand=np.maximum(features['hand_speed_mps'],np.r_[0.,features['hand_speed_mps'][:-1]])
+    outruns_hand=speed>policy['min_object_hand_speed_ratio']*hand
+    initial=(np.arange(len(speed))>0) & (np.arange(len(speed))<=policy['initial_transitions'])
     return dict(
-        translational_impulse=np.flatnonzero((step>policy['min_step_m']) & (speed>policy['speed_mps']) & (acc>policy['acceleration_mps2'])),
+        translational_impulse=np.flatnonzero((step>policy['min_step_m']) & (speed>policy['speed_mps']) & (acc>policy['acceleration_mps2']) & outruns_hand),
+        severe_shared_impulse=np.flatnonzero((step>policy['severe_step_m']) & (speed>policy['severe_speed_mps']) & (acc>policy['acceleration_mps2'])),
+        initial_fast_flight=np.flatnonzero(initial & (step>policy['min_step_m']) & (speed>policy['initial_speed_mps']) & outruns_hand),
         extreme_translation=np.flatnonzero(speed>policy['extreme_speed_mps']),
         extreme_rotation=np.flatnonzero(omega>policy['angular_speed_radps']))
 
