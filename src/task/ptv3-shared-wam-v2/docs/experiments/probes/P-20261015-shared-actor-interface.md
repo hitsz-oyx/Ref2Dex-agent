@@ -51,7 +51,7 @@ actor三臂模块/名义参数/随机初始化相同：共享768→128→128memo
 原τ路线action loss本已经τ反传WAM；本实验检验接口收益，并非首次动作监督WAM。
 head零初始化第一更新只动readout，之后动作梯度才经接口到WAM；单测以非零readout核验。
 
-单一seed190，训练抽样与初始化共用，panel192；三臂每卡128/双卡global256、12000更新，
+单一seed190，训练抽样与初始化共用，panel192；三臂每卡256/双卡global512、12000更新，
 lr geometry5e-6/shared1e-5/actor5e-5，AdamW/AMPbf16/TF32，梯度裁剪1，forecast/action权重1。
 相同序列均匀+startup/later均衡TRAIN抽样，固定新dev256索引，500步评价。
 记录全部hand/scene/action/anchor与总损失；物理first-control XYZ mean/p95、旋转测地误差、
@@ -68,7 +68,7 @@ finger与Euler lift误差、控制饱和比例、hand/scene all24误差。离线
 
 用户刚更新CAMPAIGN：本地始终留2卡空闲，远端可全占。故本地GPU0/1、2/3、4/5分别
 三臂同时执行（6卡，6/7空闲）；远端既有四卡不受影响。不再使用已废弃的全局六卡总计。
-先每臂双卡4-step batch128工程检查，成功后固定代码detached工作树长训。
+先每臂双卡4-step batch128工程检查已全部通过（峰值5.5GiB），统一增至batch256再次检查后固定代码detached工作树长训。
 三臂各<=80000s、14GB，总42GB，CPU loader每rank2workers，20GiB磁盘余量。
 非有限、外来GPU进程、无更新1800s、超时/预算或源码漂移终止自己的进程组。
 不覆盖历史checkpoint，不重启Viser8768或改动人工审阅。首轮监测真实吞吐/显存后给ETA。
@@ -79,3 +79,11 @@ finger与Euler lift误差、控制饱和比例、hand/scene all24误差。离线
 变更，运行固定快照仅包含本实验提交及既有已提交依赖。run_id使用共同前缀加接口后缀。
 新head暂不被legacy τ物理执行入口接收，明确fail closed，正向离线信号后再实现桥接。
 本Probe不排除容量/优化/数据覆盖，不动态使用人审标签，不增训已有旧baseline。
+
+## 工程预检
+
+实现4a712b57，smoke启动器21dd46c8；28项相关测试通过，独立review修复shared-only
+DDP unused时间参数后通过。三臂双卡batch128的4-step全部COMPLETED/exit0，
+输出shared-actor-smoke-{pred_tau,shared,shared_tau}-20261015-r1，完整模型/optimizer已保存。
+初步每卡峰值allocated5.5GiB，保留GPU6/7空闲；为增加吞吐，正式匹配batch改为256/rank。
+工程步骤不是拟合收益结论。

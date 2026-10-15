@@ -75,7 +75,7 @@
   "robot_lr": 5e-05,
   "weight_decay": 0.01,
   "clip_grad": 1.0,
-  "batch_size": 128,
+  "batch_size": 256,
   "encoder_workspace_admission": "observed-fixed-grid.v1",
   "updates": 12000,
   "validation_samples": 256,

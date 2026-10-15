@@ -570,6 +570,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261005-rolling-oracle-control](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-rolling-oracle-control.md) | Ref14_1: executed Rolling GT-Y Oracle Control | PROMISING on the predeclared 32-anchor gate: baseline 23/32, actual | Execute same-current-state rolling oracle before any new predictor, long-Y, execution forecasting or PPO. | probes/PROMISING |
 
+## HF-shared-action-interface
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261015-shared-actor-interface](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-shared-actor-interface.md) | Shared表示直接预测q_PD：匹配三臂 | 见原卡 | 见原卡 | probes/RUNNING |
+
 ## HF-spatial-action-fidelity
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

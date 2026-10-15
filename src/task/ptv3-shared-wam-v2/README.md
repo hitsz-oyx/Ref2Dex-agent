@@ -202,7 +202,7 @@ TMPDIR="$PWD/tmp" PYTHONDONTWRITEBYTECODE=1 /home2/wyy/miniconda3/envs/graspenv/
 
 [匹配三臂协议](docs/experiments/probes/P-20261015-shared-actor-interface.md)：
 `robot_shared_actor_{pred_tau,shared,shared_tau}.json`分别选择state+预测τ、state+shared、
-state+shared+预测τ；同一80k父模型/严格补采数据/双卡global256/12k更新。保留forecast损失，
+state+shared+预测τ；同一80k父模型/严格补采数据/双卡global512/12k更新。保留forecast损失，
 三臂均关闭GTτ anchor。run独立保存物理first-control指标与forecast/action全分项，
 每2k完整阶段及按total/control/forecast分别选择的权重。legacy native执行入口拒绝新头，
 不能直接用旧τ接口评估shared checkpoint。
