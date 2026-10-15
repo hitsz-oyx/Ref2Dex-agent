@@ -146,3 +146,27 @@ TRAIN按相邻1000步平均的action/forecast仍下降，DEV forecast却上升�
 不把TRAIN与DEV不同采样的绝对loss直接比较。A/C新增5500点不用于跨臂5000匹配排序。
 三臂按原12k预算继续，约余3–3.5h；不因本次中期结果改输入、选点或延长预算。
 证据`shared-actor-interface-20261015-r1/plateau-step5000.{json,png}`。
+
+
+## 同步6000步与阶段完整性 / 2026-10-15 19:12 CST
+
+固定panel/config/parent/admission逐项重新匹配，快照`interim-step6000.json`，三臂进程仍存活。
+
+| 接口 | action L1 | first-control XYZ mean / p95 mm | hand+scene forecast normalized L1 |
+| --- | ---: | ---: | ---: |
+| state+pred_tau | 0.393889 | 62.357 / 214.289 | 4.865212 |
+| state+shared | 0.415332 | 62.536 / 171.351 | 4.844340 |
+| state+shared+pred_tau | 0.419616 | 63.266 / 176.794 | 4.847115 |
+
+shared p95改善20.04%、shared_tau改善17.50%，mean却分别高0.29%/1.46%。
+只有尾部出现较大收益，尚未满足原定12k的mean/p95联合判别；不改预算、方法或选点规则。
+5000→6000动作L1分别下降1.66%/1.50%/0.98%，仍缓慢改善；forecast DEV继续变差。
+图`interim-step6000.{png,svg}`完整展示共同6000之前的动作、XYZ均值/p95和forecast，
+不把A/C更晚评估点用于本次匹配比较，也不等同物理抓取改善。
+
+三臂step6000均实际CPU反序列化检查：schema/stage/interface/code正确、模型及optimizer
+浮点张量有限、forecast normalizer与父统计准确、六个actor统计跨臂逐值相同、两rank RNG存在。
+optimizer状态参数A/C588、B587（shared-only未使用τ时间参数，符合既有实现）；三个LR保持
+5e-6/1e-5/5e-5。每臂1k/2k/4k/6k文件均存在，单文件约1.192GB；本次内容检查仅覆盖6k。
+证据`checkpoint-audit-step6000.json`，脚本`tmp/audit_inspire_stages_20261015.py`只做CPU文件/
+张量审计，无模型推理，不占额外GPU。后续8k/10k/12k里程碑保留规则继续生效。

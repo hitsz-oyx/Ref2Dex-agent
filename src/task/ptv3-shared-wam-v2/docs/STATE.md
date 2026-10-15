@@ -1,11 +1,19 @@
-## 2026-10-15 shared actor三臂中期仍在更新
+## 2026-10-15 shared actor同步6000步：尾部改善，均值未改善
 
-已实时检查三臂supervisor与GPU worker存活，最新约3360–3540步。复核matched合同后，
-同一步3000/new DEV256的pred_tau、shared、shared_tau XYZ mean依次65.64/68.69/69.59mm，
-p95依次216.16/208.19/197.35mm；动作L1为0.42036/0.43999/0.44800，近500步均下降。
-shared尚无mean和p95共同收益，不据此提前结束12k协议；forecast DEV也未同步下降。
-中期快照已保留在shared-actor-interface-20261015-r1/interim-step3000.json，实验卡同步。
-GPU0–5继续、6/7空闲；Shadow单卡小测试已经完成并释放GPU6。
+三臂实际进程仍存活，最新约6040–6340步。固定共同DEV256、同一步6000：
+pred_tau/shared/shared_tau的action L1为0.39389/0.41533/0.41962；
+first-control XYZ mean为62.357/62.536/63.266mm，p95为214.289/171.351/176.794mm。
+shared的p95相对A降低20.04%，shared_tau降低17.50%，但mean分别高0.29%/1.46%；
+仍未达到原定12k双指标各>=20%的门，不据中期尾部改善提前选路线。
+5000→6000动作L1仍下降1.66%/1.50%/0.98%；DEV forecast继续上升，均值收益放缓。
+
+三臂6000完整checkpoint已CPU实际加载审计：模型/optimizer有限、父forecast统计准确、
+六个actor normalizer跨臂完全相同、两rank RNG存在，三组LR维持原值。
+shared少一个optimizer state来自未使用的τ时间参数，符合原实现，不是缺权重。
+1k/2k/4k/6k文件全部存在；其中本次只对6k做内容审计，不冒充已检查所有历史阶段。
+快照/四项曲线与审计在shared-actor-interface-20261015-r1的
+`interim-step6000.{json,png,svg}`及`checkpoint-audit-step6000.json`。
+GPU0–5继续12k训练；Shadow临时单卡起步采样Probe占GPU6，GPU7空闲，详见Shadow Task状态。
 
 ## 2026-10-15 shared actor三臂已并行启动
 
