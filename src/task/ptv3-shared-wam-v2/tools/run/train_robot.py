@@ -161,8 +161,8 @@ def main():
         raise ValueError("v2 config required")
     representation = validate_representation(config.get("action_representation", NATIVE))
     if args.smoke:
-        if not 1 <= args.smoke_batch_size <= 32:
-            raise ValueError("smoke batch must be in[1,32]")
+        if not 1 <= args.smoke_batch_size <= 256:
+            raise ValueError("smoke batch must be in[1,256]")
         config.update(updates=4, batch_size=args.smoke_batch_size, validation_interval=4,
                       checkpoint_interval=4, log_interval=1, max_seconds=600)
     else:
