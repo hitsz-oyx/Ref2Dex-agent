@@ -171,3 +171,45 @@ not a general grasp-success statistic. The existing encoder workspace gate
 is a separate compatibility restriction, not a human-quality filter.
 Prioritization uses errors/contact only to choose review candidates; it
 does not generate human verdicts or alter corpus/window membership.
+
+## s1人工标注与现有筛选核对（2026-10-15）
+
+用户已逐条审阅s1，并询问保存标注与自动审计是否相符。本次快照读取8条已保存
+整序列标注（s1共有90条，不把其他82条未标注记录自动记为可用），原verdict均为
+uncertain/reason other，具体异常在中文note；保留原标注，不自动重写为unusable。
+
+八条均有支持备注的明显异常数值，但工程audit全PASS，因为只查schema、finite、
+时钟、raw contact与PD一致性，未定义抓取质量判别。现有位置窗口准入也不是整条
+成功判定；它排除失败时段但保留前缀或重新回到10cm内的片段。逐条如下：
+
+| 序列 | 人工备注 | 原位置窗口保留 | 手误差 mean mm | 物体误差 max mm |
+|---|---|---:|---:|---:|
+| s1_phone_lift | 有问题 | 24/603 (4.0%) | 169.5 | 1530.6 |
+| s1_pyramidsmall_inspect_1 | 失败 | 52/230 (22.6%) | 263.0 | 799.9 |
+| s1_scissors_use_2 | 抓取之后没有稳定保持 | 140/326 (42.9%) | 2769.2 | 1900.3 |
+| s1_stapler_lift | 没跟踪好 | 73/494 (14.8%) | 211.4 | 1523.5 |
+| s1_torusmedium_lift | 失败 | 275/549 (50.1%) | 234.6 | 2203.8 |
+| s1_torussmall_inspect_1 | 失败 | 35/277 (12.6%) | 3656.0 | 2100.2 |
+| s1_torussmall_pass_1 | 没抓起来 | 55/263 (20.9%) | 100.0 | 557.6 |
+| s1_watch_lift | 末尾的时候掉落了 | 628/765 (82.1%) | 88.8 | 1471.6 |
+
+所有保存的判定字段照原样保留；备注的异常不自动转换成unusable。
+工程PASS不等同成功抓取。部分失败序列保留可用前缀可以合理，整条标注不足以指定失败起点。
+参考接触与实测接触不匹配是诊断线索；实测力也可能来自桌面，不保证手物抓持。
+
+八条共3507个可能窗口，现位置/编码器条件仍保留1282个。这不意味着1282个都错：
+例如watch整条789帧，保留query0–279和333–680，晚期掉落段已被future24位置门排除。
+其tick750实际object z0.214m、末帧0.019m，参考约0.832m，支持“末尾掉落”备注。
+phone参考要求接触424帧，全部无实测手部接触；torussmall_pass参考120帧中100帧
+无接触，支持漏抓诊断，但实测接触力本身可能来自桌子，不当作持物成功证据。
+
+现筛选存在的语义缺口：只管物体位置、未管旋转/手姿/保持质量；失败前的手部
+跟踪误差可以已很大，物体尚留在原位置而窗口仍过门。stapler保留query111–121及
+209–233、torusmedium保留287–309等后段回入片段，也不自动等于恢复成功抓取。
+人审整序列note不足以确定哪些前缀应保留，后续质量准入需显式约定整条/坏帧段政策。
+
+CPU只读分析工具`tools/audit/compare_human_rollout_review.py`，输出
+`outputs/ptv3-shared-wam-v2/s1-human-audit-20261015-r1/`包含8条annotation snapshot、
+JSON/CSV/Markdown比较；半开标注区间按H4+future24窗口重叠核对，不只查query起点。
+对原position gate从raw数据独立重算，与manifest逐项相等；另一份独立数值统计也与
+这8条的准入数和手物误差逐项一致。没有重新rollout、改变训练数据或应用人工过滤。
