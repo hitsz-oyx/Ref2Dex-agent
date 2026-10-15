@@ -39,6 +39,11 @@ def audit(path):
     check("native_PD", d["pd_targets"], independent_pd(d["applied"], d["q"][:-1], manifest["native_controller"]))
     check("clipping_flags", d["clipped"], np.abs(d["intended"] - d["applied"]).max(-1) > 1e-6)
     student_intended=d['intended'][:,1:]
+    if manifest.get('current_observation_input') is not None:
+        if (manifest['current_observation_input'] not in ('masked','delta0') or steps!=1
+                or not manifest.get('shared_actor') or d['native_current_obs'].shape!=(controls,3,721)):
+            raise ValueError('Current shared actor execution contract differs')
+        check('server_own_current_observations',d['server_current_obs'],d['native_current_obs'][:,[2,1]])
     if manifest.get('diagnostic_hybrid'):
         if (manifest.get('no_teacher_intervention') is not False
                 or manifest.get('training_allowed') is not False

@@ -39,6 +39,7 @@ def parse_args():
     parser.add_argument("--stats", type=Path, required=True)
     parser.add_argument("--source", type=Path, default=DEFAULT_ROBOT_SOURCE)
     parser.add_argument("--init-shared", type=Path, required=True)
+    parser.add_argument('--init-robot',type=Path,help='Weight-only robot initialization with a fresh optimizer in a new run')
     parser.add_argument("--resume", type=Path,
                         help="optional robot checkpoint; writes resumed state into a fresh output")
     parser.add_argument("--output", type=Path, required=True)
@@ -199,8 +200,9 @@ def main():
     source_manifest=json.loads((args.source/'manifest.json').read_text())
     if not source_manifest.get('capture_current_observation'):
         raise ValueError('new robot training uses native supplementary660 corpus; historical artifacts remain read-only')
-    train = V2RLRobotWindows(args.source, "train", config["object_points"], representation, workspace, admission)
-    dev = V2RLRobotWindows(args.source, "val", config["object_points"], representation, workspace, admission)
+    include_current=config.get('current_observation_input') is not None
+    train = V2RLRobotWindows(args.source, "train", config["object_points"], representation, workspace, admission,include_current)
+    dev = V2RLRobotWindows(args.source, "val", config["object_points"], representation, workspace, admission,include_current)
     parent = torch.load(args.init_shared, map_location="cpu", weights_only=False)
     expected_parent_commit = None if args.smoke else config.get("remote_parent_git_commit")
     if not args.smoke and (not isinstance(expected_parent_commit, str) or not expected_parent_commit):
@@ -209,6 +211,16 @@ def main():
     model = SharedWAMV2Robot(stats, config, representation)
     model.forecaster.load_state_dict(parent["model"], strict=True)
     initialize_retargeter(model.retargeter, train)
+    if args.init_robot:
+        if args.resume:raise ValueError('Weight-only initialization and optimizer resume are distinct')
+        from ptv3_shared_wam_v2.current_initialization import initialize_from_robot
+        warm=torch.load(args.init_robot,map_location='cpu',weights_only=False)
+        initialize_from_robot(model,warm,config,stats,args.source)
+        del warm
+    if include_current:
+        mean,scale=train.current_observation_statistics()
+        model.retargeter.current_mean.copy_(torch.from_numpy(mean))
+        model.retargeter.current_scale.copy_(torch.from_numpy(scale))
     model.to(device)
     groups = model.parameter_groups(config)
     optimizer = torch.optim.AdamW(groups, weight_decay=config.get("weight_decay", .01),
@@ -254,6 +266,9 @@ def main():
                                       q_real="RL660 measured q; state/diagnostic, not q_ref"))
     if resume:
         provenance.update(resume_parent=str(args.resume.resolve()), resume_step=start_step)
+    if args.init_robot:
+        provenance.update(weight_only_robot_parent=str(args.init_robot.resolve()),optimizer_reset=True,
+                          parent_robot_step=7000)
     if rank == 0:
         out.mkdir(parents=True, exist_ok=False)
         atomic_json(out / "rollout_admission.json", {"train":train.rollout_admission,"val":dev.rollout_admission})

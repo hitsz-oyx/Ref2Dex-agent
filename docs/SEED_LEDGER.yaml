@@ -25,6 +25,13 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261015-shared-current-continuation:
+    seed_pool: probe
+    model_and_draw_seed: 198
+    original_DEV_seed: 192
+    native_reset_seed: 148
+    reuse_reason: matched current721 versus zero-masked shared7k continuation; original DEV and native panels, not independent validation
+
   P-20261015-current-wrist-mlp:
     seed_pool: probe
     model_seed: 196

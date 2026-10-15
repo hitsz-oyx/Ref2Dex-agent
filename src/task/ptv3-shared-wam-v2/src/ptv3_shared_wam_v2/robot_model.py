@@ -33,7 +33,8 @@ class SharedWAMV2Robot(nn.Module):
             if action_representation not in (NATIVE,GEOMETRY_LIFTED) or self.anchor_weight != 0:
                 raise ValueError("matched shared actor requires native/geometry-lift and anchor_weight=0")
             self.retargeter = SharedQueryActor(self.action_interface, config['shared_width'],
-                action_dim=action_dimension(action_representation))
+                action_dim=action_dimension(action_representation),
+                current_observation=config.get('current_observation_input'))
 
     def forward(self, batch):
         prediction = self.forecaster(batch, return_shared=True) if self.action_interface else self.forecaster(batch)
@@ -43,7 +44,7 @@ class SharedWAMV2Robot(nn.Module):
         tau = native_trajectory(prediction["trajectory"], batch["start_hand_valid"])
         if self.action_interface:
             prediction["action"] = self.retargeter(batch["native_state"], tau,
-                prediction.pop("shared_tokens"), prediction.pop("shared_valid"))
+                prediction.pop("shared_tokens"), prediction.pop("shared_valid"),batch.get('native_current_obs'))
         else:
             prediction["action"] = self.retargeter(batch["native_state"], tau)
         # Anchor R to the measured future hand trajectory.  It updates only R;

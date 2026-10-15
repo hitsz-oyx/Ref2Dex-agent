@@ -25,11 +25,21 @@ class V2RLRobotWindows(RLRobotWindows):
     """RL660 windows with immutable geometric reference-q provenance."""
 
     def __init__(self, source, split, point_count=32, action_representation=None,
-                 encoder_workspace=None, rollout_admission=None):
+                 encoder_workspace=None, rollout_admission=None,include_current_observation=False):
         if action_representation is None:
             from ptv3_shared_wam.action_targets import NATIVE
             action_representation = NATIVE
         super().__init__(source, split, point_count, action_representation)
+        self.include_current_observation=include_current_observation
+        if include_current_observation:
+            c=self.manifest.get('observation_contract',{})
+            if (not self.manifest.get('capture_current_observation') or c.get('reference_delta')!=0
+                    or c.get('dimension')!=721 or c.get('future_reference_inputs_saved') is not False
+                    or c.get('live_future_invariance_passed') is not True):
+                raise ValueError('Audited current-only delta0 corpus required')
+            audit=json.loads((self.root/self.manifest['native_observation_audit']).read_text())
+            if audit.get('status')!='PASS' or audit.get('sequences')!=self.manifest['num_sequences']:
+                raise ValueError('Full native current observation audit required')
         membership = Path(self.manifest["source_membership"]).resolve()
         source_manifest = json.loads((membership / "manifest.json").read_text())
         if source_manifest.get("source_geometric_root") is None:
@@ -82,12 +92,33 @@ class V2RLRobotWindows(RLRobotWindows):
             q_real=data["q"][tick:tick + 8].astype(np.float32, copy=True),
             q_real_next=data["q"][tick + 1:tick + 9].astype(np.float32, copy=True),
         )
+        if self.include_current_observation:
+            obs=data['native_current_obs']
+            if (obs.shape!=(len(data['q']),721) or not np.array_equal(data['frame_tick'],np.arange(len(obs)))
+                    or not np.isfinite(obs[tick]).all()):
+                raise ValueError('Current observation clock/shape differs')
+            sample['native_current_obs']=obs[tick].astype(np.float32,copy=True)
         return sample
+
+    def current_observation_statistics(self):
+        if self.split!='train' or not self.include_current_observation:
+            raise ValueError('Current normalizers require TRAIN delta0 windows')
+        total=np.zeros(721,np.float64);squares=total.copy();count=0
+        by_sequence={}
+        for tick,seq in self.keys:by_sequence.setdefault(seq,[]).append(tick)
+        for seq,ticks in by_sequence.items():
+            values=self.sequence(seq)[0]['native_current_obs'][ticks].astype(np.float64)
+            if not np.isfinite(values).all():raise ValueError('Nonfinite TRAIN current observations')
+            total+=values.sum(0);squares+=np.square(values).sum(0);count+=len(values)
+        mean=total/count
+        return mean.astype(np.float32),np.sqrt(np.maximum(squares/count-mean**2,0)).clip(1e-3).astype(np.float32)
 
 
 def robot_collate(samples):
     """Existing shared collate plus the explicit three-way q contract."""
     batch = shared_collate(samples)
+    if 'native_current_obs' in samples[0]:
+        batch['native_current_obs']=torch.as_tensor(np.stack([s['native_current_obs'] for s in samples]))
     for key in ("q_ref_next", "q_pd", "q_real", "q_real_next"):
         if key not in samples[0]:
             raise ValueError("missing explicit q contract field: " + key)

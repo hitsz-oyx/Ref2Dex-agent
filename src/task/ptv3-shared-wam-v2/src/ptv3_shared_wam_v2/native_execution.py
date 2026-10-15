@@ -50,14 +50,14 @@ def load_robot_checkpoint(path, allow_shared=False):
     return validate_robot_packet(torch.load(path, map_location="cpu", weights_only=False), allow_shared)
 
 
-def predict_shared_action(model, batch, state):
+def predict_shared_action(model, batch, state,current_obs=None):
     """Run the trained shared interface with measured current state; labels are absent."""
     from ptv3_shared_wam.robot import native_trajectory
     if model.action_interface != 'shared':
         raise ValueError('shared-only model required')
     prediction = model.forecaster(batch, return_shared=True)
     tau = native_trajectory(prediction['trajectory'], batch['start_hand_valid'])
-    chunk = model.retargeter(state, tau, prediction['shared_tokens'], prediction['shared_valid'])
+    chunk = model.retargeter(state, tau, prediction['shared_tokens'], prediction['shared_valid'],current_obs)
     return chunk, tau
 
 

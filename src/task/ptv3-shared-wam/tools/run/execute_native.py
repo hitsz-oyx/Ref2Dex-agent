@@ -94,6 +94,9 @@ def main():
         wrist_probes = [load_wrist_probe(a.wrist_probe/arm/'step06000.pt', arm, 'cuda')
                         for arm in ('state_goal', 'plus_current')]
     packet = load_checkpoint(a.checkpoint, allow_shared=True) if a.shared_actor else load_checkpoint(a.checkpoint)
+    shared_current=packet['config'].get('current_observation_input') is not None
+    if shared_current and (not a.shared_actor or a.execution_steps!=1 or a.wrist_probe or a.diagnostic_hybrid):
+        raise ValueError('Current shared actor requires K1 without component overrides')
     from ptv3_shared_wam.native_inputs import resolve_native_inputs, load_native_arrays
     selected = resolve_native_inputs(packet, a.sequence)
     arrays = load_native_arrays(selected)
@@ -154,6 +157,7 @@ def main():
     manifest["retargeter_override"] = override
     manifest['action_representation']=representation
     manifest['shared_actor'] = a.shared_actor
+    manifest['current_observation_input']=packet['config'].get('current_observation_input')
     if a.shared_actor:
         manifest['roles'] = ['teacher', 'shared_actor_repeat', 'shared_actor']
     manifest['diagnostic_hybrid'] = a.diagnostic_hybrid
@@ -224,6 +228,8 @@ def main():
                 logs.update({key: [] for key in ('student_intended','teacher_actions','teacher_obs')})
             if wrist_probes:
                 logs.update({key: [] for key in ('pre_wrist_intended', 'wrist_features', 'wrist_prediction', 'native_current_obs')})
+            if shared_current:
+                logs.update(native_current_obs=[],server_current_obs=[])
             def record():
                 hand, gap = geometry.measure(task)
                 sup, foot = support.measure(task, geometry)
@@ -262,12 +268,32 @@ def main():
                             request['repeat'] = dict(object_history=repeat_oh.tolist(),
                                 hand_history=repeat_hh.tolist(),
                                 planned_object_goal=goal.tolist(), native_state=repeat_state.tolist())
+                        if shared_current:
+                            original_obs=task.obs_buf.clone()
+                            env_ids=torch.arange(3,device=task.device)
+                            current_obs=task._compute_observations_iter(env_ids,0)
+                            if (current_obs.shape!=(3,721) or not torch.equal(task.obs_buf,original_obs)
+                                    or not bool((task.progress_buf==tick).all())):
+                                raise ValueError('Shared actor current delta0 clock/teacher preservation differs')
+                            if tick==0:
+                                future_ref=task.hoi_data[:,1:].clone()
+                                try:
+                                    task.hoi_data[:,1:]=0
+                                    if not torch.equal(current_obs,task._compute_observations_iter(env_ids,0)):
+                                        raise ValueError('Future hand reference entered current shared input')
+                                finally:task.hoi_data[:,1:]=future_ref
+                            request['native_current_obs']=current_obs[2].tolist()
+                            request['repeat']['native_current_obs']=current_obs[1].tolist()
                         send(connection, request)
                         reply = receive(connection)
                         if reply["tick"] != tick:
                             raise ValueError("server query clock differs")
                         if reply.get('action_representation')!=representation:
                             raise ValueError('query action units differ from loaded R')
+                        if shared_current:
+                            server_current=np.asarray(reply['input_current_obs'],np.float32)
+                            if not np.array_equal(server_current,current_obs[[2,1]].cpu().numpy()):
+                                raise ValueError('Server current observation order/values differ')
                         own_tau = np.asarray(reply["native_tau"], np.float32)
                         raw_chunks=[None,torch.tensor(reply['action_chunk'],device=task.device)[None]]
                         query_q=current['q'][1:].clone()
@@ -337,6 +363,8 @@ def main():
                     if wrist_probes:
                         values.update(pre_wrist_intended=pre_wrist_intended, wrist_features=wrist_features,
                                       wrist_prediction=wrist_prediction, native_current_obs=delta0)
+                    if shared_current:
+                        values.update(native_current_obs=current_obs,server_current_obs=server_current)
                     for key, value in values.items():
                         logs[key].append(value.cpu().numpy().copy() if isinstance(value, torch.Tensor) else np.asarray(value).copy())
                     current = record()

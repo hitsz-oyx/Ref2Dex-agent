@@ -92,6 +92,7 @@ def parser():
     p.add_argument("--stats", type=Path, required=True)
     p.add_argument("--source", type=Path, default=V2_OUTPUTS / "dexplore-current-rollout-20261015-r1")
     p.add_argument("--init-shared", type=Path, required=True)
+    p.add_argument('--init-robot',type=Path)
     p.add_argument("--experiment-card", type=Path, required=True)
     p.add_argument("--gpus", default="4,6")
     p.add_argument("--smoke", action="store_true")
@@ -124,6 +125,8 @@ def validate_args(args, gpus):
             raise FileNotFoundError(path)
     if args.resume and not args.resume.exists():
         raise FileNotFoundError(args.resume)
+    if args.init_robot and (not args.init_robot.exists() or args.resume):
+        raise ValueError('Existing weight-only robot parent without resume required')
     if args.poll_seconds < 1 or args.poll_seconds > 1200:
         raise ValueError("poll interval must be between 1 and 1200 seconds")
     if args.stall_seconds < args.poll_seconds:
@@ -150,6 +153,8 @@ def child_command(args, out, card, gpus):
         command.extend(["--smoke", "--smoke-batch-size",str(args.smoke_batch_size)])
     if args.resume:
         command.extend(["--resume", str(args.resume.resolve())])
+    if args.init_robot:
+        command.extend(['--init-robot',str(args.init_robot.resolve())])
     if args.pin_memory:
         command.append("--pin-memory")
     return command

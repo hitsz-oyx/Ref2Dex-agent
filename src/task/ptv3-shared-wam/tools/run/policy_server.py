@@ -111,10 +111,15 @@ def main():
                 if state.shape != (len(requests), 87) or not torch.isfinite(state).all():
                     raise ValueError("finite own87D native state required")
                 from ptv3_shared_wam.robot import native_trajectory
+                current_obs=None
+                if packet['config'].get('current_observation_input') is not None:
+                    current_obs=torch.as_tensor([q['native_current_obs'] for q in requests],device='cuda',dtype=torch.float32)
+                    if current_obs.shape!=(len(requests),721) or not torch.isfinite(current_obs).all():
+                        raise ValueError('Own same-tick native current observations required')
                 with torch.inference_mode():
                     if a.shared_actor:
                         from ptv3_shared_wam_v2.native_execution import predict_shared_action
-                        chunk, tau = predict_shared_action(model, batch, state)
+                        chunk, tau = predict_shared_action(model, batch, state,current_obs)
                     else:
                         prediction = model.forecaster(batch)
                         tau = native_trajectory(prediction['trajectory'], batch['start_hand_valid'])
@@ -126,6 +131,8 @@ def main():
                                       native_tau=tau[0].cpu().tolist(), elapsed_s=time.monotonic() - started)
                 if a.shared_actor:
                     reply['repeat_action_chunk'] = chunk[1].cpu().tolist()
+                if current_obs is not None:
+                    reply['input_current_obs']=current_obs.cpu().tolist()
                 send(connection, reply)
                 status["queries"] += 1
                 atomic_json(a.output / "status.json", status)

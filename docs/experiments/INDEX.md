@@ -624,6 +624,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261015-shared-actor-interface](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-shared-actor-interface.md) | Shared表示直接预测q_PD：匹配三臂 | 见原卡 | 见原卡 | probes/RUNNING |
 
+## HF-shared-current-continuation
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261015-shared-current-continuation](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-shared-current-continuation.md) | 当前721D在原shared联合训练中的匹配延续 | 见原卡 | 见原卡 | probes/RUNNING |
+
 ## HF-shared-execution-gap
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

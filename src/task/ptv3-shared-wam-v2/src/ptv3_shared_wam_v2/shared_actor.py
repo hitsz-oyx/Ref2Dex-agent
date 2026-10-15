@@ -7,7 +7,7 @@ INTERFACES=('pred_tau','shared','shared_tau')
 
 
 class SharedQueryActor(nn.Module):
-    def __init__(self,interface,shared_width=768,width=128,action_dim=15):
+    def __init__(self,interface,shared_width=768,width=128,action_dim=15,current_observation=None):
         super().__init__()
         if interface not in INTERFACES or shared_width<33 or action_dim not in (12,15):raise ValueError('actor interface/width/action dimension')
         self.interface=interface;self.shared_width=shared_width
@@ -23,10 +23,26 @@ class SharedQueryActor(nn.Module):
         self.decoder=nn.TransformerDecoder(layer,2)
         self.head=nn.Linear(width,action_dim)
         nn.init.zeros_(self.head.weight);nn.init.zeros_(self.head.bias)
+        if current_observation not in (None,'masked','delta0'):
+            raise ValueError('Current observation must be masked or delta0')
+        self.current_observation=current_observation
+        if current_observation is not None:
+            if interface!='shared':raise ValueError('Current-information control requires shared-only actor')
+            self.register_buffer('current_mean',torch.zeros(721))
+            self.register_buffer('current_scale',torch.ones(721))
+            self.current_encoder=nn.Sequential(nn.Linear(721,width),nn.GELU(),nn.Linear(width,width))
+            nn.init.zeros_(self.current_encoder[-1].weight);nn.init.zeros_(self.current_encoder[-1].bias)
 
-    def forward(self,state,tau=None,shared=None,shared_valid=None):
+    def forward(self,state,tau=None,shared=None,shared_valid=None,current_obs=None):
         if state.shape!=(len(state),87):raise ValueError('actor requires current87D state')
-        memory=[self.state_encoder((state-self.state_mean)/self.state_scale)[:,None]+self.type_embedding[0]]
+        state_token=self.state_encoder((state-self.state_mean)/self.state_scale)
+        if self.current_observation is not None:
+            if current_obs is None or current_obs.shape!=(len(state),721) or not torch.isfinite(current_obs).all():
+                raise ValueError('Finite same-tick native delta0 observation required')
+            extra=(current_obs-self.current_mean)/self.current_scale
+            if self.current_observation=='masked':extra=torch.zeros_like(extra)
+            state_token=state_token+self.current_encoder(extra)
+        memory=[state_token[:,None]+self.type_embedding[0]]
         masks=[torch.ones(len(state),1,dtype=torch.bool,device=state.device)]
         if self.interface in ('pred_tau','shared_tau'):
             if tau is None or tau.shape!=(len(state),24,33):raise ValueError('predicted native tau required')
