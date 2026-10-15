@@ -1,4 +1,17 @@
-## 2026-10-15 动作表示配对Probe已并行启动
+## 2026-10-15 混控定位到腕部瓶颈，动作表示2k未恢复抓取
+
+动作表示driver2298258完成，同2000步native/q_PD的XYZ mean78.66/77.37mm、finger
+0.07374/0.08945rad；手指改善17.6%，两臂三条val所有student仍held0，六组audit通过。
+局部UNPROMISING，不再据此扩扫checkpoint；不refute native长训。
+
+条件接续driver2365418也完成：固定shared7k、val飞机teacher held62，teacher腕部+
+student手指held59，反向混控held0；独立audit通过。TRAIN飞机teacher held103，两个
+student都held0。腕部是本例优先瓶颈，不能只归因val泛化或握不牢。
+同状态teacher建议对比：teacher腕部引导行的student腕部预测差仍约57–71mm，自主
+腕部行进一步放大。下一步优先精确TRAIN teacher-forcing拟合与参考任务条件合同，
+区分预测拟合差和闭环放大，不继续凭动作loss增加训练。详见component-oracle卡。
+
+## 2026-10-15 动作表示配对Probe启动记录
 
 用户新目标定位Inspire/Shadow抓取差异，提出q_PD对比原生action并临时允许空卡实验。
 独立CPU审计660序列首拍PD逆命令max5.96e-7，暂未见粗大label/clock/旋转branch错误；

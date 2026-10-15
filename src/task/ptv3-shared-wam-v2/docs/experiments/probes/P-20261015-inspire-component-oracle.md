@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [148]
 decision_changed_if_positive: prioritize the deficient wrist or finger control group identified by teacher assistance
 decision_changed_if_negative: retain combined control and observation mismatch hypotheses rather than infer one component is sufficient
-status: RUNNING
+status: PROMISING
 run_id: inspire-component-oracle-20261015-r1
 ---
 
@@ -93,6 +93,31 @@ split，继续检查闭环拟合。它不是新增数据量/跨手因果实验�
 语法和仓库verify通过。尚未运行GPU工程smoke或采集oracle结果，不能据此形成方法结论。
 条件接续监督器已独立只读审查通过：上游条件门、PID身份、GPU空闲、smoke顺序、固定
 输入与两组角色均未见blocker。其CPU audit增加120s timeout，native沿用原有600s监督。
+
+## 已完成结果与下一步决策
+
+监督器2365418已COMPLETED，含等待1377.4s；上游六组学生均held0后按协议启动，
+4步混控smoke、飞机混控和TRAIN资格执行均独立audit通过，最大合同差<=3.15e-7。
+三行初始q一致。固定shared7k、val飞机：teacher held62、teacher腕部+student手指held59、
+student腕部+teacher手指held0；最大抬升分别0.682/0.697/0.0038m。
+teacher腕部组恢复抓取是本例腕部控制瓶颈的PROMISING定位信号，不能计为自治成功，
+不能升级为所有序列的唯一根因，也不证明原student手指在任意状态均正确。
+
+一条自主TRAIN飞机：teacher held103，student两行均held0且无抬升，最小gap0.295/0.186m。
+因此单纯val泛化不足解释不了这个seen-sequence闭环失败；仍需区分训练状态拟合与闭环。
+
+利用已保存未混合student命令和各自同状态teacher建议，进一步复算腕部XYZ目标差；
+不是拿不同行的后期动作作监督差。teacher腕部引导行在0:16/16:42/42:149的平均误差
+为56.75/70.75/68.48mm；自主腕部行对应138.53/378.18/531.12mm。说明在引导的近teacher
+状态上已有显著预测差，闭环又放大它，不能把全部误差归为进入离线数据外状态。
+手指状态仍可不同，单条val诊断不能替代精确TRAIN teacher-forcing拟合读数。
+复算公式norm((student_intended_xyz-teacher_action_xyz)*controller_scale_xyz)*1000，
+输出component-wrist-errors.json；无新模型forward或训练。
+
+当前优先级改为：先测同checkpoint在精确TRAIN存储状态上的首拍腕部误差，再决定优化/
+输入合同或闭环数据覆盖。源码确认87D仅q/dq/手物几何/物体速度，没有q_ref；teacher
+使用ref[t+1]/ref[t+16]，这是需核实的重要任务条件缺口。已有full-teacher MLP的TRAIN/
+DEV差距使“缺参考信息就是唯一根因”仍不成立。暂不扩大动作表示训练预算。
 
 ## Limitations / future evidence
 

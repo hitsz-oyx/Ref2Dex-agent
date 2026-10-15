@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [195, 192, 148]
 decision_changed_if_positive: prioritize original action parameterization and dissect geometry loss and normalization
 decision_changed_if_negative: prioritize teacher input sufficiency and fitting coverage before attributing failure to q_PD
-status: RUNNING
+status: UNPROMISING
 run_id: inspire-action-representation-20261015-r1
 ---
 
@@ -109,6 +109,18 @@ train-panel-audit.json提供三条按字典序/同pass动作/有strict startup�
 中途500步共同DEV：native/geometry首拍PD XYZ mean101.23/94.43mm、finger MAE
 0.10145/0.11318rad、applied command MAE0.10351/0.11404。手指及总体命令略好、XYZ略差，
 尚不能认为native全面改善；最终仍以固定2000步及后续K1抓取判读，不按此改选点/提前停。
+
+## 固定2000步与闭环结果
+
+driver2298258已COMPLETED、运行4031.6s；两个2000步完整权重及500/1000/1500里程碑保留。
+共同DEV native/geometry：XYZ mean78.657/77.367mm，finger MAE0.07374/0.08945rad，
+applied command MAE0.07633/0.09063。native手指降低17.6%、命令降低15.8%，XYZ未改善。
+
+两臂三条val飞机/球/杯，所有学生及自身输入重复均held0；native组teacher held62/75/91，
+geometry组62/73/94。六组全部peer exit0、独立audit通过。输出comparison.json及各native
+日志/audit保留。局部UNPROMISING仅指本固定2k预算内未解决腕部/抓取，不refute native
+长训或单独finger编码收益；不继续同类checkpoint sweep。后续component-oracle已按门
+自动启动，区分腕部/手指与TRAIN资格，而非把失败都归因表示。
 
 
 ## 并行CPU诊断：forecast相对运动基线
