@@ -25,6 +25,15 @@ def load(p):
     with np.load(p,allow_pickle=False) as z:return {k:z[k].copy() for k in z.files}
 
 
+def remap_row_references(value,mapping):
+    if isinstance(value,list):return [remap_row_references(v,mapping) for v in value]
+    if not isinstance(value,dict):return value
+    result={k:remap_row_references(v,mapping) for k,v in value.items()}
+    if 'row' in value:
+        result['parent_row']=value['row'];result['row']=mapping[value['row']]
+    return result
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     for k in ('base-recipe','dex','native-output','recipe-output'):p.add_argument('--'+k,type=Path,required=True)
@@ -68,6 +77,8 @@ def main():
     for i,r in enumerate(b['sequences']):
         if r['source_id']==8:continue
         mapping[i]=len(rows);rows.append({**r,'path':str((base/r['path']).resolve()),'source_manifest_snapshot':str((base/r['source_manifest_snapshot']).resolve())})
+    for row in rows:
+        if 'motion_quality' in row:row['motion_quality']=remap_row_references(row['motion_quality'],mapping)
     offset=len(rows)
     rows.extend({**r,'path':str((dex/r['path']).resolve()),'source_manifest_snapshot':str((dex/r['source_manifest_snapshot']).resolve())} for r in d['sequences'])
     combined={}
@@ -86,13 +97,21 @@ def main():
     out.mkdir(parents=True);np.savez_compressed(out/'windows.npz',**combined);stamp=(out/'windows.npz').stat()
     used={k for r in rows for k in r['objects']}
     meta={**b,'run_id':out.name,'sequences':rows,'objects':[g for k,g in geometry.items() if k in used],'window_index':'windows.npz','window_index_size_bytes':stamp.st_size,'window_index_mtime_ns':stamp.st_mtime_ns,'input_snapshots':[str(base/'manifest.json'),str(dex/'manifest.json')],'parent_strict_recipe':str(a.base_recipe.resolve()),'materialized_quality_admission':'Prior strict native exclusions preserved by original (row,tick); pilot DexYCB replaced; all source8 TRAIN/DEV already strict-filtered.'}
+    if b.get('motion_admission'):meta['motion_admission']=remap_row_references(b['motion_admission'],mapping)
     write(out/'source-moments.json',{**old_m,'input_manifest':str(out/'manifest.json'),'windows':sum(train_counts.values()),'source_moments':moments,'derivation':'Subtract every old strict native TRAIN exclusion by exact contribution, replace source8 with full exact TRAIN-only moments.'})
     write(out/'manifest.json',meta);write(out/'progress.json',dict(status='COMPLETED',elapsed_s=time.monotonic()-started));write(out/'cleaning-summary.json',dict(status='COMPLETED',windows={k:len(v) for k,v in combined.items()},source_sequences=dict(Counter(str(r['source_id'])+':'+r['split'] for r in rows))))
     native_recipe,_=recipe_for_snapshot(out,old['native_engineering_recipe']['policy'])
     recipe_dir.mkdir(parents=True);np.savez_compressed(recipe_dir/'excluded-windows.npz',**main_excluded);st=(recipe_dir/'excluded-windows.npz').stat()
     quality={**old['quality_admission'],'index_path':str(recipe_dir/'excluded-windows.npz'),'index_stamp':[st.st_size,st.st_mtime_ns],'base_native_index_stamp':[stamp.st_size,stamp.st_mtime_ns],'excluded_windows':{s:len(v) for s,v in main_excluded.items()},'removed_by_source_split':{k:v for k,v in old['quality_admission']['removed_by_source_split'].items() if int(k.split(':')[0])<3},'native_exclusions':'materialized in native snapshot'}
+    policy=dict(quality['policy'])
+    policy.pop('hand_hoi4d_37130',None)
+    policy['hand_hoi4d']=dict(parent_row=37130,row=mapping[37130],excluded_initial_span=[0,30])
+    quality['policy']=policy
     effective={s:n for s,n in old['source_counts'].items() if int(s)<3};effective.update(dict(train_counts));weights=source_probabilities(effective,.5,{'8':.01})
     recipe={**old,'source_counts':effective,'source_probabilities':weights,'native_root':str(out),'native_index_stamp':[stamp.st_size,stamp.st_mtime_ns],'native_engineering_recipe':native_recipe,'quality_admission':quality,'sampling':dict(source='sqrt(effective TRAIN windows), DexYCB<=1%',main3='existing actual motion strata after strict exclusions',native='uniform permitted frozen windows')}
+    admission=dict(old['admission'],native_snapshot_unchanged=False,user_request='2026-10-15: complete DexYCB subjects',parent_recipe=str(a.base_recipe.resolve()))
+    if admission.get('motion_admission'):admission['motion_admission']=remap_row_references(admission['motion_admission'],mapping)
+    recipe['admission']=admission
     data=NineWindows(recipe['main3_root'],out,'train',recipe);selected={}
     for source in data.main.base.sources:source.sequence=lru_cache(maxsize=32)(source.sequence)
     for sid in ('0','1','2'):
