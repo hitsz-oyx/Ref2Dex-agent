@@ -54,12 +54,15 @@ def main():
     p.add_argument('--archive', type=Path, required=True)
     p.add_argument('--card', type=Path, required=True)
     p.add_argument('--gpus', default='0,1,2')
+    p.add_argument('--max-seconds', type=int, default=1800)
     p.add_argument('--previous-output', type=Path, help='reuse only completed matching physical groups; never overwrite them')
     a = p.parse_args()
     out, archive = a.output.resolve(), a.archive.resolve()
     gpus = [int(x) for x in a.gpus.split(',')]
     if out.exists() or out.parent != ROOT / 'outputs/ptv3-shared-wam-v2' or len(gpus) != 3 or len(set(gpus)) != 3:
         raise ValueError('fresh output and three distinct GPUs required')
+    if not 200 <= a.max_seconds <= 1800:
+        raise ValueError('panel wall budget must be between 200 and 1800 seconds')
     for step in STEPS:
         if not (archive / ('finetune-step%d.pt' % step)).is_file():
             raise FileNotFoundError(step)
@@ -73,14 +76,14 @@ def main():
     commit = subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
     status = dict(status='RUNNING', pid=os.getpid(), run_id=out.name, git_commit=commit,
                   steps=STEPS, panel=PANEL, gpus=gpus, seed=148, execution_steps=4,
-                  max_seconds=1800, max_bytes=2_000_000_000, completed=0)
+                  max_seconds=a.max_seconds, max_bytes=2_000_000_000, completed=0)
     write(out/'process.json', status)
 
     def worker(gpu, panel):
         short, sequence, controls = panel
         reports = []
         for step in STEPS:
-            if time.monotonic()-started > 1600 or shutil.disk_usage(ROOT).free < 20*2**30:
+            if time.monotonic()-started > a.max_seconds - 200 or shutil.disk_usage(ROOT).free < 20*2**30:
                 raise RuntimeError('panel deadline/storage guard')
             if sum(f.stat().st_size for f in out.rglob('*') if f.is_file()) > 2_000_000_000:
                 raise RuntimeError('panel artifact budget')
