@@ -22,6 +22,7 @@ def main():
     p.add_argument('--cache',type=Path,required=True);p.add_argument('--output',type=Path,required=True)
     p.add_argument('--card',type=Path,required=True);p.add_argument('--arm',choices=ARMS,required=True)
     p.add_argument('--gpu',type=int,required=True);p.add_argument('--updates',type=int,default=12000)
+    p.add_argument('--input-normalization',choices=['TRAIN','teacher_RMS'],default='TRAIN')
     a=p.parse_args();out=a.output.resolve();cache=a.cache.resolve()
     if out.exists() or ROOT/'outputs/ptv3-shared-wam-v2' not in out.parents:raise ValueError('fresh task output required')
     if subprocess.check_output(['nvidia-smi','-i',str(a.gpu),'--query-compute-apps=pid','--format=csv,noheader'],text=True).strip():raise RuntimeError('assigned GPU occupied')
@@ -44,6 +45,7 @@ def main():
         input='delta0 721 padded to1442' if current else 'teacher delta1+delta16 1442',tau_input=False,
         output='PD minus live q for first6; absolute active fingers' if relative else 'absolute q_PD ACTIVE12',
         q_used_by_network=False,q_used_only_for_label_encoding_and_fixed_decoder=relative,
+        input_normalization=a.input_normalization,teacher_weights_initialized=False,
         seeds=[180,181,162],selection='dev XYZ p95 then mean; memory uses fixed training subset',
         limits=dict(seconds=1200,bytes=768_000_000,min_free_bytes=20*2**30))
     write(out/'manifest.json',manifest)
@@ -59,7 +61,15 @@ def main():
             data[split]={k:torch.as_tensor(v,device='cuda') for k,v in dict(x=x,q=q,pd=pd,target=target).items()}
         xmean=data['train']['x'].mean(0);xscale=data['train']['x'].std(0,unbiased=False).clamp(min=1e-3)
         ymean=data['train']['target'].mean(0);yscale=data['train']['target'].std(0,unbiased=False).clamp(min=1e-3)
-        for split,d in data.items():d['x']=(d['x']-xmean)/xscale;d['target']=(d['target']-ymean)/yscale
+        if a.input_normalization=='teacher_RMS':
+            rms=torch.load('/home2/wyy/oyx_ws/_external/dexplore_official_v120/checkpoint/inspire.pth',map_location='cpu',weights_only=False)['running_mean_std']
+            xmean=rms['running_mean'].float().cuda();xscale=torch.sqrt(rms['running_var'].float().cuda()+1e-5)
+        for split,d in data.items():
+            d['x']=(d['x']-xmean)/xscale
+            if a.input_normalization=='teacher_RMS':
+                d['x']=d['x'].clamp(-5,5)
+                if current:d['x'][:,721:]=0
+            d['target']=(d['target']-ymean)/yscale
         layers=[]
         for n,m in zip([1442,1024,1024,1024],[1024,1024,1024,512]):layers.extend([torch.nn.Linear(n,m),torch.nn.ReLU()])
         head=torch.nn.Linear(512,12);torch.nn.init.zeros_(head.weight);torch.nn.init.zeros_(head.bias);layers.append(head)

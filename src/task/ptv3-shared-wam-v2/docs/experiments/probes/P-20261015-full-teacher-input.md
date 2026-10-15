@@ -110,3 +110,20 @@ only matched721vs1442 relativePD isolates the bundled future reference change.
 It does not identify t+1 versus t+16 contributions or contact specifically.
 Substitution of teacher reference blocks with tau and physical deployment are
 follow-ups only after interpreting this upper bound; not included here.
+
+## 首轮结果后的最小预处理判别（运行前记录）
+
+全660条teacher replay通过，delta0 max2.38e-6、teacher action max2.89e-6、
+XYZ PD max0.000795mm。首轮12k已完成：full_relative selected dev45.70mm/p95134.35，
+current_relative49.77/149.58，absolute126.33/308.06；memory TRAIN3.16/7.69mm。
+这些是单步直接PD的新模型，不是旧8步R分数的可控替换。首轮full_relative训练误差
+仍明显高于memory，dev与TRAIN也有差距，不能据此确认输入充分但监督无效。
+
+Class: Decision。最便宜剩余检查为同随机初始化/数据/标签/12k预算的两臂
+full_relative与current_relative，改用teacher原RMS epsilon1e-5和[-5,5]截断，
+排除TRAIN z-score无截断与teacher真实预处理不一致的优化影响。current仍721后补零，
+对应有效721维取teacher首分支RMS；归一化后第二分支强制0，不引入参考信息。
+teacher仅提供固定预处理统计，仍无官方网络权重初始化。它是额外特权预处理诊断，
+不是与首轮单因素input对照；本轮input因果对照仍在每个相同预处理内部进行。
+GPU0/1并行，各12k、1200秒、768MB；与首轮合计仍在6GB/6卡资源边界内。
+完成后停止预算，不追加无界模型/优化器搜索；保留首轮全部结果。
