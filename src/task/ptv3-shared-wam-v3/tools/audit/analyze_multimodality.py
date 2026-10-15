@@ -41,7 +41,8 @@ def capture_bootstrap(rows, value, seed=214):
 
 def reduce_rows(rows):
     keys = ['ade_m','ade8_m','fde_m','zero_motion_ade_m','constant_velocity_ade_m','first8_motion_ratio','all24_motion_ratio','h24_motion_ratio',
-            'speed_ratio','acceleration_ratio','scene_error8_m','scene_error24_m']
+            'speed_ratio','acceleration_ratio','scene_error8_m','scene_error24_m',
+            'conditional_spread_m','pred_mean_m','pred_real_m','pred_mode_m','pred_medoid_m','pred_nn3_m','gt_nn3_m','nn3_ratio']
     return dict(windows=len(rows), captures=len({r['capture'] for r in rows}),
                 metrics={k:summary([r.get(k) for r in rows]) for k in keys},
                 capture_weighted={k:capture_bootstrap(rows,k) for k in ['ade_m','all24_motion_ratio','speed_ratio']},
@@ -67,6 +68,9 @@ def analyze(cache, out):
         for i,m in enumerate(mq):
             row=dict(source_id=sid,query=i,capture=m['capture'],row=m['row'],tick=m['tick'],
                      **motion_metrics(q['pred_delta'][i],q['delta'][i]))
+            # Avoid interpreting ratios for nearly static GT as attenuation.
+            if row['all24_gt_motion_m']<.005 or row['gt_speed']<.01:
+                row['speed_ratio']=None;row['acceleration_ratio']=None
             velocity=q['history'][i,-1,m['side']]-q['history'][i,-2,m['side']]
             cv=np.arange(1,25)[:,None,None]*velocity[None]
             row.update(zero_motion_ade_m=float(np.linalg.norm(q['delta'][i],axis=-1).mean()),
@@ -102,6 +106,8 @@ def analyze(cache, out):
                             row.update(conditional_spread_m=absolute['spread_m'],
                                 pred_nn3_m=absolute['pred_nn3_m'],gt_nn3_m=absolute['gt_nn3_m'],
                                 nn3_ratio=absolute['pred_nn3_m']/max(absolute['gt_nn3_m'],.001))
+                            for key in ('pred_mean_m','pred_real_m','pred_mode_m','pred_medoid_m'):
+                                row[key]=absolute.get(key)
                             if absolute['multimodal'] or len(cases)<3:
                                 cases.append((record,query,bank['future'][ids]))
                     conditional.append(record); by_control[(gate,retrieval)]=record
@@ -192,7 +198,7 @@ def write_report(result,out):
     for name,r in result['conditional'].items():text.append(f'| {name} | {r["supported"]}/{r["queries"]} | {r["supported16"]} | {r["multimodal"]} | {r["averaging"]} |')
     text+=['',f'Tight-gate/raw-and-latent robust multimodal captures and averaging rate: `{json.dumps(result["decision"])}`. Bootstrap resamples independent DEV captures; window medians in the first table are descriptive.','',
            'Limits: finite-radius neighbors are not identical continuous H,G conditions. Multimodality requires both absolute and displacement-space separation; primary decision also requires both retrieval methods at 20 mm. Undertraining, missing observations, residual bad data, and finite bank support can explain errors. UniDex/HOI4D have no TRAIN/DEV target geometry overlap and cannot be diagnosed conditionally here. Complete future hand coverage is a selection filter. One neighbor per capture; maximum eight query windows per capture. Embedding whitening is fit on TRAIN only. No future hand label enters retrieval.','',
-           'Contact is an unsigned distance to a sparse cached object cloud after a GT rigid transform, not mesh SDF, penetration, or grasp success. Motion ratios exclude GT amplitude below 5 mm; static or near-static speed ratios require caution. Sources are reported separately. Correlation with spread alone is not evidence of conditional averaging.','',
+           'Contact is an unsigned distance to a sparse cached object cloud after a GT rigid transform, not mesh SDF, penetration, or grasp success. Motion ratios exclude GT amplitude below 5 mm; speed/acceleration ratios also exclude all24 GT amplitude below 5 mm or mean GT speed below 0.01 m/s. Sources are reported separately. Correlation with spread alone is not evidence of conditional averaging. Bootstrap intervals are conditional on the fixed TRAIN bank and omit bank sampling/clustering uncertainty.','',
            'A PROMISING audit only justifies a matched frozen-backbone FM versus refitted MSE head probe, with equal data and compute, single-sample accuracy, minADE/FDE@M, mode precision/coverage and sampling cost. UNCLEAR means the existing weights/neighborhoods cannot select the architecture.','',
            '![Per-source prediction diagnostics](prediction_diagnostics.png)','']
     if (out/'conditional_support.png').exists():text+=['![Empirical conditional support](conditional_support.png)','']
