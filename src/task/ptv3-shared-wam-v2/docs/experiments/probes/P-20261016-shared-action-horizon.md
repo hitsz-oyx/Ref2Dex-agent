@@ -53,3 +53,10 @@ mug 固定面板；GPU0 外部作业不动，GPU2/3 空闲。所有训练监督�
 - 8 拍追加运行目录：`outputs/ptv3-shared-wam-v2/shared-action-horizon-20261016-r1/continuation-*`。
 - 1 拍训练目录：`outputs/ptv3-shared-wam-v2/shared-action-horizon-20261016-r1/single-*`。
 - 固定面板和腕部 MLP 结果写入同一 run 目录的 `native/` 与 `wrist-panel/`。
+
+2026-10-16 02:10 CST，原 `continuation-masked8`/`continuation-delta08` 在完整
+step4000 checkpoint 后被监督器以预设 7GB artifact budget 停止；不是数值、梯度或
+GPU 异常，step4000 权重和日志完整保留。随后从这两个 step4000 恢复 Adam/RNG，启动
+`continuation-masked8-sparse`/`continuation-delta08-sparse` 到 step7000。该资源恢复臂
+只改变 validation/checkpoint cadence 为 3000，模型、数据、优化器和学习率字段严格保持
+一致；实际新增配置和 sparse 源码均保存在项目 `tmp/` 与 run 输出中。
