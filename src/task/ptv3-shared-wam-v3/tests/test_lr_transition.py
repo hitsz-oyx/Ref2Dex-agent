@@ -18,7 +18,7 @@ def packet():
 def test_lr_transition_rejects_data_model_seed_budget_and_upward_lr_changes():
     p=packet();c={**p['config'],'geometry_lr':3e-5,'shared_lr':3e-5}
     assert validate_lr_resume(p,c,p['stats'],4)['parent_step']==37000
-    for key,value in [('seed',171),('updates',90000),('new_architecture',True),('geometry_lr',2e-4),('geometry_lr',0),('shared_lr',float('nan'))]:
+    for key,value in [('seed',171),('updates',90000),('new_architecture',True),('new_nullable_key',None),('geometry_lr',2e-4),('geometry_lr',0),('shared_lr',float('nan'))]:
         with pytest.raises(ValueError):validate_lr_resume(p,{**c,key:value},p['stats'],4)
     with pytest.raises(ValueError):validate_lr_resume(p,c,{'recipe':'expanded'},4)
     with pytest.raises(ValueError):validate_lr_resume(p,c,p['stats'],2)

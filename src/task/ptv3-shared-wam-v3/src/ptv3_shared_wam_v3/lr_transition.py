@@ -6,6 +6,8 @@ LR_FIELDS = ('geometry_lr', 'shared_lr')
 
 def validate_lr_resume(parent, config, stats, world):
     before = parent['config']
+    if set(before) != set(config):
+        raise ValueError('LR continuation requires identical configuration keys')
     changed = {key for key in set(before) | set(config) if before.get(key) != config.get(key)}
     if not changed or not changed <= set(LR_FIELDS):
         raise ValueError('LR continuation permits only a learning-rate decrease')
