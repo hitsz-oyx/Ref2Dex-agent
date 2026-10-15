@@ -85,6 +85,17 @@ def run():
     initial = torch.load(out/'initial_R.pt', map_location='cpu', weights_only=False)
     config = initial['config']
     source = a.source.resolve()
+    source_manifest = json.loads((source/'manifest.json').read_text())
+    contract = source_manifest.get('observation_contract', {})
+    if not (source_manifest.get('capture_current_observation') and
+            contract.get('schema') == 'ref2dex.dexplore-current-observation.v1' and
+            contract.get('dimension') == 721 and contract.get('reference_delta') == 0 and
+            contract.get('future_reference_inputs_saved') is False and
+            contract.get('live_future_invariance_passed') is True):
+        raise ValueError('audited native delta0 current-only capture contract required')
+    audit = json.loads((source/source_manifest['native_observation_audit']).read_text())
+    if audit.get('status') != 'PASS' or audit.get('sequences') != source_manifest['num_sequences']:
+        raise ValueError('full native observation raw audit PASS required')
     workspace = dict(schema=config['encoder_workspace_admission'], origin_m=config['voxel_origin_m'],
                      voxel_m=config['voxel_m'])
     datasets = {split: V2RLRobotWindows(source, split, 32, GEOMETRY_LIFTED, workspace)
