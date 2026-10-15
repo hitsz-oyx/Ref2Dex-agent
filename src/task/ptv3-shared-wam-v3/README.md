@@ -32,3 +32,6 @@ hand/scene 1:1，scene motion tau2mm、floor0.1，无额外 source loss 乘数�
 ```
 
 该recipe用于继续既有训练，保留父模型的24-horizon数值normalizer和固定来源概率；它们是此前TRAIN拟合的参考，并非严格子集重新拟合值。跨recipe恢复必须显式使用 `--resume-reviewed-subset`，检查配置、payload、排除集合和normalizer不变，并保留optimizer/各rank RNG。DEV窗口已变更，切换前后曲线不能视为匹配对照。规则、用户判定和切换记录见 [运动复核](docs/motion-followup-20261015.md)。旧recipe、原始payload和checkpoint均保留。
+
+
+DexYCB全被试扩充版已完成：本地 `nine-source-expanded-dexycb-20261015-r1`，远端同scope下 `data-dexycb-full-r1/recipe`。DexYCB为3,096 TRAIN/382 DEV窗，TEST200段独立保存；九源总4,805,826 TRAIN/821,791 DEV，其余源既有严格准入保持。新配方重新拟合TRAIN归一化、source8采样1%，本地/远端reader和统计一致性已通过。当前正在运行的80k仍使用原严格冻结recipe；扩充版是后续训练阶段的独立输入。详见[扩产记录](../3d-data-preparation/docs/research/2026-10-15-dexycb-full-expansion.md)。

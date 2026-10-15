@@ -1,3 +1,15 @@
+# 数据更新：DexYCB全被试已补齐，本地与远端新九源配方验收通过
+
+按用户要求已下载/转换DexYCB全部10被试1000段/72,746帧，官方s1原始700 TRAIN/100 DEV/200 TEST；一条TRAIN因手有效覆盖不足无准入窗，清洗后699 TRAIN/100 DEV、3,096 TRAIN窗/382 DEV窗。TEST200段独立保存。相较旧346个TRAIN窗约增加至8.95倍，未重复八相机。
+
+新配方 `outputs/ptv3-shared-wam-v3/nine-source-expanded-dexycb-20261015-r1`：4,805,826 TRAIN/821,791 DEV，Dex概率1%（既有上限）。新native `outputs/3d-data-preparation/native3d-expanded-dexycb-20261015-r1` 物化此前所有native严格隔离；非Dex其余八源准入集合不变，main3全局排除索引不变，人工隔离row及其嵌套provenance已重映射。重新计算TRAIN-only24-horizon共同normalizer，未读取TEST拟合。
+
+远端新输入在既有scope的 `data-dexycb-full-r1/recipe`；部署代码f2c2b35c、短目录 `/home/wbcd/workspace/oyx_ws/wam-v3-dex/repo`。本地/远端真实mixed-reader、端点重算、独立集合/统计审查及3项测试通过；共同mean/std数值完全一致。当前远端80k运行仍使用以下原严格冻结recipe，本次没有修改运行中的模型/normalizer/优化器/采样。新配方供后续显式训练阶段使用，DEV新增第九源，不能将其曲线与旧八源panel当匹配对照。
+
+Viser http://127.0.0.1:8769 已切扩充版，PID1955156，默认source8 subject01 row37491/frame19，可选Dex DEV。标记独立保存到 `nine-source-expanded-dexycb-review-20261015-r1/annotations`。
+
+完整记录见[DexYCB扩产](../../3d-data-preparation/docs/research/2026-10-15-dexycb-full-expansion.md)。以下运行历史保留；数据候选已更新，正在运行的训练配方保持冻结。
+
 # 当前：九源严格运动准入已完成，远端已从step8000恢复
 
 用户明确授权：模棱两可的高幅度数据直接隔离，阈值可以更紧。全量39,528条运动审计完成；严格规则为物体原点速度>5m/s、有效手部点速度>5m/s或物体SO(3)角速度>40rad/s，使用实际观测时间（HOI4D原生15Hz）。隔离所有覆盖异常转换的H4+K24窗口；UniDex隔离异常之后尾段；HOI4D37130另隔离用户确认的初始0..30帧。
