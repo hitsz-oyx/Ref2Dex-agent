@@ -96,7 +96,9 @@ def main():
             result['arms'][arm]={}
             for name,panel in samples.items():
                 guard();predictions=[];targets=[];terms_sum={}
-                with torch.inference_mode():
+                # Use the training entry's evaluation context; inference_mode may
+                # select different Transformer fast paths and alter TF32 rounding.
+                with torch.no_grad():
                     for start in range(0,len(panel),16):
                         b=to_device(collate(panel[start:start+16]),'cuda');pred=model(b)
                         if not torch.isfinite(pred['action']).all():raise FloatingPointError('nonfinite action')
