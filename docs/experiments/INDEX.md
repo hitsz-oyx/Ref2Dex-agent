@@ -699,7 +699,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261015-ptv3-shared-v2-robot-finetune](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-ptv3-shared-v2-robot-finetune.md) | V2 remote-WAM robot fine-tune | 见原卡 | 见原卡 | probes/RUNNING |
+| [P-20261015-ptv3-shared-v2-robot-finetune](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-ptv3-shared-v2-robot-finetune.md) | V2 remote-WAM robot fine-tune | 见原卡 | 见原卡 | probes/UNCLEAR |
 
 ## HF-video-data-readiness
 

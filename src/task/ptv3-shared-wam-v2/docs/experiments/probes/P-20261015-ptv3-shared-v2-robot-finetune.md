@@ -13,13 +13,13 @@ seed_pool: probe
 seeds: [151]
 decision_changed_if_positive: continue v2 remote-WAM fine-tuning with the explicit PD-target action adapter
 decision_changed_if_negative: stop this adapter and diagnose data/model/wiring before spending a long run
-status: RUNNING
+status: UNCLEAR
 run_id: ptv3-shared-v2-robot-finetune-20261015-r5
 ---
 
 # V2 remote-WAM robot fine-tune
 
-Current execution: r5 restores r2/step3000 under isolated code fd83aebd,
+Current execution: r5 COMPLETED at12000/12000, exit0. It restores r2/step3000 under isolated code fd83aebd,
 supervisor1544990, GPU4/5/6/7/global512, target12000. Model/optimizer/rank RNG,
 config and data preserved; no warmup. r2 stopped at logged3340 when concurrent
 src edits triggered the implementation guard. Frozen worktree keeps numeric
@@ -338,3 +338,44 @@ r2只取至恢复点3000，随后衔接r5；r2后来未保存的3000以后更新
 这里的action/anchor是归一化8步动作预测损失，未记录物理首控误差或抓取成功率。
 
 原始与导出：[完整dev JSON](../../../../../../outputs/ptv3-shared-wam-v2/wam-v2-metrics-20261015-r1/metrics/robot-dev.json), [完整dev CSV](../../../../../../outputs/ptv3-shared-wam-v2/wam-v2-metrics-20261015-r1/metrics/robot-dev.csv), [恢复轨迹训练四分项CSV](../../../../../../outputs/ptv3-shared-wam-v2/wam-v2-metrics-20261015-r1/metrics/robot-train.csv), [已保护checkpoint及指标](../../../../../../outputs/ptv3-shared-wam-v2/robot-finetune-stage-archive-20261015-r1/archive-manifest.json)。
+
+## 微调完成与最终完整指标（2026-10-15）
+
+四卡r5已完成12000/12000更新，manifest/result/process均COMPLETED，exit_code=0。
+本节替代前文9500步的运行中快照，完整恢复轨迹共24次固定dev256评估：
+
+| Step | Total | Pred τ action | GT τ anchor | Forecast residual |
+| --- | ---: | ---: | ---: | ---: |
+| 500 | 5.452004 | 0.540573 | 0.537306 | 4.374125 |
+| 1000 | 5.202321 | 0.489702 | 0.483758 | 4.228861 |
+| 1500 | 5.248692 | 0.460636 | 0.454225 | 4.333831 |
+| 2000 | 5.262169 | 0.436133 | 0.428241 | 4.397795 |
+| 2500 | 5.278802 | 0.425986 | 0.415629 | 4.437187 |
+| 3000 | 5.263422 | 0.414977 | 0.403560 | 4.444885 |
+| 3500 | 5.279242 | 0.407006 | 0.393927 | 4.478310 |
+| 4000 | 5.402195 | 0.402078 | 0.388269 | 4.611849 |
+| 4500 | 5.429556 | 0.394887 | 0.381193 | 4.653476 |
+| 5000 | 5.391422 | 0.391091 | 0.376277 | 4.624054 |
+| 5500 | 5.442416 | 0.387020 | 0.372202 | 4.683194 |
+| 6000 | 5.455194 | 0.384994 | 0.368858 | 4.701342 |
+| 6500 | 5.509529 | 0.382185 | 0.364761 | 4.762584 |
+| 7000 | 5.529810 | 0.380777 | 0.362222 | 4.786811 |
+| 7500 | 5.518565 | 0.376566 | 0.357895 | 4.784103 |
+| 8000 | 5.516710 | 0.376261 | 0.355949 | 4.784500 |
+| 8500 | 5.522302 | 0.373552 | 0.353576 | 4.795174 |
+| 9000 | 5.568494 | 0.372659 | 0.350233 | 4.845602 |
+| 9500 | 5.564181 | 0.371446 | 0.347720 | 4.845015 |
+| 10000 | 5.565890 | 0.370329 | 0.345234 | 4.850327 |
+| 10500 | 5.571588 | 0.369788 | 0.344792 | 4.857007 |
+| 11000 | 5.559688 | 0.368921 | 0.342480 | 4.848288 |
+| 11500 | 5.582888 | 0.367419 | 0.339586 | 4.875883 |
+| 12000 | 5.606042 | 0.367689 | 0.338220 | 4.900133 |
+
+最终action0.367689，anchor0.338220，forecast合计4.900133，total5.606042。
+8000→12000动作loss再下降2.28%，总dev仍未改善；离线拟合收益不等于抓取收益，
+总体保持Probe级UNCLEAR，不自动延长。全轨迹total最佳仍为1000（5.202321）。
+动作最低评估点11500为0.367419，但该步没有生成完整checkpoint；12000完整权重已保存。
+
+阶段归档已COMPLETED，完整joint权重为1000/3000/3500/4000/8000/9000/10000/11000/12000，
+含WAM+R、normalizer、optimizer与rank RNG；归档watcher和训练均已退出。
+最终完整指标：[CSV](../../../../../../outputs/ptv3-shared-wam-v2/wam-v2-finetune-final-metrics-20261015-r1/robot-dev-final.csv)、[JSON](../../../../../../outputs/ptv3-shared-wam-v2/wam-v2-finetune-final-metrics-20261015-r1/robot-dev-final.json)。
