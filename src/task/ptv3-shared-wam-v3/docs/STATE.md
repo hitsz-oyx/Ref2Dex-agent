@@ -1,3 +1,9 @@
+## 2026-10-15 21:37 已按用户要求降LR并恢复四卡持续训练
+
+当前活动run为 `pretrain-nine-strict-lr3e5-remote4-80k-20261015-r1`（390ac393），短目录 `/home/wbcd/workspace/oyx_ws/wam-v3-lr/repo`，supervisor1925134/torchrun1925207。两组LR1e-4→3e-5，旧strict在37k完整点停止；20步四卡恢复检查后，从完整37020模型/AdamW/四rank RNG继续，目标仍累计80k/48h。同recipe/normalizer/数据配比/DEV/global512；未切Dex扩充或boundary配方。旧31k best和37k checkpoint保留。
+
+37060日志确认实际两LR3e-5、loss/grad有限，1.468步/秒；四卡99%util、约27.25/27.91/27.42/17.69GB，剩余约8.5–9h。四rank optimizer步数与RNG恢复通过；恢复前后37k固定DEV1.07435261完全一致，20步后1.05039101，未超过旧31k best1.03455，不作效果结论。7合同测试与独立审查通过，nullable-key gate补丁回归通过。新run best别名是阶段内选择，跨阶段须保留旧best参照。证据 `outputs/ptv3-shared-wam-v3/lr-drop-20261015-r1/startup-audit.json`；详见[预训练卡](experiments/probes/P-20261015-nine-source-pretrain.md)。21:37复查已到37260，最近四段1.440–1.468步/秒，四卡85–90%util、33.01/33.67/27.42/17.69GB，无failure；两LR仍3e-5。稳态回执同目录steady-state.json。后续观察2–3k低LR更新是否改善固定DEV与逐源物理误差。
+
 ## 2026-10-15 21:19 训练约36k：DEV平台/波动更明显
 
 远端36420/80000（45.5%），best31000/1.03455、latest36000/1.11735；四卡100%，约1.466步/秒。29–32k与33–36k块比较，TRAIN0.3474→0.3216（-7.42%），DEV1.0959→1.1168（+1.91%），手/物体物理误差均略回升。31k比旧27k best仍改善3.06%，此后5次评估未刷新；当前验证平台迹象更明确，未正式证明过拟合。保持运行/LR不变，40k约40–45分钟后到，届时应复查降LR小对照；80k剩余约8.5–9h。新曲线与回执 `outputs/ptv3-shared-wam-v3/plateau-check-20261015-2119/`。

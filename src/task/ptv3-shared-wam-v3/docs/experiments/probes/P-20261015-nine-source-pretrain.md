@@ -5,7 +5,7 @@ experiment_id: P-20261015-nine-source-pretrain
 date: 2026-10-15
 task: ptv3-shared-wam-v3
 branch: main
-git_commit: 6e535bc1077e1593d28a83d01b485b5a09cb8075
+git_commit: 390ac393
 claim_id: C1
 hypothesis_family: HF-nine-source-pretrain
 probe_index_in_family: 1
@@ -14,7 +14,7 @@ seeds: [170]
 decision_changed_if_positive: continue nine-source pretraining when sustained full-batch updates and recovery pass and fixed physical DEV errors improve
 decision_changed_if_negative: inspect source semantics and actual input/loss chain before spending the remaining training budget
 status: RUNNING
-run_id: pretrain-nine-motion-remote4-80k-20261015-r1
+run_id: pretrain-nine-strict-lr3e5-remote4-80k-20261015-r1
 ---
 
 # 九源统一预训练启动与持续运行
@@ -153,3 +153,17 @@ Read-only remote snapshot36420/80000 (45.5%), best31000 objective1.03455, latest
 ## Decision Note: user-authorized lower-LR continuation (2026-10-15)
 
 User explicitly requests lowering LR now. Latest36k evidence: TRAIN continues down while fixed DEV worsens slightly; best31k and five evaluations without refresh. Choose latest completed checkpoint after request (target37k) and reduce both geometry/shared LR1e-4→3e-5, preserving exact strict recipe, numeric normalizer, optimizer moments/step, four rank RNG, panel, global512, seed170 and cumulative80k/48h cap. The only config difference is the two LRs; no expanded DexYCB or boundary-filter data switch. Record the gate as an explicit LR-only resume, never allow arbitrary config relaxation. Preserve old best/latest/run; bounded4GPU20-update engineering smoke checks actual LR, model/optimizer/RNG restoration, finite updates and same-panel DEV, then exact full-state continuation in a fresh directory. This is an adaptive single-trajectory Probe, not a matched LR experiment or proof that lower LR improves generalization. Failure stops only the new owned group and preserves the37k recovery point. Recheck after2–3k lower-LR updates; do not claim improvement from a20-update smoke. Estimated transition/smoke several minutes, remaining long train8–9h, within existing resources. No new external authorization needed beyond the current explicit user request.
+
+## Lower-LR continuation deployed and observed
+
+User-authorized transition completed: old strict stopped after immutable37k checkpoint (legacy supervisor labels STOP as FAILED; stop receipt records intentional user request). Old31k best,37k latest and all original artifacts retained. CPU checkpoint gate confirms both LR fields alone changed1e-4→3e-5, four numerical normalizer buffers exact, optimizer state steps37000, four rank RNG preserved, cumulative elapsed26065s before transition and same48h limit. No dataset switch.
+
+Bounded engineering run `pretrain-nine-strict-lr3e5-smoke-remote4-20261015-r1`, code5b3472fd,20 updates through37020,48.18s including audits/DEV/checkpoint. All four rank resume receipts show exact RNG and AdamW37000; actual recorded LR3e-5 for both groups. Same DEV index panel byte-equivalent as JSON; restored37k objective1.074352610623464 exactly equals original37k, then37020 objective1.0503910107072443. This is recovery/finite-update evidence only, not proof of a generalization gain; old31k best1.03455 remains stronger. Saved full37020 model/optimizer/four-rank RNG and reused it.
+
+Full run `pretrain-nine-strict-lr3e5-remote4-80k-20261015-r1` code390ac393, short root `/home/wbcd/workspace/oyx_ws/wam-v3-lr/repo`, supervisor1925134/torchrun1925207, from37020 with ordinary exact-config resume. Seed170, same fixed256-window DEV, four GPUs0/1/2/3, batch128/global512, target80000 cumulative updates, inherited time budget. All rank records show optimizer37020 and exact RNG; initial full-run DEV repeats1.0503910107072443 exactly. Actual37060: both LR3e-5, finite loss0.27512/grad1.21045,1.468updates/s; four99%util,27.25/27.91/27.42/17.69GB (variable dynamic batch memory). Remaining total80k roughly8.5–9h including periodic eval/save overhead. Initial new-stage `best.pt` selection is run-local; retain old31k best for cross-stage comparisons.
+
+Independent review and7tests passed. Reviewer found a nullable-new-config-key loophole unrelated to the actual config;390ac393 closes it with exact key-set equality and a regression case; targeted2tests passed after fix. Parent/live data/model/objective implementations unchanged; full-run startup uses the fixed gate. All seven contract tests should be read as engineering evidence, not scientific validation.
+
+Receipts: remote scope `lr-drop-{stop-receipt,checkpoint-audit,smoke-launch,smoke-audit,training-launch}.json`; local bundled snapshot `outputs/ptv3-shared-wam-v3/lr-drop-20261015-r1/startup-audit.json`. Next decision: compare2–3k additional low-LR updates on unchanged panel and per-source physical metrics; this adaptive continuation alone cannot isolate an LR causal effect.
+
+21:37 steady-state check:37260 cumulative steps, last four logging intervals1.440–1.468updates/s, four85–90%util and33.01/33.67/27.42/17.69GB, bothactual LRs3e-5, nofailure. See localsteady-state.json. Final7tests and repository doc verification pass.
