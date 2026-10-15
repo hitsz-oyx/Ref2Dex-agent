@@ -65,8 +65,15 @@ def robot_loss(prediction, batch, config, model):
     total, terms = forecast_loss(prediction, batch, config, model.forecaster.normalizer)
     target = target_tensor(batch, model.action_representation)
     scale = model.retargeter.action_scale
-    action = ((prediction["action"] - target) / scale).abs().mean()
-    anchor = (((prediction["action_anchor"] - target) / scale).abs().mean()
+    action_error = ((prediction["action"] - target) / scale).abs()
+    supervise_steps = int(config.get("action_supervision_steps", action_error.shape[1]))
+    if not 1 <= supervise_steps <= action_error.shape[1]:
+        raise ValueError("action_supervision_steps must be within the predicted horizon")
+    # The policy always predicts the complete action chunk.  This mask only
+    # changes which query positions train the action head, while forecast loss
+    # remains full-horizon for both matched arms.
+    action = action_error[:, :supervise_steps].mean()
+    anchor = (((prediction["action_anchor"] - target) / scale).abs()[:, :supervise_steps].mean()
               if config.get("anchor_weight", 1.) else action.new_zeros(()))
     total = total + config.get("action_weight", 1.) * action + config.get("anchor_weight", 1.) * anchor
     return total, dict(terms, action=action, anchor=anchor)
