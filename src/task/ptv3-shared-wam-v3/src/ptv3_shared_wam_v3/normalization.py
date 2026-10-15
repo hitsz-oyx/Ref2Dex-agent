@@ -6,7 +6,8 @@ from .paths import STATS_SCHEMA, SOURCE_IDS
 class HorizonNormalizer(nn.Module):
     def __init__(self, stats, enabled=True, fallback_scale_m=.05):
         super().__init__()
-        if stats.get("schema") != STATS_SCHEMA or stats.get("split") != "train":
+        if (stats.get("schema") != STATS_SCHEMA or stats.get("split") != "train"
+                or stats.get("units") != "m" or stats.get("fps") != 30 or stats.get("history") != 4 or stats.get("horizon") != 24):
             raise ValueError("v3 TRAIN-only horizon statistics required")
         if stats.get("source_ids") != list(SOURCE_IDS):
             raise ValueError("one shared nine-domain statistics artifact required")

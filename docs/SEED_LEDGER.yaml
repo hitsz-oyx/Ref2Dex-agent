@@ -25,6 +25,12 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261015-nine-source-pretrain:
+    seed_pool: probe
+    model_and_training_draw_seed: 170
+    fixed_DEV_panel_seed: 171
+    TRAIN_statistics_debug_seed: 19
+
   P-20261015-dexplore-current-rollout:
     seed_pool: probe
     base_collection_seed: 120

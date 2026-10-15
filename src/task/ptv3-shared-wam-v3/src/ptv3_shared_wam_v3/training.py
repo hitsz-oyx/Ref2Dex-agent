@@ -15,7 +15,7 @@ from .model import SharedWAMV3
 from .data import NineWindows, collate, loader
 from .checkpoint import (atomic_json, save_checkpoint, load_checkpoint, restore_optimizer,
     checkpoint_alias, prune_recovery_checkpoints, directory_bytes, git_commit)
-from ptv3_shared_wam_v2.objectives import forecast_loss, forecast_metrics
+from .objectives import forecast_loss, forecast_metrics
 from ptv3_shared_wam_v2.training import gradient_audit
 from ptv3_shared_wam.loading import to_device
 
@@ -130,10 +130,10 @@ def main():
             # Linear warmup avoids a large normalized-target jump at startup.
             scale=min(1.,step/max(1,config.get('warmup_updates',1)))
             for group in optimizer.param_groups:
-                group['lr']=config['geometry_lr' if group['name']=='geometry' else 'shared_lr']*scale
+                group['lr']=config['geometry_lr' if group['name']=='joint_geometry' else 'shared_lr']*scale
             optimizer.zero_grad(set_to_none=True)
             with torch.autocast('cuda',dtype=torch.bfloat16,enabled=config['amp']):
-                pred=wrapped(batch);loss,terms=forecast_loss(pred,batch,config,model.normalizer)
+                pred=wrapped(batch);loss,terms=forecast_loss(pred,batch,config,model.normalizer,distributed=True)
             if not torch.isfinite(loss):raise ValueError('nonfinite TRAIN loss')
             loss.backward()
             norm=torch.nn.utils.clip_grad_norm_(model.parameters(),config['clip_grad'])
@@ -165,11 +165,14 @@ def main():
                     atomic_json(out/'checkpoint_files.json',files)
                 if world>1:dist.barrier()
             if step==1 or step%config['log_interval']==0 or step==target:
+                values=torch.stack([loss.detach(),terms['hand'].detach(),terms['scene'].detach()])
+                if world>1:
+                    dist.all_reduce(values);values/=world
                 torch.cuda.synchronize()
                 elapsed=time.monotonic()-started
                 rate=(step-logged_step)/(time.monotonic()-logged)
                 if rank==0:
-                    record=dict(status='RUNNING',step=step,loss=float(loss),terms={k:float(v) for k,v in terms.items()},
+                    record=dict(status='RUNNING',step=step,loss=float(values[0]),terms={k:float(values[i+1]) for i,k in enumerate(('hand','scene'))},
                         grad_norm=float(norm),elapsed_s=elapsed,updates_per_s=rate,
                         eta_seconds=(config['updates']-step)/rate,local_samples_per_s=rate*config['batch_size'],
                         global_batch=world*config['batch_size'],world_size=world,

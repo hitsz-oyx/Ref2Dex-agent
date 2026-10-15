@@ -5,7 +5,7 @@ experiment_id: P-20261015-nine-source-pretrain
 date: 2026-10-15
 task: ptv3-shared-wam-v3
 branch: main
-git_commit: pending
+git_commit: 0e4cdc03
 claim_id: C1
 hypothesis_family: HF-nine-source-pretrain
 probe_index_in_family: 1
@@ -45,3 +45,7 @@ DexYCB没有 DEV，不虚构；八源宏平均 objective用于恢复点选择，
 ## Results
 
 PENDING. 所有运行保留独立目录；运行中的首步、资源、吞吐、恢复证据在此补充。
+
+多卡损失按各rank有效点/scene运动权重分母全局归一化，补偿DDP的梯度平均；
+不引入来源loss乘数。checkpoint milestone40k，保留step1、best/latest和恢复点，
+避免80k阶段的checkpoint数量超过8GB预算。

@@ -2,7 +2,7 @@
 from pathlib import Path
 import torch
 from .paths import SCHEMA
-from ptv3_shared_wam.checkpoint import atomic_json, directory_bytes, git_commit, checkpoint_alias, prune_recovery_checkpoints
+from ptv3_shared_wam.checkpoint import atomic_json, directory_bytes, checkpoint_alias, prune_recovery_checkpoints
 
 
 def save_checkpoint(path, model, optimizer, config, stats, step, provenance, rank_rng):
@@ -41,3 +41,9 @@ def restore_optimizer(optimizer, state):
             step = slot.get("step")
             if isinstance(step, torch.Tensor):
                 slot["step"] = step.to(device=parameter.device)
+
+
+def git_commit():
+    import subprocess
+    from .paths import ROOT
+    return subprocess.check_output(["git", "rev-parse", "HEAD"],cwd=ROOT,text=True).strip()
