@@ -36,6 +36,7 @@ def main():
     p.add_argument("--sequence")
     p.add_argument("--retargeter", type=Path)
     p.add_argument("--model-version", choices=("v1", "v2"), default="v1")
+    p.add_argument('--shared-actor', action='store_true')
     a = p.parse_args()
     execution_task = TASK if a.model_version == "v1" else TASK.parent / "ptv3-shared-wam-v2"
     if a.model_version == "v2":
@@ -79,7 +80,9 @@ def main():
     if a.model_version == "v2":
         from ptv3_shared_wam_v2.native_execution import load_robot_checkpoint as load_checkpoint
         from ptv3_shared_wam_v2.paths import SCHEMA
-    packet = load_checkpoint(a.checkpoint)
+    if a.shared_actor and (a.model_version != 'v2' or a.retargeter):
+        raise ValueError('shared bridge requires v2 without an R override')
+    packet = load_checkpoint(a.checkpoint, allow_shared=True) if a.shared_actor else load_checkpoint(a.checkpoint)
     from ptv3_shared_wam.native_inputs import resolve_native_inputs, load_native_arrays
     selected = resolve_native_inputs(packet, a.sequence)
     arrays = load_native_arrays(selected)
@@ -87,7 +90,11 @@ def main():
     if selected["kind"] == "rl660" and a.controls + 24 > len(oracle):
         raise ValueError("RL660 requires complete future windows; no padded oracle tail")
     from ptv3_shared_wam.native_inputs import load_execution_retargeter
-    r = load_execution_retargeter(packet, a.retargeter, "cuda")
+    if a.shared_actor:
+        from types import SimpleNamespace
+        r = SimpleNamespace(action_representation=packet['config']['action_representation'], first_only=False)
+    else:
+        r = load_execution_retargeter(packet, a.retargeter, "cuda")
     from ptv3_shared_wam.action_targets import freeze_chunk,consume_target
     representation=r.action_representation
     if r.first_only and a.execution_steps != 1:
@@ -124,6 +131,8 @@ def main():
         raise ValueError("server and native loaded different R candidates")
     if hello.get('action_representation')!=representation:
         raise ValueError('server/native action representation differs')
+    if bool(hello.get('shared_actor')) != a.shared_actor:
+        raise ValueError('server/native shared interface differs')
     manifest = dict(schema=SCHEMA, status="RUNNING", controls=a.controls, seed=a.seed,
                     execution_steps=a.execution_steps, checkpoint=str(a.checkpoint),
                     roles=["teacher", "GT_tau_R", "shared_WAM_R"], training_allowed=False,
@@ -133,6 +142,9 @@ def main():
     manifest["native_input"] = selected
     manifest["retargeter_override"] = override
     manifest['action_representation']=representation
+    manifest['shared_actor'] = a.shared_actor
+    if a.shared_actor:
+        manifest['roles'] = ['teacher', 'shared_actor_repeat', 'shared_actor']
     atomic_json(a.output / "manifest.json", manifest)
     install_legacy_player_compat(native, common_player, base_player); install_reset_patch()
     from ptv3_shared_wam.native_inputs import install_selected_motion_contract
@@ -202,7 +214,7 @@ def main():
             own_state = own_tau = None
             for tick in range(a.controls):
                 with torch.no_grad():
-                    # Teacher is used only on row0; actor inputs are its own row2.
+                    # Only row0 uses teacher actions; both shared students use their own measurements.
                     padded = obs["obs"].repeat(22, 1)[:64]
                     action = self.get_action(dict(obs, obs=padded), True)[:3].clamp(-1, 1).clone()
                     intended = action.clone()
@@ -213,8 +225,15 @@ def main():
                         goal = reference[min(tick + 24, len(reference) - 1)]
                         own_state, _ = features(*(current[k][2].cpu().numpy() for k in ("q", "dq", "hand", "obj", "velocity")),
                             np.broadcast_to(current["hand"][2].cpu().numpy(), (24, 11, 3)))
-                        send(connection, dict(tick=tick, object_history=oh.tolist(), hand_history=hh.tolist(),
-                            planned_object_goal=goal.tolist(), native_state=own_state.tolist()))
+                        request = dict(tick=tick, object_history=oh.tolist(), hand_history=hh.tolist(),
+                            planned_object_goal=goal.tolist(), native_state=own_state.tolist())
+                        if a.shared_actor:
+                            repeat_state, _ = features(*(current[k][1].cpu().numpy() for k in ('q','dq','hand','obj','velocity')),
+                                np.broadcast_to(current['hand'][1].cpu().numpy(), (24,11,3)))
+                            request['repeat'] = dict(object_history=np.stack([logs['obj'][i][1] for i in past]).tolist(),
+                                hand_history=np.stack([logs['hand'][i][1] for i in past]).tolist(),
+                                planned_object_goal=goal.tolist(), native_state=repeat_state.tolist())
+                        send(connection, request)
                         reply = receive(connection)
                         if reply["tick"] != tick:
                             raise ValueError("server query clock differs")
@@ -224,9 +243,12 @@ def main():
                         raw_chunks=[None,torch.tensor(reply['action_chunk'],device=task.device)[None]]
                         query_q=current['q'][1:].clone()
                         buffers[1].refill(freeze_chunk(raw_chunks[1],query_q[1:2],representation)[0].cpu().numpy(), tick)
-                        future = oracle[np.minimum(tick + np.arange(1, 25), len(oracle) - 1)]
-                        state, tau = features(*(current[k][1].cpu().numpy() for k in ("q", "dq", "hand", "obj", "velocity")), future)
-                        gt = r(torch.as_tensor(state, device=task.device)[None], torch.as_tensor(tau, device=task.device)[None])[0]
+                        if a.shared_actor:
+                            gt = torch.tensor(reply['repeat_action_chunk'], device=task.device)
+                        else:
+                            future = oracle[np.minimum(tick + np.arange(1, 25), len(oracle) - 1)]
+                            state, tau = features(*(current[k][1].cpu().numpy() for k in ('q','dq','hand','obj','velocity')), future)
+                            gt = r(torch.as_tensor(state, device=task.device)[None], torch.as_tensor(tau, device=task.device)[None])[0]
                         raw_chunks[0]=gt[None]
                         buffers[0].refill(freeze_chunk(gt[None],query_q[:1],representation)[0].cpu().numpy(), tick)
                     receipts = []

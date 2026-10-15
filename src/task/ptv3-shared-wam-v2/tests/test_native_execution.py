@@ -39,3 +39,12 @@ def test_incompatible_checkpoint_rejected(tmp_path, field, value):
 def test_shared_actor_rejected_by_legacy_tau_execution(tmp_path):
     p=packet(tmp_path);p['config']['action_interface']='shared'
     with pytest.raises(ValueError,match='own native bridge'):validate_robot_packet(p)
+
+
+def test_shared_bridge_is_explicit_and_does_not_admit_other_interfaces(tmp_path):
+    p=packet(tmp_path);p['config'].update(action_interface='shared',anchor_weight=0)
+    assert validate_robot_packet(p,allow_shared=True)['config']['action_interface']=='shared'
+    p['config']['action_interface']='shared_tau'
+    with pytest.raises(ValueError):validate_robot_packet(p,allow_shared=True)
+    p['config'].update(action_interface='shared',anchor_weight=1)
+    with pytest.raises(ValueError,match='no GT tau anchor'):validate_robot_packet(p,allow_shared=True)

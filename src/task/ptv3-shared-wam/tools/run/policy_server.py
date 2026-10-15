@@ -25,6 +25,7 @@ def main():
     p.add_argument("--sequence")
     p.add_argument("--retargeter", type=Path)
     p.add_argument("--model-version", choices=("v1", "v2"), default="v1")
+    p.add_argument('--shared-actor', action='store_true')
     a = p.parse_args()
     execution_task = TASK if a.model_version == "v1" else TASK.parent / "ptv3-shared-wam-v2"
     if a.model_version == "v2":
@@ -47,7 +48,9 @@ def main():
     if a.model_version == "v2":
         from ptv3_shared_wam_v2.native_execution import load_robot_checkpoint as load_checkpoint
         from ptv3_shared_wam_v2.paths import SCHEMA
-    packet = load_checkpoint(a.checkpoint)
+    if a.shared_actor and (a.model_version != 'v2' or a.retargeter):
+        raise ValueError('shared bridge requires v2 without an R override')
+    packet = load_checkpoint(a.checkpoint, allow_shared=True) if a.shared_actor else load_checkpoint(a.checkpoint)
     if packet["stage"] != "robot":
         raise ValueError("jointly fitted robot pair required")
     from ptv3_shared_wam.native_inputs import resolve_native_inputs, load_native_arrays
@@ -60,7 +63,12 @@ def main():
         model = RobotPair(SharedWAM(packet["stats"], packet["config"]),action_representation=packet['config'].get('action_representation','native-command.v1'))
     model.load_state_dict(packet["model"], strict=True)
     from ptv3_shared_wam.native_inputs import load_execution_retargeter
-    model.retargeter = load_execution_retargeter(packet, a.retargeter)
+    if not a.shared_actor:
+        model.retargeter = load_execution_retargeter(packet, a.retargeter)
+    else:
+        model.retargeter.action_representation = packet['config']['action_representation']
+    torch.backends.cuda.matmul.allow_tf32 = bool(packet['config'].get('tf32', False))
+    torch.backends.cudnn.allow_tf32 = bool(packet['config'].get('tf32', False))
     model = model.cuda().eval()
     a.output.mkdir()
     listener = socket.socket(socket.AF_UNIX)
@@ -70,6 +78,7 @@ def main():
     status['action_representation']=model.retargeter.action_representation
     status["native_input"] = selected
     status["retargeter_override"] = str(a.retargeter.resolve()) if a.retargeter else None
+    status['shared_actor'] = a.shared_actor
     atomic_json(a.output / "status.json", status)
     try:
         connection, _ = listener.accept()
@@ -89,24 +98,35 @@ def main():
                     raise ValueError("query ticks must increase inside the episode")
                 previous = tick
                 started = time.monotonic()
-                sample = robot_goal_sample(request["object_history"], request["hand_history"],
-                    request["planned_object_goal"], canonical, packet["config"]["object_points"], tick)
-                # Dummy labels are collate placeholders; no label enters encode.
-                sample.update(point_labels(sample, packet["config"]["object_points"]))
-                batch = {key: value.cuda() for key, value in shared_collate([sample]).items()}
-                state = torch.as_tensor(request["native_state"], device="cuda", dtype=torch.float32)[None]
-                if state.shape != (1, 87) or not torch.isfinite(state).all():
+                requests = [request, request['repeat']] if a.shared_actor else [request]
+                samples = []
+                for query in requests:
+                    sample = robot_goal_sample(query['object_history'], query['hand_history'],
+                        query['planned_object_goal'], canonical, packet['config']['object_points'], tick)
+                    # Dummy labels are collate placeholders; no label enters encode.
+                    sample.update(point_labels(sample, packet['config']['object_points']))
+                    samples.append(sample)
+                batch = {key: value.cuda() for key, value in shared_collate(samples).items()}
+                state = torch.as_tensor([q['native_state'] for q in requests], device='cuda', dtype=torch.float32)
+                if state.shape != (len(requests), 87) or not torch.isfinite(state).all():
                     raise ValueError("finite own87D native state required")
                 from ptv3_shared_wam.robot import native_trajectory
                 with torch.inference_mode():
-                    prediction = model.forecaster(batch)
-                    tau = native_trajectory(prediction["trajectory"], batch["start_hand_valid"])
-                    chunk = model.retargeter(state, tau)
+                    if a.shared_actor:
+                        from ptv3_shared_wam_v2.native_execution import predict_shared_action
+                        chunk, tau = predict_shared_action(model, batch, state)
+                    else:
+                        prediction = model.forecaster(batch)
+                        tau = native_trajectory(prediction['trajectory'], batch['start_hand_valid'])
+                        chunk = model.retargeter(state, tau)
                 if not torch.isfinite(chunk).all():
                     raise FloatingPointError("nonfinite action chunk")
-                send(connection, dict(tick=tick, action_chunk=chunk[0].cpu().tolist(),
+                reply = dict(tick=tick, action_chunk=chunk[0].cpu().tolist(),
                                       action_representation=model.retargeter.action_representation,
-                                      native_tau=tau[0].cpu().tolist(), elapsed_s=time.monotonic() - started))
+                                      native_tau=tau[0].cpu().tolist(), elapsed_s=time.monotonic() - started)
+                if a.shared_actor:
+                    reply['repeat_action_chunk'] = chunk[1].cpu().tolist()
+                send(connection, reply)
                 status["queries"] += 1
                 atomic_json(a.output / "status.json", status)
         status["status"] = "COMPLETED"

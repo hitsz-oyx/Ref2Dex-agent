@@ -25,6 +25,11 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261015-shared-native-grasp:
+    seed_pool: probe
+    execution_seed: 148
+    reuse_reason: same three motion records and reset as prior v2 stage qualification; new shared interface, not independent validation
+
   P-20261015-shadow-startup-sampling:
     seed_pool: probe
     matched_initialization_and_draw_seed: 214

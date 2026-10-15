@@ -28,6 +28,7 @@ def main():
     p.add_argument("--retargeter", type=Path, help="compatible R-only eight-action candidate")
     p.add_argument("--preflight-only", action="store_true", help="validate inputs and R on CPU without starting GPU peers")
     p.add_argument("--model-version", choices=("v1", "v2"), default="v1")
+    p.add_argument('--shared-actor', action='store_true', help='Explicit v2 shared bridge; both student rows use their own measured inputs')
     a = p.parse_args()
     execution_task = TASK if a.model_version == "v1" else TASK.parent / "ptv3-shared-wam-v2"
     if a.model_version == "v2":
@@ -52,7 +53,9 @@ def main():
     from ptv3_shared_wam.checkpoint import directory_bytes, load_checkpoint,check_shared_storage
     if a.model_version == "v2":
         from ptv3_shared_wam_v2.native_execution import load_robot_checkpoint as load_checkpoint
-    packet = load_checkpoint(a.checkpoint)
+    if a.shared_actor and (a.model_version != 'v2' or a.retargeter):
+        raise ValueError('shared bridge requires v2 and its original jointly trained actor')
+    packet = load_checkpoint(a.checkpoint, allow_shared=True) if a.shared_actor else load_checkpoint(a.checkpoint)
     if packet["stage"] != "robot" or (not engineering and packet["provenance"].get("engineering_only")):
         raise ValueError("robot pair required; engineering weights only admit engineering smoke")
     from ptv3_shared_wam.native_inputs import resolve_native_inputs, load_native_arrays
@@ -93,6 +96,8 @@ def main():
         raise ValueError("project socket address too long")
     checkpoint = a.checkpoint.resolve()
     common = ["--model-version", a.model_version, "--checkpoint", str(checkpoint), "--gpu", str(a.gpu), "--controls", str(a.controls)]
+    if a.shared_actor:
+        common.append('--shared-actor')
     if a.sequence:
         common.extend(["--sequence", a.sequence])
     if a.retargeter:
@@ -101,6 +106,7 @@ def main():
                   execution_steps=a.execution_steps, physical_gpu=a.gpu, seed=a.seed,
                   scratch=str(scratch), engineering_only=engineering)
     status["native_input"] = selected
+    status['shared_actor'] = a.shared_actor
     status["retargeter_override"] = str(a.retargeter.resolve()) if a.retargeter else None
     def write():
         from ptv3_shared_wam.checkpoint import atomic_json

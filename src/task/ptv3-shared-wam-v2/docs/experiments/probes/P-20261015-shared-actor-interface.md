@@ -170,3 +170,13 @@ optimizer状态参数A/C588、B587（shared-only未使用τ时间参数，符合
 5e-6/1e-5/5e-5。每臂1k/2k/4k/6k文件均存在，单文件约1.192GB；本次内容检查仅覆盖6k。
 证据`checkpoint-audit-step6000.json`，脚本`tmp/audit_inspire_stages_20261015.py`只做CPU文件/
 张量审计，无模型推理，不占额外GPU。后续8k/10k/12k里程碑保留规则继续生效。
+
+
+## 用户调整资源 / 2026-10-15
+
+用户明确要求停止C=shared_tau，将GPU4/5用于Shadow扩大训练；A/B继续原12k。
+已核对supervisor1922941身份后SIGTERM，仅停止其拥有的torchrun组。停止时progress7920，
+最近完整7000（另保留1000/2000/4000/6000），没有删除或覆盖checkpoint。
+`user-stop-receipt.json`记录指令/进度/阶段，launcher的FAILED(signal15)是主动停止，
+不是数值或算法失败。三臂共同12k协议因此未完成，后续不得伪称C有12k匹配结果。
+新增shared-only闭环见P-20261015-shared-native-grasp，独立于继续训练的A/B。
