@@ -34,3 +34,7 @@ UniDex未来24帧最大7.387m；后续loss恢复通常范围。暂未修改冻�
 新增六源canonical/compact适配、固定检查帧坐标、速度/加速度、人工质量标记。
 默认异常定位source4 row14909 tick75。精确raw独立复核支持原仿真高速飞离，
 尚不能定位具体动力学/穿透校正原因。
+
+远端四卡准备：已提供显式world4配置`pretrain_nine_remote4_80k.json`（每卡128/global512），
+launcher允许1–4卡，保持单机合计6卡保护；只提升自己的soft nofile至hard内最多65536。
+训练代码部署短路径以满足loader Unix socket108字节限制。当前没有启动远端GPU训练。

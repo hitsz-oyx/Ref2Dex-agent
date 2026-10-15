@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import resource
 import signal
 import subprocess
 import sys
@@ -36,8 +37,13 @@ def main():
     artifacts,out=a.artifact_root.resolve(),a.output.resolve()
     if artifacts/'outputs'/TASK.name not in out.parents or out.exists():raise ValueError('fresh v3 output required')
     gpus=list(map(int,a.gpus.split(',')))
-    if len(set(gpus))!=len(gpus) or not 1<=len(gpus)<=2:raise ValueError('one or two GPUs required')
+    if len(set(gpus))!=len(gpus) or not 1<=len(gpus)<=4:raise ValueError('one to four GPUs required')
     config=json.loads(a.config.read_text())
+    if config.get('expected_world_size',len(gpus))!=len(gpus):
+        raise ValueError('assigned GPUs differ from explicit execution profile')
+    soft,hard=resource.getrlimit(resource.RLIMIT_NOFILE)
+    target=65536 if hard==resource.RLIM_INFINITY else min(65536,hard)
+    if soft<target:resource.setrlimit(resource.RLIMIT_NOFILE,(target,hard))
     scratch=artifacts/'tmp'/out.name;scratch.mkdir(parents=True,exist_ok=True)
     if a.detach:
         command=[sys.executable,str(Path(__file__).resolve())]+[v for v in sys.argv[1:] if v!='--detach']

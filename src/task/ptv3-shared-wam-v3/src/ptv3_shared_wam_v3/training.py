@@ -71,6 +71,8 @@ def main():
     if config['hand_weight']!=1 or config['scene_weight']!=1:
         raise ValueError('initial nine-source recipe retains hand/scene coefficients 1:1')
     world,rank,local=[int(os.environ.get(k,v)) for k,v in [('WORLD_SIZE','1'),('RANK','0'),('LOCAL_RANK','0')]]
+    if not 1<=world<=4 or config.get('expected_world_size',world)!=world or not 0<=a.loader_workers<=4:
+        raise ValueError('bounded world size/workers and matching execution profile required')
     torch.cuda.set_device(local)
     torch.set_num_threads(2)
     torch.backends.cuda.matmul.allow_tf32=config['tf32']
