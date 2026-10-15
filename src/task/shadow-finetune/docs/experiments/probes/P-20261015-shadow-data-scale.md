@@ -5,7 +5,7 @@ experiment_id: P-20261015-shadow-data-scale
 date: 2026-10-15
 task: shadow-finetune
 branch: main
-git_commit: db3d9d13
+git_commit: c3f8f7bc
 claim_id: C1
 hypothesis_family: HF-shadow-data-scale
 probe_index_in_family: 1
@@ -56,6 +56,21 @@ Class: Decision。用户要先在ShadowHand自身环境微调并看成功率，�
 `tools/run/prepare_scale_comparison.py`只生成controls和命令，`train.py --controls`才消费同一份配置。
 6项Task合同测试涵盖物理同一子集与标签变动拒绝、同DEV/同归一化，以及设置/输入漂移拒绝。
 当前尚无本实验GPU训练、checkpoint或成功率结果。
+
+## 真实输入准备回执
+
+固定代码c3f8f7bc，已生成
+`outputs/shadow-finetune/shadow-scale-controls-20261015-r1/{controls,commands}.json`。
+逐条按raw episode/env复核51条small缓存与full缓存，全部保存字段逐值相同，small tick为full子集；
+包含small DEV数据是为了验证沿用记录身份，并未用其拟合统计。两臂共同DEV354761窗中的
+同64个query身份及normalizer逐数组完全一致，启动接口已在真实cache上重放并通过。
+
+CPU加载/拼batch64、每臂6批：small均值0.076秒（热缓存约0.049秒），full均值0.311秒，
+点数512；所有batch浮点tensor有限，state/action shape符合合同。full随机数据I/O比small慢，
+尚未包含GPU模型计算，不将这次测量当训练吞吐。初估1000步仍应在原2400秒训练guard内，
+真正启动后须重新观察GPU利用率与ETA。未因低吞吐测量自行修改matched batch或训练步数。
+证据`readiness-audit.json`位于上述目录，CPU复核脚本保存在`tmp/shadow_scale_readiness_20261015.py`。
+本轮没有新的GPU进程；PREPARED不是数据量效应的结果。
 
 ## Limitations / future evidence
 
