@@ -46,8 +46,17 @@ socket 路径会超过 Linux 108 字节限制，单改 `TMPDIR` 无法解决。�
 多 worker DataLoader 的执行目录。后续 viewer/四卡入口修订继续以增量 bundle 部署短路径
 checkout，再 detached 到已提交代码。
 
+短路径现已实际部署 `6e535bc1`，包含 Viser `cfc45d24` 与四卡入口 `78cbbeb3`，增量 bundle
+约 602 KB。真实 Git commit 读取、九源数据模块导入和单 worker spawn/DataLoader IPC
+smoke 都已通过，未使用 GPU。回执位于短路径上层 `deployment.json`，以及 NAS scope 下
+`training-short-code-deployment.json`；本地日志 `tmp/nine-remote-20261015-r1/training-short-code-console.log`。
+
 远端 SSH 会话的默认 soft nofile=1024、hard=1048576。正式多卡 launcher 应只对自身进程
 提升 soft limit，不修改系统或其他进程；四卡入口和运行前检查由主任务另行验收。
+
+12:00 左右只读检查远端四卡均为 NVIDIA GeForce RTX 4090、49,140 MiB/卡，显存使用均
+0 MiB、没有 compute 进程。这只是当时资源快照，正式启动前仍应重新核对；目前没有启动
+远端 GPU 训练，等待用户查看 Viser 和主任务的质量决定。
 
 新增部分包含 37,591 条 native payload 和 2,638 个 CAD，共 40,229 个 NPZ、2,457,338,191 字节。
 归档加入清洗manifest、原始manifest副本、冻结窗口索引、统计与配方后为 2,689,935,360 字节。
