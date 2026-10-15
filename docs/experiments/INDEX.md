@@ -347,7 +347,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261015-nine-source-pretrain](../../src/task/ptv3-shared-wam-v3/docs/experiments/probes/P-20261015-nine-source-pretrain.md) | 九源统一预训练启动与持续运行 | 见原卡 | 见原卡 | probes/STOPPED |
+| [P-20261015-nine-source-pretrain](../../src/task/ptv3-shared-wam-v3/docs/experiments/probes/P-20261015-nine-source-pretrain.md) | 九源统一预训练启动与持续运行 | 见原卡 | 见原卡 | probes/RUNNING |
 
 ## HF-oakink2-action-effect-wm30
 
@@ -700,6 +700,12 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261015-ptv3-shared-v2-robot-finetune](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-ptv3-shared-v2-robot-finetune.md) | V2 remote-WAM robot fine-tune | 见原卡 | 见原卡 | probes/UNCLEAR |
+
+## HF-v2-stage-grasp
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261015-v2-stage-grasp](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-v2-stage-grasp.md) | WAM-v2 微调阶段的实际抓取 Probe | pending engineering smoke and native panel. | 用户要求直接拿保留的微调权重沿用旧Task物理评估；不再延长训练。 | probes/RUNNING |
 
 ## HF-video-data-readiness
 

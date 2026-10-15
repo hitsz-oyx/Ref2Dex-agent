@@ -25,6 +25,11 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261015-v2-stage-grasp:
+    seed_pool: probe
+    paired_physics_seed: 148
+    reuse_reason: same native dev sequence panel across checkpoint stages; not independent replication
+
   P-20261015-R-native-current:
     seed_pool: probe
     model_extra_encoder_and_dropout_seed: 160
