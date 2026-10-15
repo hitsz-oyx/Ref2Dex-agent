@@ -40,6 +40,8 @@ class Viewer:
         s.gui.configure_theme(control_width='large',show_share_button=False)
         s.gui.add_markdown('**九源完整序列审阅** · 物理单位：米 / 秒。\n\n'
             '完整 TRAIN/DEV 序列可选，未准入的帧也可回放检查。物体为CAD表面点云，手为真实11点；缺失点不补齐。')
+        if catalog.recipe.get('quality_admission'):
+            s.gui.add_markdown('**严格运动质量筛查已生效**：准入提示使用清洗后索引，原始完整轨迹仍可回看。')
         self.source=s.gui.add_dropdown('数据源',list(NAMES.values()),initial_value=NAMES[source])
         self.split=s.gui.add_dropdown('划分',['train','dev','all'],initial_value='train')
         self.search=s.gui.add_text('搜索序列 / row / batch','')

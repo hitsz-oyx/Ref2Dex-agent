@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import numpy as np
 from pose_mesh_data.windows import PoseMeshWindows
+from .quality_admission import excluded_indices
 
 NAMES={0:'OakInk2',1:'GRAB',2:'ARCTIC',4:'UniDexGrasp++ · 仿真采集',5:'TACO',6:'HOT',8:'DexYCB',9:'H2O',10:'HOI4D'}
 
@@ -72,6 +73,23 @@ class Catalog:
                     if meta.get('motion_quality'):hint+=' [整段隔离]' if count==0 else ' [尾段隔离]'
                     self.records[sid].append(Record(sid,row,meta['source_sequence'],split,count,self.native_root,'native',hint))
                 self.indices['native',split]=rows
+        self.original_indices=dict(self.indices)
+        if self.recipe.get('quality_admission'):
+            for split in ('train','dev'):
+                lengths=[len(self.indices[sid,split]) for sid in (0,1,2)]
+                offsets=np.cumsum([0]+lengths)
+                total=int(offsets[-1])+len(self.indices['native',split])
+                blocked=np.zeros(total,bool);blocked[excluded_indices(self.recipe,split,total)]=True
+                for sid in (0,1,2):
+                    self.indices[sid,split]=self.indices[sid,split][~blocked[offsets[sid]:offsets[sid+1]]]
+                self.indices['native',split]=self.indices['native',split][~blocked[offsets[-1]:]]
+            counts={}
+            for key,rows in self.indices.items():
+                ids,n=np.unique(rows[:,0],return_counts=True);counts[key]=dict(zip(ids,n))
+            for sid,records in self.records.items():
+                for r in records:
+                    previous=r.windows;r.windows=int(counts[(sid if sid<3 else 'native',r.split)].get(r.row,0))
+                    if r.windows<previous:r.hint+=' [严格筛查：整段隔离]' if r.windows==0 else ' [严格筛查：局部隔离]'
         for sid in self.records:self.records[sid].sort(key=lambda r:(r.split,r.row))
         # Reuse the canonical compact decoder without invoking an eager dataset constructor.
         self.decoder=PoseMeshWindows.__new__(PoseMeshWindows)
@@ -109,7 +127,9 @@ class Catalog:
                 segment=np.cumsum(np.r_[False,np.diff(arrays['frame_ids'])!=4])
             data=dict(time=times,hand=arrays['hand'],hand_valid=valid,object_poses=arrays['poses'],
                 object_pose_valid=arrays['pose_valid'],segment=segment)
-            target=int(rows[0,1]);ticks=rows[:,2]
+            original=self.original_indices[record.source_id,record.split] if hasattr(self,'original_indices') else rows
+            original=original[original[:,0]==record.row]
+            target=int(rows[0,1] if len(rows) else original[0,1]);ticks=rows[:,2]
             objects=list(meta['objects']);origin=str(path)
         else:
             row=self.native['sequences'][record.row]
