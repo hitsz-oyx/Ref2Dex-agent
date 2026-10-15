@@ -1,0 +1,8 @@
+{
+  "schema": "ref2dex.native-sampling-policy.v1",
+  "permitted_use": "engineering_only",
+  "temperature": 0.5,
+  "probability_caps": {"8": 0.01},
+  "std_floor_m": 0.001,
+  "interpolated_targets": "include_when_valid"
+}
