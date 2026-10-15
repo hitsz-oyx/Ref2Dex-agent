@@ -592,7 +592,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261015-shadow-startup-sampling](../../src/task/shadow-finetune/docs/experiments/probes/P-20261015-shadow-startup-sampling.md) | Shadow起步采样：同一全量数据的最小干预 | 见原卡 | 见原卡 | probes/RUNNING |
+| [P-20261015-shadow-startup-sampling](../../src/task/shadow-finetune/docs/experiments/probes/P-20261015-shadow-startup-sampling.md) | Shadow起步采样：同一全量数据的最小干预 | 见原卡 | 见原卡 | probes/UNCLEAR |
 
 ## HF-shared-action-interface
 

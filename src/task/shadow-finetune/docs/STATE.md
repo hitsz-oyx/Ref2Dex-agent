@@ -1,16 +1,16 @@
 # ShadowHand 原生微调当前状态
 
-## 2026-10-15 19:06 起步采样短Probe已启动
+## 2026-10-15 起步采样Probe已完成：保持有改善，复合门仍UNCLEAR
 
-按上一轮定位，仅新增full1000步候选：50%概率从准入tick0..7抽样，另一半沿用原序列均匀采样。
-复用已完成full1000作为uniform对照；同80k父权重、seed214、小TRAIN统计、DEV64、native16env/216，
-不从对照终点续训。新增固定起步DEV64/seed218供两个终点共同推理，不参与训练或选点。
-代码fc441a2b、detached工作树`tmp/shadow-startup-code-20261015-r1`，supervisor2161329。
-原模型/forecaster/execution源码及旧data方法同一性已验收；10项合同测试PASS。
-真实51个初始actor张量/共同DEV IDs完全相同，已到160/1000，约0.81秒/步、余训练约11分钟。
-实际起步query52.18%（原分量也含早期帧），tick0为6.37%；GPU6峰值物理3701MiB/稳态均值61.1%。
-GPU6总<=1h/8GB，GPU7空闲，Inspire GPU0–5不变；尚无本轮收益结论。
-详见[P-20261015-shadow-startup-sampling](experiments/probes/P-20261015-shadow-startup-sampling.md)。
+候选full1000步及native/readout均COMPLETED/exit0，15.31分钟，代码fc441a2b；GPU6/7空闲。
+相同16起点：uniform学生官方/末帧/保持2/1/0，startup学生8/5/4，teacher8/7/7。
+startup学生TRAIN/DEV官方6/8、2/8，保持3/8、1/8；是位置抬升保持代理，不认证接触稳定。
+初态/完整teacher轨迹/实际初始actor/代码语义匹配，独立raw计数和时钟审计PASS。
+
+预设复合门UNCLEAR：起步DEV64首拍MAE恶化21.21%，torque仅改善5.51%；随机DEV首拍仅改善1.81%。
+动作拟合与保持没有同步，不能说采样已解决问题，但0→4保持值得做固定权重的新reset配对复核。
+该后续复核尚未启动，不改判据、不增训或换模型。候选四个阶段完整checkpoint已加载审计PASS。
+证据及读出见[P-20261015-shadow-startup-sampling](experiments/probes/P-20261015-shadow-startup-sampling.md)。
 
 ## 已完成的数据量对照和诊断
 

@@ -23,8 +23,9 @@ Shadow成功不单独证明Inspire失败由数据量造成。
 固定预算大小数据Probe已完成：首拍MAE仅改善6.21%，forecast改善约37–41%，但学生官方
 sticky成功small7/16、full2/16，同步抬升保持3/16、0/16；局部UNCLEAR，不归因Inspire或
 排除充分训练后的数据量收益。分阶段诊断发现small已见41个起点仍拟合较差（首拍MAE0.223），
-full在近目标/安全尾段误差较小。目前已启动[起步采样短Probe](docs/experiments/probes/P-20261015-shadow-startup-sampling.md)，
-仅新增一条GPU6/1000步候选，和冻结uniform对照比较；GPU7空闲，原Inspire三臂继续。
+full在近目标/安全尾段误差较小。已完成[起步采样短Probe](docs/experiments/probes/P-20261015-shadow-startup-sampling.md)，
+相同16起点官方成功由2→8、保持由0→4，但起步DEV首拍误差反而增加21%，复合门仍UNCLEAR。
+GPU6/7现空闲，下一步拟固定权重换reset复核；原Inspire三臂继续。
 证据与执行状态见[Task状态](docs/STATE.md)。
 
 入口：

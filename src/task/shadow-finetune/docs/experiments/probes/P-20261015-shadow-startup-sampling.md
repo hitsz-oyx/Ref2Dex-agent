@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [214, 215, 216, 218]
 decision_changed_if_positive: prioritize startup coverage and paired native qualification before longer data scaling
 decision_changed_if_negative: inspect actor capacity and optimization before adding data or tail supervision
-status: RUNNING
+status: UNCLEAR
 run_id: shadow-startup-sampling-20261015-r1
 ---
 
@@ -83,3 +83,37 @@ uniform运行相同只读源。真实准备通过：原model/forecast/execution�
 吞吐与原full约0.8秒/更新一致，scattered CPU加载间隙使GPU利用率波动；不为利用率改matched batch。
 `startup-control-audit.json`、`startup-observations.json`、两段GPU采样均在run目录。
 当前loss有限，仅工程与干预进入检查，不提前判定拟合或闭环收益。
+
+
+## 完成读出 / 2026-10-15 19:22 CST
+
+三个stage均COMPLETED/exit0，总918.66秒（15.31分钟），GPU6/7现空闲。四个250/500/750/1000
+完整checkpoint均实际CPU加载核验，模型/optimizer有限、normalizer准确、586个参数的optimizer
+state保留，三个LR维持5e-6/1e-5/5e-4。`checkpoint-audit-all-four.json`在run目录。
+
+固定同16起点，官方sticky/末帧5cm/同步抬升保持60帧，分别为：
+
+| 角色 | 官方 | 末帧 | 保持60 |
+| --- | ---: | ---: | ---: |
+| uniform学生 | 2/16 | 1/16 | 0/16 |
+| startup学生 | 8/16 | 5/16 | 4/16 |
+| teacher（两臂相同） | 8/16 | 7/16 | 7/16 |
+
+startup学生TRAIN/DEV官方为6/8、2/8，保持为3/8、1/8；uniform官方1/8、1/8，保持均0/8。
+四个保持段最长119/121/100/86帧。独立raw NumPy边沿长度重算计数一致，时钟60Hz、无内部reset，
+命令上一拍误差0；完整teacher200状态九字段跨臂误差0，无invalid。`summary/independent-native-audit.json`
+与`summary/comparison.json`保存证据。这里是物理位置/抬升保持代理，未认证接触稳定或现实抓取。
+
+预设复合门仍UNCLEAR：起步DEV64首拍MAE反而0.19644→0.23811（恶化21.21%），
+torque0.59403→0.56130（只改善5.51%），未达两者均改善30%。随机DEV64首拍
+0.10978→0.10780（改善1.81%），8拍归一化action约0.22996→0.23025，不能以离线均值
+替代保持收益。起步DEV hand/scene forecast由0.51609/0.84978变为0.12381/0.36787，
+说明不同读出并未同步。不能把本轮说成“起步动作拟合假设已证实”，也不能因复合门未过忽略
+0→4个保持的局部正向物理信号。
+
+实际采样回放最终RNG与checkpoint精确一致：uniform前8帧3350/64000、tick0为431；
+startup前8帧33768/64000、tick0为4208。初始actor51张量、父/normalizer/预算/DEV身份和旧模型
+实现均验收通过；不存在候选偷偷续训或换数据的情况。当前仅单训练seed/四物体/16起点。
+
+Decision：下一步最省钱是固定这两个终点权重换一组reset做配对复核，判断保持收益是否重复，
+不立即加长训练或切换架构。此复核尚未启动；本轮只记录下一步，不改原判据或升级科研claim。
