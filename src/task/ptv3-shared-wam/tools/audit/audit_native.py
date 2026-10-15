@@ -43,6 +43,9 @@ def audit(path):
     check("query_tick", d["query_tick"], np.repeat(query_ticks[:, None], 2, axis=1))
     check("chunk_index", d["chunk_index"], np.repeat((ticks % steps)[:, None], 2, axis=1))
     representation=manifest.get('action_representation','native-command.v1')
+    if representation=='native-command.v1':
+        target=d['R_output_chunk'][np.arange(controls)[:,None],np.arange(2)[None,:],(ticks%steps)[:,None]]
+        check('native_chunk_to_intended_command',d['intended'][:,1:,ACTIVE],target)
     if representation!='native-command.v1':
         check('physical_query_q',d['R_query_q'],d['q'][query_ticks,1:])
         target=d['R_output_chunk'][np.arange(controls)[:,None],np.arange(2)[None,:],(ticks%steps)[:,None]]

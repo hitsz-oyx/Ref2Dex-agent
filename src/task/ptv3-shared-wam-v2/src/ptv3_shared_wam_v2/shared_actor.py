@@ -7,11 +7,11 @@ INTERFACES=('pred_tau','shared','shared_tau')
 
 
 class SharedQueryActor(nn.Module):
-    def __init__(self,interface,shared_width=768,width=128):
+    def __init__(self,interface,shared_width=768,width=128,action_dim=15):
         super().__init__()
-        if interface not in INTERFACES or shared_width<33:raise ValueError('actor interface/width')
+        if interface not in INTERFACES or shared_width<33 or action_dim not in (12,15):raise ValueError('actor interface/width/action dimension')
         self.interface=interface;self.shared_width=shared_width
-        for key,shape in [('state',(87,)),('tau',(24,33)),('action',(8,15))]:
+        for key,shape in [('state',(87,)),('tau',(24,33)),('action',(8,action_dim))]:
             self.register_buffer(key+'_mean',torch.zeros(shape))
             self.register_buffer(key+'_scale',torch.ones(shape))
         self.state_encoder=nn.Sequential(nn.Linear(87,width),nn.GELU(),nn.Linear(width,width))
@@ -21,7 +21,7 @@ class SharedQueryActor(nn.Module):
         self.action_queries=nn.Parameter(torch.randn(8,width)*.02)
         layer=nn.TransformerDecoderLayer(width,4,width*4,dropout=0.,activation='gelu',batch_first=True)
         self.decoder=nn.TransformerDecoder(layer,2)
-        self.head=nn.Linear(width,15)
+        self.head=nn.Linear(width,action_dim)
         nn.init.zeros_(self.head.weight);nn.init.zeros_(self.head.bias)
 
     def forward(self,state,tau=None,shared=None,shared_valid=None):

@@ -150,7 +150,8 @@ def evaluate(model, dataset, indices, config, device):
         count += n
         for key,term in terms.items(): totals[key]=totals.get(key,0.)+float(term)*n
         if config.get("action_interface"):
-            for key,value in physical_errors(prediction,batch,dataset.manifest['native_controller']).items():
+            for key,value in physical_errors(prediction,batch,dataset.manifest['native_controller'],
+                                              model.action_representation).items():
                 physical.setdefault(key,[]).append(value)
     model.train()
     return dict(objective=total / max(count, 1), action=action / max(count, 1),
@@ -266,8 +267,14 @@ def main():
         atomic_json(out / "manifest.json", dict(schema=V2_SCHEMA, stage="robot", status="RUNNING",
             config=config, provenance=provenance, parent=dict(schema=parent["schema"], stage=parent["stage"],
             step=parent["step"]), parameters=sum(p.numel() for p in model.parameters())))
+        if config.get('save_initial_actor'):
+            np.savez(out/'initial-actor.npz',**{k:v.detach().cpu().numpy() for k,v in model.retargeter.state_dict().items()})
     if world > 1:
         dist.barrier()
+    if config.get('training_rng_seed') is not None and not resume:
+        # Head output dimensions consume different initialization RNG counts.
+        # Match stochastic forecaster/audit streams independently of that size.
+        torch.manual_seed(int(config['training_rng_seed'])+rank)
     # One actual-batch wiring/gradient audit before the loop.
     rng = np.random.default_rng(config["seed"] + rank)
     audit_batch = to_device(robot_collate([train[int(i)] for i in train.sample_indices(rng, 1)]), device)

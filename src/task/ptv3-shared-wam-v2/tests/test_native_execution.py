@@ -48,3 +48,10 @@ def test_shared_bridge_is_explicit_and_does_not_admit_other_interfaces(tmp_path)
     with pytest.raises(ValueError):validate_robot_packet(p,allow_shared=True)
     p['config'].update(action_interface='shared',anchor_weight=1)
     with pytest.raises(ValueError,match='no GT tau anchor'):validate_robot_packet(p,allow_shared=True)
+
+
+def test_native_shared_checkpoint_needs_explicit_shared_bridge(tmp_path):
+    p=packet(tmp_path);p['config'].update(action_interface='shared',anchor_weight=0,
+                                        action_representation='native-command.v1')
+    with pytest.raises(ValueError):validate_robot_packet(p)
+    assert validate_robot_packet(p,allow_shared=True)['config']['action_representation']=='native-command.v1'

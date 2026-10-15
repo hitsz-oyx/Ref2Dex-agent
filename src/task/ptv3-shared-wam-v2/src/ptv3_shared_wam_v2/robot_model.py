@@ -29,10 +29,11 @@ class SharedWAMV2Robot(nn.Module):
             self.retargeter = make_retargeter(action_representation)
         else:
             from .shared_actor import SharedQueryActor
-            from ptv3_shared_wam.action_targets import GEOMETRY_LIFTED
-            if action_representation != GEOMETRY_LIFTED or self.anchor_weight != 0:
-                raise ValueError("matched shared actor requires geometry-lift and anchor_weight=0")
-            self.retargeter = SharedQueryActor(self.action_interface, config["shared_width"])
+            from ptv3_shared_wam.action_targets import GEOMETRY_LIFTED, action_dimension
+            if action_representation not in (NATIVE,GEOMETRY_LIFTED) or self.anchor_weight != 0:
+                raise ValueError("matched shared actor requires native/geometry-lift and anchor_weight=0")
+            self.retargeter = SharedQueryActor(self.action_interface, config['shared_width'],
+                action_dim=action_dimension(action_representation))
 
     def forward(self, batch):
         prediction = self.forecaster(batch, return_shared=True) if self.action_interface else self.forecaster(batch)

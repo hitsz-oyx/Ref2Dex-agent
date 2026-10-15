@@ -18,7 +18,8 @@ def validate_robot_packet(packet, allow_shared=False):
         raise ValueError("shared-query actor execution requires its own native bridge; legacy tau harness rejected")
     if allow_shared and (config.get('action_interface') != 'shared' or config.get('anchor_weight') != 0):
         raise ValueError('explicit shared-only bridge requires shared interface and no GT tau anchor')
-    if config.get("action_representation") != "wrist-geometry-continuous-lift.v1":
+    admitted = ('native-command.v1','wrist-geometry-continuous-lift.v1') if allow_shared else ('wrist-geometry-continuous-lift.v1',)
+    if config.get("action_representation") not in admitted:
         raise ValueError("qualified q_PD geometry-lift output required")
     if not packet.get("provenance", {}).get("source"):
         raise ValueError("original source and native controller required")

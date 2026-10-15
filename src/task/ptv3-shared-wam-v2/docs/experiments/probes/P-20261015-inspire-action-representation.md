@@ -1,0 +1,82 @@
+---
+schema: ref2dex.probe.v2
+probe_id: P-20261015-inspire-action-representation
+experiment_id: P-20261015-inspire-action-representation
+date: 2026-10-15
+task: ptv3-shared-wam-v2
+branch: main
+git_commit: pending
+claim_id: C1
+hypothesis_family: HF-inspire-action-representation
+probe_index_in_family: 1
+seed_pool: probe
+seeds: [195, 192, 148]
+decision_changed_if_positive: prioritize original action parameterization and dissect geometry loss and normalization
+decision_changed_if_negative: prioritize teacher input sufficiency and fitting coverage before attributing failure to q_PD
+status: RUNNING
+run_id: inspire-action-representation-20261015-r1
+---
+
+# Inspire shared：原生action与q_PD几何编码的配对Probe
+
+Class: Decision。用户目标是定位Inspire shared不能抓取、Shadow可抓取的原因，明确提出
+q_PD和原生归一化action差异，并临时授权剩余卡做实验。服务独立执行底座；最便宜判别
+是在同一个Inspire任务内固定输入/数据/父模型，只改变动作参数化，避免跨手任务混杂。
+
+## 现有证据与假设
+
+独立CPU审计660序列165677控制，q_PD[t]+q[t]逆映射ACTIVE命令max5.96e-7；66序列
+2190窗口geometry首拍roundtrip max5.66e-7，未见粗大单位/clock/旋转branch错误。
+两边动作已TRAIN std标准化，不能解释为只有Shadow归一化。首拍XYZ与native平移线性
+等价；变化主要为finger current-relative监督、额外SO3旋转3维、loss维度权重和尺度，
+以及未来8拍“固定PD目标vs固定增量命令”的监督含义。K1不直接受未来buffer语义影响。
+详见根级research/2026-10-15-inspire-shadow-action-representation.md。
+
+假设：使用原生12D独立命令可以减轻动作拟合/闭环的困难；若共同首拍物理误差和闭环
+出现明显改善，优先改用native并进一步拆分该表示包；若两边仍差，不能仅归因q_PD，
+下一步检验输入完整性（Inspire87D vs teacher1442D，Shadow300D即完整teacher输入）。
+
+## 固定协议
+
+两臂共同remote WAM-v2 step80000、fresh query actor、seed195、同strict补采660，
+TRAIN93680/DEV10376、同DEV256 indices/seed192、序列均匀+startup/later平衡采样。
+同state87+shared768 token/mask，保留原已知物体goal[t+24]；不加完整teacher输入或接触。
+同三LR5e-6/1e-5/5e-5、AdamW wd.01、AMPbf16/TF32、gradient clip1、无GT tau warmup/anchor。
+forecast hand/scene normalized MSE和action normalized L1权重均1。
+
+G：8×15 wrist-geometry-continuous-lift.v1原q_PD；N：8×12 native-command.v1原记录ACTIVE
+applied命令，ACTIVE=(0..5,6,8,10,12,14,15)，其他六个被原生coupling覆盖的teacher输出
+不作为独立自由度。只改变输出表示及其维数/原TRAIN-only动作统计，其他actor trunk相同。
+保留既有normalizer floor惯例：native .01、geometry1e-6；所以结果检验表示/监督加权包，
+不能单独归因SO3或归一化一项。不得横比两种坐标下action loss绝对值。
+
+每臂单GPUbatch256、2000updates，并行执行，固定终点为主要读出，不按各自best挑结果。
+每250评估共同DEV；保留500/1000/1500/2000及best/forecast/control。输出initial-actor.npz，
+核对除action mean/scale与输出head形状外的初始trunk张量、state/tau统计、父/输入/panel一致。
+Head形状改变消耗不同初始化RNG，故用共同training_rng_seed在audit/训练前重新对齐随机流。
+先同batch4-update smoke；正式重新从80k/fresh actor启动，不继承smoke。
+
+主要共同离线指标：首拍原生intended/applied command MAE、PD XYZ mm mean/p95、SO3 rad、
+finger rad、clipping及hand/scene ADE mm。native预测通过原生PD映射换算，geometry通过原
+freeze/consume解码，两者比较同一控制器。geometry raw lift误差不与native Euler误差混比。
+
+两臂固定step2000进入相同原生三行环境/seed148/30Hz K1，飞机149/小球141/杯子172控制，
+沿用P-20261015-shared-native-grasp的三条val和hold45短序列代理。row0 teacher，两student
+各自实测H4/87D，重复行不当独立seed。不混teacher命令/GT tau；独立核对原生chunk或
+geometry chunk→实际命令、PD、输入、clock和held数。
+
+## 判别与局限
+
+离线方向信号：native首拍XYZ mean和p95均比geometry低>=20%，或applied command MAE
+低>=20%且XYZ不恶化>10%。行为信号：teacher正控制可复现的序列上native新增至少1/3
+hold45、执行审计PASS。满足则局部PROMISING，优先进一步排除额外旋转/手指坐标/normalizer
+及all8目标差异；全部失败或拟合尚不足则UNCLEAR，不在短预算里refute表示路线或数据量。
+完整收敛、多seed、matched正式成功率及first-only目标对照延后，不预设训练loss能证明抓取。
+
+## Decision Note / 资源
+
+用户临时明确允许GPU6/7实验；原Inspire0..3和Shadow4/5继续，允许本轮8卡同时占用。
+先等待原Shadow2k单次评估释放GPU6，再两臂各占一空卡。每臂训练<=2h、总GPU pipeline<=3h，
+每臂产物<=9GB、两臂及native总<=24GB，20GiB磁盘底线。稳定吞吐后更新ETA，预算不静默延长。
+外来GPU进程、非有限、输入/初态不匹配、转换审计失败、30min无进展或资源超界停止自己的组。
+固定提交/detached工作树，现有训练源码/数据/checkpoint不覆盖；不新增branch。

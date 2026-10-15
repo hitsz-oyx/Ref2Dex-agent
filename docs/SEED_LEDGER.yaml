@@ -25,6 +25,13 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261015-inspire-action-representation:
+    seed_pool: probe
+    matched_initialization_and_draw_seed: 195
+    common_DEV_panel_seed: 192
+    paired_native_reset_seed: 148
+    reuse_reason: same strict Inspire DEV and native three-motion panel; fresh matched target-parameterization probe
+
   P-20261015-shadow-expanded-training:
     seed_pool: probe
     continuation_seed: 214

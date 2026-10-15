@@ -6,7 +6,7 @@ from torch import nn
 from ptv3_shared_wam_v2.shared_actor import SharedQueryActor,INTERFACES
 from ptv3_shared_wam_v2.robot_model import SharedWAMV2Robot,robot_loss
 from ptv3_shared_wam_v2.model import SharedWAMV2
-from ptv3_shared_wam.action_targets import GEOMETRY_LIFTED
+from ptv3_shared_wam.action_targets import GEOMETRY_LIFTED,NATIVE
 from test_contracts import config,stats,batch,Geometry
 
 
@@ -57,3 +57,19 @@ def test_latent_cannot_silently_use_gt_anchor():
     c=config();c.update(shared_width=48,action_interface='shared',anchor_weight=1.)
     with patch('ptv3_shared_wam_v2.robot_model.SharedWAMV2',return_value=nn.Identity()):
         with pytest.raises(ValueError,match='anchor_weight=0'):SharedWAMV2Robot(stats(),c,GEOMETRY_LIFTED)
+
+
+def test_native_shared_loss_uses_recorded_actions_and_reaches_shared():
+    c=config();c.update(shared_width=48,shared_heads=4,action_interface='shared',anchor_weight=0.)
+    f=SharedWAMV2(stats(),c,Geometry(c['point_width'])).eval()
+    with patch('ptv3_shared_wam_v2.robot_model.SharedWAMV2',return_value=f):
+        model=SharedWAMV2Robot(stats(),c,NATIVE).eval()
+    nn.init.normal_(model.retargeter.head.weight,std=.01)
+    b=batch();b.update(has_action=torch.ones(2,dtype=torch.bool),native_state=torch.randn(2,87),
+        native_action=torch.randn(2,8,12),native_tau=torch.full((2,24,33),float('nan')),
+        action_target=torch.full((2,8,15),float('nan')))
+    p=model(b);value,terms=robot_loss(p,b,c,model)
+    assert p['action'].shape==(2,8,12) and torch.isfinite(value)
+    torch.testing.assert_close(terms['action'],((p['action']-b['native_action'])/model.retargeter.action_scale).abs().mean())
+    gradients=torch.autograd.grad(terms['action'],list(f.interaction.parameters()),allow_unused=True)
+    assert sum(float(g.abs().sum()) for g in gradients if g is not None)>0
