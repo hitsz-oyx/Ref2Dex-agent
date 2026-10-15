@@ -1,5 +1,22 @@
 # PTv3-Shared-WAM v2 当前状态
 
+## 2026-10-15 完整预训练指标已补录，80k远端阶段已完成
+
+用户指出实验卡只有本地1k结果。已只读重取远端原日志，与留存完成快照的81个dev点
+逐字段一致：0…80000每1k、固定384窗/每域128、108个域×指标、共8748条物理分项，
+以及4001条训练total/hand/scene日志。正式产物位于wam-v2-metrics-20261015-r1，
+完整JSON/含count的CSV/全曲线均已保存；预训练卡包含全部81点主指标及best/final全分项。
+
+远端manifest/result/process均COMPLETED，exit0，80000更新耗时15.44h；
+best按总dev objective为59000/0.774678，final80000/0.844785。最终三域hand all24
+为14.454/72.421/49.318mm，scene all24为2.155/20.957/14.928mm（OakInk2/GRAB/ARCTIC）。
+延续离线Probe级PROMISING，不形成抓取/Cm结论；ARCTIC静态scene分项仍恶化。
+远端完整权重实际保留20k/40k/59k/60k/80k；现有robot父权重为80k final，未替换为best。
+
+微调卡另补齐本次快照至9500的19次固定dev256记录，r2≤3000后衔接r5，同面板已核对。
+预训练与微调dev均没有分别保存归一化hand/scene损失，微调只能恢复forecast合计；
+训练日志中的分项与dev、不同数据面板之间不混比。未记录项已明确列出，未补造数值。
+
 ## 2026-10-15 阶段权重已保护，后续保存点自动归档
 
 用户要求保留各阶段以比较action/forecast对下游的帮助。完整joint checkpoint现存

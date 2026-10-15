@@ -304,3 +304,37 @@ alone proves better grasping or adaptation. Stage selection can find the more
 useful weight, but causal attribution between the two losses would require
 separate matched interventions. That downstream evidence is deferred to the
 next decision-relevant qualification Probe; current work preserves options.
+
+## 完整微调指标快照补录（2026-10-15）
+
+主训练仍在运行；本次快照补齐截至step9500的全部19个固定dev256评估点。
+r2只取至恢复点3000，随后衔接r5；r2后来未保存的3000以后更新不混入恢复轨迹。
+两段validation.npy已逐元素核对一致，数据/损失权重/归一化保持同一合同。
+
+| Step | Total | Pred τ action | GT τ anchor | Forecast residual |
+| --- | --- | --- | --- | --- |
+| 500 | 5.452004 | 0.540573 | 0.537306 | 4.374125 |
+| 1000 | 5.202321 | 0.489702 | 0.483758 | 4.228861 |
+| 1500 | 5.248692 | 0.460636 | 0.454225 | 4.333831 |
+| 2000 | 5.262169 | 0.436133 | 0.428241 | 4.397795 |
+| 2500 | 5.278802 | 0.425986 | 0.415629 | 4.437187 |
+| 3000 | 5.263422 | 0.414977 | 0.403560 | 4.444885 |
+| 3500 | 5.279242 | 0.407006 | 0.393927 | 4.478310 |
+| 4000 | 5.402195 | 0.402078 | 0.388269 | 4.611849 |
+| 4500 | 5.429556 | 0.394887 | 0.381193 | 4.653476 |
+| 5000 | 5.391422 | 0.391091 | 0.376277 | 4.624054 |
+| 5500 | 5.442416 | 0.387020 | 0.372202 | 4.683194 |
+| 6000 | 5.455194 | 0.384994 | 0.368858 | 4.701342 |
+| 6500 | 5.509529 | 0.382185 | 0.364761 | 4.762584 |
+| 7000 | 5.529810 | 0.380777 | 0.362222 | 4.786811 |
+| 7500 | 5.518565 | 0.376566 | 0.357895 | 4.784103 |
+| 8000 | 5.516710 | 0.376261 | 0.355949 | 4.784500 |
+| 8500 | 5.522302 | 0.373552 | 0.353576 | 4.795174 |
+| 9000 | 5.568494 | 0.372659 | 0.350233 | 4.845602 |
+| 9500 | 5.564181 | 0.371446 | 0.347720 | 4.845015 |
+
+全部权重均为1，`forecast residual = total − action − anchor`；原dev日志没有
+单独hand/scene loss，不能从残差再拆分；训练日志的四个分项另存，不能冒充dev。
+这里的action/anchor是归一化8步动作预测损失，未记录物理首控误差或抓取成功率。
+
+原始与导出：[完整dev JSON](../../../../../../outputs/ptv3-shared-wam-v2/wam-v2-metrics-20261015-r1/metrics/robot-dev.json), [完整dev CSV](../../../../../../outputs/ptv3-shared-wam-v2/wam-v2-metrics-20261015-r1/metrics/robot-dev.csv), [恢复轨迹训练四分项CSV](../../../../../../outputs/ptv3-shared-wam-v2/wam-v2-metrics-20261015-r1/metrics/robot-train.csv), [已保护checkpoint及指标](../../../../../../outputs/ptv3-shared-wam-v2/robot-finetune-stage-archive-20261015-r1/archive-manifest.json)。

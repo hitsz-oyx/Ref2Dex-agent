@@ -476,7 +476,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261014-ptv3-shared-v2-pretrain](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261014-ptv3-shared-v2-pretrain.md) | 联合轻量PTv3与大shared的horizon标准化预训练 | RUNNING（远端80k阶段）。本地1000步局部PROMISING，远端双卡与恢复预检通过；按用户明确要求启动GPU0/2长训。 | 用户已明确要求直接开始训练；采用预检通过的模型/配方，在独立远端run从头训练80000更新，保留本地Probe和工程checkpoint。 | probes/RUNNING |
+| [P-20261014-ptv3-shared-v2-pretrain](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261014-ptv3-shared-v2-pretrain.md) | 联合轻量PTv3与大shared的horizon标准化预训练 | PROMISING（远端80k已完成；仅固定三域dev离线预测信号）。完整81次评估、best/final和全部分项已补录于本卡“完整80k指标补录”；抓取/Cm收益尚未验证。 | 保留59k best与80k final及完整指标；既有robot微调继续使用已固定的80k父权重，后续在独立下游评估中比较阶段用途，不由单seed离线loss直接决定抓取/Cm结论。 | probes/PROMISING |
 
 ## HF-rawsensor-hand-conditioning
 

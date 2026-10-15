@@ -96,6 +96,30 @@ sequence、split、30Hz、判定、原因及备注。重复审阅保留每次记
 训练窗口准入需另行显式处理；当前不会把标签自动应用到训练。新标注上限10000条、
 每条备注2000字符；训练窗口的未来24帧与历史上下文也应受坏片段影响，不能只查起始帧。
 
+## 完整训练指标
+
+[预训练实验卡](docs/experiments/probes/P-20261014-ptv3-shared-v2-pretrain.md)已补齐远端
+80k完整81次固定dev主指标、59k best与80k final的所有物理分组、本地1k五次评估，
+并链接JSON、含有效点计数的CSV与曲线。[微调实验卡](docs/experiments/probes/P-20261015-ptv3-shared-v2-robot-finetune.md)
+包含恢复轨迹的固定dev全表，本次快照至9500。正式产物在
+`outputs/ptv3-shared-wam-v2/wam-v2-metrics-20261015-r1/`；原始日志仍保留，不依赖tmp快照。
+
+CPU-only重导出既有指标，不做模型计算，也不改训练：
+
+```bash
+/home2/wyy/miniconda3/envs/graspenv/bin/python \
+  src/task/ptv3-shared-wam-v2/tools/audit/export_training_metrics.py \
+  --pretrain-snapshot outputs/ptv3-shared-wam-v2/wam-v2-metrics-20261015-r1/remote-completion-current.json \
+  --local-probe outputs/ptv3-shared-wam-v2/pretrain-main3-probe-20261014-r1 \
+  --robot-source outputs/ptv3-shared-wam-v2/ptv3-shared-v2-robot-finetune-20261015-r2 \
+  --robot-source outputs/ptv3-shared-wam-v2/ptv3-shared-v2-robot-finetune-20261015-r5 \
+  --output outputs/ptv3-shared-wam-v2/<fresh-metrics-output>
+```
+
+导出校验评估step完整、指标集合/计数稳定、空分组为null/count0、goal-only基线不随训练
+变化，以及恢复前后微调dev面板相同。预训练与robot dev没有单独保存归一化hand/scene
+loss；训练分项只作为训练记录，不代填缺失dev指标，也不从离线loss推断抓取成功率。
+
 ## 微调阶段权重保留
 
 用户要求保留阶段权重，以便比较action与forecast趋势对下游表现的帮助。
