@@ -80,7 +80,10 @@ def main():
     if subprocess.check_output(["nvidia-smi", "-i", str(a.gpu), "--query-compute-apps=pid",
                                 "--format=csv,noheader"], text=True).strip():
         raise RuntimeError("GPU occupied before execution")
-    check_shared_storage(packet['config'])
+    storage_config = dict(packet['config'])
+    if a.model_version == 'v2':
+        storage_config['min_free_disk_bytes'] = max(20 * 2**30, storage_config.get('min_free_disk_bytes', 0))
+    check_shared_storage(storage_config)
     out.mkdir(parents=True)
     # Short socket name avoids the Linux108-byte AF_UNIX limit.
     scratch = ROOT / "tmp" / ("swam-%d" % os.getpid())
