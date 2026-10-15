@@ -83,7 +83,7 @@ def main():
     device=torch.device('cuda',local)
     torch.manual_seed(config['seed']+rank)
     train=NineWindows(recipe['main3_root'],recipe['native_root'],'train',recipe)
-    dev=NineWindows(recipe['main3_root'],recipe['native_root'],'dev')
+    dev=NineWindows(recipe['main3_root'],recipe['native_root'],'dev',recipe)
     panel=dev.panel(config['validation_samples']//len(dev.counts),config['validation_seed'])
     model=SharedWAMV3(stats,config).to(device)
     optimizer=torch.optim.AdamW(model.parameter_groups(config['geometry_lr'],config['shared_lr']),

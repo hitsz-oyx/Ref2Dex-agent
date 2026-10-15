@@ -6,6 +6,7 @@ from pathlib import Path
 import numpy as np
 from torch.utils.data import Dataset, DataLoader
 from .paths import SOURCE_IDS
+from .quality_admission import excluded_indices
 from pose_mesh_data.clean_data import CleanPoseMeshWindows, clean_collate
 from pose_mesh_data.native_recipe import source_pools
 from ptv3_shared_wam.data import SharedWindows
@@ -21,6 +22,19 @@ class NineWindows(Dataset):
         self.pools = source_pools(self.native)
         self.counts = {str(i): len(s) for i, s in enumerate(self.main.base.sources)}
         self.counts.update({s: len(p) for s, p in self.pools.items()})
+        self.blocked=np.zeros(len(self.main)+len(self.native),bool)
+        excluded=excluded_indices(recipe,split,len(self.blocked))
+        self.blocked[excluded]=True
+        if len(excluded):
+            for sid,source in enumerate(self.main.base.sources):
+                offset=self.main.base.offsets[sid]
+                mask=self.blocked[offset:offset+len(source)]
+                source.groups=[g[~mask[g]] for g in source.groups]
+                self.counts[str(sid)]-=int(mask.sum())
+            for sid,pool in self.pools.items():
+                self.pools[sid]=pool[~self.blocked[len(self.main)+pool]]
+                self.counts[sid]=len(self.pools[sid])
+            if any(n<=0 for n in self.counts.values()):raise ValueError('quality filter emptied a source')
         if split == 'train':
             if set(map(int, self.counts)) != set(SOURCE_IDS):
                 raise ValueError('all nine verified TRAIN sources required')
@@ -37,6 +51,7 @@ class NineWindows(Dataset):
         return len(self.main) + len(self.native)
 
     def __getitem__(self, index):
+        if self.blocked[int(index)]:raise ValueError('quality-quarantined window')
         if index < len(self.main):
             sample = self.main[int(index)]
             provenance = dict(source_id=int(sample['source_id']), sample_id=np.asarray(sample['sample_id']).tolist(),
