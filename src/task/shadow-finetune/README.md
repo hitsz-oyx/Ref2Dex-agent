@@ -18,7 +18,9 @@ Shadow成功不单独证明Inspire失败由数据量造成。
 数据从已有raw重导，不修改其原始文件。pilot先选原20物体中的8TRAIN/2DEV候选，
 保留末帧物体距任务目标<=5cm的轨迹，屏蔽物/手速度>5m/s或转速>40rad/s后的全部窗口。
 这只是BC候选，不等价稳定抓持认证。当前实际7TRAIN物体41条/6232窗、2DEV物体10条/1520窗。
-一个被选TRAIN物体没有合格候选，记录后不制造样本。完整实验前再扩大到2066物体。
+一个被选TRAIN物体没有合格候选，记录后不制造样本。完整候选cache现已从2066物体来源准备：
+筛选后TRAIN1567物体/10118轨迹/1536897窗、DEV388物体/2338轨迹/354761窗，物体交集0。
+尚未进行全量GPU微调。
 
 入口：
 
@@ -37,3 +39,7 @@ python tools/run/launch_probe.py --data <cache> --panel <panel.json> --output <f
 用户临时允许额外一张空卡做小规模测试：原6卡Inspire继续、Shadow用GPU6、GPU7空闲；
 这是本轮临时授权，不自动扩大后续长训预算。CPU准备30min/16GB，GPU pipeline最多1h/14GB，
 20GiB空闲底线。父权重/其他训练、Viser均独立。详见Task实验卡。
+
+首轮1000步pilot已完成，按固定DEV action L1选择step500。16env原生闭环teacher官方success5/16，
+学生1/16；分开看学生TRAIN1/8、DEV0/8，teacher分别3/8、2/8。同步抬升保持代理学生1/16，
+初始状态完全一致。这仅确认小规模监督和执行链路，数据量假设仍为UNCLEAR；GPU6已释放。

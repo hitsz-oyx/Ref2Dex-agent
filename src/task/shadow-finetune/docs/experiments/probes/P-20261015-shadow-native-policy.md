@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [210, 211, 212, 213]
 decision_changed_if_positive: expand native Shadow BC and matched data-scale success comparison
 decision_changed_if_negative: diagnose native action wiring or fitting before scaling dataset
-status: RUNNING
+status: UNCLEAR
 run_id: shadow-native-pilot-20261015-r1
 ---
 
@@ -43,9 +43,9 @@ Class: Decision；服务独立执行底座，用户明确要暂不做Inspire迁�
 
 ## 验证与局限
 
-3项合同测试覆盖60/30Hz对应、startup重复、未来扰动不改变输入、语义点顺序、动作梯度达WAM。
-GPU首轮尚待启动。具体commit/命令/status保存在各run manifest/process；源码准备阶段git_commit
-记录前一调查提交，启动后补实际代码身份。不形成正式成功率或data-size归因结论。
+4项合同测试覆盖60/30Hz对应、startup重复、未来扰动不改变输入、语义点顺序、动作梯度达WAM，
+以及抬升与保持必须同时满足。实际运行代码5cf32aa5；具体命令/status保存在run manifest/process。
+不形成正式成功率或data-size归因结论。
 
 ## 已执行的工程核验
 
@@ -58,5 +58,25 @@ policy文本不准确，实际角色以controller-audit和comparison.json为准�
 独立审查153个状态复算官方actor与label max2.861e-6，上一拍action观测完全对应，无teacher泄漏。
 细节tmp/shadow-semantics-review-20261015-r1/review.md。本轮3项合同测试及verify通过。
 
-1000步pilot正在运行，250/500/750固定dev action归一化L1分别0.23122/0.21082/0.22324；
-对应首拍原生命令MAE0.12697/0.09541/0.09113。科学终点评估尚未完成；未使用全量33056轨迹。
+## Pilot完成与下一步边界
+
+1000步pilot及终点评估均完成，训练568.3秒、峰值allocated2999MiB，GPU6已释放。
+250/500/750/1000固定DEV action归一化L1分别0.23122/0.21082/0.22324/0.21421；
+按该预定指标选择step500。对应首拍原生命令MAE分别0.12697/0.09541/0.09113/0.08197。
+小batch训练采样利用率约14%，大规模运行前应改善CPU输入吞吐。
+
+16env面板teacher官方success5/16，学生1/16；学生唯一成功在TRAIN camera，
+TRAIN1/8、DEV0/8，teacher分别3/8、2/8。同步满足连续60帧距目标<=5cm且抬升>=10cm的
+位置保持代理teacher3/16、学生1/16。所有初始状态字段误差0，学生无invalid输入。
+原始raw/comparison保留；新CPU复算在
+`outputs/shadow-finetune/shadow-native-pilot-20261015-r1/pilot-native/simultaneous-hold-split-audit.json`，
+按对象和split分别报告，避免把一次TRAIN成功当作DEV泛化。后续evaluate修正继承的policy文本，
+完整核对初始字段，并要求抬升和保持发生在同一时段；这不改变本次raw轨迹。
+
+判断UNCLEAR：原生监督与闭环链路可运行，但小样本尚无DEV成功，不能检验数据量解释。
+CPU已从全部83个已有raw replay准备完整候选cache，耗时183.9秒；未启动新的全量GPU训练。
+`outputs/shadow-finetune/policy-data-full-20261015-r1/counts-and-split-audit.json`记录：
+TRAIN1567物体/10118轨迹/1536897窗，DEV388物体/2338轨迹/354761窗，物体交集0。
+这是终点5cm及运动筛选后的12456候选轨迹，不是全33056轨迹均参与；34条无完整安全窗被拒绝。
+下一步需要同域小/大数据matched Probe，保持优化预算、heldout面板和reset一致；本轮临时单卡授权
+只用于已完成的小测试，不自动扩展长期占卡。未来证据：更充分拟合、多seed和稳定接触认证。

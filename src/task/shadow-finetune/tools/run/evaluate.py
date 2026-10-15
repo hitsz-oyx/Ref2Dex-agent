@@ -4,13 +4,6 @@ from pathlib import Path
 TASK=Path(__file__).resolve().parents[2];ROOT=TASK.parents[2]
 
 
-def longest_true(mask):
-    best=run=0
-    for x in mask:
-        run=run+1 if x else 0;best=max(best,run)
-    return best
-
-
 def worker(a):
     # Importing the pinned collector executes no torch imports; worker imports IsaacGym first.
     source=ROOT/'src/task/video-data-preparation/tools/run/replay_unidexgrasp.py'
@@ -31,6 +24,9 @@ def worker(a):
     marker="    result = dict(status='COMPLETE',episodes=records"
     if text.count(marker)!=1:raise ValueError('pinned completion hook changed')
     text=text.replace(marker,"    write_json(args.output/'controller-audit.json',dict(student=shadow_controller.model is not None,invalid_envs=sorted(shadow_controller.invalid)))\n"+marker)
+    policy="policy='official deterministic state actor, strict weights'"
+    if text.count(policy)!=1:raise ValueError('pinned policy metadata changed')
+    text=text.replace(policy,"policy=('official deterministic state actor, strict weights' if shadow_controller.model is None else 'self-trained WAM Shadow query actor; '+str(args.checkpoint))")
     dest=a.output/'runtime_replay.py';dest.write_text(text)
     spec=importlib.util.spec_from_file_location('shadow_runtime_replay',dest);module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
     sys.path.insert(0,str(TASK/'src'))
@@ -62,17 +58,17 @@ def main():
         with (out/'worker.log').open('x') as log:
             result=subprocess.run(cmd,env=env,stdout=log,stderr=subprocess.STDOUT,timeout=600)
         if result.returncode:raise RuntimeError(role+' native worker failed; see '+str(out/'worker.log'))
+        sys.path.insert(0,str(TASK/'src'))
+        from shadow_finetune.metrics import native_report
+        identities=json.loads((out/'environment-objects.json').read_text())
         with np.load(out/'episode-00.npz',allow_pickle=False) as z:
-            initial[role]={k:z[k][0].copy() for k in ('q','object','hand')}
-            distance=np.linalg.norm(z['object'][...,:3]-z['goal'],axis=-1);lift=z['object'][...,2].max(0)-z['object'][0,:,2]
-            held=np.array([longest_true(distance[:,i]<=.05) for i in range(a.envs)])
-            reports[role]=dict(episodes=a.envs,official_success=int((z['success'][-1]>0).sum()),
-                final_within5cm=int((distance[-1]<=.05).sum()),held60_and_lift10cm=int(((held>=60)&(lift>=.1)).sum()),
-                longest_goal_hold_frames=held.tolist(),max_lift_m=lift.tolist(),final_goal_distance_m=distance[-1].tolist())
+            initial[role]={k:z[k][0].astype(np.float64) for k in ('q','dq','object','hand','hand_root','observation','goal','success','reset')}
+            reports[role]=native_report(z,identities)
+        reports[role]['controller_audit']=json.loads((out/'controller-audit.json').read_text())
     initial_error={k:float(np.max(np.abs(initial['teacher'][k]-initial['student'][k]))) for k in initial['teacher']}
     if max(initial_error.values())>1e-6:raise ValueError('teacher/student initial states differ: '+str(initial_error))
     report=dict(status='COMPLETED',seed=a.seed,roles=reports,initial_state_max_error=initial_error,
-        metric='official sticky5cm flag, terminal5cm, and observed60 consecutive60Hz states within5cm with>=10cm lift',
+        metric='official sticky5cm flag, terminal5cm, and60 consecutive60Hz states simultaneously within5cm and>=10cm above initial height',
         scope='small single-seed Probe; no stable-contact certification or data-size causal claim')
     (a.output/'comparison.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))
 
