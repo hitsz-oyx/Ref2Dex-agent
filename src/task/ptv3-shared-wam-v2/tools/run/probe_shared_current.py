@@ -47,9 +47,12 @@ def main():
     write()
     env=dict(os.environ,REF2DEX_RUN_ROOT=str(ROOT),CUDA_VISIBLE_DEVICES='')
     arms=[('masked',6),('delta0',7)]
+    def run_path(arm,smoke):
+        # The existing trainer's scratch key is output.name, so use unique run basenames.
+        return out/(('smoke-' if smoke else 'train-')+arm+'-'+out.name.rsplit('-',1)[-1])
     def train(item,smoke):
-        arm,gpu=item;name=('smoke-' if smoke else 'train-')+arm
-        cmd=[sys.executable,str(TASK/'tools/run/launch_robot_finetune.py'),'--output',str(out/name),
+        arm,gpu=item;target=run_path(arm,smoke);name=target.name
+        cmd=[sys.executable,str(TASK/'tools/run/launch_robot_finetune.py'),'--output',str(target),
             '--config',str(out/(arm+'.json')),'--stats',str(parent/'stats_step80000.json'),
             '--source',str(ROOT/'outputs/ptv3-shared-wam-v2/dexplore-current-rollout-20261015-r1'),
             '--init-shared',str(parent/'step80000.pt'),'--init-robot',str(robot),
@@ -59,7 +62,7 @@ def main():
         with (out/(name+'.log')).open('x') as log:subprocess.run(cmd,env=env,stdout=log,stderr=subprocess.STDOUT,check=True)
     try:
         with ThreadPoolExecutor(max_workers=2) as pool:list(pool.map(lambda x:train(x,True),arms))
-        runs=[out/('smoke-'+arm) for arm,_ in arms]
+        runs=[run_path(arm,True) for arm,_ in arms]
         manifests=[json.loads((r/'manifest.json').read_text()) for r in runs]
         configs=[{k:v for k,v in m['config'].items() if k!='current_observation_input'} for m in manifests]
         assert configs[0]==configs[1]
@@ -81,7 +84,7 @@ def main():
         legacy=TASK.parent/'ptv3-shared-wam'
         def native(item,sequence,controls,label,smoke=False):
             arm,gpu=item;name='native-'+arm+'-'+label;target=out/name
-            checkpoint=out/(('smoke-' if smoke else 'train-')+arm)/('step4.pt' if smoke else 'step1000.pt')
+            checkpoint=run_path(arm,smoke)/('step4.pt' if smoke else 'step1000.pt')
             cmd=[sys.executable,str(legacy/'tools/run/launch_native.py'),'--model-version','v2','--shared-actor',
                 '--checkpoint',str(checkpoint),'--output',str(target),'--gpu',str(gpu),'--controls',str(controls),
                 '--execution-steps','1','--seed','148','--sequence',sequence,'--experiment-card',str(card)]
@@ -99,7 +102,7 @@ def main():
             return item[0],{label:native(item,seq,n,label) for label,seq,n in
                 [('airplane','s10_airplane_pass_1',149),('sphere','s4_spheresmall_pass_1',141),('mug','s10_mug_pass_1',172)]}
         with ThreadPoolExecutor(max_workers=2) as pool:results=dict(pool.map(qualify,arms))
-        final={arm:json.loads((out/('train-'+arm)/'curve.json').read_text())[-1] for arm,_ in arms}
+        final={arm:json.loads((run_path(arm,False)/'curve.json').read_text())[-1] for arm,_ in arms}
         assert all(m['step']==1000 for m in final.values())
         (out/'comparison.json').write_text(json.dumps(dict(status='COMPLETED',final=final,native=results,
             scope='One-seed shared7k+1000 paired current-input Probe; no formal success rate'),indent=2)+'\n')

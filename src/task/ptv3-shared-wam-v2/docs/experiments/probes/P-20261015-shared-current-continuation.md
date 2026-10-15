@@ -5,7 +5,7 @@ experiment_id: P-20261015-shared-current-continuation
 date: 2026-10-15
 task: ptv3-shared-wam-v2
 branch: main
-git_commit: pending
+git_commit: 03c4fc58
 claim_id: C1
 hypothesis_family: HF-shared-current-continuation
 probe_index_in_family: 1
@@ -14,7 +14,7 @@ seeds: [198, 192, 148]
 decision_changed_if_positive: retain current information in original shared actor and test broader behavior
 decision_changed_if_negative: do not assume the wrist-only MLP signal transfers to shared chunk training
 status: RUNNING
-run_id: shared-current-continuation-20261015-r1
+run_id: shared-current-continuation-20261015-r2
 ---
 
 # 当前721D在原shared联合训练中的匹配延续
@@ -55,4 +55,9 @@ Decision Note：本轮优先验证同架构/目标下的信息干预。GPU6/7并
 总产物<=20GB，每正式训练臂<=7GB，不删除旧证据。所有代码先提交，detached工作树冻结，
 精确git_commit由运行manifest/process记录。预计正式训练约30–40min，结束后自动native。
 
-入口tools/run/probe_shared_current.py；产物outputs/ptv3-shared-wam-v2/shared-current-continuation-20261015-r1/。
+入口tools/run/probe_shared_current.py；产物outputs/ptv3-shared-wam-v2/shared-current-continuation-20261015-r2/。
+
+启动记录：03c4fc58的r1在GPU计算前因隔离工作树缺PointWorld只读vendor依赖而退出。
+保留r1与tmp/smoke-{masked,delta0}原始日志，不计方法负结果。r2连接同旧shared固定工作树
+使用的PointWorld vendor，并使训练output basename包含run suffix，避免复用旧scratch日志。
+实验输入、预算、权重、种子与两臂差异不变；修复后执行提交以r2/process.json为准。
