@@ -1,0 +1,10 @@
+{
+  "title": "UniDexGrasp / UniDexGrasp++: ShadowHand grasp generation and policy learning",
+  "papers": [
+    {"title": "UniDexGrasp: Universal Robotic Dexterous Grasping via Learning Diverse Proposal Generation and Goal-Conditioned Policy", "arxiv_url": "https://arxiv.org/abs/2303.00938", "code_url": "https://github.com/PKU-EPIC/UniDexGrasp", "local_code": "third_party/UniDexGrasp"},
+    {"title": "UniDexGrasp++: Improving Dexterous Grasping Policy Learning via Geometry-aware Curriculum and Iterative Generalist-Specialist Learning", "arxiv_url": "https://arxiv.org/abs/2304.00464", "code_url": "https://github.com/PKU-EPIC/UniDexGrasp2", "local_code": "third_party/UniDexGrasp2", "local_policy_source_commit": "6c9e710b04769bf5d9765e3233820101cb3d718f"}
+  ],
+  "verification_date": "2026-10-15",
+  "notes": "policy-data-finetuning-audit.md",
+  "disambiguation": "Different from 2026 unidex-ai/UniDex, whose existing notes remain in paper/unidex."
+}
