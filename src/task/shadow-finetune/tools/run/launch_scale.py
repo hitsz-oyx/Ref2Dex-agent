@@ -1,4 +1,4 @@
-"""One-GPU, one-hour owned supervisor for the frozen small/full Probe."""
+"""One-GPU, one-hour owned supervisor for frozen matched Shadow Probes."""
 import argparse
 import json
 import os
@@ -32,8 +32,15 @@ def main():
     if gpu_pids(a.gpu):raise RuntimeError('selected GPU occupied')
     commands=json.loads((run/'commands.json').read_text());controls=json.loads((run/'controls.json').read_text())
     if controls['settings']['updates']>2000:raise ValueError('bounded Probe only')
+    arms=controls.get('arms',['small','full'])
+    summary_entry=controls.get('summary_entry','summarize_scale.py')
+    artifact_budget=int(controls.get('artifact_budget_bytes',14*10**9))
+    if not 0<artifact_budget<=14*10**9:raise ValueError('bounded artifact budget required')
+    if summary_entry not in ('summarize_scale.py','summarize_startup.py') or set(commands)!=set(arms):
+        raise ValueError('declared comparison stages required')
     child=None;stop=[];started=time.monotonic()
     status=dict(status='RUNNING',supervisor_pid=os.getpid(),gpu=a.gpu,stages=[],max_seconds=3600,
+                artifact_budget_bytes=artifact_budget,
                 git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=TASK,text=True).strip(),
                 code_root=str(TASK.parents[2]),authorization='user permits one temporarily idle card for small Shadow tests')
     for sig in (signal.SIGINT,signal.SIGTERM):signal.signal(sig,lambda number,frame:stop.append(number))
@@ -57,8 +64,8 @@ def main():
             if stop:raise RuntimeError('user signal')
             if time.monotonic()-started>3600:raise TimeoutError('one-hour complete comparison budget')
             if shutil.disk_usage(run).free<20*2**30:raise RuntimeError('20GiB free floor')
-            if int(subprocess.check_output(['du','-sb',str(run)],text=True).split()[0])>14*10**9:
-                raise RuntimeError('14GB artifact budget')
+            if int(subprocess.check_output(['du','-sb',str(run)],text=True).split()[0])>artifact_budget:
+                raise RuntimeError('artifact budget exceeded')
             for path,stamp in stamps.items():
                 if [Path(path).stat().st_size,Path(path).stat().st_mtime_ns]!=stamp:
                     raise RuntimeError('frozen Task code changed')
@@ -72,10 +79,12 @@ def main():
         if child.returncode:raise RuntimeError('stage failed: '+name)
     write()
     try:
-        for arm in ('small','full'):
+        for arm in arms:
             execute('train-'+arm,commands[arm]['train'])
             execute('native-final-'+arm,commands[arm]['evaluate_final'])
-        execute('summary',[sys.executable,str(TASK/'tools/audit/summarize_scale.py'),'--run',str(run)])
+        summary=[sys.executable,str(TASK/'tools/audit'/summary_entry),'--run',str(run)]
+        if summary_entry=='summarize_startup.py':summary+=['--gpu',str(a.gpu)]
+        execute('summary',summary)
         status['status']='COMPLETED'
     except BaseException as error:status.update(status='FAILED',error=repr(error))
     finally:

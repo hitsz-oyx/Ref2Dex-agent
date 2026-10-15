@@ -102,6 +102,21 @@ class ShadowWindows:
     def draw(self,rng,size):
         return [int(rng.choice(self.pools[int(rng.integers(len(self.pools)))])) for _ in range(size)]
 
+    def draw_startup(self,rng,size,fraction):
+        """Mixture of the original draw and TRAIN-only sequence-uniform tick0..7."""
+        if not np.isfinite(fraction) or not 0<=fraction<=1:raise ValueError('startup fraction in [0,1]')
+        if fraction==0:return self.draw(rng,size)
+        if self.split!='train':raise ValueError('startup sampling is TRAIN-only')
+        if not hasattr(self,'_startup_pools'):
+            self._startup_pools=[p[[self.keys[int(i)][1]<8 for i in p]] for p in self.pools]
+            self._startup_pools=[p for p in self._startup_pools if len(p)]
+        if not self._startup_pools:raise ValueError('no admitted startup queries')
+        result=[]
+        for _ in range(size):
+            pools=self._startup_pools if rng.random()<fraction else self.pools
+            result.append(int(rng.choice(pools[int(rng.integers(len(pools)))])))
+        return result
+
     def normalization(self):
         if self.split!='train':raise ValueError('TRAIN normalization only')
         state=[];action=[]

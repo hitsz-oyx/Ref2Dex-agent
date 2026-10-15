@@ -9,6 +9,7 @@ def main():
     p.add_argument('--output',type=Path,required=True);p.add_argument('--parent',type=Path)
     p.add_argument('--gpu',type=int,default=6);p.add_argument('--steps',type=int,default=2000)
     p.add_argument('--batch-size',type=int,default=64);p.add_argument('--seed',type=int,default=210)
+    p.add_argument('--startup-fraction',type=float,default=0.,help='Mixture fraction sampling admitted TRAIN query ticks0..7')
     p.add_argument('--controls',type=Path,help='Frozen small/full comparison controls; shared TRAIN-only normalizer and DEV panel')
     p.add_argument('--max-seconds',type=int,default=2400);p.add_argument('--smoke',action='store_true')
     a=p.parse_args();os.environ['CUDA_VISIBLE_DEVICES']=str(a.gpu)
@@ -30,7 +31,7 @@ def main():
         if a.smoke:raise ValueError('comparison settings require the declared scientific update budget')
         from shadow_finetune.scale_controls import load_controls
         controls,dev,validation,normalization=load_controls(a.controls,a.data,a.parent or paths.PARENT,
-                                                          a.seed,a.steps,a.batch_size)
+                                                          a.seed,a.steps,a.batch_size,a.startup_fraction)
     else:
         dev=ShadowWindows(a.data,'dev');validation=np.random.default_rng(212).choice(len(dev),min(64,len(dev)),replace=False)
         normalization=train.normalization()
@@ -46,6 +47,10 @@ def main():
         code_root=str(TASK.parents[2]),
         train_windows=len(train),dev_windows=len(dev),control_hz=60,actor_state='full current native300',
         goal='decision-known task goal position, current orientation',action='canonical pre-transform 24D commands, eight60Hz controls; execute first')
+    if not np.isfinite(a.startup_fraction) or not 0<=a.startup_fraction<=1:
+        raise ValueError('startup fraction in [0,1]')
+    manifest['sampler']=dict(startup_fraction=a.startup_fraction,startup_max_tick=7,
+                             base='sequence uniform then uniform admitted query')
     if controls:
         manifest.update(comparison_controls=str(a.controls.resolve()),comparison=controls,
                         validation_cache=controls['validation_cache'],normalization_source=controls['normalization_source'])
@@ -54,10 +59,14 @@ def main():
     write('manifest.json',manifest);np.save(out/'validation.npy',validation)
     if controls:
         np.savez(out/'initial-actor.npz',**{k:v.detach().cpu().numpy() for k,v in model.actor.state_dict().items()})
-    curves=[];best=float('inf');started=time.monotonic()
+    curves=[];best=float('inf');started=time.monotonic();draw_counts=dict(samples=0,startup=0,tick0=0)
     try:
         for step in range(1,manifest['updates']+1):
-            batch=to_device(collate([train[i] for i in train.draw(rng,a.batch_size)]),'cuda')
+            ids=train.draw_startup(rng,a.batch_size,a.startup_fraction)
+            draw_counts['samples']+=len(ids)
+            draw_counts['startup']+=sum(train.keys[i][1]<8 for i in ids)
+            draw_counts['tick0']+=sum(train.keys[i][1]==0 for i in ids)
+            batch=to_device(collate([train[i] for i in ids]),'cuda')
             model.train();optimizer.zero_grad(set_to_none=True)
             with torch.autocast('cuda',dtype=torch.bfloat16):
                 pred=model(batch);total,terms=loss(pred,batch,config,model)
@@ -68,7 +77,8 @@ def main():
             if step==1 or step%20==0 or step==manifest['updates']:
                 torch.cuda.synchronize();elapsed=time.monotonic()-started
                 row=dict(step=step,loss=float(total),terms={k:float(v) for k,v in terms.items()},elapsed_s=elapsed,
-                    eta_s=elapsed/step*(manifest['updates']-step),peak_allocated_mib=torch.cuda.max_memory_allocated()/2**20)
+                    eta_s=elapsed/step*(manifest['updates']-step),peak_allocated_mib=torch.cuda.max_memory_allocated()/2**20,
+                    sampling_counts=dict(draw_counts))
                 write('progress.json',row)
                 with (out/'train.jsonl').open('a') as f:f.write(json.dumps(row)+'\n')
                 print(json.dumps(row),flush=True)
@@ -97,7 +107,7 @@ def main():
                 if sum(p.stat().st_size for p in out.glob('step*.pt'))>12*10**9:raise RuntimeError('12GB checkpoint budget')
             if time.monotonic()-started>a.max_seconds:raise TimeoutError('bounded train deadline')
             if shutil.disk_usage(out).free<20*2**30:raise RuntimeError('20GiB floor')
-        manifest.update(status='COMPLETED',elapsed_s=time.monotonic()-started);write('manifest.json',manifest)
+        manifest.update(status='COMPLETED',elapsed_s=time.monotonic()-started,sampling_counts=draw_counts);write('manifest.json',manifest)
     except BaseException as error:
         manifest.update(status='FAILED',error=repr(error));write('manifest.json',manifest);raise
 

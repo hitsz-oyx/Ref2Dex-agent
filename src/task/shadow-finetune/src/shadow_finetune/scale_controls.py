@@ -7,6 +7,7 @@ import numpy as np
 from .data import ShadowWindows
 
 SCHEMA = 'ref2dex.shadow-data-scale.v1'
+STARTUP_SCHEMA = 'ref2dex.shadow-startup-sampling.v1'
 SHAPES = dict(state_mean=(300,), state_scale=(300,), action_mean=(8, 24), action_scale=(8, 24))
 
 
@@ -62,10 +63,13 @@ def normalizer_arrays(values):
     return result
 
 
-def load_controls(path, train_cache, parent, seed, updates, batch_size):
+def load_controls(path, train_cache, parent, seed, updates, batch_size, startup_fraction=0.):
     c = json.loads(Path(path).read_text())
-    if c.get('schema') != SCHEMA or c.get('status') != 'PREPARED':
+    if c.get('schema') not in (SCHEMA,STARTUP_SCHEMA) or c.get('status') != 'PREPARED':
         raise ValueError('prepared scale controls required')
+    expected_fraction=c.get('startup_fraction',0.) if c['schema']==STARTUP_SCHEMA else 0.
+    if startup_fraction!=expected_fraction:
+        raise ValueError('comparison startup sampling changed')
     if str(Path(train_cache).resolve()) not in c['training_caches'].values():
         raise ValueError('unregistered training cache')
     if c['settings'] != dict(parent=str(Path(parent).resolve()), seed=seed,

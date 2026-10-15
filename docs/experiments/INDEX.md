@@ -345,7 +345,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261015-mse-multimodality-audit](../../src/task/ptv3-shared-wam-v3/docs/experiments/probes/P-20261015-mse-multimodality-audit.md) | Existing-weight conditional multimodality audit | 见原卡 | 见原卡 | probes/RUNNING |
+| [P-20261015-mse-multimodality-audit](../../src/task/ptv3-shared-wam-v3/docs/experiments/probes/P-20261015-mse-multimodality-audit.md) | Existing-weight conditional multimodality audit | 见原卡 | 见原卡 | probes/UNCLEAR |
 
 ## HF-native-gpu-execution-contract
 
@@ -576,11 +576,23 @@
 | --- | --- | --- | --- | --- |
 | [P-20261005-rolling-oracle-control](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-rolling-oracle-control.md) | Ref14_1: executed Rolling GT-Y Oracle Control | PROMISING on the predeclared 32-anchor gate: baseline 23/32, actual | Execute same-current-state rolling oracle before any new predictor, long-Y, execution forecasting or PPO. | probes/PROMISING |
 
+## HF-shadow-data-scale
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261015-shadow-data-scale](../../src/task/shadow-finetune/docs/experiments/probes/P-20261015-shadow-data-scale.md) | ShadowHand：固定计算预算的小数据/全量数据对照 | 见原卡 | 见原卡 | probes/UNCLEAR |
+
 ## HF-shadow-native-policy
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261015-shadow-native-policy](../../src/task/shadow-finetune/docs/experiments/probes/P-20261015-shadow-native-policy.md) | 在ShadowHand自身环境中检验WAM动作微调 | 见原卡 | 见原卡 | probes/RUNNING |
+| [P-20261015-shadow-native-policy](../../src/task/shadow-finetune/docs/experiments/probes/P-20261015-shadow-native-policy.md) | 在ShadowHand自身环境中检验WAM动作微调 | 见原卡 | 见原卡 | probes/UNCLEAR |
+
+## HF-shadow-startup-sampling
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261015-shadow-startup-sampling](../../src/task/shadow-finetune/docs/experiments/probes/P-20261015-shadow-startup-sampling.md) | Shadow起步采样：同一全量数据的最小干预 | 见原卡 | 见原卡 | probes/PLANNED |
 
 ## HF-shared-action-interface
 
