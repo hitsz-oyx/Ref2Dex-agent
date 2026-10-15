@@ -31,7 +31,13 @@ def predict_wrist(probe, x):
     z = (x-stats['xmean'])/stats['xstd']
     if arm == 'state_goal':
         z[:, 90:] = 0
-    prediction = net(z)*stats['ystd']+stats['ymean']
+    # Archived Torch2.0.1/cu118 on this host miscomputes the512->6 CUDA
+    # Linear for a single row; replayed layer traces agree at batch2/16.
+    # Keep both duplicate rows identical, then discard the second result.
+    rows = len(z)
+    if z.is_cuda and rows == 1:
+        z = z.repeat(2, 1)
+    prediction = net(z)[:rows]*stats['ystd']+stats['ymean']
     if not torch.isfinite(prediction).all():
         raise FloatingPointError('Nonfinite wrist command')
     return prediction

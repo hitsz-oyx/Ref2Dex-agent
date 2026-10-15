@@ -60,6 +60,14 @@ command，原command和PD审计仍1e-6），不宣称完整721每字段的独立
 加载MLP在fork_rng内建网络，不改变teacher/environment RNG流。保存完整前后命令与输入。
 如审计/未来不变性失败，只修关键实现再跑受影响部分，不将失败计作方法负证据。
 
+首个native-smoke工程执行完成，但独立MLP重放失败：CPU/graspenv GPU相同，归档native
+Torch2.0.1/cu118单行MLP差达0.35command，不能进入行为证据。逐层固定输入/权重重放
+显示前8层误差<1e-6，最后512→6 Linear单行误差0.782normalized；batch2/16均<1e-6。
+TF32开关不改变此现象。限定为本机/归档runtime观察，不推断所有Torch2.0或旧策略都有此bug。
+原smoke目录保留，标INVALID_IMPLEMENTATION（工程记录，无科研结论）。修复仅对CUDA
+单行MLP重复两行后取首行，不更改权重/归一化/控制合同；CPU和原shared路径均不变。
+重新smoke及原有1e-4模型重放阈值必须通过，不能放宽阈值掩盖执行错误。
+
 运行PID2492215/2492216均退出，GPU6/7已释放。训练快于首次资源轮询，未留存训练中
 nvidia-smi利用率采样；实际运行设备/代码由各manifest和launch.json记录。后续同类快速
 Probe应在step1内保存显存/利用率，不能把完成后的0%当训练效率。原Shadow4/5保持运行。
