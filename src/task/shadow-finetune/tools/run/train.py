@@ -9,6 +9,7 @@ def main():
     p.add_argument('--output',type=Path,required=True);p.add_argument('--parent',type=Path)
     p.add_argument('--gpu',type=int,default=6);p.add_argument('--steps',type=int,default=2000)
     p.add_argument('--batch-size',type=int,default=64);p.add_argument('--seed',type=int,default=210)
+    p.add_argument('--controls',type=Path,help='Frozen small/full comparison controls; shared TRAIN-only normalizer and DEV panel')
     p.add_argument('--max-seconds',type=int,default=2400);p.add_argument('--smoke',action='store_true')
     a=p.parse_args();os.environ['CUDA_VISIBLE_DEVICES']=str(a.gpu)
     from shadow_finetune import paths
@@ -24,18 +25,29 @@ def main():
     os.environ.update(TMPDIR=str(scratch),TORCH_EXTENSIONS_DIR=str(paths.ROOT/'tmp/shared-wam-v2-extensions'))
     parent=torch.load(a.parent or paths.PARENT,map_location='cpu',weights_only=False)
     if parent.get('schema')!='ref2dex.ptv3-shared-wam.v2' or parent.get('stage')!='pretrain':raise ValueError('v2 pretrain parent')
-    config=parent['config'];stats=parent['stats'];train=ShadowWindows(a.data,'train');dev=ShadowWindows(a.data,'dev')
+    config=parent['config'];stats=parent['stats'];train=ShadowWindows(a.data,'train');controls=None
+    if a.controls:
+        if a.smoke:raise ValueError('comparison settings require the declared scientific update budget')
+        from shadow_finetune.scale_controls import load_controls
+        controls,dev,validation,normalization=load_controls(a.controls,a.data,a.parent or paths.PARENT,
+                                                          a.seed,a.steps,a.batch_size)
+    else:
+        dev=ShadowWindows(a.data,'dev');validation=np.random.default_rng(212).choice(len(dev),min(64,len(dev)),replace=False)
+        normalization=train.normalization()
     model=ShadowPolicy(stats,config);model.forecaster.load_state_dict(parent['model'],strict=True)
     with torch.no_grad():
-        for k,v in train.normalization().items():getattr(model.actor,k).copy_(torch.as_tensor(v))
+        for k,v in normalization.items():getattr(model.actor,k).copy_(torch.as_tensor(v))
     model.cuda();optimizer=torch.optim.AdamW(model.groups(),weight_decay=.01,fused=True)
-    rng=np.random.default_rng(a.seed);validation=np.random.default_rng(212).choice(len(dev),min(64,len(dev)),replace=False)
+    rng=np.random.default_rng(a.seed)
     manifest=dict(schema=paths.SCHEMA,status='RUNNING',engineering_only=a.smoke,data=str(a.data.resolve()),
         parent=str((a.parent or paths.PARENT).resolve()),parent_step=parent['step'],config=config,stats=stats,
         parameters=sum(p.numel() for p in model.parameters()),seed=a.seed,updates=4 if a.smoke else a.steps,
         batch_size=a.batch_size,gpu=a.gpu,git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=paths.ROOT,text=True).strip(),
         train_windows=len(train),dev_windows=len(dev),control_hz=60,actor_state='full current native300',
         goal='decision-known task goal position, current orientation',action='canonical pre-transform 24D commands, eight60Hz controls; execute first')
+    if controls:
+        manifest.update(comparison_controls=str(a.controls.resolve()),comparison=controls,
+                        validation_cache=controls['validation_cache'],normalization_source=controls['normalization_source'])
     def write(name,payload):
         tmp=out/(name+'.part');tmp.write_text(json.dumps(payload,indent=2,allow_nan=False)+'\n');tmp.replace(out/name)
     write('manifest.json',manifest);np.save(out/'validation.npy',validation)

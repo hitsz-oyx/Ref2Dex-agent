@@ -48,3 +48,8 @@ python tools/run/launch_probe.py --data <cache> --panel <panel.json> --output <f
 安全tick支持集合一致、TRAIN/DEV物体无交集。可用
 `tools/audit/audit_cache.py --cache <cache> --output <fresh audit directory>`复核；
 报告在`outputs/shadow-finetune/full-cache-audit-20261015-r1/report.json`。
+
+下一步大小数据对照用`tools/run/prepare_scale_comparison.py`生成共享controls与命令，
+两臂均以small TRAIN拟合state/action统计、使用同full DEV64窗及同父模型/初始化/预算。
+`train.py --controls <controls.json>`会拒绝settings、输入manifest或DEV物理身份漂移。
+准备入口不启动GPU；详见[数据量对照卡](docs/experiments/probes/P-20261015-shadow-data-scale.md)。
