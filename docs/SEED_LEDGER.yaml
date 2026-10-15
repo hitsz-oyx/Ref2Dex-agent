@@ -25,6 +25,13 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261015-R-current-information:
+    seed_pool: probe
+    model_extra_encoder_seed: 160
+    matched_training_draw_seed: 161
+    TRAIN_report_panel_seed: 162
+    reuse_reason: four matched input arms share one R checkpoint and batch stream; existing dev panel is reused exploratory evidence
+
   P-20261014-rl660-realized-q-replay:
     seed_pool: probe
     paired_physics_seed: 148
