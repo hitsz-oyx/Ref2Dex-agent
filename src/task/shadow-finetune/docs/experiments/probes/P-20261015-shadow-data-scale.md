@@ -5,7 +5,7 @@ experiment_id: P-20261015-shadow-data-scale
 date: 2026-10-15
 task: shadow-finetune
 branch: main
-git_commit: c3f8f7bc
+git_commit: 57737b7b
 claim_id: C1
 hypothesis_family: HF-shadow-data-scale
 probe_index_in_family: 1
@@ -13,8 +13,8 @@ seed_pool: probe
 seeds: [214, 215, 216]
 decision_changed_if_positive: prioritize larger native Shadow dataset and broader paired success panel
 decision_changed_if_negative: inspect fitting and closed-loop distribution shift before longer scaling
-status: PREPARED
-run_id: shadow-scale-controls-20261015-r1
+status: RUNNING
+run_id: shadow-scale-controls-20261015-r2
 ---
 
 # ShadowHand：固定计算预算的小数据/全量数据对照准备
@@ -47,15 +47,15 @@ Class: Decision。用户要先在ShadowHand自身环境微调并看成功率，�
 
 ## 资源与当前状态
 
-本轮只准备代码、controls和CPU元数据/小集统计，不启动GPU，不延长已完成的临时单卡测试。
-常规资源仍须本地留2卡；原Inspire三臂GPU0–5继续、6/7空闲。将来的两臂粗估各10–30分钟，
-但真实full I/O吞吐尚未测量，不视作已批准长训。每训练入口2400秒/12GB checkpoint/20GiB空闲
-保护继续生效；native每worker600秒。不得为了对照暂停既有任务或自动占用保留卡。
+准备阶段先完成代码、controls和CPU小集统计；随后按下面Decision Note进入临时单卡短Probe。
+常规资源须本地留2卡，本次使用用户明确允许的一张临时空卡：原Inspire三臂GPU0–5继续，
+Shadow GPU6两臂各1000步、总1小时，GPU7空闲。每训练入口2400秒/12GB checkpoint/20GiB空闲
+保护继续生效；native每worker600秒。不得为对照暂停既有任务或扩成长训。
 
 输入manifest、父checkpoint、native panel保存size/mtime身份；启动拒绝settings/panel/input漂移。
 `tools/run/prepare_scale_comparison.py`只生成controls和命令，`train.py --controls`才消费同一份配置。
 6项Task合同测试涵盖物理同一子集与标签变动拒绝、同DEV/同归一化，以及设置/输入漂移拒绝。
-当前尚无本实验GPU训练、checkpoint或成功率结果。
+当前已进入GPU训练，尚无本实验最终对照或成功率结果。
 
 ## 真实输入准备回执
 
@@ -70,7 +70,7 @@ CPU加载/拼batch64、每臂6批：small均值0.076秒（热缓存约0.049秒�
 尚未包含GPU模型计算，不将这次测量当训练吞吐。初估1000步仍应在原2400秒训练guard内，
 真正启动后须重新观察GPU利用率与ETA。未因低吞吐测量自行修改matched batch或训练步数。
 证据`readiness-audit.json`位于上述目录，CPU复核脚本保存在`tmp/shadow_scale_readiness_20261015.py`。
-本轮没有新的GPU进程；PREPARED不是数据量效应的结果。
+以上准备回执记录时未启动GPU；准备通过不是数据量效应的结果。
 
 ## Decision Note / 从准备进入有界GPU Probe
 
@@ -93,6 +93,19 @@ CPU加载/拼batch64、每臂6批：small均值0.076秒（热缓存约0.049秒�
 2081606和child2081619均终止，保留原process/log；这不是拟合或方法负证据。
 修复仅在新工作树第三方目录内挂载原固定ptv3包，启动入口先检查依赖文件，另建r2输出，
 不改实验配置、不覆盖r1、不重新启动任何Inspire或远端训练。
+
+## r2实际启动回执
+
+依赖补齐后r2已启动，固定57737b7b、detached工作树`tmp/shadow-scale-code-20261015-r2`，
+supervisor2083589、首个train-small child2083598。r1/r2 scientific controls逐字段相同，
+仅代码身份/执行目录改变；原始失败记录保留。任务层7项合同测试和工作流验证通过。
+
+已实际更新到small step180/1000，loss0.77581（hand0.09330/scene0.44575/action0.23675），
+峰值allocated2991MiB，稳态约0.55秒/步，剩余small约7.6分钟；整轮暂估25–35分钟，
+full吞吐须在真正启动后再测。50秒采样GPU6平均77.8%利用率、最大3637MiB，GPU7始终0%/2MiB。
+真实初始actor51个state tensors已保存，四个normalizer buffer与controls逐值一致，DEV IDs完全
+一致、父权重step80000。`startup-control-audit.json`与`startup-observations.json`在r2目录。
+完整跨臂初始actor/仿真初态核验仍待full臂完成；不把small启动核验当全部matching通过。
 
 ## Limitations / future evidence
 

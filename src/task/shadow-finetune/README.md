@@ -20,7 +20,8 @@ Shadow成功不单独证明Inspire失败由数据量造成。
 这只是BC候选，不等价稳定抓持认证。当前实际7TRAIN物体41条/6232窗、2DEV物体10条/1520窗。
 一个被选TRAIN物体没有合格候选，记录后不制造样本。完整候选cache现已从2066物体来源准备：
 筛选后TRAIN1567物体/10118轨迹/1536897窗、DEV388物体/2338轨迹/354761窗，物体交集0。
-尚未进行全量GPU微调。
+当前固定预算大小数据Probe已在GPU6启动：small1000步后依次进行native、full1000步和native；
+尚无该对照结果。实际状态见[Task状态](docs/STATE.md)。
 
 入口：
 
@@ -52,4 +53,5 @@ python tools/run/launch_probe.py --data <cache> --panel <panel.json> --output <f
 下一步大小数据对照用`tools/run/prepare_scale_comparison.py`生成共享controls与命令，
 两臂均以small TRAIN拟合state/action统计、使用同full DEV64窗及同父模型/初始化/预算。
 `train.py --controls <controls.json>`会拒绝settings、输入manifest或DEV物理身份漂移。
-准备入口不启动GPU；详见[数据量对照卡](docs/experiments/probes/P-20261015-shadow-data-scale.md)。
+准备入口不启动GPU，执行由`launch_scale.py`在固定工作树中监督，整轮只占一张GPU、≤1小时。
+详见[数据量对照卡](docs/experiments/probes/P-20261015-shadow-data-scale.md)。
