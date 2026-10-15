@@ -24,9 +24,13 @@ max1.1206e-5、MAE6.0609e-8、1e-4阈值下异常0，20.09秒/peak77.1MiB。
 
 完整forecast支持只保留安全action8候选中351321/706676个近目标query，晚期BC覆盖明显减少。
 但当前仍有7868/10118条TRAIN含近目标query，不能说完全没有保持阶段。
-原生同初态首拍root torque MAE small0.605/full0.641；先对现有终点权重做固定TRAIN/startup/
-near-goal/安全tail分层推理，重推原DEV64校验，再决定先补拟合还是尾段BC；不直接扩长训。
-该诊断沿用用户临时单空卡小测试授权，GPU6≤10分钟/4GiB模型分配/100MB报告，GPU7保留。
+分层推理已完成：small自己41个TRAIN起点首拍MAE0.22263、torque0.67439；
+full模型在配对64起点MAE0.20798，近目标0.03542、安全尾段0.03131。
+原DEV64首拍复算差<=4.03e-7，17.05秒/peak668.5MiB，无参数更新，GPU6已释放。
+41个small起点均在原训练中抽到4–16次（共427/64000），有曝光但仍拟合不足。
+下一步优先检验起步分层采样/动作拟合，尾段BC后排；不把teacher条件状态的低尾段误差
+当作排除闭环分布移位的证据，不直接归因Inspire。详情及局限见实验卡。
+报告`outputs/shadow-finetune/phase-fitting-20261015-r4/{report.json,metrics.csv,small-startup-exposure.json}`。
 
 详见[P-20261015-shadow-data-scale](experiments/probes/P-20261015-shadow-data-scale.md)，
 比较图/CSV及独立审计在r2的`summary/`目录。
