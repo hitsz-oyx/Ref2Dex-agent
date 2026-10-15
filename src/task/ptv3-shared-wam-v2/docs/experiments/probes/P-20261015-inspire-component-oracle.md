@@ -46,6 +46,19 @@ H4/87D/goal/clock与held计数；不得因加入oracle跳过旧student预测检�
 
 ## 判读
 
+执行前CPU轨迹定位：读取此前shared7k三条固定面板的已审计原始日志，检查学生腕部
+相对teacher的偏离时刻是否早于teacher首次接近物体，及学生是否曾接近物体。若已在
+接触前大幅漂移，则优先解读腕部oracle能否恢复到达物体的能力；若接触前正常而接触后
+失稳，则把手指/接触作为主候选。这是同episode描述统计，不把teacher后续动作与学生
+不同状态的动作逐帧差当作监督误差。纯数组计算使用CPU，无模型forward。
+
+该CPU检查已完成：三行initial q/hand/object完全相同。shared7k腕部相对teacher首次
+偏离5cm在飞机/球/杯第3/4/4帧，teacher首次surface gap<=3cm在42/27/43帧。
+学生全episode最小gap为0.444/0.250/0.536m，均未接近；首拍相同状态的实际PD XYZ误差
+为58.55/51.12/22.37mm。说明此三条失败在接触前已出现，不能只解释为握不牢；不等于
+证明唯一根因是腕部或信息缺失。结果及图在动作表示run的approach-timing目录，
+工具summarize_native_approach.py。该图已查看，与数组统计一致。
+
 本次row0 teacher连续held>=45帧才解释两种干预，不能沿用此前teacher62帧。
 沿用surface gap<=1cm、抬升>=3cm、排除桌面支撑的held定义。
 若只有teacher腕部救回held，优先研究student腕部跟踪/参考信息；若只有teacher手指救回，

@@ -8,8 +8,16 @@ finger相对编码、额外旋转/维度权重、未来8拍监督及其优化影
 两臂GPU6/7，同80k/fresh actor/87D+shared/strict数据/dev256/seed195/LR/batch256，
 native12 vs geometry15各2k后自动三条K1抓取；不混完整teacher输入。固定076b5c31，
 driver2298258，run=inspire-action-representation-20261015-r1。smoke及matched初始化PASS，
-15单测PASS，正式RUNNING，约1.8s/步、10.4GiB/卡、预计约1h；暂无结果。
+15单测PASS，正式RUNNING，约1.8s/步、10.4GiB/卡。中途750步native/geometry的
+DEV XYZ mean95.43/90.84mm、finger MAE0.08746/0.10449rad；原生手指稍好但位置略差，
+尚无全面改善，不据中途改选点，终点2k及native抓取待完成。
 详见P-20261015-inspire-action-representation及跨Task动作表示research笔记。
+
+CPU回看shared7k三条已完成native：学生最小手物表面gap仍0.444/0.250/0.536m；
+第3/4/4帧腕部已偏离teacher5cm，teacher第42/27/43帧才接近3cm。因此这三条首先失败
+于接近阶段，不能只解释为握不牢。新增teacher腕部/student手指和相反混控诊断已实现，
+8单测、旧日志回归和独立代码审查通过；尚未运行GPU，待现有配对释放卡后先4-step
+smoke再单条teacher-positive定位。混控不计作学生自主成功；详见component-oracle卡。
 
 ## 2026-10-15 shared原生抓取初筛完成，资源调整
 
