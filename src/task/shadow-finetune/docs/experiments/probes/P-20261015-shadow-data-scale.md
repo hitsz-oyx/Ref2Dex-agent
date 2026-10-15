@@ -107,6 +107,18 @@ full吞吐须在真正启动后再测。50秒采样GPU6平均77.8%利用率、�
 一致、父权重step80000。`startup-control-audit.json`与`startup-observations.json`在r2目录。
 完整跨臂初始actor/仿真初态核验仍待full臂完成；不把small启动核验当全部matching通过。
 
+已对small step250的实际完整checkpoint做CPU反序列化核验：1192294103字节、模型和
+optimizer张量全部有限，586个参数具有optimizer state，三个参数组学习率为5e-6/1e-5/5e-4。
+actor四个normalizer与controls逐值一致，forecaster四个统计buffer与父TRAIN统计逐值一致。
+`checkpoint-audit-step250.json`明确只覆盖所列step250，不把尚未生成/未检查阶段视为已验收。
+这是序列化/合同审计，不调用CPU模型推理；脚本`tmp/shadow_scale_checkpoint_audit_20261015.py`。
+
+补充CPU Decision诊断：对TRAIN候选统计近目标/保持阶段的时间覆盖，区分“轨迹少”与“完整
+forecast24支持把关键晚期动作丢掉”。对比现行H4/K24+动作8的query与只要求安全动作8的query；
+近目标仅定义为当前物体距任务目标<=5cm，不等同接触稳定。若多数序列完全没有保留近目标
+监督，下一步优先检验尾段action-only/partial-forecast支持；否则保持数据量对照解释边界。
+最便宜直接读已审计cache的pose/goal，CPU≤10min/200MB，不调用模型、不改变当前准入或DEV面板。
+
 ## Limitations / future evidence
 
 固定计算预算衡量更大支持集合在同预算下的收益，不能证明完整数据的收敛性能。只一个seed、
