@@ -5,7 +5,7 @@ experiment_id: P-20261015-shared-actor-interface
 date: 2026-10-15
 task: ptv3-shared-wam-v2
 branch: main
-git_commit: 4a712b57
+git_commit: 51307935
 claim_id: C1
 hypothesis_family: HF-shared-action-interface
 probe_index_in_family: 1
@@ -75,7 +75,7 @@ finger与Euler lift误差、控制饱和比例、hand/scene all24误差。离线
 
 ## 身份、运行与局限
 
-代码commit见运行manifest（本文git_commit记录模型实现，smoke启动器随后补充）；本地main含其他任务未提交
+代码commit见运行manifest与本文git_commit（运行固定51307935）；本地main含其他任务未提交
 变更，运行固定快照仅包含本实验提交及既有已提交依赖。run_id使用共同前缀加接口后缀。
 新head暂不被legacy τ物理执行入口接收，明确fail closed，正向离线信号后再实现桥接。
 本Probe不排除容量/优化/数据覆盖，不动态使用人审标签，不增训已有旧baseline。
@@ -87,3 +87,28 @@ DDP unused时间参数后通过。三臂双卡batch128的4-step全部COMPLETED/e
 输出shared-actor-smoke-{pred_tau,shared,shared_tau}-20261015-r1，完整模型/optimizer已保存。
 初步每卡峰值allocated5.5GiB，保留GPU6/7空闲；为增加吞吐，正式匹配batch改为256/rank。
 工程步骤不是拟合收益结论。
+
+## 正式启动快照 / 2026-10-15 16:05 CST
+
+双卡batch256三臂4-step再次全部COMPLETED/exit0，峰值allocated9.4GiB。
+科学run从原80k父权重重新初始化（不继承smoke），固定detached工作树
+`tmp/shared-actor-fixed-20261015-r1`，实际git_commit513079358dc151724d1cee6c0fd9835e403a8427。
+第三方PointWorld/PTv3代码复用旧固定快照相同副本；输出仍绑定主工作区，源码修改不影响运行。
+
+| arm | run目录前缀（outputs/ptv3-shared-wam-v2下） | GPU | supervisor |
+| --- | --- | --- | --- |
+| A | shared-actor-pred_tau-20261015-r1 | 0/1 | 1922935 |
+| B | shared-actor-shared-20261015-r1 | 2/3 | 1922938 |
+| C | shared-actor-shared_tau-20261015-r1 | 4/5 | 1922941 |
+
+每rank2loader workers、prefetch2、sequence cache256（主机351GiB可用，避免重复解压）；
+CPU collector1922942最多90000s，三臂完成后自动调用summarize_shared_actor.py写入
+`shared-actor-interface-20261015-r1/summary/comparison.json`，失败只记录状态，不改写原始结果。
+
+实际三臂首步loss/hand/scene/action完全相同（9.1491022/5.8830767/2.3631933/0.9028324），
+总参数均99269429。新dev256索引与严格准入JSON逐项一致，matched-startup.json为PASS。
+各臂已完成40步，速度1.797/1.859/1.804s per update，余量约6–7h含评估/保存；
+30秒GPU采样0…5平均利用率94.8/96.1/98.4/94.1/97.4/97.8%，显存最大约11GiB，
+6/7均空闲。采样与CPUwatch报告在共同run目录。首个科学DEV在500步，暂无收益结论。
+
+29项相关单测通过，VERIFY_BASE=27bd9913的工作流检查PASS。单seed离线结果边界不变。

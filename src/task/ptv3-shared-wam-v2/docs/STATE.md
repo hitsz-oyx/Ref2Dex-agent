@@ -1,3 +1,18 @@
+## 2026-10-15 shared actor三臂已并行启动
+
+先提交补采数据/严筛27bd9913，再实现参考ref1的state+预测τ、state+shared、
+state+shared+预测τ三臂。固定代码51307935，三臂同80k父权重/严格补采TRAIN93680、
+dev10376/新固定dev256/q_PD 8×15；WAM forecast继续，统一关闭GTτ anchor，无warmup。
+新CAMPAIGN允许本地用6卡且留2卡空闲：三臂GPU0/1、2/3、4/5，同时各12k更新，
+每卡256/global512；远端原四卡不受影响。supervisor1922935/1922938/1922941。
+两档batch双卡smoke全部通过，29项相关单测通过；一次encode、无GTτ泄漏/动作梯度
+/mask/物理指标/独立checkpoint选择已核对。shared-only DDP unused时间参数已修复。
+正式首步loss完全相同，参数99269429，新panel/admission逐项一致。三臂已更新40步，
+约1.8–1.9s/步、暂估6–7h完成；GPU均值94–98%，显存约11GiB，6/7空闲。
+CPU collector1922942完成后自动汇总同一步12k和selected物理指标。当前RUNNING，
+无shared收益/抓取结论；legacy物理执行入口明确拒绝新头，正信号后再加native桥接。
+详情P-20261015-shared-actor-interface；共同输出shared-actor-interface-20261015-r1。
+
 ## 2026-10-15 新训练切换补采660与失败前50帧严筛
 
 用户要求物体位置偏离当前参考>10cm时连同前50帧不训练。新robot入口统一默认
