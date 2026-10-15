@@ -34,7 +34,10 @@ def main():
     p.add_argument('--stop-after',type=int)
     p.add_argument('--resume',type=Path)
     p.add_argument('--resume-reviewed-subset',action='store_true')
+    p.add_argument('--resume-learning-rate-drop',action='store_true')
     a=p.parse_args()
+    if a.resume_learning_rate_drop and (not a.resume or a.resume_reviewed_subset):
+        raise ValueError('LR-only continuation requires resume and unchanged dataset')
     artifacts,out=a.artifact_root.resolve(),a.output.resolve()
     if artifacts/'outputs'/TASK.name not in out.parents or out.exists():raise ValueError('fresh v3 output required')
     gpus=list(map(int,a.gpus.split(',')))
@@ -81,6 +84,7 @@ def main():
             '--config',str(a.config.resolve()),'--recipe',str(a.recipe.resolve()),'--output',str(out),
             '--artifact-root',str(artifacts),'--loader-workers',str(a.loader_workers)]
         if a.resume:command+=['--resume',str(a.resume.resolve())]
+        if a.resume_learning_rate_drop:command+=['--resume-learning-rate-drop']
         if a.resume_reviewed_subset:
             if not a.resume:raise ValueError('reviewed subset transition requires parent checkpoint')
             command+=['--resume-reviewed-subset']

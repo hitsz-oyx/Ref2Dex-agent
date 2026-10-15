@@ -18,6 +18,7 @@ from .checkpoint import (atomic_json, save_checkpoint, load_checkpoint, restore_
 from .objectives import forecast_loss, forecast_metrics
 from ptv3_shared_wam_v2.training import gradient_audit
 from ptv3_shared_wam.loading import to_device
+from .lr_transition import validate_lr_resume, apply_learning_rates
 
 
 @torch.no_grad()
@@ -53,10 +54,13 @@ def main():
     p.add_argument('--artifact-root',type=Path,required=True)
     p.add_argument('--resume',type=Path)
     p.add_argument('--resume-reviewed-subset',action='store_true')
+    p.add_argument('--resume-learning-rate-drop',action='store_true')
     p.add_argument('--stop-after',type=int)
     p.add_argument('--loader-workers',type=int,default=2)
     p.add_argument('--experiment-card',type=Path,default=TASK/'docs/experiments/probes/P-20261015-nine-source-pretrain.md')
     a=p.parse_args()
+    if a.resume_learning_rate_drop and (not a.resume or a.resume_reviewed_subset):
+        raise ValueError('LR-only transition requires resume and cannot change the dataset')
     out,artifacts=a.output.resolve(),a.artifact_root.resolve()
     if artifacts/'outputs'/TASK.name not in out.parents or out.exists():
         raise ValueError('fresh v3 output required, including resume')
@@ -95,7 +99,9 @@ def main():
         scope='offline nine-source pretraining Probe; robot benefit untested')
     if a.resume:
         parent=load_checkpoint(a.resume)
-        if a.resume_reviewed_subset:
+        if a.resume_learning_rate_drop:
+            provenance['lr_transition']=validate_lr_resume(parent,config,stats,world)
+        elif a.resume_reviewed_subset:
             from .data_transition import validate_subset_resume
             provenance['data_transition']=validate_subset_resume(parent,config,stats,world)
         elif parent['config']!=config or parent['stats']!=stats or parent['provenance']['world_size']!=world:
@@ -103,6 +109,7 @@ def main():
         model.load_state_dict(parent['model'],strict=True)
         restore_optimizer(optimizer,parent['optimizer'])
         first=parent['step']; previous_elapsed=parent['provenance'].get('elapsed_s',0.)
+        apply_learning_rates(optimizer,config,first+1)
         provenance.update(resume_parent=str(a.resume.resolve()),parent_step=first,
             parent_git_commit=parent['provenance']['git_commit'],
             initialization='full v3 optimizer/model/per-rank RNG resume')
@@ -130,6 +137,12 @@ def main():
         if parent:
             torch.set_rng_state(parent['rank_rng'][rank]['torch'])
             torch.cuda.set_rng_state(parent['rank_rng'][rank]['cuda'])
+            restored=torch.equal(torch.get_rng_state(),parent['rank_rng'][rank]['torch']) and torch.equal(
+                torch.cuda.get_rng_state(),parent['rank_rng'][rank]['cuda'])
+            atomic_json(out/f'resume-rank{rank}.json',dict(rank=rank,parent_step=first,
+                rng_exact=restored,learning_rates={g['name']:g['lr'] for g in optimizer.param_groups},
+                optimizer_steps=sorted({int(v['step'].item()) for v in optimizer.state.values() if 'step' in v})))
+            if not restored:raise ValueError('per-rank RNG restore failed')
         wrapped=nn.parallel.DistributedDataParallel(model,device_ids=[local],gradient_as_bucket_view=True) if world>1 else model
         if rank==0:
             curve.append(dict(step=first,**evaluate(model,dev,panel,config,device)))
@@ -142,9 +155,7 @@ def main():
             batch=to_device(bound['model_inputs'],device,non_blocking=True)
             drawn.update(str(p['source_id']) for p in bound['provenance'])
             # Linear warmup avoids a large normalized-target jump at startup.
-            scale=min(1.,step/max(1,config.get('warmup_updates',1)))
-            for group in optimizer.param_groups:
-                group['lr']=config['geometry_lr' if group['name']=='joint_geometry' else 'shared_lr']*scale
+            rates=apply_learning_rates(optimizer,config,step)
             optimizer.zero_grad(set_to_none=True)
             with torch.autocast('cuda',dtype=torch.bfloat16,enabled=config['amp']):
                 pred=wrapped(batch);loss,terms=forecast_loss(pred,batch,config,model.normalizer,distributed=True)
@@ -186,7 +197,7 @@ def main():
                 elapsed=time.monotonic()-started
                 rate=(step-logged_step)/(time.monotonic()-logged)
                 if rank==0:
-                    record=dict(status='RUNNING',step=step,loss=float(values[0]),terms={k:float(values[i+1]) for i,k in enumerate(('hand','scene'))},
+                    record=dict(status='RUNNING',step=step,learning_rates=rates,loss=float(values[0]),terms={k:float(values[i+1]) for i,k in enumerate(('hand','scene'))},
                         grad_norm=float(norm),elapsed_s=elapsed,updates_per_s=rate,
                         eta_seconds=(config['updates']-step)/rate,local_samples_per_s=rate*config['batch_size'],
                         global_batch=world*config['batch_size'],world_size=world,
