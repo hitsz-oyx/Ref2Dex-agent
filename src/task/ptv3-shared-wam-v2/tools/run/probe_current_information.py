@@ -58,6 +58,7 @@ def run():
     p.add_argument('--card', type=Path, required=True)
     p.add_argument('--gpu', type=int, default=0)
     p.add_argument('--updates', type=int, default=3000)
+    p.add_argument('--arms', nargs='+', choices=list(ARMS), default=list(ARMS))
     a = p.parse_args()
     out = a.output.resolve()
     if ROOT/'outputs/ptv3-shared-wam-v2' not in out.parents or (out/'manifest.json').exists():
@@ -91,7 +92,7 @@ def run():
                     git_commit=git_commit(), physical_gpu=a.gpu, parent_step=initial['parent_step'],
                     parent_checkpoint=initial['parent_checkpoint'], source=str(source),
                     updates=a.updates, batch=128, learning_rate=3e-4, seeds=[160, 161, 162],
-                    arms=ARMS, tau='same measured GT future24 for every arm; oracle R-only diagnostic',
+                    arms={k: ARMS[k] for k in a.arms}, tau='same measured GT future24 for every arm; oracle R-only diagnostic',
                     added_input_time='t only; current references permitted; no t+1/t+16 reference',
                     scope='offline PD prediction only; main WAM training untouched',
                     limits=dict(seconds=900, artifacts_bytes=150_000_000, min_free_bytes=20*1024**3))
@@ -115,7 +116,7 @@ def run():
         template = InformationRetargeter(initial['model'], extra_mean, extra_scale)
         initial_predictions = None
         results = {}
-        for arm in ARMS:
+        for arm in a.arms:
             model = copy.deepcopy(template).cuda()
             optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4, weight_decay=.01)
             rng = np.random.default_rng(161)
@@ -170,14 +171,15 @@ def run():
             results[arm] = dict(initial=curve[0], selected=selected, final=curve[-1])
             atomic_json(out/'partial_result.json', results)
             del model, optimizer
-        baseline = results['baseline']['selected']['panels']['val']
         signals = {}
-        for arm in list(ARMS)[1:]:
-            m = results[arm]['selected']['panels']['val']
-            signals[arm] = dict(mean_ratio=m['xyz_mean_mm']/baseline['xyz_mean_mm'],
-                                p95_ratio=m['xyz_p95_mm']/baseline['xyz_p95_mm'])
-            signals[arm]['promising'] = (signals[arm]['mean_ratio'] <= .85 and
-                                         signals[arm]['p95_ratio'] <= .85 and m['clipping'] < .01)
+        if 'baseline' in results:
+            baseline = results['baseline']['selected']['panels']['val']
+            for arm in results.keys()-{'baseline'}:
+                m = results[arm]['selected']['panels']['val']
+                signals[arm] = dict(mean_ratio=m['xyz_mean_mm']/baseline['xyz_mean_mm'],
+                                    p95_ratio=m['xyz_p95_mm']/baseline['xyz_p95_mm'])
+                signals[arm]['promising'] = (signals[arm]['mean_ratio'] <= .85 and
+                                             signals[arm]['p95_ratio'] <= .85 and m['clipping'] < .01)
         conclusion = 'PROMISING' if any(v['promising'] for v in signals.values()) else 'UNCLEAR'
         atomic_json(out/'result.json', dict(status='COMPLETED', conclusion=conclusion, arms=results,
                     signals=signals, elapsed_s=time.monotonic()-started,
