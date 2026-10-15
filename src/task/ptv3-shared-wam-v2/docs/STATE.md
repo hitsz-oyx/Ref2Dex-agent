@@ -1,5 +1,15 @@
 # PTv3-Shared-WAM v2 当前状态
 
+## 2026-10-15 阶段权重已保护，后续保存点自动归档
+
+用户要求保留各阶段以比较action/forecast对下游的帮助。完整joint checkpoint现存
+1000/3000/3500/4000/8000，均已用硬链接固定到robot-finetune-stage-archive-20261015-r1；
+不是每个历史保存点都仍存在，部分已按旧规则轮换删除，不能用R-only快照补称完整权重。
+CPU watcher1672685每30s保护后续保存点，主run完成/失败或4h后退出，16GB逻辑体积上限、
+20GiB余量，无新增GPU、无训练源码/配置修改。archive-manifest记录完整权重和各loss；
+现存action最低8000，forecast/total最低1000。真实完整8000加载通过；source unlink后
+硬链接仍保留的工程smoke通过。阶段下游比较留待后续qualification，不以loss直接定优劣。
+
 ## 2026-10-15 完整补采已完成；人工审阅与原生输入实验并行
 
 `dexplore-current-rollout-20261015-r1` 已全量完成：660条、166337状态帧、165677控制帧，
