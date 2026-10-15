@@ -1,9 +1,23 @@
 # ShadowHand 原生微调当前状态
 
+## 2026-10-15 19:06 起步采样短Probe已启动
+
+按上一轮定位，仅新增full1000步候选：50%概率从准入tick0..7抽样，另一半沿用原序列均匀采样。
+复用已完成full1000作为uniform对照；同80k父权重、seed214、小TRAIN统计、DEV64、native16env/216，
+不从对照终点续训。新增固定起步DEV64/seed218供两个终点共同推理，不参与训练或选点。
+代码fc441a2b、detached工作树`tmp/shadow-startup-code-20261015-r1`，supervisor2161329。
+原模型/forecaster/execution源码及旧data方法同一性已验收；10项合同测试PASS。
+真实51个初始actor张量/共同DEV IDs完全相同，已到160/1000，约0.81秒/步、余训练约11分钟。
+实际起步query52.18%（原分量也含早期帧），tick0为6.37%；GPU6峰值物理3701MiB/稳态均值61.1%。
+GPU6总<=1h/8GB，GPU7空闲，Inspire GPU0–5不变；尚无本轮收益结论。
+详见[P-20261015-shadow-startup-sampling](experiments/probes/P-20261015-shadow-startup-sampling.md)。
+
+## 已完成的数据量对照和诊断
+
 2026-10-15：固定计算预算的小数据/全量对照已完成，两臂1000步和相同16env闭环，
 五个stage均exit0，耗时25.8分钟。运行固定57737b7b，输出
-`outputs/shadow-finetune/shadow-scale-controls-20261015-r2`，当前没有Shadow训练进程。
-GPU6已释放，GPU7空闲；原Inspire GPU0–5与远端训练独立继续。
+`outputs/shadow-finetune/shadow-scale-controls-20261015-r2`，该pipeline已退出并释放GPU6。
+随后起步采样Probe的当前运行状态见上节；原Inspire GPU0–5与远端训练独立继续。
 
 共同DEV64首拍canonical MAE small0.11705/full0.10978，仅改善6.21%；
 hand/scene forecast normalized L1改善36.8%/41.4%，不能直接换算成毫米。

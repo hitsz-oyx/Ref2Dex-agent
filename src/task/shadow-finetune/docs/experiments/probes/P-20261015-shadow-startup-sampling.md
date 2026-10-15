@@ -5,7 +5,7 @@ experiment_id: P-20261015-shadow-startup-sampling
 date: 2026-10-15
 task: shadow-finetune
 branch: main
-git_commit: pending
+git_commit: fc441a2b
 claim_id: C1
 hypothesis_family: HF-shadow-startup-sampling
 probe_index_in_family: 1
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [214, 215, 216, 218]
 decision_changed_if_positive: prioritize startup coverage and paired native qualification before longer data scaling
 decision_changed_if_negative: inspect actor capacity and optimization before adding data or tail supervision
-status: PLANNED
+status: RUNNING
 run_id: shadow-startup-sampling-20261015-r1
 ---
 
@@ -65,3 +65,21 @@ AdamW/三个LR/forecast+8拍action权重、同父step80k、原DEV64/seed215和na
 
 本轮只检验当前模型与固定训练预算下的采样干预；充分收敛、独立seed、更广物体起点、
 接触稳定性、300D teacher-only学生与actor容量对照均延后到能改变下一步决策时。
+
+
+## 实际启动 / 2026-10-15 19:06 CST
+
+实现fc441a2b，detached工作树`tmp/shadow-startup-code-20261015-r1`；PointWorld/PTv3复用原
+uniform运行相同只读源。真实准备通过：原model/forecast/execution源码逐文件相同，原data
+函数/已有方法AST相同；共享controls、旧输入size/mtime和起步DEV64物理身份已固定。
+10项Shadow合同测试和工作流验证PASS；supervisor2161329，GPU6，GPU7预留。
+输出`outputs/shadow-finetune/shadow-startup-sampling-20261015-r1`。
+当前只完成启动，不作拟合或抓取收益判断；进程与后续终点以process.json和summary为准。
+
+启动后实际51个actor初始张量与uniform对照逐值相同；父权重/统计/配置/参数量/DEV IDs一致。
+已完成160/1000，0.81秒/更新，预计余约11分钟训练，native+readout另计。
+实际首10240样本中tick0..7为5343（52.18%），tick0为652（6.37%），符合50%混合加原采样早期支持。
+35秒稳态GPU6平均61.1%/物理最大3701MiB，峰值allocated约3046MiB；GPU7全程0%/2MiB。
+吞吐与原full约0.8秒/更新一致，scattered CPU加载间隙使GPU利用率波动；不为利用率改matched batch。
+`startup-control-audit.json`、`startup-observations.json`、两段GPU采样均在run目录。
+当前loss有限，仅工程与干预进入检查，不提前判定拟合或闭环收益。
