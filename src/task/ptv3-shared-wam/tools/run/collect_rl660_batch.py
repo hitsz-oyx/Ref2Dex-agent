@@ -30,10 +30,14 @@ def main():
     parser.add_argument('--gpu', type=int, required=True)
     parser.add_argument('--seed', type=int, default=120)
     parser.add_argument('--seconds', type=int, default=900)
+    parser.add_argument('--capture-current-observation', action='store_true')
     args = parser.parse_args()
     out = args.output.resolve()
     names = json.loads(args.selection.read_text())
-    if (out.exists() or ROOT/'outputs/ptv3-shared-wam' not in out.parents
+    allowed = [ROOT/'outputs/ptv3-shared-wam']
+    if args.capture_current_observation:
+        allowed.append(ROOT/'outputs/ptv3-shared-wam-v2')
+    if (out.exists() or not any(p in out.parents for p in allowed)
             or not 1 <= len(names) <= 32 or len(set(names)) != len(names)
             or Path(sys.prefix).resolve() != RUNTIME.resolve()):
         raise ValueError('fresh local output, 1..32 unique motions and pinned runtime required')
@@ -99,6 +103,7 @@ def main():
         geometric_plan_root=str(geometric),official_generator=str(OFFICIAL),
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         actor_role='official data generator only; no official weights in learned WAM/Chunk-R')
+    manifest['capture_current_observation'] = args.capture_current_observation
     write(out/'manifest.json',manifest)
 
     class Player(dexplore_players.DexplorePlayerContinuous):
@@ -140,6 +145,22 @@ def main():
                     center=points.mean(0).astype(np.float32),
                     radius=np.asarray(np.sqrt(np.mean(np.sum((points-points.mean(0))**2,-1))),np.float32))
             logs = {k:[] for k in ('q','dq','hand','obj','velocity','action','applied','pd_targets')}
+            state_fields = set(('q','dq','hand','obj','velocity'))
+            if args.capture_current_observation:
+                if len(task._key_body_ids) != 16 or len(task._contact_body_ids) != 5 or task.obs_buf.shape[1] != 1442:
+                    raise ValueError('pinned Inspire 16-key-body/5-contact/1442-observation contract required')
+                state_fields.update(('native_current_obs','body_state','body_contact_forces',
+                                     'object_contact_force','reference_current','frame_tick'))
+                logs.update({k:[] for k in state_fields if k not in logs})
+                manifest['observation_contract'] = dict(schema='ref2dex.dexplore-current-observation.v1',
+                    dimension=721, reference_delta=0, teacher_reference_deltas=[1,16],
+                    timing='state[t]/current_ref[t] before action[t]; q_PD[t] captured in pre_physics_step',
+                    contact_slice=[252,257],reference_contact_error_slice=[401,406],
+                    body_names=body_names,key_body_ids=task._key_body_ids.tolist(),
+                    contact_body_ids=task._contact_body_ids.tolist(),
+                    reference_dim=int(task.hoi_data.shape[-1]),
+                    body_state_order='xyz, quaternion_xyzw, linear_velocity, angular_velocity',
+                    future_reference_inputs_saved=False)
             capture = actual_pd = None
             pre,pd = task.pre_physics_step,task._action_to_pd_targets
             def capture_pre(action):
@@ -151,14 +172,52 @@ def main():
                 actual_pd = pd(action).clone()
                 return actual_pd
             task.pre_physics_step,task._action_to_pd_targets = capture_pre,capture_pd
-            def record():
+            def record(tick):
                 bodies = task._rigid_body_state.view(n,-1,13)
                 values = dict(q=task._dof_pos,dq=task._dof_vel,hand=bodies[:,ids,:3],
                     obj=poses(task._target_states),velocity=task._target_states[:,7:13])
+                if args.capture_current_observation:
+                    if not bool((task.progress_buf == tick).all()):
+                        raise ValueError('unexpected reset/tick drift during same-execution capture')
+                    env_ids = torch.arange(n,device=task.device)
+                    original_actor_obs = task.obs_buf.clone()
+                    native_current = task._compute_observations_iter(env_ids,0)
+                    if native_current.shape != (n,721) or not torch.equal(task.obs_buf,original_actor_obs):
+                        raise ValueError('current observation changed teacher input or dimension')
+                    reference = task.hoi_data[task.data_id,task.progress_buf].clone()
+                    forces = task._contact_forces[:,task._contact_body_ids,:]
+                    bits = (forces.abs()>.1).any(-1).float()
+                    ref_bits = reference[:,119+16*3+1:119+16*3+1+16][:,[3,6,9,12,15]]
+                    contact_error = ref_bits*((ref_bits+1)/2-bits)
+                    if (not torch.equal(native_current[:,252:257],bits)
+                            or not torch.equal(native_current[:,401:406],contact_error)):
+                        raise ValueError('native current contact slices differ from raw same-tick forces/reference')
+                    if tick == 0:
+                        # A live negative control: future reference edits cannot affect delta0.
+                        future = task.hoi_data[:,1:].clone()
+                        try:
+                            task.hoi_data[:,1:] = 0
+                            changed_future = task._compute_observations_iter(env_ids,0)
+                            if not torch.equal(native_current,changed_future):
+                                raise ValueError('future reference leaked into current-only observation')
+                        finally:
+                            task.hoi_data[:,1:] = future
+                        if not torch.equal(task.obs_buf,original_actor_obs):
+                            raise ValueError('audit changed original teacher observation')
+                        manifest['observation_contract']['live_future_invariance_passed'] = True
+                        write(out/'manifest.json',manifest)
+                    body_state = torch.cat((task._rigid_body_pos,task._rigid_body_rot,
+                                            task._rigid_body_vel,task._rigid_body_ang_vel),-1)
+                    if body_state.shape[1] != len(body_names):
+                        raise ValueError('body-state identity mismatch')
+                    values.update(native_current_obs=native_current,body_state=body_state,
+                        body_contact_forces=task._contact_forces,
+                        object_contact_force=task._tar_contact_forces,
+                        reference_current=reference,frame_tick=task.progress_buf)
                 for key,value in values.items():
                     logs[key].append(value.cpu().numpy().copy())
                 return values
-            current = record()
+            current = record(0)
             for tick in range(maximum-1):
                 action = self.get_action(obs,True).clamp(-1,1).clone()
                 expected = pd_from_action(action,current['q'],offset,scale)
@@ -168,7 +227,7 @@ def main():
                     raise ValueError('captured command or same-tick PD conversion mismatch')
                 for key,value in dict(action=action,applied=capture,pd_targets=actual_pd).items():
                     logs[key].append(value.cpu().numpy().copy())
-                current = record()
+                current = record(tick+1)
                 if tick == 0 or (tick+1)%128==0:
                     elapsed = time.monotonic()-started
                     gpu = subprocess.check_output(['nvidia-smi','-i',str(args.gpu),
@@ -183,7 +242,7 @@ def main():
                 length = int(lengths[env])
                 folder = out/'sequences'/name
                 folder.mkdir(parents=True)
-                values = {k:v[:length if k in ('q','dq','hand','obj','velocity') else length-1,env]
+                values = {k:v[:length if k in state_fields else length-1,env]
                           for k,v in data.items()}
                 reference = task.hoi_data[env,:length]
                 states = torch.zeros(length,13,device=task.device)

@@ -50,6 +50,12 @@ def test_resume_rejects_changed_seed_or_duplicate_receipt(tmp_path):
         collector.recover_batches(tmp_path,batches,120)
 
 
+def test_native_resume_rejects_legacy_complete_payload(tmp_path):
+    receipt(tmp_path,'batch000',['a'],120)
+    with pytest.raises(ValueError,match='native current'):
+        collector.recover_batches(tmp_path,[['a']],120,capture_current=True)
+
+
 def test_resume_rejects_missing_artifacts(tmp_path):
     path = receipt(tmp_path,'batch000',['a'],120)
     (path.parent/'sequences/a/trajectory.npz').unlink()

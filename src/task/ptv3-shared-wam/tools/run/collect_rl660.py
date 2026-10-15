@@ -1,9 +1,10 @@
-"""Supervise a bounded two-GPU full-corpus collection; freeze only after 660 receipts."""
+"""Supervise bounded parallel full-corpus collection; freeze after660 receipts."""
 import argparse
 import json
 import os
 from pathlib import Path
 import signal
+import shutil
 import subprocess
 import sys
 import time
@@ -19,13 +20,17 @@ def write(path,value):
     temporary.replace(path)
 
 
-def recover_batches(out, batches, seed):
+def recover_batches(out, batches, seed, capture_current=False):
     """Reuse only complete, owned batch receipts; partial attempts stay intact."""
     recovered, completed, controller = set(), [], None
     for receipt_path in sorted((out/'batches').glob('*/manifest.json')):
         receipt = json.loads(receipt_path.read_text())
         if receipt.get('status') != 'COMPLETED':
             continue
+        if capture_current and (not receipt.get('capture_current_observation')
+                or receipt.get('observation_contract',{}).get('dimension') != 721
+                or not receipt.get('observation_contract',{}).get('live_future_invariance_passed')):
+            raise ValueError('resume receipt lacks native current observation evidence')
         names = receipt['sequences']
         indices = [i for i, batch in enumerate(batches) if names == batch]
         if (len(indices) != 1 or receipt['seed'] != seed+indices[0]
@@ -57,13 +62,30 @@ def main():
     p.add_argument('--seconds',type=int,default=10800)
     p.add_argument('--detach',action='store_true')
     p.add_argument('--resume',action='store_true')
+    p.add_argument('--capture-current-observation',action='store_true')
+    p.add_argument('--split-from',type=Path)
+    p.add_argument('--artifact-budget-bytes',type=int,default=4_000_000_000)
     a = p.parse_args()
     out = a.output.resolve()
     gpus = a.gpus.split(',')
-    if ((out.exists() != a.resume) or ROOT/'outputs/ptv3-shared-wam' not in out.parents
-            or len(gpus) != 2 or len(set(gpus)) != 2 or not 1<=a.batch_size<=32
+    allowed = [ROOT/'outputs/ptv3-shared-wam']
+    if a.capture_current_observation:
+        allowed.append(ROOT/'outputs/ptv3-shared-wam-v2')
+    if ((out.exists() != a.resume) or not any(p in out.parents for p in allowed)
+            or not 1 <= len(gpus) <= 6 or len(set(gpus)) != len(gpus)
+            or not all(g.isdigit() for g in gpus) or not 1<=a.batch_size<=32
             or not a.experiment_card.is_file()):
-        raise ValueError('fresh output or explicit resume, two GPUs and existing card required')
+        raise ValueError('fresh output or explicit resume, distinct GPUs and existing card required')
+    inherited_split = None
+    if a.split_from:
+        parent = json.loads(a.split_from.read_text())
+        if parent.get('status') != 'COMPLETED' or parent.get('schema') != 'ref2dex.rl660-corpus.v1':
+            raise ValueError('frozen completed original sequence split required')
+        inherited_split = {r['sequence']:r['split'] for r in parent['records']}
+        if len(inherited_split) != 660 or set(inherited_split.values()) != {'train','val'}:
+            raise ValueError('complete original 660-member split required')
+    if a.capture_current_observation and inherited_split is None:
+        raise ValueError('native current observation collection must preserve the original sequence split')
     scratch = ROOT/'tmp'/out.name
     previous = None
     if a.resume:
@@ -71,13 +93,21 @@ def main():
         if (previous.get('schema') != 'ref2dex.rl660-corpus.v1'
                 or previous['status'] != 'FAILED' or previous['seed'] != a.seed):
             raise ValueError('only failed owned corpus with unchanged seed can resume')
+        if (previous.get('capture_current_observation',False) != a.capture_current_observation
+                or previous.get('inherited_split') != inherited_split):
+            raise ValueError('resume must preserve input contract and split')
         attempt = len(previous.get('resume_history',[]))+1
         scratch = scratch/('resume%02d'%attempt)
     scratch.mkdir(parents=True,exist_ok=True)
     if a.detach:
         command = [sys.executable,str(Path(__file__).resolve()),'--output',str(out),
             '--experiment-card',str(a.experiment_card.resolve()),'--gpus',a.gpus,
-            '--batch-size',str(a.batch_size),'--seed',str(a.seed),'--seconds',str(a.seconds)]
+            '--batch-size',str(a.batch_size),'--seed',str(a.seed),'--seconds',str(a.seconds),
+            '--artifact-budget-bytes',str(a.artifact_budget_bytes)]
+        if a.capture_current_observation:
+            command.append('--capture-current-observation')
+        if a.split_from:
+            command.extend(['--split-from',str(a.split_from.resolve())])
         if a.resume:
             command.append('--resume')
         with (scratch/'supervisor.log').open('x') as log:
@@ -90,10 +120,14 @@ def main():
     for gpu in gpus:
         if subprocess.check_output(['nvidia-smi','-i',gpu,'--query-compute-apps=pid','--format=csv,noheader'],text=True).strip():
             raise RuntimeError('assigned GPU occupied: '+gpu)
+    if shutil.disk_usage(ROOT).free < 20*1024**3:
+        raise RuntimeError('less than20GiB filesystem headroom')
     source = ROOT/'data/processed_data/inspire_rl_object_dexplore'
     names = sorted(p.parent.name for p in source.glob('*/interaction_hand_inspire.pt'))
     if len(names)!=660:
         raise ValueError('frozen 660-member source required')
+    if inherited_split is not None and set(inherited_split) != set(names):
+        raise ValueError('new membership differs from inherited original split')
     out.mkdir(parents=True,exist_ok=a.resume)
     manifest = dict(schema='ref2dex.rl660-corpus.v1',status='RUNNING',training_allowed=False,
         engineering_only=False,num_sequences=660,fps=30,records=[],physical_gpus=gpus,
@@ -101,13 +135,18 @@ def main():
         source_membership=str(source.resolve()),supervisor_pid=os.getpid(),
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         split_policy='complete sequence; stratified by object, 10% dev with at least one per object')
+    manifest.update(capture_current_observation=a.capture_current_observation,
+        inherited_split=inherited_split,artifact_budget_bytes=a.artifact_budget_bytes,
+        split_from=str(a.split_from.resolve()) if a.split_from else None)
     batches = [names[i:i+a.batch_size] for i in range(0,len(names),a.batch_size)]
     reused, completed, controller = set(), [], None
     prior_elapsed = 0.
     if previous is not None:
         if previous['source_membership'] != str(source.resolve()):
             raise ValueError('source membership changed during resume')
-        reused,completed,controller = recover_batches(out,batches,a.seed)
+        reused,completed,controller = recover_batches(out,batches,a.seed,a.capture_current_observation)
+        if a.capture_current_observation and 'observation_contract' in previous:
+            manifest['observation_contract'] = previous['observation_contract']
         if controller is not None:
             manifest['native_controller'] = controller
         prior_elapsed = previous.get('elapsed_s',json.loads((out/'progress.json').read_text()).get('elapsed_s',0.))
@@ -144,6 +183,8 @@ def main():
                 command = [RUNTIME,str(TASK/'tools/run/collect_rl660_batch.py'),
                     '--selection',str(selection),'--output',str(folder),'--gpu',gpu,
                     '--seed',str(a.seed+index),'--seconds','900']
+                if a.capture_current_observation:
+                    command.append('--capture-current-observation')
                 log = (scratch/('batch%03d.log'%index)).open('x')
                 process = subprocess.Popen(command,cwd=ROOT,stdin=subprocess.DEVNULL,
                     stdout=log,stderr=subprocess.STDOUT,start_new_session=True,
@@ -158,6 +199,14 @@ def main():
                 receipt = json.loads((folder/'manifest.json').read_text())
                 if receipt['status']!='COMPLETED':
                     raise ValueError('incomplete batch receipt')
+                if a.capture_current_observation:
+                    contract = receipt.get('observation_contract',{})
+                    if (not receipt.get('capture_current_observation') or contract.get('dimension') != 721
+                            or not contract.get('live_future_invariance_passed')):
+                        raise ValueError('batch missing native current-only observation evidence')
+                    if manifest.get('observation_contract',contract) != contract:
+                        raise ValueError('native observation contract changes across batches')
+                    manifest['observation_contract'] = contract
                 controller = receipt['native_controller']
                 if manifest.get('native_controller',controller)!=controller:
                     raise ValueError('native controller changes across sequences')
@@ -167,6 +216,11 @@ def main():
                     completed.append(record)
                 del active[gpu]
             elapsed = prior_elapsed+time.monotonic()-started
+            for gpu,(process,_,_,_) in active.items():
+                consumers = set(map(int,subprocess.check_output(['nvidia-smi','-i',gpu,
+                    '--query-compute-apps=pid','--format=csv,noheader'],text=True).split()))
+                if consumers-{process.pid}:
+                    raise RuntimeError('foreign GPU process appeared on assigned GPU'+gpu)
             new_count = len(completed)-initial_completed
             row = dict(status='RUNNING',completed_sequences=len(completed),target=660,
                 elapsed_s=elapsed,eta_s=((elapsed-prior_elapsed)/new_count*(660-len(completed)) if new_count else None),
@@ -178,12 +232,11 @@ def main():
             if len(completed)!=len({r['sequence'] for r in completed}):
                 raise ValueError('duplicate collected sequence')
             size=sum(p.stat().st_size for p in out.rglob('*') if p.is_file() and not p.is_symlink())
-            if size>4_000_000_000:
+            if size>a.artifact_budget_bytes:
                 raise RuntimeError('bounded corpus storage exceeded')
             if elapsed-storage_checked>=120 or storage_checked==0:
-                usage=subprocess.check_output(['du','-sb',str(ROOT/'outputs'),str(ROOT/'tmp')],text=True)
-                if sum(int(line.split()[0]) for line in usage.splitlines())>=400_000_000_000:
-                    raise RuntimeError('shared 400GB artifact budget exceeded')
+                if shutil.disk_usage(ROOT).free < 20*1024**3:
+                    raise RuntimeError('less than20GiB filesystem headroom')
                 storage_checked=elapsed
             if pending or active:
                 time.sleep(15)
@@ -193,12 +246,16 @@ def main():
         import random
         rng = random.Random(a.seed+1)
         objects = sorted({r['object'] for r in completed})
-        for obj in objects:
-            group=sorted([r for r in completed if r['object']==obj],key=lambda r:r['sequence'])
-            rng.shuffle(group)
-            count=max(1,round(len(group)*.1))
-            for index,record in enumerate(group):
-                record['split']='val' if index<count else 'train'
+        if inherited_split is not None:
+            for record in completed:
+                record['split'] = inherited_split[record['sequence']]
+        else:
+            for obj in objects:
+                group=sorted([r for r in completed if r['object']==obj],key=lambda r:r['sequence'])
+                rng.shuffle(group)
+                count=max(1,round(len(group)*.1))
+                for index,record in enumerate(group):
+                    record['split']='val' if index<count else 'train'
         manifest.update(status='COMPLETED',training_allowed=True,
             records=sorted(completed,key=lambda r:r['sequence']),elapsed_s=prior_elapsed+time.monotonic()-started)
         import numpy as np
