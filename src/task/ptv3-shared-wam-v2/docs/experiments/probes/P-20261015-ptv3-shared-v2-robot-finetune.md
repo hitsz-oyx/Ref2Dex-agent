@@ -204,3 +204,27 @@ frame counts and raw schema). These early local-parent smokes did not
 constitute scientific remote-parent fine-tuning. The remote parent was later
 copied and validated; actual four-GPU launch and input-admission repair are
 recorded above.
+
+## Early plateau inspection requested by the user
+
+At logged step2220, fixed dev256 has only four evaluations:
+
+| Step | Total objective | Predicted-τ action | GT-τ anchor | Forecast residual |
+| --- | ---: | ---: | ---: | ---: |
+| 500 | 5.4520 | 0.5406 | 0.5373 | 4.3741 |
+| 1000 | 5.2023 | 0.4897 | 0.4838 | 4.2289 |
+| 1500 | 5.2487 | 0.4606 | 0.4542 | 4.3338 |
+| 2000 | 5.2622 | 0.4361 | 0.4282 | 4.3978 |
+
+All component weights are1, so forecast residual is exactly total minus the
+two action losses; hand vs scene cannot be separated from saved dev logs.
+Total dev objective is flat/slightly rising since1000, while action and anchor
+still improve10.94%/11.48%. The latter are normalized all8 prediction losses,
+not physical first-PD error or grasp rate. Rank0 logged train loss means over
+successive500-step blocks fall4.241→3.568→3.000; these are varying training
+draws and not a matched dev panel. Do not call the whole optimization stalled.
+Keep the authorized recipe running and inspect more fixed-dev points; do not
+early-stop from these four points. best.pt is selected by total objective and
+still points to1000, which does not imply action progress stopped.
+Evidence: run plateau-step2220.json/.png, generated without inference or
+production edits by tools/audit/audit_robot_plateau.py.

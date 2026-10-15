@@ -13,14 +13,16 @@ seed_pool: probe
 seeds: [160, 161, 162]
 decision_changed_if_positive: carry the useful current-input group into a separately specified WAM-R adaptation Probe
 decision_changed_if_negative: inspect current contact/body-state availability and fitting before expanding the production input contract
-status: RUNNING
+status: UNCLEAR
 run_id: R-current-information-20261015-r3
 ---
 
 # Can current reference and hand-object geometry improve q_PD prediction?
 
-Result: RUNNING; first3000-update panel is UNCLEAR (mean unchanged, both-input
-tail p95 improves14.5%); a bounded12000-update matched follow-up runs in parallel.
+Result: UNCLEAR; all four12000-update arms completed. Added current reference
+and CAD geometry show no overall first-PD XYZ gain over the matched baseline.
+The both-input tail advantage at3000 does not persist at the longer budget.
+Decision: keep production inputs unchanged; do not extend this fitting run.
 Decision Probe for Mission Objective A / the robot action
 decoder. The user requests extra DExplore information at the current frame,
 explicitly permits same-tick reference goals/errors, and excludes the16-frame
@@ -152,3 +154,36 @@ otherwise prioritize unmeasured body/contact state availability over adding
 these two groups directly to the production run. No production src edits.
 
 Follow-up output: `outputs/ptv3-shared-wam-v2/R-current-information-20261015-r3/`.
+
+## Final12000-update result
+
+All four arms completed on GPU0/1. Same fixed dev256, selected by the original
+p95-then-mean rule, not necessarily the final checkpoint:
+
+| Arm | Selected step | Mean mm | P95 mm | Clipping |
+| --- | ---: | ---: | ---: | ---: |
+| baseline | 12000 | 49.06 | 168.37 | 0 |
+| current_reference | 10500 | 52.78 | 187.03 | 0 |
+| current_geometry | 11000 | 49.99 | 162.11 | 0.390625% |
+| both | 10500 | 54.42 | 176.04 | 0.390625% |
+
+Geometry has a3.72% p95 improvement and1.88% higher mean. Current reference
+and both increase both position metrics. No arm passes the predeclared
+15%/15% criterion; retain UNCLEAR, not a statement of information sufficiency.
+After roughly6000, gains slow and dev values fluctuate; no further automatic
+budget extension. Baseline continued fitting removed the early both-input
+tail advantage, so the short-fit ranking was not persistent.
+
+Independent review: all initial tensors/configs/panels/stats match; every
+0..3000 curve metric matches the original run exactly; selected checkpoints
+match the25-point original rule; raw q/q_PD/controller plus saved predictions
+independently reproduce all four first-PD XYZ metrics exactly. Additional
+same-model inference masks change predictions (normalized all8 change0.060/
+0.103/0.126), so the input intervention is active. These masks are a wiring
+check, not new trained controls. Aggregate r3 artifacts116,982,522B before
+small summaries/audit JSON, below300MB. Both workers exited0; GPU0/1 released.
+
+Evidence: r3/result.json, current-information.png, input_sensitivity.json,
+each worker's manifest/curves/checkpoints; tools/audit/summarize_current_information.py
+--grouped and audit_current_information_inputs.py. No main-WAM updates were
+made by this experiment. Missing measured contact/body dynamics remain untested.

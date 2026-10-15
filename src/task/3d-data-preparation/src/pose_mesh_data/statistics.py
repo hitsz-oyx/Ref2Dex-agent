@@ -124,3 +124,44 @@ def mix_moments(sources, weights, floor_m):
         result[name] = dict(mean=mean.tolist(),raw_std=std.tolist(),
             std=np.maximum(std,floor_m).tolist(),expected_valid_points_per_window=count.tolist())
     return result
+
+
+def subtract_moments(total, removed):
+    """Remove an explicitly identified subset, preserving population moments."""
+    n,b = np.asarray(total['count'],np.int64),np.asarray(removed['count'],np.int64)
+    remaining=n-b
+    if (b<0).any() or (remaining<=0).any():
+        raise ValueError('subtraction requires a proper observed subset at every horizon')
+    mean=(n[:,None]*np.asarray(total['mean'])-b[:,None]*np.asarray(removed['mean']))/remaining[:,None]
+    delta=np.asarray(removed['mean'])-mean
+    m2=np.asarray(total['m2'])-np.asarray(removed['m2'])-delta**2*(remaining*b/n)[:,None]
+    if (m2 < -1e-8*np.maximum(np.asarray(total['m2']),1)).any():
+        raise ValueError('removed moments are not a valid subset')
+    return dict(count=remaining.tolist(),mean=mean.tolist(),m2=np.maximum(m2,0).tolist())
+
+
+def observed_workspace(sequence,ticks,geometries,target_slot,workspace,chunk_size=128):
+    """Current input only: H4 determines presence; no future labels or outcomes."""
+    ticks=np.asarray(ticks,np.int64)
+    accepted=[]
+    origin=np.asarray(workspace['origin_m'],np.float32)
+    for start in range(0,len(ticks),chunk_size):
+        current=ticks[start:start+chunk_size]
+        history=current[:,None]+np.arange(-3,1)
+        anchor=np.linalg.inv(sequence['object_poses'][current,target_slot])
+        present=sequence['hand_valid'][history].all(1)
+        hand=np.einsum('bij,bhpj->bhpi',anchor[:,:3,:3],sequence['hand'][current])+anchor[:,None,None,:3,3]
+        outside=np.zeros(len(current),bool)
+        def check(cloud,valid):
+            nonlocal outside
+            grid=np.floor((cloud.astype(np.float32)-origin)/workspace['voxel_m'])
+            bad=((~np.isfinite(cloud).all(-1))|(grid<0).any(-1)|(grid>workspace['max_grid']).any(-1)) & valid
+            outside |= bad.reshape(len(current),-1).any(1)
+        check(hand,present)
+        for slot,geometry in enumerate(geometries):
+            active=sequence['object_pose_valid'][history,slot].all(1)
+            relative=anchor@np.where(active[:,None,None],sequence['object_poses'][current,slot],np.eye(4))
+            cloud=np.einsum('bij,pj->bpi',relative[:,:3,:3],geometry['surface'])+relative[:,None,:3,3]
+            check(cloud,np.broadcast_to(active[:,None],cloud.shape[:-1]))
+        accepted.extend((~outside).tolist())
+    return np.asarray(accepted,bool)

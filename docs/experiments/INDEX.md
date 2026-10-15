@@ -10,6 +10,12 @@
 | [P-20260926-observation-router-reliability](probes/P-20260926-observation-router-reliability.md) | New-seed reliability of the observation-driven six-expert baseline | 见原卡 | 见原卡 | probes/PROMISING |
 | [VAL-20260926-observation-six-expert-c1](validations/VAL-20260926-observation-six-expert-c1.md) | Validation: frozen observation-driven six-expert C1 route | 见原卡 | 见原卡 | validations/COMPLETED |
 
+## HF-R-current-information
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261015-R-current-information](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-R-current-information.md) | Can current reference and hand-object geometry improve q_PD prediction? | UNCLEAR; all four12000-update arms completed. Added current reference | keep production inputs unchanged; do not extend this fitting run. | probes/UNCLEAR |
+
 ## HF-action-intervention
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
@@ -514,6 +520,19 @@
 | --- | --- | --- | --- | --- |
 | [P-20261014-rl660-geometry-lift-joint](../../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261014-rl660-geometry-lift-joint.md) | RL660带连续分支的几何目标：原大规模配置联合微调 | UNCLEAR；全量分支回放、global512双卡和K4工程门通过，新19k联合run已运行到首段20步，loss2.38有限。约1.43秒/步，尚无收敛或抓取结论。 | 按用户授权在GPU5/7沿用原大规模超参运行19k新更新，监视实际PD/分支及forecast指标；保留旧latest/best，不以首段loss形成效果结论。 | probes/UNCLEAR |
 
+## HF-rl660-realized-q-replay
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261014-rl660-realized-q-replay](../../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261014-rl660-realized-q-replay.md) | RL660 realized-q可执行性与原PD重放校准 | UNCLEAR（整体执行门）；7组物理检查与独立命令审计完成。固定阻尼补偿使3条序列手点误差降低约75–78%，但未过原tracking/校准门，mug仍无持物；原PD目标可以重放持物。 | 保留当前PD监督训练作为baseline，不立即切换大规模R_kin或启动PPO；优先资格化接触阶段的腕部轨迹跟踪，再决定运动学标签与反馈残差的分工。 | probes/UNCLEAR |
+
+## HF-rl660-reference-q-replay
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261015-rl660-reference-q-branch-replay](../../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261015-rl660-reference-q-branch-replay.md) | RL660 branch-aligned DExplore reference-q replay | COMPLETED (UNPROMISING for direct execution). The preceding raw q_ref replay is strongly negative at the | keep the PD-target route for the WAM fine-tune. Add explicit | probes/UNPROMISING |
+| [P-20261015-rl660-reference-q-replay](../../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261015-rl660-reference-q-replay.md) | RL660 DExplore reference-q nominal replay | COMPLETED (UNPROMISING for direct execution). This Probe tests the missing third target explicitly: the raw geometric DExplore `q_ref` plan, | 见原卡 | probes/UNPROMISING |
+
 ## HF-rolling-gt-y
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
@@ -657,6 +676,12 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261014-unidexgrasp-local-admission](../../src/task/video-data-preparation/docs/experiments/probes/P-20261014-unidexgrasp-local-admission.md) | UniDexGrasp / ++ 刚体样例接入检查 | PROMISING（刚体几何接入Probe）。20对象320条回放产生TRAIN2560/dev640窗；全部3200窗合同与未来隔离通过，末0.5秒持续接近目标83条；真实GPU模型接线及正式训练准入待验证。 | 保留完整CAD/ShadowHand按需provider和成功/失败物理数据；六卡满额时不另启GPU，释放后先做真实Shared-WAM工程前向/反向，再扩对象；不将距离指标升级为稳定抓持或全库结论。 | probes/PROMISING |
+
+## HF-v2-remote-robot-adapter
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261015-ptv3-shared-v2-robot-finetune](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-ptv3-shared-v2-robot-finetune.md) | V2 remote-WAM robot fine-tune | 见原卡 | 见原卡 | probes/RUNNING |
 
 ## HF-video-data-readiness
 
