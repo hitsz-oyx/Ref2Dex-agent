@@ -25,6 +25,13 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261015-teacher-fit-generalization:
+    seed_pool: probe
+    initialization_seed: 180
+    matched_draw_seed: 181
+    panel_seed: 162
+    reuse_reason: exact same student prefix and panels across input/schedule arms; not independent replication
+
   P-20261015-full-teacher-input:
     seed_pool: probe
     student_initialization_seed: 180

@@ -22,6 +22,9 @@ def main():
     p.add_argument('--cache',type=Path,required=True);p.add_argument('--output',type=Path,required=True)
     p.add_argument('--card',type=Path,required=True);p.add_argument('--arm',choices=ARMS,required=True)
     p.add_argument('--gpu',type=int,required=True);p.add_argument('--updates',type=int,default=12000)
+    p.add_argument('--experiment-id',default='P-20261015-full-teacher-input')
+    p.add_argument('--lr-schedule',choices=['constant','cosine_tail'],default='constant')
+    p.add_argument('--artifact-budget-bytes',type=int,default=768_000_000)
     p.add_argument('--input-normalization',choices=['TRAIN','teacher_RMS'],default='TRAIN')
     a=p.parse_args();out=a.output.resolve();cache=a.cache.resolve()
     if out.exists() or ROOT/'outputs/ptv3-shared-wam-v2' not in out.parents:raise ValueError('fresh task output required')
@@ -32,7 +35,7 @@ def main():
     import yaml
     torch.set_num_threads(2);torch.manual_seed(180);torch.backends.cuda.matmul.allow_tf32=True
     card=yaml.safe_load(a.card.read_text().split('---',2)[1])
-    if card.get('experiment_id')!='P-20261015-full-teacher-input' or card.get('seeds')!=[180,181,162]:raise ValueError('assigned experiment card required')
+    if card.get('experiment_id')!=a.experiment_id or card.get('seeds')!=[180,181,162]:raise ValueError('assigned experiment card required')
     meta=json.loads((cache/'manifest.json').read_text())
     if meta.get('status')!='COMPLETED' or meta.get('schema')!='ref2dex.full-teacher-input-cache.v1':raise ValueError('audited cache required')
     import shutil
@@ -46,8 +49,9 @@ def main():
         output='PD minus live q for first6; absolute active fingers' if relative else 'absolute q_PD ACTIVE12',
         q_used_by_network=False,q_used_only_for_label_encoding_and_fixed_decoder=relative,
         input_normalization=a.input_normalization,teacher_weights_initialized=False,
+        lr_schedule=a.lr_schedule,cosine_tail_start=12000,cosine_min_lr=3e-6,
         seeds=[180,181,162],selection='dev XYZ p95 then mean; memory uses fixed training subset',
-        limits=dict(seconds=1200,bytes=768_000_000,min_free_bytes=20*2**30))
+        limits=dict(seconds=1200,bytes=a.artifact_budget_bytes,min_free_bytes=20*2**30))
     write(out/'manifest.json',manifest)
     try:
         data={}
@@ -107,6 +111,10 @@ def main():
         curve=[];best=None;selected=None
         for step in range(a.updates+1):
             if step:
+                if a.lr_schedule=='cosine_tail' and step>12000:
+                    import math
+                    fraction=(step-12000)/max(a.updates-12000,1)
+                    optimizer.param_groups[0]['lr']=3e-6+(3e-4-3e-6)*.5*(1+math.cos(math.pi*fraction))
                 ids=draw();optimizer.zero_grad(set_to_none=True);loss=(model(data['train']['x'][ids])-data['train']['target'][ids]).abs().mean();loss.backward()
                 norm=torch.nn.utils.clip_grad_norm_(model.parameters(),1.)
                 if not torch.isfinite(loss) or not torch.isfinite(norm):raise FloatingPointError('nonfinite supervised fit')
@@ -115,18 +123,20 @@ def main():
                 row=dict(step=step,elapsed_s=time.monotonic()-started,panels={});preds={}
                 for split in data:row['panels'][split],preds[split]=evaluate(split,memids if memory and split=='train' else panels[split])
                 measure=row['panels']['train' if memory else 'val'];key=(measure['xyz_p95_mm'],measure['xyz_mean_mm'])
-                if best is None or key<best:
-                    best=key;selected=row
+                improved=best is None or key<best
+                if improved:best=key;selected=row
+                if improved or step in (12000,a.updates):
                     torch.save(dict(schema='ref2dex.full-teacher-MLP.v1',step=step,arm=a.arm,model={k:v.detach().cpu() for k,v in model.state_dict().items()},
                         xmean=xmean.cpu(),xscale=xscale.cpu(),ymean=ymean.cpu(),yscale=yscale.cpu(),manifest=manifest),out/('step%d.pt'%step))
                     np.savez_compressed(out/('predictions-step%d.npz'%step),**preds,train_indices=(memids if memory else panels['train']).cpu().numpy(),val_indices=panels['val'].cpu().numpy())
+                row['learning_rate']=optimizer.param_groups[0]['lr']
                 curve.append(row);write(out/'curve.json',curve)
                 consumers=set(map(int,subprocess.check_output(['nvidia-smi','-i',str(a.gpu),'--query-compute-apps=pid','--format=csv,noheader'],text=True).split()))
                 if consumers-{os.getpid()}:raise RuntimeError('foreign consumer on assigned GPU')
                 gpu=subprocess.check_output(['nvidia-smi','-i',str(a.gpu),'--query-gpu=memory.used,utilization.gpu','--format=csv,noheader'],text=True).strip()
                 write(out/'progress.json',dict(step=step,elapsed_s=row['elapsed_s'],eta_s=row['elapsed_s']/max(step,1)*(a.updates-step),gpu=gpu,dev=row['panels']['val'],train=row['panels']['train']))
                 print(json.dumps(dict(step=step,elapsed_s=row['elapsed_s'],train=row['panels']['train']['xyz_mean_mm'],dev=row['panels']['val']['xyz_mean_mm'])),flush=True)
-                if shutil.disk_usage(ROOT).free<20*2**30 or sum(f.stat().st_size for f in out.iterdir() if f.is_file())>768_000_000:raise RuntimeError('disk budget')
+                if shutil.disk_usage(ROOT).free<20*2**30 or sum(f.stat().st_size for f in out.iterdir() if f.is_file())>a.artifact_budget_bytes:raise RuntimeError('disk budget')
         write(out/'result.json',dict(status='COMPLETED',arm=a.arm,selected=selected,final=curve[-1],elapsed_s=time.monotonic()-started,
             scope='one-step offline supervised fit; no physical grasp claim'))
         manifest.update(status='COMPLETED')
