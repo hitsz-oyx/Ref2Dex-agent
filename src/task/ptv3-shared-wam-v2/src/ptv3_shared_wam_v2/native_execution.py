@@ -14,6 +14,8 @@ def validate_robot_packet(packet):
             or config.get("goal_encoding") != GOAL_ENCODING
             or config.get("task_conditioning") != TASK_CONDITIONING):
         raise ValueError("v2 execution input contract differs")
+    if config.get("action_interface") is not None:
+        raise ValueError("shared-query actor execution requires its own native bridge; legacy tau harness rejected")
     if config.get("action_representation") != "wrist-geometry-continuous-lift.v1":
         raise ValueError("qualified q_PD geometry-lift output required")
     if not packet.get("provenance", {}).get("source"):

@@ -34,3 +34,8 @@ def test_incompatible_checkpoint_rejected(tmp_path, field, value):
     data[field] = value
     with pytest.raises(ValueError):
         validate_robot_packet(data)
+
+
+def test_shared_actor_rejected_by_legacy_tau_execution(tmp_path):
+    p=packet(tmp_path);p['config']['action_interface']='shared'
+    with pytest.raises(ValueError,match='own native bridge'):validate_robot_packet(p)

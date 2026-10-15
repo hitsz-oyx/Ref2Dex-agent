@@ -96,7 +96,7 @@ class SharedWAMV2(nn.Module):
             tokens = self.interaction(tokens, src_key_padding_mask=~valid)
         return torch.where(valid[..., None], tokens, 0.), valid, scene
 
-    def forward(self, batch):
+    def forward(self, batch, return_shared=False):
         shared, shared_valid, geometry = self.encode(batch)
         offset = geometry["tokens"].shape[1]
         hand_z = self.hand_future(shared[:, offset:offset + 22]).reshape(len(shared), 24, 2, 11, 3)
@@ -109,10 +109,13 @@ class SharedWAMV2(nn.Module):
         scene_z = scene_z.reshape(len(points), 24, *points.shape[1:3], 3).transpose(1, 2)
         hand_mask = batch["start_hand_valid"][:, None, ..., None]
         scene_mask = valid[:, :, None, :, None]
-        return dict(trajectory=torch.where(hand_mask, self.normalizer.denormalize("hand", hand_z), 0.),
+        prediction = dict(trajectory=torch.where(hand_mask, self.normalizer.denormalize("hand", hand_z), 0.),
                     scene=torch.where(scene_mask, self.normalizer.denormalize("scene", scene_z), 0.),
                     trajectory_normalized=torch.where(hand_mask, hand_z, 0.),
                     scene_normalized=torch.where(scene_mask, scene_z, 0.))
+        if return_shared:
+            prediction.update(shared_tokens=shared, shared_valid=shared_valid)
+        return prediction
 
     def parameter_groups(self, geometry_lr, shared_lr):
         geometry = list(self.geometry.parameters())

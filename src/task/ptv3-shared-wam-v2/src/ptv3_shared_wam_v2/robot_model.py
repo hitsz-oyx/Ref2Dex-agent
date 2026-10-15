@@ -23,19 +23,33 @@ class SharedWAMV2Robot(nn.Module):
         super().__init__()
         self.forecaster = SharedWAMV2(stats, config)
         self.action_representation = action_representation
-        self.retargeter = make_retargeter(action_representation)
+        self.action_interface = config.get("action_interface")
+        self.anchor_weight = config.get("anchor_weight", 1.)
+        if self.action_interface is None:
+            self.retargeter = make_retargeter(action_representation)
+        else:
+            from .shared_actor import SharedQueryActor
+            from ptv3_shared_wam.action_targets import GEOMETRY_LIFTED
+            if action_representation != GEOMETRY_LIFTED or self.anchor_weight != 0:
+                raise ValueError("matched shared actor requires geometry-lift and anchor_weight=0")
+            self.retargeter = SharedQueryActor(self.action_interface, config["shared_width"])
 
     def forward(self, batch):
-        prediction = self.forecaster(batch)
+        prediction = self.forecaster(batch, return_shared=True) if self.action_interface else self.forecaster(batch)
         has_action = batch.get("has_action")
         if has_action is None or not bool(has_action.all()):
             raise ValueError("v2 robot fine-tune requires action labels on every row")
         tau = native_trajectory(prediction["trajectory"], batch["start_hand_valid"])
-        prediction["action"] = self.retargeter(batch["native_state"], tau)
+        if self.action_interface:
+            prediction["action"] = self.retargeter(batch["native_state"], tau,
+                prediction.pop("shared_tokens"), prediction.pop("shared_valid"))
+        else:
+            prediction["action"] = self.retargeter(batch["native_state"], tau)
         # Anchor R to the measured future hand trajectory.  It updates only R;
         # observed future hand labels are detached from the v2 forecaster.
-        prediction["action_anchor"] = self.retargeter(
-            batch["native_state"], batch["native_tau"].detach())
+        if self.anchor_weight:
+            prediction["action_anchor"] = self.retargeter(
+                batch["native_state"], batch["native_tau"].detach())
         return prediction
 
     def parameter_groups(self, config):
@@ -50,7 +64,8 @@ def robot_loss(prediction, batch, config, model):
     target = target_tensor(batch, model.action_representation)
     scale = model.retargeter.action_scale
     action = ((prediction["action"] - target) / scale).abs().mean()
-    anchor = ((prediction["action_anchor"] - target) / scale).abs().mean()
+    anchor = (((prediction["action_anchor"] - target) / scale).abs().mean()
+              if config.get("anchor_weight", 1.) else action.new_zeros(()))
     total = total + config.get("action_weight", 1.) * action + config.get("anchor_weight", 1.) * anchor
     return total, dict(terms, action=action, anchor=anchor)
 

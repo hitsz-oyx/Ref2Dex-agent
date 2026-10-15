@@ -19,7 +19,7 @@ import sys
 import time
 
 TASK = Path(__file__).resolve().parents[2]
-ROOT = TASK.parents[2]
+ROOT = Path(os.environ.get("REF2DEX_RUN_ROOT", TASK.parents[2])).resolve()
 V2_OUTPUTS = ROOT / "outputs" / "ptv3-shared-wam-v2"
 
 

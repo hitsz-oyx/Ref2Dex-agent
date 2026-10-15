@@ -13,7 +13,7 @@ import torch.distributed as dist
 from torch import nn
 
 TASK = Path(__file__).resolve().parents[2]
-ROOT = TASK.parents[2]
+ROOT = Path(os.environ.get("REF2DEX_RUN_ROOT", TASK.parents[2])).resolve()
 RUNTIME = TASK / "src"
 SCHEMA = "ref2dex.ptv3-shared-wam.v2"
 
@@ -135,6 +135,9 @@ def evaluate(model, dataset, indices, config, device):
     model.eval()
     total = action = anchor = 0.
     count = 0
+    totals = {}
+    physical = {}
+    from ptv3_shared_wam_v2.robot_metrics import physical_errors, summarize_errors
     for start in range(0, len(indices), min(config["batch_size"], 16)):
         rows = indices[start:start + min(config["batch_size"], 16)]
         batch = to_device(robot_collate([dataset[int(i)] for i in rows]), device)
@@ -145,9 +148,15 @@ def evaluate(model, dataset, indices, config, device):
         action += float(terms["action"]) * n
         anchor += float(terms["anchor"]) * n
         count += n
+        for key,term in terms.items(): totals[key]=totals.get(key,0.)+float(term)*n
+        if config.get("action_interface"):
+            for key,value in physical_errors(prediction,batch,dataset.manifest['native_controller']).items():
+                physical.setdefault(key,[]).append(value)
     model.train()
     return dict(objective=total / max(count, 1), action=action / max(count, 1),
-                anchor=anchor / max(count, 1), count=count)
+                anchor=anchor / max(count, 1), count=count,
+                terms={key:value/max(count,1) for key,value in totals.items()},
+                physical=summarize_errors(physical))
 
 
 def main():
@@ -231,6 +240,10 @@ def main():
     validation_rng = np.random.default_rng(config.get("validation_seed", config["seed"] + 1))
     validation = validation_rng.choice(len(dev), min(len(dev), config.get("validation_samples", 128)), replace=False)
     provenance = dict(git_commit=git_commit(), task=TASK.name, stage="robot",
+                      action_interface=config.get("action_interface"),
+                      checkpoint_selection=(dict(control_best="first-control PD XYZ p95 then mean",
+                          forecast_best="hand_all24 mean_mm + scene_all24 mean_mm",best="total objective")
+                          if config.get("action_interface") else dict(best="total objective")),
                       engineering_only=args.smoke, experiment_id=None if args.smoke else card["experiment_id"],
                       source=str(args.source.resolve()), stats=str(args.stats.resolve()),
                       parent_checkpoint=str(args.init_shared.resolve()), parent_step=parent["step"],
@@ -291,7 +304,8 @@ def main():
         torch.set_rng_state(states[rank]["torch"])
         torch.cuda.set_rng_state(states[rank]["cuda"])
     torch.cuda.empty_cache()
-    wrapped = nn.parallel.DistributedDataParallel(model, device_ids=[local], gradient_as_bucket_view=True) if world > 1 else model
+    wrapped = nn.parallel.DistributedDataParallel(model, device_ids=[local], gradient_as_bucket_view=True,
+        find_unused_parameters=config.get("action_interface")=="shared") if world > 1 else model
     loader = pretrain_loader(train, config["batch_size"], config["seed"], rank, start_step + 1, config["updates"],
                              args.loader_workers, args.loader_prefetch, args.sequence_cache,
                              args.pin_memory, collate_fn=robot_collate)
@@ -302,6 +316,7 @@ def main():
         (TASK.parent / "ptv3-shared-wam" / "src").rglob("*.py"))
     code_state = {p: (p.stat().st_size, p.stat().st_mtime_ns) for p in implementation}
     curve, files, best = [], [], float("inf")
+    physical_best = {}
     for step in range(start_step + 1, config["updates"] + 1):
         batch = to_device(next(batches), device, non_blocking=args.pin_memory)
         optimizer.zero_grad(set_to_none=True)
@@ -340,6 +355,7 @@ def main():
                 with (out / "train.jsonl").open("a") as stream:
                     stream.write(json.dumps(row) + "\n")
         new_best = False
+        selected_aliases = []
         if step % config.get("validation_interval", 500) == 0 or step == config["updates"]:
             report = evaluate(model, dev, validation, config, device) if rank == 0 else None
             if rank == 0:
@@ -348,11 +364,18 @@ def main():
                 new_best = report["objective"] < best
                 if new_best:
                     best = report["objective"]
+                if report.get("physical"):
+                    m=report['physical']
+                    criteria={'control_best.pt':(m['PD_xyz_mm']['p95'],m['PD_xyz_mm']['mean']),
+                              'forecast_best.pt':(m['hand_all24_mm']['mean']+m['scene_all24_mm']['mean'],)}
+                    for alias,key in criteria.items():
+                        if alias not in physical_best or key<physical_best[alias]:
+                            physical_best[alias]=key;selected_aliases.append(alias)
             if world > 1:
-                flag = [new_best]
+                flag = [new_best,selected_aliases]
                 dist.broadcast_object_list(flag, src=0)
-                new_best = flag[0]
-        if new_best or step % config.get("checkpoint_interval", 1000) == 0 or step == config["updates"]:
+                new_best, selected_aliases = flag
+        if new_best or selected_aliases or step % config.get("checkpoint_interval", 1000) == 0 or step == config["updates"]:
             rank_rng = dict(torch=torch.get_rng_state(), cuda=torch.cuda.get_rng_state())
             states = [rank_rng]
             if world > 1:
@@ -366,6 +389,8 @@ def main():
                 checkpoint_alias(out, "latest.pt", path.name)
                 if new_best:
                     checkpoint_alias(out, "best.pt", path.name)
+                for alias in selected_aliases:
+                    checkpoint_alias(out, alias, path.name)
                 files = prune_recovery_checkpoints(out, files, config)
                 if directory_bytes(out, ROOT / "tmp" / out.name) > config.get("artifact_budget_bytes", 8_000_000_000):
                     raise RuntimeError("v2 robot artifact budget exceeded")
