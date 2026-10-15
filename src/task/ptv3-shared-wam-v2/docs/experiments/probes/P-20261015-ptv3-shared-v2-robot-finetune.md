@@ -271,3 +271,36 @@ metrics with no model inference or configuration changes. Corrected resume
 ETA at8340 is about60min, using elapsed/(step-3000); the inherited logger's
 elapsed/total-step formula underestimates time remaining. GPU4/5/6/7 observed
 at89/92/100/100% utilization and roughly6.6GiB physical memory per card.
+
+## Stage preservation requested by the user
+
+User wants the different training stages available for later downstream
+comparison because action and forecast losses favor different stages.
+At this request, complete checkpoints still exist at1000/3000 in r2 and
+3500/4000/8000 in r5. Old policy retained best/latest plus4000-step milestones
+and one recent recovery file; some intervening saved checkpoints had already
+been rotated out. Not every500-step dev evaluation created a checkpoint.
+An extracted R-only step500 snapshot is not a complete WAM+R checkpoint and
+cannot reconstruct a missing joint stage. Do not claim all stages survived.
+
+Action: immediately hard-link all five existing complete checkpoints into
+`outputs/ptv3-shared-wam-v2/robot-finetune-stage-archive-20261015-r1/`, then
+watch for all subsequently saved stages through12000. Separate CPU-only
+watcher `tools/audit/archive_robot_stages.py` checks every30s, stops within4h
+or when the source completes/fails, caps logical checkpoint bytes at16GB
+and requires20GiB filesystem headroom. This is bounded bookkeeping, not a
+new learning experiment. No training code/configuration/optimizer change;
+the existing8GB active-run budget remains in force. Hard links initially
+consume negligible new data blocks; they retain blocks that source pruning
+would otherwise free. All five link identities verified; the archived8000
+checkpoint loads as a complete robot model/optimizer/stats/four-rank RNG.
+Engineering smoke confirms source unlink cannot remove the archive, partial
+writes are excluded and the archive budget is enforced.
+
+Archive manifest retains source identity and each stage's objective/action/
+anchor/forecast-residual metrics. Future downstream qualification must compare
+these stages on the same task panel; neither lower action nor lower forecast
+alone proves better grasping or adaptation. Stage selection can find the more
+useful weight, but causal attribution between the two losses would require
+separate matched interventions. That downstream evidence is deferred to the
+next decision-relevant qualification Probe; current work preserves options.

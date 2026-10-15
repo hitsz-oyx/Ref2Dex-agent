@@ -96,6 +96,29 @@ sequence、split、30Hz、判定、原因及备注。重复审阅保留每次记
 训练窗口准入需另行显式处理；当前不会把标签自动应用到训练。新标注上限10000条、
 每条备注2000字符；训练窗口的未来24帧与历史上下文也应受坏片段影响，不能只查起始帧。
 
+## 微调阶段权重保留
+
+用户要求保留阶段权重，以便比较action与forecast趋势对下游表现的帮助。
+当前完整权重归档为 `outputs/ptv3-shared-wam-v2/robot-finetune-stage-archive-20261015-r1/`，
+`archive-manifest.json` 记录step、原run、dev指标和完整checkpoint路径。
+使用同文件系统硬链接保护完整模型WAM+R、normalizer、optimizer和四rank RNG，
+原run轮换删除目录项后，归档文件仍可读取。不修改活跃训练的源码、配置或清理逻辑。
+
+```bash
+TMPDIR="$PWD/tmp" /home2/wyy/miniconda3/envs/graspenv/bin/python \
+  src/task/ptv3-shared-wam-v2/tools/audit/archive_robot_stages.py \
+  --source outputs/ptv3-shared-wam-v2/ptv3-shared-v2-robot-finetune-20261015-r2 \
+  --source outputs/ptv3-shared-wam-v2/ptv3-shared-v2-robot-finetune-20261015-r5 \
+  --active-run outputs/ptv3-shared-wam-v2/ptv3-shared-v2-robot-finetune-20261015-r5 \
+  --output outputs/ptv3-shared-wam-v2/robot-finetune-stage-archive-20261015-r1
+```
+
+CPU文件元数据操作，无GPU；每30秒检查，最多4小时/16GB逻辑checkpoint体积，
+文件系统保留20GiB余量。只接收原子rename完成的step*.pt，不归档未写完的.part；
+源run完成/失败后最后扫描并退出。启动时仍在的完整阶段为1000/3000/3500/4000/8000，
+后续保存点自动保留；早期已轮换删除的完整权重无法从loss日志或R-only快照恢复。
+stage选择和下游实验之后再做，当前没有改变任何训练输入或提前停止主训练。
+
 ## 远端运行条件
 
 远端已部署在 `/home/wbcd/workspace/oyx_ws/wam-v2-20261014/repo`；使用
