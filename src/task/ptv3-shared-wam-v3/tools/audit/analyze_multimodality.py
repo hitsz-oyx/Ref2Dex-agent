@@ -30,7 +30,10 @@ def bind_recordings(metadata, manifest):
         assert row['source_id']==m['source_id']
         assert str(row['objects'][row['target_slot']])==m['geometry_key']
         m['capture_file']=m['capture']
-        m['capture']=str(m['source_id'])+':'+row.get('source_sequence',row['path'])
+        # UniDex episode names repeat across independent rollout batches.
+        # Only H2O is known to split a single take into several files.
+        if m['source_id']==9:
+            m['capture']='9:'+row['source_sequence']
         m['group']=row['group_id']
 
 
@@ -215,7 +218,7 @@ def write_report(result,out):
     text+=['','| Source / gate / retrieval | Supported ≥8 | ≥16 | Multimodal in both spaces | Averaging + off support |','|---|---:|---:|---:|---:|']
     for name,r in result['conditional'].items():text.append(f'| {name} | {r["supported"]}/{r["queries"]} | {r["supported16"]} | {r["multimodal"]} | {r["averaging"]} |')
     text+=['',f'Tight-gate/raw-and-latent robust multimodal captures and averaging rate: `{json.dumps(result["decision"])}`. Bootstrap resamples independent DEV captures; window medians in the first table are descriptive.','',
-           'Limits: finite-radius neighbors are not identical continuous H,G conditions. Multimodality requires both absolute and displacement-space separation; primary decision also requires both retrieval methods at 20 mm. Undertraining, missing observations, residual bad data, and finite bank support can explain errors. UniDex/HOI4D have no TRAIN/DEV target geometry overlap and cannot be diagnosed conditionally here. Complete future hand coverage is a selection filter. One neighbor per physical recording; native split segments are rebound to manifest source_sequence (not file path). A maximum eight windows per file was sampled before this correction; capture/group weighting handles unequal query counts. Session/group bootstrap is also reported in JSON. Embedding whitening is fit on TRAIN only. No future hand label enters retrieval.','',
+           'Limits: finite-radius neighbors are not identical continuous H,G conditions. Multimodality requires both absolute and displacement-space separation; primary decision also requires both retrieval methods at 20 mm. Undertraining, missing observations, residual bad data, and finite bank support can explain errors. UniDex/HOI4D have no TRAIN/DEV target geometry overlap and cannot be diagnosed conditionally here. Complete future hand coverage is a selection filter. One neighbor per physical recording; H2O split segments are rebound to manifest source_sequence, other sources retain unique file identities (UniDex episode names repeat across independent rollout batches). A maximum eight windows per file was sampled before this correction; capture/group weighting handles unequal query counts. Session/group bootstrap is also reported in JSON. Embedding whitening is fit on TRAIN only. No future hand label enters retrieval.','',
            'Contact is an unsigned distance to a sparse cached object cloud after a GT rigid transform, not mesh SDF, penetration, or grasp success. Motion ratios exclude GT amplitude below 5 mm; speed/acceleration ratios also exclude all24 GT amplitude below 5 mm or mean GT speed below 0.01 m/s. Sources are reported separately. Correlation with spread alone is not evidence of conditional averaging. Bootstrap intervals are conditional on the fixed TRAIN bank and omit bank sampling/clustering uncertainty.','',
            'A PROMISING audit only justifies a matched frozen-backbone FM versus refitted MSE head probe, with equal data and compute, single-sample accuracy, minADE/FDE@M, mode precision/coverage and sampling cost. UNCLEAR means the existing weights/neighborhoods cannot select the architecture.','',
            '![Per-source prediction diagnostics](prediction_diagnostics.png)','']

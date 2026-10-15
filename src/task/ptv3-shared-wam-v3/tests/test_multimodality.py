@@ -27,3 +27,18 @@ def test_goal_gate_and_capture_deduplication_ignore_future_labels():
     b={k:np.stack([v,v,v]) for k,v in q.items()};b['goal'][2]=1
     out=choose_neighbors(q,b,m,mb,np.array([1,2,0]),.02)
     assert [x[0] for x in out]==[0]
+
+
+def test_physical_recording_identity_merges_h2o_gaps_without_merging_unidex_batches():
+    import importlib.util
+    path=Path(__file__).resolve().parents[1]/'tools/audit/analyze_multimodality.py'
+    spec=importlib.util.spec_from_file_location('multimodality_analysis',path)
+    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    rows=[dict(source_id=sid,source_sequence='same-relative-name',objects=['object'],target_slot=0,group_id='group',path=str(i))
+          for i,sid in enumerate((9,9,4,4))]
+    meta=[dict(source_id=row['source_id'],row=i,capture='unique-file-'+str(i),geometry_key='object') for i,row in enumerate(rows)]
+    module.bind_recordings(meta,dict(sequences=rows))
+    assert meta[0]['capture']==meta[1]['capture']
+    assert meta[2]['capture']!=meta[3]['capture']
+    a=[dict(source_id=9,capture='a',x=0),dict(source_id=9,capture='b',x=1)]
+    assert module.capture_bootstrap(a,'x')==module.capture_bootstrap(a+[a[0]]*100,'x')
