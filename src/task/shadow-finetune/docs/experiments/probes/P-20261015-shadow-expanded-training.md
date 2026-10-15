@@ -19,6 +19,26 @@ run_id: shadow-expanded-20261015-r1
 
 # Shadow shared 全量数据双卡扩大训练
 
+## 9k阶段停止决策检查（评估前）
+
+用户询问旧微调是否值得继续。9k已完整存档，common DEV action为0.181505，8k为
+0.185297（下降2.05%）；startup first MAE0.024592→0.022632（下降7.97%）。
+不能称完全平台，但闭环最近仅2k（学生保持5/16、DEV1/8），不足以支持再占双卡约5h。
+原Inspire pred_tau/shared均已完成12k，XYZ均值59.48/60.51mm，不继续延长；本决策不停止
+刚启动的shared当前721匹配Probe，也不操作其他GPU0作业。
+
+Class: Decision。最低成本直接用现成step9000.pt、原fixed16env/seed216/pilot panel，
+沿用98fd8c6c冻结evaluate.py在空GPU1评估teacher/student，无新训练或标签变化。
+CPU raw重算split计数、初态配对、controller invalid都必须核对。GPU切换及PhysX运行
+会改变teacher轨迹；与2k仅描述比较，不据单次增量宣布训练因果或正式成功率。
+
+停止准则：若DEV保持仍<=1/8且总体保持无明显增益，则停止原Shadow长训、保存完整9k/
+最近阶段和optimizer，优先修闭环；若DEV保持>=3/8且本次teacher覆盖有效，则支持继续
+原预算；中间或teacher条件明显变化则保留UNCLEAR，优先有限行为复核而非自动追加5h。
+暂停/停止仅涉及已核验的2250275拥有进程，不删除权重。评估期间主训暂继续。
+本次最多1200s/1GB，正常占用0/1/4/5/6/7，保留2/3空闲，磁盘保留20GiB。
+产物shadow-expanded-20261015-r1/native-step9000，执行版本与命令另存native-step9000-launch.json。
+
 Class: Decision，服务独立执行底座。用户主动要求停止Inspire shared_tau，GPU4/5改跑Shadow
 扩大训练，并允许其余空卡用于Inspire抓取评估。之前Shadow仅1k×64，不足以评价全量收敛；
 当前起步采样版保持4/16、teacher7/16，但起步DEV动作拟合仍差，结果UNCLEAR。
