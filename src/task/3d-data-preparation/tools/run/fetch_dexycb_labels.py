@@ -88,6 +88,7 @@ def main():
         folders=sorted((raw/subject).iterdir());assert len(folders)==100
         state.update(status='COMPLETED',bytes=final.stat().st_size,files=files,extracted_bytes=total,sessions=len(folders),elapsed_s=time.monotonic()-started,camera=CAMERA,source=f'https://huggingface.co/datasets/{MIRROR}',upstream='https://dex-ycb.github.io/')
         atomic(receipt,state);print(json.dumps(state),flush=True);return state
+    atomic(root/'progress.json',dict(status='RUNNING',requested_subjects=sorted(set(a.subjects)),pid=os.getpid(),started_at=time.time()))
     try:
         with ThreadPoolExecutor(max_workers=2) as pool:result=list(pool.map(work,rows))
         atomic(root/'progress.json',dict(status='COMPLETED',subjects=result,pid=os.getpid(),elapsed_s=time.monotonic()-started))
