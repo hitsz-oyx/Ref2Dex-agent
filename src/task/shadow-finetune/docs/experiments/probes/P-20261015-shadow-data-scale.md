@@ -157,6 +157,19 @@ query/706676个近目标query。完整forecast额外舍弃404720个query，其�
 这排除了“近目标监督完全没有”的说法，同时暴露明显晚期覆盖缺口；若full固定预算仍不能改善
 保持，下一轮优先以相同full数据做partial-forecast/尾段BC最小对照，而非立即归因总轨迹数不足。
 
+## 终点结果后的标签有效性检查
+
+paired pipeline已正常完成，所有matching检查通过；full首命令MAE仅改善6.21%，DEV官方success
+仍1/8，整体success2/16、同步保持0/16（small7/16、3/16）。阶段结论UNCLEAR，不能关闭数据量路线。
+最便宜先排除全量teacher标签与预期确定性策略不一致：按官方固定300D actor严格重载权重，
+穷举当前TRAIN准入query的首命令，与采集canonical action[t]比较。此前仅小集153点重算，
+不能替代这项全量检查；不会以observation[t+1]上一拍命令一致冒充teacher函数复算。
+
+这是Blocker诊断，若不一致先修数据，若一致才继续拟合/尾段覆盖问题。临时GPU6、≤10min、
+模型分配≤2GiB、报告≤50MB，不训练、不改任何cache/指标/原checkpoint，GPU7保持空闲。
+该检查沿用用户的一张空卡小测试授权；上轮pipeline实际25.8分钟已退出并释放GPU6，不延长它。
+动作clip与原采集一致，FP32关闭TF32，容忍1e-4以容纳批大小/后端GEMM浮点差异。
+
 ## Limitations / future evidence
 
 固定计算预算衡量更大支持集合在同预算下的收益，不能证明完整数据的收敛性能。只一个seed、
