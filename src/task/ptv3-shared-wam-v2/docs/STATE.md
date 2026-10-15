@@ -1,3 +1,12 @@
+## 2026-10-15 shared actor三臂中期仍在更新
+
+已实时检查三臂supervisor与GPU worker存活，最新约3360–3540步。复核matched合同后，
+同一步3000/new DEV256的pred_tau、shared、shared_tau XYZ mean依次65.64/68.69/69.59mm，
+p95依次216.16/208.19/197.35mm；动作L1为0.42036/0.43999/0.44800，近500步均下降。
+shared尚无mean和p95共同收益，不据此提前结束12k协议；forecast DEV也未同步下降。
+中期快照已保留在shared-actor-interface-20261015-r1/interim-step3000.json，实验卡同步。
+GPU0–5继续、6/7空闲；Shadow单卡小测试已经完成并释放GPU6。
+
 ## 2026-10-15 shared actor三臂已并行启动
 
 先提交补采数据/严筛27bd9913，再实现参考ref1的state+预测τ、state+shared、

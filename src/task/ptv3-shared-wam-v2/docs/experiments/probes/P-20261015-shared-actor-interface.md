@@ -112,3 +112,19 @@ CPU collector1922942最多90000s，三臂完成后自动调用summarize_shared_a
 6/7均空闲。采样与CPUwatch报告在共同run目录。首个科学DEV在500步，暂无收益结论。
 
 29项相关单测通过，VERIFY_BASE=27bd9913的工作流检查PASS。单seed离线结果边界不变。
+
+## 同步3000步中期读出 / 2026-10-15
+
+三臂进程仍存活，最新约3360–3540步，原panel/admission/config/父权重/代码/world size再次逐项一致。
+固定同一步3000的DEV256：
+
+| 接口 | action L1 | first-control XYZ mean / p95 mm |
+| --- | ---: | ---: |
+| state+pred_tau | 0.42036 | 65.64 / 216.16 |
+| state+shared | 0.43999 | 68.69 / 208.19 |
+| state+shared+pred_tau | 0.44800 | 69.59 / 197.35 |
+
+2500→3000动作loss三臂均下降；shared两臂p95较低，但mean高于预测τ，尚未出现原定双指标改善。
+不更改12k判别/训练协议，不用早期单seed差异关闭shared路线；forecast固定DEV没有同步改善。
+快照`outputs/ptv3-shared-wam-v2/shared-actor-interface-20261015-r1/interim-step3000.json`。
+step1000/2000及当前selected/最近阶段真实权重存在，完整阶段保留规则继续生效。

@@ -43,3 +43,8 @@ python tools/run/launch_probe.py --data <cache> --panel <panel.json> --output <f
 首轮1000步pilot已完成，按固定DEV action L1选择step500。16env原生闭环teacher官方success5/16，
 学生1/16；分开看学生TRAIN1/8、DEV0/8，teacher分别3/8、2/8。同步抬升保持代理学生1/16，
 初始状态完全一致。这仅确认小规模监督和执行链路，数据量假设仍为UNCLEAR；GPU6已释放。
+
+全量cache的12456条已逐条CPU审计通过：动作上一拍时钟max误差0、raw/CAD身份匹配、
+安全tick支持集合一致、TRAIN/DEV物体无交集。可用
+`tools/audit/audit_cache.py --cache <cache> --output <fresh audit directory>`复核；
+报告在`outputs/shadow-finetune/full-cache-audit-20261015-r1/report.json`。
