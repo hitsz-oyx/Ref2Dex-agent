@@ -1,4 +1,6 @@
-# 当前：九源motion清洗版本已生成，远端尚未训练
+# 当前：远端四卡motion九源全量预训练已稳定更新
+
+用户已授权直接开始。运行`pretrain-nine-motion-remote4-80k-20261015-r1`，远端supervisor1877848，固定代码6e535bc1、短目录`/home/wbcd/workspace/oyx_ws/wam-v3-20261015/repo`。使用下述motion清洗recipe，从头初始化、GPU0/1/2/3、每卡128/global512、80k更新/48h/8GB预算；本地GPU当前空闲。启动检查已通过：step120，四卡98–100%利用率、显存约22–32GiB，loss/grad有限；完整step1 checkpoint已保存。近期1.4–1.47更新/秒（global512），80k暂估16–18h；训练后首次固定DEV在step1000。当前具体步数/失败原因以远端process/progress.json及本地`tmp/nine-remote-20261015-r1/training-startup-monitor.jsonl`为准。
 
 按用户“先筛查清洗”要求，全量扫描UniDex33,056条，版本化规则隔离25条中的136窗（TRAIN114/DEV22）。保留15条的可信完整前缀，10条无剩余窗；不按抓取成功过滤、不改原始payload，其余八源窗集合不变。
 
@@ -6,7 +8,7 @@
 
 规则针对高冲量、共同手物强冲量、最初两个转换已高速飞行、极端转速的保守疑点隔离；不宣称排除了所有物理异常。纯旋转接触与正常掉落要继续视觉复核。详见[清洗记录](../../3d-data-preparation/docs/research/2026-10-15-unidex-motion-cleaning.md)。原清洗view、raw数据和本地旧训练全部保留。
 
-远端验收已完成：`/mnt/ugreen_nas/storage/oyx_storage/ptv3-shared-wam-v3-nine-source-20261015-r1/data-motion-r1/recipe`。仅传约3.24MB元数据，复用37,591 payload/2,638 CAD；九源36 TRAIN/八源32 DEV真实mixed-reader通过，数值统计与本地完全一致，14909窗口准入和原始坏窗仍可读另检通过。远端无GPU训练；证据`tmp/nine-remote-20261015-r1/motion-r1-evidence/`。
+远端验收已完成：`/mnt/ugreen_nas/storage/oyx_storage/ptv3-shared-wam-v3-nine-source-20261015-r1/data-motion-r1/recipe`。仅传约3.24MB元数据，复用37,591 payload/2,638 CAD；九源36 TRAIN/八源32 DEV真实mixed-reader通过，数值统计与本地完全一致，14909窗口准入和原始坏窗仍可读另检通过。以上为启动前CPU验收；证据`tmp/nine-remote-20261015-r1/motion-r1-evidence/`。
 
 Viser已切换同8769新清洗recipe，PID1686665、固定代码494c2111；10条整段隔离仍可选择回看，真实UI检查通过，HTTP200。新标记目录`nine-source-motion-review-20261015-r1/annotations`；旧标记保留。
 

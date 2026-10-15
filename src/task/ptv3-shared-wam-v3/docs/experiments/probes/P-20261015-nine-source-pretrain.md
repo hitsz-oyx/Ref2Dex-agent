@@ -5,7 +5,7 @@ experiment_id: P-20261015-nine-source-pretrain
 date: 2026-10-15
 task: ptv3-shared-wam-v3
 branch: main
-git_commit: 67f7af78
+git_commit: 6e535bc1077e1593d28a83d01b485b5a09cb8075
 claim_id: C1
 hypothesis_family: HF-nine-source-pretrain
 probe_index_in_family: 1
@@ -13,8 +13,8 @@ seed_pool: probe
 seeds: [170]
 decision_changed_if_positive: continue nine-source pretraining when sustained full-batch updates and recovery pass and fixed physical DEV errors improve
 decision_changed_if_negative: inspect source semantics and actual input/loss chain before spending the remaining training budget
-status: STOPPED
-run_id: pretrain-nine-80k-20261015-r1
+status: RUNNING
+run_id: pretrain-nine-motion-remote4-80k-20261015-r1
 ---
 
 # 九源统一预训练启动与持续运行
@@ -114,4 +114,13 @@ compact与raw[::2]完全一致，query重建误差2.38e-7m；60Hz某帧16.7ms位
 
 资源核查：本地8卡当前均无计算占用，远端4×4090各49,140MiB空闲，使用远端0/1/2/3，符合全项目6卡上限。采用既定world4配置，每卡128/global512、80,000更新、warmup500、lr1e-4、bf16/TF32、每1000步DEV/保存；最长48h、产物8GB/run、磁盘余量20GiB。rank0初始DEV/保存期间其他rank等待，首步后再估计稳态吞吐与ETA。只允许停止own进程组；非有限loss/grad、资源超限、无进度30min、STOP或期限停止。
 
-当前执行：准备启动；实际状态以远端process/progress.json为准。启动成功后记录PID、GPU实测、速率和ETA。
+已于14:07提交执行，supervisor1877848、torchrun1877923；四卡进程已启动，rank0九源gradient-audit与初始固定DEV curve已写出。正等待首步checkpoint及稳态速率；实际状态以远端process/progress.json为准。
+
+
+### 远端四卡启动实测
+
+`REMOTE_FOUR_GPU_STARTUP_PASS`：已连续更新至step120。四卡利用率98–100%，物理显存约21.9/26.5/28.9/31.6GiB（按卡实际0/1/2/3分别28.9/26.5/21.9/31.6），无OOM/非有限loss或gradient。rank0 peak allocated14.30GiB/reserved28.37GiB；九源hand/scene梯度进入PTv3/shared/hand_encoder/goal路径，初始固定八源DEV有限。
+
+step1完整checkpoint已写入1,183,806,235bytes并越过多卡保存barrier；各rank RNG随checkpoint保存。step20–120区间约1.22–1.47更新/秒，近期1.40–1.47（约715–753窗/秒）；纯更新ETA约15–16h，含DEV/保存与吞吐波动暂估16–18h。当前仅为启动与稳定运行工程证据；首个训练后固定DEV在step1000，尚不形成模型效果结论。
+
+输出：`/mnt/ugreen_nas/storage/oyx_storage/ptv3-shared-wam-v3-nine-source-20261015-r1/outputs/ptv3-shared-wam-v3/pretrain-nine-motion-remote4-80k-20261015-r1/`。本地只读快照`tmp/nine-remote-20261015-r1/remote-motion-startup-audit.json`与启动监控JSONL可追溯；远端自己的supervisor持续记录GPU/进度并执行48h、磁盘、产物、无进度和STOP边界。
