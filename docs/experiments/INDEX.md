@@ -341,6 +341,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261005-early-hold-duration](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-early-hold-duration.md) | Does longer feedback-residual execution change grasp-retention information? | 1006 full randomized windows; dose and support pass, but no duration-sensitive retention-I gate; hand displacement responds while I16/contac | Close K4/8/16 feedback-residual extension after independent review; no Cm fitting, extra duration/seed or selector. | probes/UNPROMISING |
 
+## HF-mse-conditional-multimodality
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261015-mse-multimodality-audit](../../src/task/ptv3-shared-wam-v3/docs/experiments/probes/P-20261015-mse-multimodality-audit.md) | Existing-weight conditional multimodality audit | 见原卡 | 见原卡 | probes/RUNNING |
+
 ## HF-native-gpu-execution-contract
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
@@ -569,6 +575,12 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261005-rolling-oracle-control](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-rolling-oracle-control.md) | Ref14_1: executed Rolling GT-Y Oracle Control | PROMISING on the predeclared 32-anchor gate: baseline 23/32, actual | Execute same-current-state rolling oracle before any new predictor, long-Y, execution forecasting or PPO. | probes/PROMISING |
+
+## HF-shadow-native-policy
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261015-shadow-native-policy](../../src/task/shadow-finetune/docs/experiments/probes/P-20261015-shadow-native-policy.md) | 在ShadowHand自身环境中检验WAM动作微调 | 见原卡 | 见原卡 | probes/RUNNING |
 
 ## HF-shared-action-interface
 

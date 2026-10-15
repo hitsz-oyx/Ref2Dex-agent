@@ -25,6 +25,14 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261015-shadow-native-policy:
+    seed_pool: probe
+    initialization_and_train_draw_seed: 210
+    object_subset_seed: 211
+    dev_panel_seed: 212
+    paired_native_reset_seed: 213
+    reuse_reason: paired teacher/student physics reset; not independent seeds or validation
+
   P-20261015-shared-actor-interface:
     seed_pool: probe
     model_and_draw_seed: 190
@@ -372,3 +380,8 @@ allocations:
     train_draw_seed: 296
     execution_seed: 292
     reuse_reason: bounded continuation and matched nominal physics reset; prefix perturbations are not independent random seeds
+
+  P-20261015-mse-multimodality-audit:
+    seed_pool: probe
+    diagnostic_sampling_seed: 214
+    reuse_reason: TRAIN-bank/DEV-panel diagnostic only; parent model seed170 unchanged, no new model fit
