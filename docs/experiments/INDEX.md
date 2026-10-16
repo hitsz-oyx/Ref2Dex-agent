@@ -384,7 +384,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261015-nine-source-pretrain](../../src/task/ptv3-shared-wam-v3/docs/experiments/probes/P-20261015-nine-source-pretrain.md) | 九源统一预训练启动与持续运行 | 见原卡 | 见原卡 | probes/RUNNING |
+| [P-20261015-nine-source-pretrain](../../src/task/ptv3-shared-wam-v3/docs/experiments/probes/P-20261015-nine-source-pretrain.md) | 九源统一预训练启动与持续运行 | 见原卡 | 见原卡 | probes/COMPLETED |
 
 ## HF-oakink2-action-effect-wm30
 
@@ -628,7 +628,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261016-shared-action-horizon](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261016-shared-action-horizon.md) | 当前输入与动作监督跨度的四组对照 | 见原卡 | 见原卡 | probes/UNCLEAR |
+| [P-20261016-shared-action-horizon](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261016-shared-action-horizon.md) | 当前输入与动作监督跨度：执行结果及语义审查更正 | 见原卡 | 见原卡 | probes/UNCLEAR |
 
 ## HF-shared-action-interface
 
@@ -640,7 +640,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261015-shared-current-continuation](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-shared-current-continuation.md) | 当前721D在原shared联合训练中的匹配延续 | 见原卡 | 见原卡 | probes/RUNNING |
+| [P-20261015-shared-current-continuation](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-shared-current-continuation.md) | 当前721D在原shared联合训练中的匹配延续 | 见原卡 | 见原卡 | probes/UNCLEAR |
 
 ## HF-shared-execution-gap
 

@@ -17,104 +17,92 @@ status: UNCLEAR
 run_id: shared-action-horizon-20261016-r1
 ---
 
-# 当前输入与动作监督跨度的四组对照
+# 当前输入与动作监督跨度：执行结果及语义审查更正
 
-Class: Decision。这个 Probe 把两个仍未分开的因素放进同一 shared7k 起点：当前输入是否有用，
-以及对完整 24 拍动作输出只监督前 1 拍还是监督前 8 拍。它服务于全局目标 C1，结果用于
-决定后续 shared actor 是保留当前 721D、缩短动作监督跨度，还是先回到完整 chunk 目标。
+Class: Decision。服务C1。预定四臂masked/delta0当前输入×1/8拍动作监督，均从shared7k
+权重起步、原WAM/R联合训练及forecast保持。动作输出始终8×15D，forecast另有24拍。
+8拍臂原先从shared-current的1k点恢复到7k，1拍臂从同一7k parent fresh optimizer训练7k。
+数据strict TRAIN93680/DEV10376、原DEV256、seed198/192/native148；global256，原三LR。
+GPU4/5单拍、6/7八拍，GPU1腕部面板，2/3空闲。每臂14000s/7GB、磁盘底线20GiB。
+原运行记录和checkpoint保留，不将预算停止当作算法失败。
 
-四个标签分别为 `masked-8`、`delta0-8`、`masked-1`、`delta0-1`。四臂网络、forecast
-监督、数据准入、batch、学习率、seed、动作表示和 checkpoint 选择保持一致。8 拍臂沿用
-`P-20261015-shared-current-continuation` 的 1k 阶段，并从各自 `step1000.pt` 恢复 Adam
-状态追加 6000 步；1 拍臂从同一 shared7k+weight-only robot parent 起步，optimizer 重置，
-训练到 7000 步。单拍臂仍产生完整的 24×15D geometry-lift 动作，只把 action/anchor L1
-的 query mask 设为第 0 拍；forecast hand/scene loss 始终覆盖完整 horizon。
+## 资源恢复与实际代码路径
 
-已有 1k 8 拍阶段先给出工程和行为基线：delta0 action 0.3979、首控 PD XYZ 均值 60.9 mm，
-masked action 0.4077、61.7 mm；三对象固定面板（airplane/spheresmall/mug，seed148）
-已完成且独立 native audit 通过。它们不构成正式结论，最终比较以四臂相同阶段和相同固定面板
-为准。1 拍臂的 action supervision 代码在 `7ff34069`，默认值仍为完整预测 horizon，
-因此旧实验语义不变。
+02:10前后原continuation两臂在step4000之后触及7GB artifact budget停止，随后从完整
+step4000恢复模型/Adam/RNG，改为稀疏validation/checkpoint cadence，在
+continuation-{masked8,delta08}-sparse完成7000。模型/数据/学习率未因资源恢复改变。
 
-GPU 安排：GPU4/5 运行新增 `masked-1`/`delta0-1` 7000 步；GPU6/7 运行 `masked-8`/
-`delta0-8` 从 step1000 恢复到 step7000；GPU1 扩大已有腕部 MLP 的 airplane、spheresmall、
-mug 固定面板；GPU0 外部作业不动，GPU2/3 空闲。所有训练监督器绑定本臂进程，监测 GPU、
-显存、磁盘和 stall；每臂上限 14000 秒、7GB，磁盘低于 20GiB 或出现外来 GPU 进程即停止
-该臂并保留已有 checkpoint。预计单拍 7000 步约 3 小时，随后运行相同三对象 native 面板。
+single-masked1在step5000、single-delta01在step6000后也进入sparse恢复，但其实际执行
+源码发生了下述监督语义变化。原始日志、失败和恢复的process.command均保留。
 
-判定仍使用 Probe 标签：比较首控 PD XYZ 的 mean/p95、完整动作离线误差和固定面板结果；
-单 seed 与短 episode 不能形成 SUPPORTED/REFUTED 结论。若单拍在 delta0 与 masked 之间
-同时提高 teacher-positive held 序列数并不损害 forecast，则进入多 seed Validation；否则
-记录为 UNCLEAR/UNPROMISING，继续拆解 721D 的分块贡献和 residual-policy 可行性。
+## 审查更正：原8拍判无效有误，单拍尾段有真实错配
 
-## 当前执行记录
+此前04:55审查把forecast24拍混同为action24拍，错误判定未写action_supervision_steps
+的continuation为24拍，并为此重跑fresh8。实际process.command所指旧固定树中，actor
+只有8个action_queries、action_scale为8×15、标签也是8×15，robot_loss直接对全部8拍
+求均值。新版缺省取action_error.shape[1]，也等于8。因此撤销原continuation的
+“24拍INVALID_IMPLEMENTATION”判定，shared-current的1k不存在所谓24拍污染。
 
-- 8 拍已完成 1k：`outputs/ptv3-shared-wam-v2/shared-current-continuation-20261015-r2/`。
-- 8 拍追加运行目录：`outputs/ptv3-shared-wam-v2/shared-action-horizon-20261016-r1/continuation-*`。
-- 1 拍训练目录：`outputs/ptv3-shared-wam-v2/shared-action-horizon-20261016-r1/single-*`。
-- 固定面板和腕部 MLP 结果写入同一 run 目录的 `native/` 与 `wrist-panel/`。
+fresh8仍是有效8拍运行，但属于额外重复，不是修复24→8所必需。原结果不删除，也不
+挑其中更好的一组冒充唯一预设执行。两个fresh8最终manifest均COMPLETED。
 
-2026-10-16 02:10 CST，原 `continuation-masked8`/`continuation-delta08` 在完整
-step4000 checkpoint 后被监督器以预设 7GB artifact budget 停止；不是数值、梯度或
-GPU 异常，step4000 权重和日志完整保留。随后从这两个 step4000 恢复 Adam/RNG，启动
-`continuation-masked8-sparse`/`continuation-delta08-sparse` 到 step7000。该资源恢复臂
-只改变 validation/checkpoint cadence 为 3000，模型、数据、优化器和学习率字段严格保持
-一致；实际新增配置和 sparse 源码均保存在项目 `tmp/` 与 run 输出中。
+真正的实现错误发生在single稀疏恢复：两条single-*-sparse/process.json都指向
+`tmp/shared-current-code-20261016-cont7k-sparse/src/task/ptv3-shared-wam-v2/tools/run/train_robot.py`。
+该固定树的robot_loss完全不读取action_supervision_steps，仍监督全部8拍。因此：
 
-## Implementation audit and corrective rerun
+- single-masked1-sparse：前5000步单拍，后2000步八拍。
+- single-delta01-sparse：前6000步单拍，后1000步八拍。
 
-2026-10-16 04:55 CST 的结果审查发现，原 `continuation-masked8.json` 和
-`continuation-delta08.json` 没有写入 `action_supervision_steps=8`。在
-`robot_loss` 的默认合同中，缺省值是预测 horizon（24），所以这两条运行实际是
-24-step action supervision；它们的 step7000 权重、训练曲线和 native panel 全部保留，
-但对本 Probe 的“8拍”臂标为 `INVALID_IMPLEMENTATION`，不用于四组因果比较。single-
-masked1/single-delta01 显式设为1，语义有效。
+这两个7k端点对“完整7k单拍”标INVALID_IMPLEMENTATION；作为混合协议结果保留，不能
+据其归因单拍监督优于8拍。manifest写1和provenance里的主仓库HEAD均不足以认证实际
+执行语义。旧git_commit按REF2DEX_RUN_ROOT主仓库取值，不能替代实际导入源码核对。
 
-由于 shared-current 1k checkpoint 本身已经在错误的24拍语义下更新，直接从它续接会把
-错误的前1k历史带入“8拍”臂。为恢复四组的共同起点，root 选择从同一个 shared7k+
-weight-only robot parent fresh 重跑两条 8拍臂；这比继续污染的 optimizer state 多花约3小时，
-但仍在本卡 deadline 和 GPU 预算内。新配置显式写入
-`action_supervision_steps=8`，并使用稀疏 validation/checkpoint cadence 以满足每臂7GB
-artifact budget；输出目录为 `fresh8-masked` 和 `fresh8-delta0`。原 continuation
-输出保留作资源与错误实现证据，不参与四组比较。
+CPU最小复现抽取实际robot_loss，使用(1,8,15)首拍误差0、后7拍误差1、配置监督1拍：
+旧sparse函数loss0.875，新函数0；新版缺省和显式8均0.875，显式24越界报错。native日志
+R_output_chunk实际为(controls,2,8,15)，24×33是R_tau。独立只读review一致。
+审计入口`tools/audit/audit_horizon_runtime.py`，更正证据为
+`outputs/ptv3-shared-wam-v2/horizon-runtime-audit-20261016-r1/correction.json`。
+原results_summary.json保留不覆写，其24拍和invalid分类已由本更正取代。
 
-## Final execution and decision note
+## 最终离线读出：区分有效8拍与混合协议
 
-2026-10-16 08:22 CST，`fresh8-masked` 与 `fresh8-delta0` 均以显式
-`action_supervision_steps=8` 完成 7000 步，manifest 均为 `COMPLETED`。四个可比训练臂的
-step7000 离线结果如下；它们共享同一个 shared7k+weight-only robot parent，forecast
-监督和其余训练字段保持一致：
+| 运行 | 实际action监督 | XYZ mean / p95 mm |
+| --- | --- | ---: |
+| continuation-masked8-sparse | 8拍7000步 | 59.76 / 173.90 |
+| continuation-delta08-sparse | 8拍7000步 | 55.91 / 163.36 |
+| fresh8-masked（额外重复） | 8拍7000步 | 60.09 / 174.50 |
+| fresh8-delta0（额外重复） | 8拍7000步 | 56.13 / 164.95 |
+| single-masked1-sparse | 1拍5000 + 8拍2000 | 59.07 / 165.41 |
+| single-delta01-sparse | 1拍6000 + 8拍1000 | 55.14 / 161.31 |
 
-| arm | current input | action steps | objective | first-control PD XYZ mean / p95 |
-|---|---|---:|---:|---:|
-| masked-8 (`fresh8-masked`) | masked | 8 | 5.1548 | 60.09 / 174.50 mm |
-| delta0-8 (`fresh8-delta0`) | delta0 | 8 | 5.1283 | 56.13 / 164.95 mm |
-| masked-1 (`single-masked1-sparse`) | masked | 1 | 5.1473 | 59.07 / 165.41 mm |
-| delta0-1 (`single-delta01-sparse`) | delta0 | 1 | 5.1454 | 55.14 / 161.31 mm |
+这些端点不能再作为完整四组“1拍vs8拍”对照。有效8拍配对和额外重复均显示delta0
+在离线首控XYZ上有收益；是否改变监督跨度，当前证据不足。
 
-固定 native 面板使用同一 seed148、airplane/spheresmall/mug 和执行步长1。五个成功面板的
-independent wiring audit 全部通过，说明失败不是 chunk、PD、当前观测或目标读取的数值
-契约错误；结果仍只是短 Probe，面板指标是 `partial_hold45_only_no_placement`：
+## 已执行native：只对应各自实际训练协议
 
-| arm/object | shared max held | clipping | 结果 |
-|---|---:|---:|---|
-| masked-8 / airplane,sphere,mug | 0 / 0 / 0 | 41.6% / 8.5% / 19.8% | 完成但无保持 |
-| delta0-8 / airplane | 0 | 13.4% | 完成但无保持 |
-| delta0-8 / mug | 60 | 0% | 短暂保持，无 placement |
-| delta0-8 / sphere | — | — | query 87 越出固定 PTv3 workspace |
-| masked-1 / airplane,sphere,mug | 0 / 0 / 0 | 12.8% / 0% / 4.1% | 完成但无保持 |
-| delta0-1 / airplane | — | — | query 88 越出固定 PTv3 workspace |
-| delta0-1 / sphere | 0 | 22.0% | 完成但无保持 |
-| delta0-1 / mug | 117 | 0% | 短暂保持，无 placement |
+seed148、飞机149/球141/杯172 controls、K1。指标partial_hold45_only_no_placement。
+完成面板的independent wiring audit通过，只证明所查执行合同，不能认证训练目标。
 
-因此当前结论标签为 `UNCLEAR`：`delta0` 在离线首控误差上稳定优于 masked，单拍监督在
-这个 parent 上也略优于 8 拍，但没有在固定面板上产生可重复的完整 hold/placement；
-部分闭环 episode 直接离开工作空间，无法把失败归因给动作监督跨度。这个 Probe 不足以
-进入多 seed Validation，也不支持把 current721+单拍监督定为新 base policy。
+| 权重 / 对象 | 学生max held | clipping | 状态 |
+| --- | ---: | ---: | --- |
+| fresh8-masked / 飞机、球、杯 | 0 / 0 / 0 | 41.6% / 8.5% / 19.8% | 完成 |
+| fresh8-delta0 / 飞机 | 0 | 13.4% | 完成 |
+| fresh8-delta0 / 杯 | 60 | 0% | 完成，有保持 |
+| fresh8-delta0 / 球 | — | — | query87越出固定PTv3 workspace |
+| single-masked混合 / 飞机、球、杯 | 0 / 0 / 0 | 12.8% / 0% / 4.1% | 完成 |
+| single-delta0混合 / 飞机 | — | — | query88越出固定PTv3 workspace |
+| single-delta0混合 / 球 | 0 | 22.0% | 完成 |
+| single-delta0混合 / 杯 | 117 | 0% | 完成，不能归因单拍 |
 
-原 `continuation-masked8-sparse`/`continuation-delta08-sparse` 的实际监督跨度为默认的
-24 拍，已标记 `INVALID_IMPLEMENTATION`，不参与上述比较。完整训练、面板、失败日志和
-结果汇总保存在
-`outputs/ptv3-shared-wam-v2/shared-action-horizon-20261016-r1/results_summary.json`。
-下一步保留这四个 checkpoint 作诊断，先做 v2 BC 到旧 residual executor 的显式 adapter
-与 zero-residual 四控制 smoke；在 adapter 通过固定面板前不启动 PPO。
+当前仍UNCLEAR：有当前信息的8拍策略在杯子出现局部保持信号，但其他对象仍失败/越界；
+撤销“完整单拍略优于8拍”的归因，不进入基于该结论的多seed Validation。
+
+## 最便宜的有效后续
+
+四臂均有尚未错误恢复的共同4k checkpoint。已存离线mean/p95：原8拍masked60.17/174.28、
+delta0 57.85/170.52；单拍masked56.28/170.82、delta0 53.61/164.65mm。优先补核这四个
+前缀的初始化/样本/预算匹配并做固定闭环，成本低于重跑全部训练；本次仅审查，不新开长训。
+
+完整输出仍在`outputs/ptv3-shared-wam-v2/shared-action-horizon-20261016-r1/`。
+后续residual集成仍需显式adapter及fresh zero-residual检查；现有离线apply_residual(base,0)
+恒等检查不等于完整server集成，本Probe未启动PPO。

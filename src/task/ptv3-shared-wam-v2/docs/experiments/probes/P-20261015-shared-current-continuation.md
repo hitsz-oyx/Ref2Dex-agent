@@ -13,11 +13,17 @@ seed_pool: probe
 seeds: [198, 192, 148]
 decision_changed_if_positive: retain current information in original shared actor and test broader behavior
 decision_changed_if_negative: do not assume the wrist-only MLP signal transfers to shared chunk training
-status: RUNNING
+status: UNCLEAR
 run_id: shared-current-continuation-20261015-r2
 ---
 
 # 当前721D在原shared联合训练中的匹配延续
+
+已完成：两组追加1000步及三条val native均COMPLETED。masked/current的固定DEV256
+action为0.40765/0.39792，XYZ mean61.73/60.87mm、p95171.33/162.61mm；两组飞机/球/杯
+学生及自身工程重复均held0，各组teacher-positive，执行audit通过。预算内暂无行为收益，
+保留UNCLEAR。实际action始终8拍，forecast为24拍，不受后续误写“默认24拍”影响。
+后续7k对照及恢复语义更正见P-20261016-shared-action-horizon，本卡不再处于训练中。
 
 Class: Decision。用户授权继续对照。此前完整721输入曾在GTtau旧R中带来约11%离线改善，
 没有闭环验证；最近单拍腕部MLP+shared手指在TRAIN/VAL飞机held49/41，对照0/0，但

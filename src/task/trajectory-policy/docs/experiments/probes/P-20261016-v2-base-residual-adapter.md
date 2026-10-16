@@ -35,7 +35,7 @@ physical claim.
 The v2 bridge (`src/task/ptv3-shared-wam/tools/run/policy_server.py`,
 `--model-version v2 --shared-actor`) requires the live 87D native state,
 same-tick `native_current_obs721`, H4 object/hand history and a planned object
-goal. It returns a 24×15D geometry-lift action chunk plus the native trajectory.
+goal. It returns an 8×15D geometry-lift action chunk plus the 24-step native trajectory.
 The first command is obtained through v2's `freeze_chunk` and
 `consume_target` path, which applies the v2 native controller and preserves the
 chunk clock.

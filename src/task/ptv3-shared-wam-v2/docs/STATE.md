@@ -1,3 +1,21 @@
+## 2026-10-16 仓库复核：训练已结束，监督跨度结论需纠正
+
+本地v2实验现均未占GPU。shared-current追加1k已完成，masked/current XYZ61.73/60.87mm，
+三条验证学生均held0；其卡片原RUNNING状态已更正。夜间7k运行有新保持信号：有效8拍
+current权重杯子held60，其余对象失败/越界。混合协议权重杯子held117不归因单拍训练。
+
+关键语义审查更正：action输出/标签一直8×15，24是forecast；原continuation未因缺省配置
+误跑24拍，撤销这项INVALID_IMPLEMENTATION，fresh8是额外重复。真正错误是single两组
+稀疏恢复用了不读取action_supervision_steps的旧固定源码：masked尾2000步、delta0尾1000
+步切成8拍监督。最终7k不能支撑完整1拍vs8拍对照。CPU实际函数复现和独立review一致，
+原日志/权重/results_summary保留，更正见horizon-runtime-audit-20261016-r1/correction.json。
+
+共同4k的纯协议checkpoint仍在，优先核验并补闭环，避免重复长训；本次未启动训练。
+current721分块证据提示联合当前运动/同tick参考误差信息有用，非contact单块主导，仍是
+单seed诊断。Residual只有离线零残差恒等检查，未完成server集成、未启动PPO。
+
+以下为历史记录，不代表当前任务仍在运行。
+
 ## 2026-10-15 旧Inspire两臂12k已完成，不再延长
 
 实际result.json均COMPLETED、完整step12000.pt存在；旧collector因用户停止C而提前退出，
