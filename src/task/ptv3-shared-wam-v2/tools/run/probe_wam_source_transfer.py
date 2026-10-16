@@ -32,6 +32,7 @@ def main():
     p.add_argument('--gpu', type=int, default=5)
     p.add_argument('--steps', type=int, default=24000)
     p.add_argument('--smoke', action='store_true')
+    p.add_argument('--temporary-idle-use', action='store_true', help='Session-authorized temporary use of GPU6/7')
     a = p.parse_args()
     out = a.output.resolve()
     if out.exists() or ROOT / 'outputs/ptv3-shared-wam-v2' not in out.parents:
@@ -43,7 +44,9 @@ def main():
         if occupied:
             raise RuntimeError('Assigned GPU occupied: ' + occupied)
         idle = subprocess.check_output(['nvidia-smi', '--query-gpu=index,memory.used', '--format=csv,noheader,nounits'], text=True)
-        if sum(int(line.split(',')[1]) < 100 and int(line.split(',')[0]) != a.gpu for line in idle.splitlines()) < 2:
+        if a.temporary_idle_use and a.gpu not in [6, 7]:
+            raise ValueError('Temporary override is scoped to GPU6/7')
+        if not a.temporary_idle_use and sum(int(line.split(',')[1]) < 100 and int(line.split(',')[0]) != a.gpu for line in idle.splitlines()) < 2:
             raise RuntimeError('Keep two local GPUs idle')
     os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu), OMP_NUM_THREADS='2', OPENBLAS_NUM_THREADS='1', TMPDIR=str(ROOT / 'tmp'))
     sys.path.insert(0, str(TASK / 'src'))
@@ -58,7 +61,7 @@ def main():
     started = time.monotonic()
     signal.signal(signal.SIGALRM, lambda *_: (_ for _ in ()).throw(TimeoutError('1800s stage budget')))
     signal.alarm(1800)
-    status = dict(status='RUNNING', stage=a.stage, pid=os.getpid(), gpu=a.gpu,
+    status = dict(status='RUNNING', stage=a.stage, pid=os.getpid(), gpu=a.gpu, temporary_idle_use=a.temporary_idle_use,
                   git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip())
     write(out / 'process.json', status)
     def resource():

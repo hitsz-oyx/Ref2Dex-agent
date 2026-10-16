@@ -62,3 +62,10 @@ GPU计算优先；prepare和数组汇总CPU。原数据/checkpoint只读，当�
 单seed、完整teacher特权输入、一个任务族、已反复使用DEV。不是少示范或跨手型结论，
 也不是物理抓取成功。mean/wrist差异改变可用语义，不能凭正信号单独证明原pooling
 完全丢失信息。来源效应不等于已证明灾难遗忘；正式结论需匹配Validation。
+
+## Decision Note：临时使用空闲卡
+
+用户本轮明确允许临时占用剩余卡。GPU5正在既有PPO100评估，改用GPU6/7分别提取
+parent/robot特征并训练匹配头；已占用0–5任务不动。CLI显式`--temporary-idle-use`只允许
+6/7且仍硬拒绝已有消费者。例外仅本轮<=30min/2GiB，完成释放，不改全局CAMPAIGN。
+此前GPU5启动在分配前被保护拒绝，日志extract-parent.log保留，无模型计算/科学结果。
