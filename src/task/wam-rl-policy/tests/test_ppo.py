@@ -1,4 +1,5 @@
 import torch
+import pytest
 from wam_rl_policy.ppo import Actor,Critic,advantages,apply_residual,observation,update
 
 
@@ -25,10 +26,11 @@ def test_gae_respects_real_terminal_and_final_bootstrap():
     assert torch.equal(adv,ret)
 
 
-def test_real_ppo_update_replays_behavior_and_changes_only_optimized_heads():
+@pytest.mark.parametrize('obs_dim',[327,539])
+def test_real_ppo_update_replays_behavior_and_changes_only_optimized_heads(obs_dim):
     torch.manual_seed(2)
-    actor=Actor();critic=Critic()
-    obs=torch.randn(4,3,327);obs[:,:,-24:]=0
+    actor=Actor(obs_dim=obs_dim);critic=Critic(obs_dim=obs_dim)
+    obs=torch.randn(4,3,obs_dim);obs[:,:,-24:]=0
     with torch.no_grad():
         dist=actor.distribution(obs);latent=dist.sample()
         batch=dict(observation=obs,latent=latent,logp=dist.log_prob(latent).sum(-1),
@@ -41,6 +43,14 @@ def test_real_ppo_update_replays_behavior_and_changes_only_optimized_heads():
     assert stats['behavior_logprob_error']<1e-4 and 1<=stats['actor_steps']<=4
     assert stats['joint_kl']<=.02 and torch.isfinite(torch.tensor(stats['value_loss']))
     assert not torch.equal(before,actor.net[-1].weight)
+
+
+def test_feature_observation_is_detached_and_preserves_native_goal_and_reference():
+    features=torch.randn(3,512,requires_grad=True);base=torch.randn(3,24)
+    obs=observation(torch.zeros(3,300),torch.ones(3,3)*.2,base,features)
+    assert obs.shape==(3,539) and not obs.requires_grad
+    assert torch.equal(obs[:,-24:],base) and torch.equal(obs[:,512:515],torch.ones(3,3)*2)
+    torch.testing.assert_close(obs[:,:512].mean(-1),torch.zeros(3),atol=1e-6,rtol=0)
 
 
 def test_exploration_arm_changes_only_initial_latent_scale():

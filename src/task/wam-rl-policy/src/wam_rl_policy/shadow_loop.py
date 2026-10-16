@@ -22,7 +22,7 @@ def write(path,value):
 
 def run(task,snapshot,env_objects,teacher,args):
     # Existing bounded launchers may be initializing assets while optional diagnostics are added.
-    for name,default in [('initial_log_std',-2.5),('synchronize_warm_step',False),('capture_warm_state',False),('retain_reset_indices',False),('single_reset_target_setter',False),('force_zero_residual',False),('outside_support_zero',False)]:
+    for name,default in [('initial_log_std',-2.5),('synchronize_warm_step',False),('capture_warm_state',False),('retain_reset_indices',False),('single_reset_target_setter',False),('force_zero_residual',False),('outside_support_zero',False),('observation_kind','native')]:
         if not hasattr(args,name):setattr(args,name,default)
     out=args.output;started=time.monotonic()
     if args.world_size>1:
@@ -33,16 +33,21 @@ def run(task,snapshot,env_objects,teacher,args):
     bc=bc_type(args.checkpoint,env_objects,teacher,args.cache)
     bc.allow_invalid_zero=args.outside_support_zero
     bc.model.requires_grad_(False)
-    torch.manual_seed(args.policy_seed)
-    actor=Actor(args.initial_log_std).cuda();critic=Critic().cuda()
     saved=None;offset=0
     if args.rl_checkpoint:
         saved=torch.load(args.rl_checkpoint,map_location='cpu',weights_only=False)
         if saved.get('schema')!=SCHEMA or saved['base_checkpoint']!=str(args.checkpoint.resolve()):
             raise ValueError('Matching frozen Shadow BC reference required')
-        actor.load_state_dict(saved['actor'],strict=True)
+        saved_kind=saved.get('config',{}).get('observation_kind','native')
+        if args.mode=='train' and saved_kind!=args.observation_kind:raise ValueError('Resume must retain observation representation')
+        args.observation_kind=saved_kind
         if saved.get('config',{}).get('outside_support_policy')=='persistent zero BC reference until episode reset':
             args.outside_support_zero=True;bc.allow_invalid_zero=True
+    if args.observation_kind!='native' and args.bc_kind!='mlp':raise ValueError('Current BC features require the MLP reference')
+    obs_dim=327 if args.observation_kind=='native' else 539
+    torch.manual_seed(args.policy_seed)
+    actor=Actor(args.initial_log_std,obs_dim=obs_dim).cuda();critic=Critic(obs_dim=obs_dim).cuda()
+    if saved:actor.load_state_dict(saved['actor'],strict=True)
     torch.set_rng_state(rng[0]);torch.cuda.set_rng_state(rng[1]);np.random.set_state(rng[2]);random.setstate(rng[3])
     before={k:v.clone() for k,v in bc.model.state_dict().items()}
     actor_optimizer=torch.optim.Adam(actor.parameters(),lr=1e-4)
@@ -60,7 +65,9 @@ def run(task,snapshot,env_objects,teacher,args):
         experiment_id=args.experiment_id,run_id=out.name,git_commit=args.code_commit,bc_kind=args.bc_kind,
         base_checkpoint=str(args.checkpoint.resolve()),rl_checkpoint=str(args.rl_checkpoint) if args.rl_checkpoint else None,
         uses_wam=args.bc_kind=='wam',frozen_wam=True if args.bc_kind=='wam' else None,frozen_bc=True,
-        trainable='new327D actor/critic only; no WAM token adapter in Stage0',
+        trainable='new%dD actor/critic only; frozen BC features; no WAM token adapter'%obs_dim,
+        observation_kind=args.observation_kind,observation_dim=obs_dim,
+        representation='native clamp current300' if obs_dim==327 else '512D current-only frozen prefix, per-state LayerNorm; explicit goal3/reference24 unchanged',
         alpha=args.alpha,exploration='tanh latent Normal; independent per-rank CUDA RNG',initial_log_std=args.initial_log_std,
         policy_seed=args.policy_seed,exploration_seed=args.exploration_seed+args.rank,reset_seed=args.seed,envs=args.envs,updates=args.updates,
         rank=args.rank,world_size=args.world_size,global_envs=args.envs*args.world_size,resume_update=offset,
@@ -110,7 +117,12 @@ def run(task,snapshot,env_objects,teacher,args):
                         write(out/'first-bc-support-fallback.json',dict(update=iteration,tick=tick,envs=sorted(bc.invalid),
                             objects=[env_objects[i] for i in sorted(bc.invalid)]))
                 relative_goal=torch.as_tensor(snap['goal']-snap['object'][:,:3],device='cuda')
-                obs=observation(task.obs_buf,relative_goal,base)
+                features=None
+                if args.observation_kind=='bc-hidden':features=bc.last_features
+                elif args.observation_kind=='normalized':
+                    normalized=(task.obs_buf.clamp(-5,5)-bc.model.x_mean)/bc.model.x_scale
+                    features=torch.nn.functional.pad(normalized,(0,212))
+                obs=observation(task.obs_buf,relative_goal,base,features)
                 dist=actor.distribution(obs)
                 latent=(dist.loc+dist.scale*torch.randn(dist.loc.shape,device='cuda',generator=generator)) if training else dist.loc
                 if args.mode=='bc' or args.force_zero_residual:latent=torch.zeros_like(latent)

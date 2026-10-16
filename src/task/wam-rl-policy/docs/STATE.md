@@ -18,15 +18,22 @@ WAM BC省略未被actor使用的forecast readout，批量H4输入各字段与旧
 完整TRAIN1536897/DEV354761条标签，TRAIN-only归一化；50k步/batch2048约163s。
 离线固定6208窗DEV动作MAE=.01939，root=.03302、finger=.01485，不能当闭环误差。
 全部388DEV×4起点=1552条真实native rollout：official679/1552、final590/1552、
-held60+lift10cm396/1552=25.52%。全DEV WAM BC基线仍在计算，不预判两者优劣。
+held60+lift10cm396/1552=25.52%。全DEV WAM9k为511/1552=32.93%，比MLP50k高7.41个百分点；九类实际初态全部逐值一致。
+两基座训练历史/目标不同，不能将差值单独归因shared结构。
 另同一32DEV×4起点面板，旧WAM9k与MLP20k均held37/128，final64/55、official70/61；
 九类首帧状态逐值相同。不是MLP50k的配对全DEV比较，不能混合宣称改善。
 
-远端4×4090部署完成，128TRAIN/388DEV全部原生资产链接核对通过。首轮native smoke
-在gymtorch尚未构建时失败，无训练结果；旧supervisor曾将快速全rank失败误写COMPLETED，
-exit_codes全1为真实证据，已修复末尾退出码检查。单进程项目内新cache的gymtorch编译/加载
-已通过，改用该cache且补齐conda/bin PATH，再做四卡真实native smoke。
-不同Torch/CUDA版本须在各机器内部建立BC/RL配对，不作跨机器单变量比较。
+本地WAM r1第32轮因rank03单env越出BC支持域中断，所有共同checkpoint为31；
+已在r2显式采用原控制器的范围外零BC回退后恢复，非有限仍硬拒绝，记录fallback病例。
+r2持续运行中，50/100/200核心DEV读出队列已切换r2；r1记录保留。
+
+远端4×4090原生四卡smoke通过，128TRAIN的MLP PPO完成200轮：core held69→71/71/66
+（50/100/200轮），没有明显收益。64TRAIN标准/强探索各两卡200轮完成，三reset合计
+202→226/768和209→231/768，均约3个百分点；不足预定10点且有reset退步。
+BC100k constant/cosine core held68/74，对照50k的69；离线误差下降不能当抓取改善。
+目前转入539D归一化current vs 冻结BC512隐藏特征的等容量对照，见规模卡Decision Note。
+远端有4/256环境在第一次策略动作之前初态不同；五个最小工程排查未定位，保留实际审计、
+暂缓继续追查，小幅变化不作严格配对结论。不能混合本地/远端Torch版本宣称单变量效果。
 
 关键产物：`outputs/wam-rl-policy/shadow-scale-panels-20261016-r1/`、
 `shadow-scale-wam-128obj-4gpu-20261016-r1/`、`shadow-current-bc-seed241-20261016-r1/`、

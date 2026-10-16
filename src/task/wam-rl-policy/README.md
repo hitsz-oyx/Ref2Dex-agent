@@ -4,13 +4,14 @@
 [用户参考](docs/user/ref/ref1.md)；当前先做Shadow Stage-0 residual PPO，
 之后才根据结果决定RL-token readout与独立动作支路。
 
-`src/wam_rl_policy/ppo.py`定义327D观测、24D canonical残差与PPO；
+`src/wam_rl_policy/ppo.py`定义默认327D观测及可选539D冻结表征观测、24D canonical残差与PPO；
 `shadow_loop.py`连接既有原生Shadow BC，`tools/run/shadow_ppo.py`复用固定collector
 的环境初始化和物理循环。代码不修改第三方物理实现。
 
 当前已按用户授权启动128个TRAIN物体的四卡同步PPO，200轮目标、50/100/200轮固定DEV
 读出；另完整训练fresh单拍BC MLP并完成388DEV/1552起点native基线，held396/1552。
-此前两物体Stage-0保持11/48→15/48但方向不一致，仍UNCLEAR。详见[当前状态](docs/STATE.md)。
+同起点WAM9k held511/1552；远端MLP PPO200轮和探索噪声对照尚无明显改善，
+正在检查等容量raw归一化输入与BC隐藏特征；此前两物体Stage-0仍UNCLEAR。详见[当前状态](docs/STATE.md)。
 
 使用`/home2/wyy/miniconda3/envs/graspenv/bin/python`，入口先加载IsaacGym再导入Torch。
 `--mode bc/zero/train/evaluate`分别进行BC、零残差、PPO和确定性PPO评估。

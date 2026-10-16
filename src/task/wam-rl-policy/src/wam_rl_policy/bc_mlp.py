@@ -29,7 +29,11 @@ class MLPController:
         packet=torch.load(checkpoint,map_location='cpu',weights_only=False)
         if packet.get('schema')!=SCHEMA:raise ValueError('Self-trained current300 BC checkpoint required')
         self.model=CurrentMLP().cuda().eval();self.model.load_state_dict(packet['model'],strict=True)
+        self.hidden_model=self.model.net[:-1].eval()
         self.invalid=set()
 
+    @torch.no_grad()
     def act(self,snapshot,observation,tick):
-        return self.model(observation).clamp(-1,1)
+        normalized=(observation.clamp(-5,5)-self.model.x_mean)/self.model.x_scale
+        self.last_features=self.hidden_model(normalized).detach()
+        return (self.model.net[-1](self.last_features)*self.model.y_scale+self.model.y_mean).clamp(-1,1)

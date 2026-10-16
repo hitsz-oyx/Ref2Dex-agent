@@ -178,3 +178,33 @@ checkpoint均为31轮，actor/critic跨rank逐tensor一致，因此只从共同3
 固定199步不截断/拼接轨迹。逐轮记录fallback env/ticks，第一次触发保存原始状态/身份；
 checkpoint中的reference明确为“原frozen BC＋范围外零fallback”，不得隐去此语义。
 该修复不说明方法有负结果；从共同31轮继续至200，原run和失败日志只读保留。
+
+
+## Decision Note：探索噪声之后检查表征（2026-10-16）
+
+问题：在线增益有限是否主要来自随机初始化小头难以从混合尺度raw current300学习？
+关键证据：原128TRAIN MLP 200轮core held69→66/256；64TRAIN两卡200轮，标准噪声
+三reset合计202→226/768，强噪声209→231/768，仅+3.13/+2.86个百分点，且标准第三reset退步。
+实际噪声RMS确实增至约2.43倍、800个actor步骤均接受、学习率未塌陷。因此不继续盲目放大噪声。
+BC50k→100k constant/cosine，离线MAE改善但core held69→68/74，单纯BC训练量暂不优先。
+
+root选择最便宜的表征Decision Probe：远端两组各2GPU、64TRAIN、128env/rank、200轮、
+10,188,800 env steps/组。`shadow-representation-{normalized,bc-hidden}-64obj-20261016-r1`。
+normalized用与BC完全相同的raw clamp/训练集标准化300D，再补212个零；bc-hidden用同一次
+冻结BC forward的512D末隐藏层。两者均无参数LayerNorm512，拼显式world-relative goal3/.1
+和相同BC reference24，得到539D；Actor/Critic均539→256→256相同容量、相同种子和zero mean，
+原残差上界、reward、GAE、PPO步数和初始log_std=-2.5保持。没有对标准化输入再额外截断。
+它同时改变actor/critic输入，不分离两者效用，也不等价于WAM效用验证。
+增加只读critic explained-variance诊断，不改变loss/更新。
+
+预定两臂终点均做64DEV×4起点、reset249/250/251，与同一个RL packet强制零残差BC比较。
+远端4/256初态不一致问题经5个工程probe仍未定位，停止无判别性的继续修补；所有实际初态
+审计和失败证据仍保存，失败面板不得称为严格配对。该少数异常不足以单独产生26/256的
+预定10个百分点信号，但小幅改善仍UNCLEAR，不升级正式结论。
+若表征出现跨reset稳定明显增益，扩大128TRAIN和全388DEV；若没有，结合critic拟合诊断，
+转而检查长时credit/每批更新预算，而非关闭RL。预算每臂<=2h训练/<=4h全队列；空间保留20GiB，
+本地6/7继续空闲，无新增外部授权边界。零残差/冻结性/实际执行/跨rank一致性任一硬合同失败
+立即停止本组、保留checkpoint。恢复训练必须显式保留`--observation-kind`；evaluate从packet自动读。
+
+独立只读审查用真实MLP50k权重重放确认：新BC action逐位等于原forward、512D特征冻结，
+两臂后27D goal/base一致，同seed初始Actor/Critic逐位一致。11项测试通过；这些只证明工程接线。

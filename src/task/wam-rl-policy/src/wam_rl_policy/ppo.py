@@ -33,10 +33,14 @@ def synchronize_gradients(module):
         p.grad.copy_(flat[offset:offset+p.numel()].view_as(p));offset+=p.numel()
 
 
-def observation(current, relative_goal, base):
+def observation(current, relative_goal, base, features=None):
     if current.shape != (len(current),300) or relative_goal.shape != (len(current),3) or base.shape != (len(current),24):
         raise ValueError('Shadow current300/relative goal3/reference24 required')
-    result=torch.cat((current.clamp(-5,5),relative_goal/.1,base),-1)
+    prefix=current.clamp(-5,5)
+    if features is not None:
+        if features.shape!=(len(current),512):raise ValueError('Frozen current-only 512D feature contract')
+        prefix=torch.nn.functional.layer_norm(features.detach(),(512,))
+    result=torch.cat((prefix,relative_goal/.1,base),-1)
     if not torch.isfinite(result).all():raise FloatingPointError('Nonfinite RL observation')
     return result
 
@@ -50,10 +54,10 @@ def apply_residual(base, latent, alpha=.15):
 
 
 class Actor(nn.Module):
-    def __init__(self,initial_log_std=-2.5):
+    def __init__(self,initial_log_std=-2.5,obs_dim=OBS_DIM):
         super().__init__()
         if not -5<=initial_log_std<=-1.2:raise ValueError('Initial latent log_std outside admitted clamp')
-        self.net=nn.Sequential(nn.Linear(OBS_DIM,256),nn.Tanh(),nn.Linear(256,256),nn.Tanh(),nn.Linear(256,ACTION_DIM))
+        self.net=nn.Sequential(nn.Linear(obs_dim,256),nn.Tanh(),nn.Linear(256,256),nn.Tanh(),nn.Linear(256,ACTION_DIM))
         nn.init.zeros_(self.net[-1].weight);nn.init.zeros_(self.net[-1].bias)
         self.log_std=nn.Parameter(torch.full((ACTION_DIM,),float(initial_log_std)))
 
@@ -62,9 +66,9 @@ class Actor(nn.Module):
 
 
 class Critic(nn.Module):
-    def __init__(self):
+    def __init__(self,obs_dim=OBS_DIM):
         super().__init__()
-        self.net=nn.Sequential(nn.Linear(OBS_DIM,256),nn.Tanh(),nn.Linear(256,256),nn.Tanh(),nn.Linear(256,1))
+        self.net=nn.Sequential(nn.Linear(obs_dim,256),nn.Tanh(),nn.Linear(256,256),nn.Tanh(),nn.Linear(256,1))
 
     def forward(self,obs):return self.net(obs).squeeze(-1)
 
@@ -116,6 +120,11 @@ def update(actor,critic,batch,actor_optimizer,critic_optimizer,bc_weight=.1,targ
         if not torch.isfinite(value_loss):raise FloatingPointError('Nonfinite critic objective')
         critic_optimizer.zero_grad(set_to_none=True);value_loss.backward();synchronize_gradients(critic);nn.utils.clip_grad_norm_(critic.parameters(),1.)
         critic_optimizer.step()
-    return dict(actor_steps=steps,joint_kl=kl,bc_regularization=float(reg),value_loss=float(value_loss),
+    with torch.no_grad():
+        error=returns-critic(obs)
+        moments=reduce(torch.stack((returns.double().mean(),returns.double().square().mean(),error.double().mean(),error.double().square().mean())))
+        target_var=(moments[1]-moments[0].square()).clamp_min(0);error_var=(moments[3]-moments[2].square()).clamp_min(0)
+        explained=None if target_var<1e-8 else float(1-error_var/target_var)
+    return dict(actor_steps=steps,joint_kl=kl,bc_regularization=float(reg),value_loss=float(value_loss),value_explained_variance=explained,
                 behavior_logprob_error=replay,actor_lr=actor_optimizer.param_groups[0]['lr'],
                 return_mean=float(returns.mean()),advantage_std=float(adv.std(unbiased=False)))
