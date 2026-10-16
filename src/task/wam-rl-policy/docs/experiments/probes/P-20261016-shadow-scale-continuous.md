@@ -348,3 +348,33 @@ v3数据暴露边界已做源4物体身份CPU核对：Shadow388个DEV物体与v3
 时，critic在终段的拟合歧义，以及直接微调自训练BC/critic warmup的资格对照；当前先完成已启动
 的特征决策，不因这些合理疑问立刻继续扩展GPU网格。完整Gaussian的噪声下界和旧residual
 具有不同物理单位，若长训触及std clamp必须先匹配实际动作单位边界，不能隐去此差异。
+
+## Decision Note：critic资格诊断，不将失败配方归因WAM（2026-10-16）
+
+四臂small/large/free/hold均已完成200episode及固定三reset评估，没有方向稳定的10点保持增益。
+独立只读检查确认实际actor更新27788/18822/22394/25404、critic各52000次，非未训练；
+但free最终critic在2048个真实state上逐值输出53.2031326，最后两层Tanh近100%饱和。
+hold末层98.63%单元跨state近常数；small内部16步EV中位.972而终末7步为-5.081。
+full-action已移除旧cap，但三reset所有确定性动作相对BC偏离仍<.14，不能认为cap已被挑战。
+原始运行保留，未发现执行/GAE/冻结硬合同失败；这些负信号归为UNCLEAR：配方尚未资格化，
+不作为容量、动作自由度、保持奖励或WAM路线无效的证据。
+
+正在跑的四WAM臂各13段在线EV多数仍为正，并非已确认同样塌缩；初始64states上的低输出方差
+不能代表当前采集分布。保留四臂200轮和固定读出队列，不因旧BC-hidden的诊断擅自停止。
+
+最便宜的Decision Probe固定free的first/last两条完整TRAIN采集批次，不新增仿真，GPU拟合
+实际finite-horizon MC return（gamma=.99、真实done、终点0、无16步bootstrap/GAE）。
+同BC-hidden539+一维clock，Tanh/ELU critic × zero/remaining clock四臂，同large宽度、Linear初值、
+batch顺序、Adam3e-4/clip1、1000步/batch1024；只改变critic激活与显式已知剩余动作比例。
+按object_code排序每4个留1个，共24TRAIN内拟合/8TRAIN内留出对象；相邻帧与同物体全部起点
+保持同组，完全不读DEV。报告训练及对象留出MSE/EV、内部192步/终末7步、饱和率、时间条件均值
+基线。轨迹来自段内更新的随机混合策略，因此MC回归资格不等于固定策略真V，也不保证PPO改善。
+若ELU显著改善拟合且未牺牲留出误差，下一步短在线matched资格Probe；若只有clock改善，则先
+隔离clock；若均无改善，检查目标噪声/尺度，不直接重跑全部WAM。不得根据该离线结果选DEV端点。
+run_id=shadow-critic-fit-20261016-r1；输入来自远端本scope既有free产物；fresh四模型不改旧checkpoint。
+远端GPU0与本任务v3-none有界共享（约<1GiB新增、总<=10min），不占额外GPU，不占本地GPU5，
+不干预本地6/7现有外部任务。超时/非有限/磁盘<20GiB停止本诊断。checkpoint仅保存四份小critic，
+输出<256MiB，无新增授权边界；代码提交与输入路径写入manifest。
+
+本地WAM第100轮core读出held80→75/256（第50轮83），lift124→143、到达117→130、终点101→116。
+实际首帧审计2/256不一致，故不是严格配对退步证据；保留独立comparison产物，不宣称收敛。

@@ -57,19 +57,28 @@ def apply_residual(base, latent, alpha=.15):
     return intended.clamp(-1,1),intended,delta
 
 
+def append_episode_clock(obs,tick,controls,kind='none'):
+    if kind=='none':return obs
+    if kind not in ('zero','remaining') or not 1<=tick<=controls:raise ValueError('Known finite-horizon control clock required')
+    value=(controls-tick+1)/controls if kind=='remaining' else 0.
+    clock=obs.new_full((*obs.shape[:-1],1),value)
+    return torch.cat((obs[...,:-24],clock,obs[...,-24:]),-1)
+
+
 def apply_policy_action(base,latent,kind='residual'):
     if kind=='residual':return apply_residual(base,latent)
     if kind!='reference-gaussian' or base.shape!=latent.shape:raise ValueError('Unknown policy action contract')
     return latent.clamp(-1,1),latent,latent-base
 
 
-def control_mlp(obs_dim,output_dim,kind):
+def control_mlp(obs_dim,output_dim,kind,activation='tanh'):
     if kind not in ('small','large'):raise ValueError('Unknown control capacity')
+    if activation not in ('tanh','elu'):raise ValueError('Unknown control activation')
     widths=[obs_dim]+([256,256] if kind=='small' else [1024,1024,1024,512])+[output_dim]
     layers=[]
     for index,(left,right) in enumerate(zip(widths,widths[1:])):
         layers.append(nn.Linear(left,right))
-        if index<len(widths)-2:layers.append(nn.Tanh())
+        if index<len(widths)-2:layers.append(nn.Tanh() if activation=='tanh' else nn.ELU())
     return nn.Sequential(*layers)
 
 
@@ -90,9 +99,9 @@ class Actor(nn.Module):
 
 
 class Critic(nn.Module):
-    def __init__(self,obs_dim=OBS_DIM,network_kind='small'):
+    def __init__(self,obs_dim=OBS_DIM,network_kind='small',activation='tanh'):
         super().__init__()
-        self.net=control_mlp(obs_dim,1,network_kind)
+        self.net=control_mlp(obs_dim,1,network_kind,activation)
 
     def forward(self,obs):return self.net(obs).squeeze(-1)
 

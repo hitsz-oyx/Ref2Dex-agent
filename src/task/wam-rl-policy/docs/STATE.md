@@ -1,5 +1,20 @@
 # 当前状态
 
+## 2026-10-16 critic资格诊断与v3直接特征（最新）
+
+远端small/large/free/hold四组200episode已完成，没有方向稳定的10点保持增益。
+独立检查发现free最终critic在2048个state上输出逐值相同、深层Tanh近100%饱和；hold亦明显饱和。
+各组确实有约1.9万–2.8万次actor更新，不是未训练；full-action确定性偏离BC始终<.14，未真正挑战旧cap。
+因此这些负结果不用于关闭大网络、自由动作、保持奖励或WAM路线。当前结论UNCLEAR。
+下一项最便宜Decision：固定已有free TRAIN轨迹，GPU做Tanh/ELU × zero/remaining clock四臂
+fresh critic MC-return回归，同540D/初值/1000步；按物体留出，只判断价值学习资格。
+
+远端四卡现在实际运行v3-none/v2-aligned/v3-aligned/v3-shuffled各200episode，公共MLP50k BC，
+独立冻结WAM encoder。当前13段在线EV多数仍为正，不能外推旧critic问题并停止WAM；保持队列。
+v3物理预测新五域约35%改善尚未证明机器人收益；Shadow388DEV与v3源4 TRAIN对象无交集，
+但参与过预训练DEV，不称独立TEST。本地WAM PPO继续至200；100轮core held80→75/256，
+lift124→143、到达117→130、终点101→116；2条实际初态不一致，只作描述性读数。
+
 ## 2026-10-16 扩张配方与直接WAM特征（进行中）
 
 远端四卡分别运行small、large、full-action、full-action+hold四臂，每16步5epoch×4mini，

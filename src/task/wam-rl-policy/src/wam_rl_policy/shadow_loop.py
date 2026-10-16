@@ -8,7 +8,7 @@ import time
 from datetime import timedelta
 import numpy as np
 import torch
-from .ppo import SCHEMA,Actor,Critic,observation,apply_policy_action,update_rollout
+from .ppo import SCHEMA,Actor,Critic,observation,apply_policy_action,update_rollout,append_episode_clock
 from shadow_finetune.execution import Controller
 from shadow_finetune.metrics import native_report
 from .bc_mlp import MLPController
@@ -24,7 +24,7 @@ def write(path,value):
 
 def run(task,snapshot,env_objects,teacher,args):
     # Existing bounded launchers may be initializing assets while optional diagnostics are added.
-    for name,default in [('initial_log_std',-2.5),('synchronize_warm_step',False),('capture_warm_state',False),('retain_reset_indices',False),('single_reset_target_setter',False),('force_zero_residual',False),('outside_support_zero',False),('observation_kind','native'),('rollout_steps',199),('network_kind','small'),('action_kind','residual'),('reward_kind','native'),('ppo_epochs',4),('ppo_minibatches',1),('wam_feature_checkpoint',None)]:
+    for name,default in [('initial_log_std',-2.5),('synchronize_warm_step',False),('capture_warm_state',False),('retain_reset_indices',False),('single_reset_target_setter',False),('force_zero_residual',False),('outside_support_zero',False),('observation_kind','native'),('rollout_steps',199),('network_kind','small'),('action_kind','residual'),('reward_kind','native'),('ppo_epochs',4),('ppo_minibatches',1),('wam_feature_checkpoint',None),('clock_kind','none'),('critic_activation','tanh')]:
         if not hasattr(args,name):setattr(args,name,default)
     out=args.output;started=time.monotonic()
     if args.world_size>1:
@@ -46,7 +46,7 @@ def run(task,snapshot,env_objects,teacher,args):
         saved_steps=saved.get('config',{}).get('rollout_steps',199)
         if args.mode=='train' and saved_steps!=args.rollout_steps:raise ValueError('Resume must retain PPO rollout length')
         args.rollout_steps=saved_steps
-        for name,default in [('network_kind','small'),('action_kind','residual'),('reward_kind','native'),('ppo_epochs',4),('ppo_minibatches',1)]:
+        for name,default in [('network_kind','small'),('action_kind','residual'),('reward_kind','native'),('ppo_epochs',4),('ppo_minibatches',1),('clock_kind','none'),('critic_activation','tanh')]:
             value=saved.get('config',{}).get(name,default)
             if args.mode=='train' and getattr(args,name)!=value:raise ValueError('Resume must retain '+name)
             setattr(args,name,value)
@@ -65,6 +65,7 @@ def run(task,snapshot,env_objects,teacher,args):
     feature_bc.expose_wam_features=use_wam
     feature_bc.allow_invalid_zero=args.outside_support_zero
     obs_dim=2631 if use_wam else (327 if args.observation_kind=='native' else 539)
+    if args.clock_kind!='none':obs_dim+=1
     permutation=list(range(len(env_objects)))
     if args.observation_kind=='wam-shuffled':
         order=sorted(permutation,key=lambda i:env_objects[i]['object_code'])
@@ -75,7 +76,7 @@ def run(task,snapshot,env_objects,teacher,args):
     donor_indices=torch.as_tensor(permutation,device='cuda')
     torch.manual_seed(args.policy_seed)
     actor=Actor(args.initial_log_std,obs_dim=obs_dim,network_kind=args.network_kind,action_kind=args.action_kind).cuda()
-    critic=Critic(obs_dim=obs_dim,network_kind=args.network_kind).cuda()
+    critic=Critic(obs_dim=obs_dim,network_kind=args.network_kind,activation=args.critic_activation).cuda()
     if saved:actor.load_state_dict(saved['actor'],strict=True)
     torch.set_rng_state(rng[0]);torch.cuda.set_rng_state(rng[1]);np.random.set_state(rng[2]);random.setstate(rng[3])
     before={k:v.clone() for k,v in bc.model.state_dict().items()}
@@ -101,13 +102,14 @@ def run(task,snapshot,env_objects,teacher,args):
         wam_feature_schema=getattr(feature_bc,'schema',None),wam_feature_step=getattr(feature_bc,'source_step',None),
         trainable='new%dD actor/critic only; frozen BC features; no WAM token adapter'%obs_dim,
         observation_kind=args.observation_kind,observation_dim=obs_dim,
-        network_kind=args.network_kind,action_kind=args.action_kind,
+        network_kind=args.network_kind,action_kind=args.action_kind,critic_activation=args.critic_activation,
+        clock_kind=args.clock_kind,clock='one known remaining-actions fraction before reference24; no future states' if args.clock_kind=='remaining' else args.clock_kind,
         wam_z='frozen masked mean per scene/hand/known-goal type; 3x768; original current300 retained' if use_wam else None,
         wam_donor_indices=permutation if use_wam else None,
         direct_wam_condition=args.observation_kind if use_wam else None,
         wam_input_audit=use_wam,
         representation=('native current300 + per-type LayerNorm WAM2304 + explicit goal3/reference24' if use_wam else
-            ('native clamp current300' if obs_dim==327 else '512D current-only frozen prefix, per-state LayerNorm; explicit goal3/reference24 unchanged')),
+            ('native clamp current300' if args.observation_kind=='native' else '512D current-only frozen prefix, per-state LayerNorm; explicit goal3/reference24 unchanged')),
         alpha=args.alpha if args.action_kind=='residual' else None,
         exploration=('tanh latent Normal residual' if args.action_kind=='residual' else 'direct canonical Normal around BC+learned mean; native clip only')+'; independent per-rank CUDA RNG',initial_log_std=args.initial_log_std,
         policy_seed=args.policy_seed,exploration_seed=args.exploration_seed+args.rank,reset_seed=args.seed,envs=args.envs,updates=args.updates,
@@ -176,6 +178,7 @@ def run(task,snapshot,env_objects,teacher,args):
                     if args.observation_kind=='wam-none':wam_features=torch.zeros_like(wam_features)
                     elif args.observation_kind=='wam-shuffled':wam_features=wam_features[donor_indices]
                 obs=observation(task.obs_buf,relative_goal,base,features,wam_features)
+                obs=append_episode_clock(obs,tick,int(task.max_episode_length)-1,args.clock_kind)
                 if use_wam and iteration==offset+1 and tick==1:
                     torch.save(dict(source_z=feature_bc.last_wam_features.detach().cpu(),supplied_z=wam_features.detach().cpu(),
                         current=task.obs_buf.detach().cpu(),goal=relative_goal.detach().cpu(),base=base.detach().cpu(),

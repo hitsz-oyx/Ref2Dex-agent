@@ -26,13 +26,14 @@ def test_gae_respects_real_terminal_and_final_bootstrap():
     assert torch.equal(adv,ret)
 
 
-@pytest.mark.parametrize('obs_dim,action_kind,network_kind',[(327,'residual','small'),(539,'residual','small'),
-    (2631,'residual','small'),(327,'residual','large'),(327,'reference-gaussian','large')])
-def test_real_ppo_update_replays_behavior_and_changes_only_optimized_heads(obs_dim,action_kind,network_kind):
+@pytest.mark.parametrize('obs_dim,action_kind,network_kind,critic_activation',[(327,'residual','small','tanh'),(539,'residual','small','tanh'),
+    (2631,'residual','small','tanh'),(327,'residual','large','tanh'),(327,'reference-gaussian','large','tanh'),
+    (540,'reference-gaussian','large','elu')])
+def test_real_ppo_update_replays_behavior_and_changes_only_optimized_heads(obs_dim,action_kind,network_kind,critic_activation):
     torch.manual_seed(2)
     actor=Actor(-4.3971199849 if action_kind=='reference-gaussian' else -2.5,obs_dim=obs_dim,
                 network_kind=network_kind,action_kind=action_kind)
-    critic=Critic(obs_dim=obs_dim,network_kind=network_kind)
+    critic=Critic(obs_dim=obs_dim,network_kind=network_kind,activation=critic_activation)
     obs=torch.randn(4,3,obs_dim);obs[:,:,-24:]=0
     with torch.no_grad():
         dist=actor.distribution(obs);latent=dist.sample()
@@ -160,3 +161,14 @@ def test_minibatch_shuffle_does_not_consume_environment_rng():
         minibatches=4,epochs=5,shuffle_generator=shuffle)
     assert torch.equal(environment_rng,torch.get_rng_state()) and not torch.equal(old_shuffle,shuffle.get_state())
     assert stats['critic_steps']==20 and 0<=stats['actor_steps']<=20 and stats['joint_kl']<=.02
+
+
+def test_episode_clock_preserves_reference_and_only_encodes_known_time():
+    from wam_rl_policy.ppo import append_episode_clock
+    obs=torch.randn(3,539)
+    assert append_episode_clock(obs,1,199) is obs
+    zero=append_episode_clock(obs,1,199,'zero');first=append_episode_clock(obs,1,199,'remaining')
+    last=append_episode_clock(obs,199,199,'remaining')
+    assert zero.shape==(3,540) and torch.equal(zero[:,-24:],obs[:,-24:])
+    assert torch.equal(first[:,:-25],obs[:,:-24]) and not zero[:,-25].any()
+    assert (first[:,-25]==1).all() and (last[:,-25]==1/199).all()
