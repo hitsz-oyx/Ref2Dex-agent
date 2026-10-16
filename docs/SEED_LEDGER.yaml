@@ -25,6 +25,11 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261016-teacher-coverage-native:
+    seed_pool: probe
+    execution_seed: 292
+    reuse_reason: same nominal native reset as prior bridge probes; not an independent replicate
+
   P-20261016-teacher-state-coverage:
     seed_pool: probe
     initialization_seed: 180
