@@ -58,7 +58,7 @@ sticky与末帧5cm、reward、clipping、残差RMS、KL/更新次数。保持增
 
 用户授权两线并行。Stage-0沿现有接口实施可逆最小改动，无新branch；0.15永久残差仅
 第一轮接口，不把它确立为最终方法。GPU1，工程门<=600s/每臂，训练<=2400s，
-终点评估<=600s/臂，总产物<=2GiB；Inspire最多GPU2/3/4，GPU0外部作业不动，6/7空闲。
+终点评估<=600s/臂，总产物<=2GiB；Inspire最多GPU2/3/4/5，GPU0外部作业不动，6/7空闲。
 边界：不改变MISSION claim，不增加预算，不触碰只读外部项目或原checkpoint。
 超时、非有限、冻结/初态/执行审计失败停止，保留原始日志和完整episode边界checkpoint。
 输出`outputs/wam-rl-policy/shadow-bc-ppo-20261016-r1/`，启动后记录利用率/显存/ETA。

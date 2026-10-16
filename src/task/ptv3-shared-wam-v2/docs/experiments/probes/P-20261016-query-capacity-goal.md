@@ -50,7 +50,7 @@ AdamW LR5e-4/WD1e-4、clip1、BF16 actor，6000步固定终点，不挑选DEV ch
 
 输出`outputs/ptv3-shared-wam-v2/query-capacity-goal-20261016-r1/`。
 完整token缓存<=52GiB；单臂<=2400s、最终权重/optimizer<=0.5GiB，磁盘始终保留20GiB。
-缓存GPU2；训练最多并行GPU2/3/4（其余臂排队），Shadow可用GPU1，GPU0外部作业不动，
+缓存GPU2；训练最多并行GPU2/3/4/5（其余臂排队），Shadow可用GPU1，GPU0外部作业不动，
 至少GPU6/7保持空闲。远端就绪后可以在专用目录复现相同代码/缓存协议，不改变实验因素。
 非有限、缓存覆盖/身份/归一化/量化检查不通过、资源超限立即停止并保留错误记录。
 命令、commit、PID、GPU、进度和ETA记录在各run manifest/process/progress。
