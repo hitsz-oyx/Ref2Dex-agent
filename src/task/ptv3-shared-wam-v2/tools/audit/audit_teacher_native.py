@@ -17,6 +17,7 @@ def main():
     p.add_argument('--run', type=Path, required=True)
     p.add_argument('--gpu', type=int, required=True)
     p.add_argument('--smoke', action='store_true')
+    p.add_argument('--component-attribution', action='store_true')
     a = p.parse_args()
     os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu), OMP_NUM_THREADS='2')
     import torch
@@ -39,12 +40,15 @@ def main():
         if not condition:
             raise ValueError(message)
 
-    directories = [a.run / 'smoke'] if a.smoke else sorted(a.run.glob('s*_*'))
-    check(len(directories) == (1 if a.smoke else 6), 'Complete fixed panel required')
+    directories = [a.run / 'smoke'] if a.smoke else sorted(p for p in a.run.glob('s*_*') if p.is_dir())
+    expected_names = {'s3_mug_drink_1', 's5_cup_drink_2'} if a.component_attribution else {
+        's10_mug_pass_1', 's2_cup_pass_1', 's3_mug_drink_1', 's4_cup_pass_1', 's5_cup_drink_2', 's5_mug_pass_1'}
+    check(a.smoke or {p.name for p in directories} == expected_names, 'Complete fixed panel required')
     models, results, audits = {}, {}, {}
     for folder in directories:
         meta = json.loads((folder / 'manifest.json').read_text())
         check(meta['status'] == 'COMPLETED' and meta['engineering_only'] == a.smoke, 'Complete/scope')
+        check(meta.get('component_attribution', False) == a.component_attribution, 'Teacher intervention scope')
         with np.load(folder / 'trajectory.npz') as stream:
             d = {k: stream[k] for k in stream.files}
         count = meta['controls']
@@ -89,12 +93,18 @@ def main():
                 replay[role] = dict(xyz_max_mm=float(difference[:, :3].max() * 1000),
                                     other_max=float(difference[:, 3:].max()))
                 check(replay[role]['xyz_max_mm'] < .1 and replay[role]['other_max'] < 1e-4,
-                      'Independent raw-observation checkpoint replay ' + role)
+                      'Independent raw-observation checkpoint replay ' + folder.name + ' ' + role + ' ' + str(replay[role]))
                 encoded = d['student_prediction'][:, row - 1]
                 # Algebraically invert relative wrist/absolute finger labels without adapter helpers.
                 expected = np.zeros((count, 18), np.float32)
                 expected[:, ACTIVE[:6]] = (encoded[:, :6] - offset[:6]) / scale[:6]
                 expected[:, ACTIVE[6:]] = (encoded[:, 6:] - offset[ACTIVE[6:]]) / scale[ACTIVE[6:]] * 2 - 1
+                if a.component_attribution:
+                    check(np.max(abs(expected - d['student_intended'][:, row])) < 1e-6, 'Unmixed student prediction')
+                    if role == 'teacher_wrist':
+                        expected[:, :6] = d['teacher_query_action'][:, row, :6]
+                    elif role == 'teacher_fingers':
+                        expected[:, 6:] = d['teacher_query_action'][:, row, 6:]
                 check(np.max(abs(expected - d['intended'][:, row])) < 1e-6, 'Student action encoding ' + role)
                 check(np.max(abs(np.clip(expected, -1, 1) - d['applied'][:, row])) < 1e-6, 'Student actual action ' + role)
             wrist = np.linalg.norm(d['wrist'][1:, row] - d['reference_wrist'][1:, row], axis=-1) * 1000
@@ -123,10 +133,11 @@ def main():
         results[folder.name] = metrics
         audits[folder.name] = dict(initial_spread=initial_spread, pd_max_abs=pd_difference, replay=replay)
     macro = {role: {key: float(np.mean([r[role][key] for r in results.values()]))
-                    for key in next(iter(results.values()))[role]} for role in ['teacher', 'original', 'expanded', 'balanced']}
+                    for key in next(iter(results.values()))[role]} for role in meta['roles']}
     out = a.run / ('audit-smoke' if a.smoke else 'audit')
     out.mkdir(exist_ok=False)
     (out / 'results.json').write_text(json.dumps(dict(status='PASS', engineering_only=a.smoke,
+        torch_version=torch.__version__, component_attribution=a.component_attribution,
         sequence_results=results, macro=macro, audits=audits), indent=2) + '\n')
     print(json.dumps(dict(status='PASS', macro=macro), indent=2))
 

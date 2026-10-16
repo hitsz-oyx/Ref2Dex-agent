@@ -29,7 +29,12 @@ def main():
     p.add_argument('--sequence', choices=PANEL, required=True)
     p.add_argument('--gpu', type=int, required=True)
     p.add_argument('--smoke', action='store_true')
+    p.add_argument('--component-attribution', action='store_true',
+                   help='Expanded student plus diagnostic own-state teacher wrist/finger substitutions')
     a = p.parse_args()
+    roles = ('teacher', 'expanded', 'teacher_wrist', 'teacher_fingers') if a.component_attribution else ROLES
+    if a.component_attribution and (a.smoke or a.sequence not in ('s3_mug_drink_1', 's5_cup_drink_2')):
+        raise ValueError('Fixed two-sequence attribution panel without engineering shortcut')
     out = a.output.resolve()
     runtime = Path('/home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train')
     if Path(sys.prefix).resolve() != runtime or out.exists() or BASE not in out.parents:
@@ -76,7 +81,8 @@ def main():
     if selected['split'] != 'val':
         raise ValueError('Fixed held-out sequences required')
     controls = 4 if a.smoke else selected['frames'] - 25
-    checkpoints = {r: BASE / 'teacher-state-coverage-20261016-r1' / r / 'final.pt' for r in ROLES[1:]}
+    checkpoints = {r: BASE / 'teacher-state-coverage-20261016-r1' /
+                  ('expanded' if a.component_attribution else r) / 'final.pt' for r in roles[1:]}
     students = {r: TeacherInputStudent(torch.load(path, map_location='cpu')).cuda()
                 for r, path in checkpoints.items()}
     cfg = json.loads((ROOT / 'outputs/consequence-evaluator/baseline-transfer-s3-20261007-r2/airplane_base/config.json').read_text())
@@ -93,10 +99,11 @@ def main():
     manifest = dict(schema='ref2dex.teacher-coverage-native.v1', status='RUNNING',
         experiment_id='P-20261016-teacher-coverage-native', run_id=out.name,
         work_version='git commit', git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
-        roles=ROLES, seed=292, native_input=selected, native_controller=cache['controller'],
+        roles=roles, seed=292, native_input=selected, native_controller=cache['controller'],
         checkpoints={r: str(v) for r, v in checkpoints.items()}, teacher=str(OFFICIAL),
         controls=controls, engineering_only=a.smoke, physical_gpu=a.gpu, pid=os.getpid(),
-        no_teacher_intervention=True, reference='native full1442 with delta1 and delta16 hand/object references',
+        no_teacher_intervention=not a.component_attribution, component_attribution=a.component_attribution,
+        reference='native full1442 with delta1 and delta16 hand/object references',
         budget=dict(seconds=600, bytes=256 * 2**20),
         resource_authorization='2026-10-16 user permits all idle GPUs; no occupied GPU touched')
     write(out / 'manifest.json', manifest)
@@ -176,16 +183,23 @@ def main():
                     teacher = self.get_action(dict(obs, obs=raw.repeat(16, 1)), True)[:4].clamp(-1, 1).clone()
                     applied, intended = teacher.clone(), teacher.clone()
                     predictions = []
-                    for row, role in enumerate(ROLES[1:], 1):
+                    for row, role in enumerate(roles[1:], 1):
                         prediction = students[role](raw[row:row + 1])[0]
                         predictions.append(prediction)
                         target = decode_target(prediction, q[row])
                         intended[row], applied[row], _ = command(target, q[row], offset, scale)
+                    student_intended = intended.clone()
+                    if a.component_attribution:
+                        # Teacher acts on each hybrid's own state, never borrows row0 state/actions.
+                        intended[2, :6] = teacher[2, :6]
+                        intended[3, 6:] = teacher[3, 6:]
+                        applied = intended.clamp(-1, 1)
                     if not torch.isfinite(intended).all():
                         raise ValueError('Nonfinite student action')
                     expected = pd_from_action(applied, q, offset, scale)
                     save(raw_observation=raw, student_prediction=torch.stack(predictions),
                         teacher_query_action=teacher, intended=intended, applied=applied,
+                        student_intended=student_intended,
                         clipped=(intended - applied).abs().amax(-1) > 1e-6)
                     obs, _, done, _ = self.env_step(self.env, applied.clone())
                     executed += 1
@@ -210,7 +224,7 @@ def main():
             arrays = {key: np.stack(value) for key, value in logs.items()}
             np.savez_compressed(out / 'trajectory.npz', **arrays)
             outcomes = []
-            for row, role in enumerate(ROLES):
+            for row, role in enumerate(roles):
                 outcome = partial_grasp_outcome(dict(object_pose=arrays['obj'][:, row],
                     object_velocity=arrays['velocity'][:, row], surface_gap=arrays['surface_gap'][:, row],
                     support_gap=arrays['support_gap'][:, row], table_footprint=arrays['table_footprint'][:, row]))

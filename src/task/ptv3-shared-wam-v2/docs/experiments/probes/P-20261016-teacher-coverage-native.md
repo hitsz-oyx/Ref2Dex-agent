@@ -13,13 +13,13 @@ seed_pool: probe
 seeds: [292]
 decision_changed_if_positive: retain scratch coverage controller as native baseline before WAM comparison
 decision_changed_if_negative: localize first closed-loop deviation before spending on more offline fitting
-status: RUNNING
+status: PROMISING
 run_id: teacher-coverage-native-20261016-r1
 ---
 
 # 教师状态覆盖收益的闭环检验
 
-Result: RUNNING。
+Result: 六序列COMPLETED，PROMISING（仅现有全参考控制器的覆盖收益）；后续部件归因待运行。
 Decision: 将固定三个scratch终点接入原生物理，不再追加离线配方。
 Class: Decision。服务MISSION自训控制底座；检验held/unseen离线PD改善能否进入真实
 腕部/物体跟踪。最便宜方法为复用旧六条VAL杯类轨迹，单reset、四并行环境。
@@ -68,3 +68,39 @@ CAMPAIGN通常保留两卡的默认限制，不改写长期限制，不影响1�
 1490ee7f的4步smoke完成；独立checkpoint/raw重推、实际PD、同初态、参考clock、
 hold读出复算PASS。四行q/obj/raw初态差0。GPU0原生约18.2GiB（24GiB可容纳），
 无外来consumer。工程结果不进入科学面板，正式六序列按原协议推进。
+
+## 六序列结果与独立审计
+
+代码9f2e0e78；每序列24.9–32.0秒，六条总176秒左右GPU wall time，显存18.2GiB。
+六序列等权（mm；p95为各序列p95再等权）：
+
+|角色|物体mean|物体p95|腕部mean|hold45序列数|
+|---|---:|---:|---:|---:|
+|teacher|34.742|78.708|92.495|6/6|
+|original|434.427|1242.361|382.567|4/6|
+|expanded|76.476|355.685|100.079|6/6|
+|balanced|77.654|349.385|108.104|6/6|
+
+两候选均通过预定门，物体mean改善82.40%/82.13%；这是闭环正向Probe，不是完整
+任务成功。hold45可在后续掉物前通过，不能单独替代轨迹质量。s3_mug_drink_1
+teacher36.17mm而expanded284.35/balanced293.71mm，其余5条expanded25.73–48.87mm。
+该失败没有从汇总中剔除；不能把balanced离线拟合门推广为在线优于expanded。
+
+独立审计先因glob误纳同名.log中止（无物理结果受影响，已限定目录）；训练环境Torch2.4
+重推一行xyz最大0.105917mm略超0.1mm容差，未放宽。改用实际部署Torch2.0.1的全六条
+新进程重推后全部输出差0，实际PD/同初态/参考clock/hold复算PASS。属于跨runtime
+数值差异，不是已发现接线错误。审计输出audit/results.json，保留失败日志供追溯。
+
+## 后续 Decision Note：剩余drink失败的部件归因
+
+问题：明显失败是否主要来自腕部或手指控制？关键证据：扩展模型其余五条物体均值
+25.7–48.9mm，但s3-drink284.3mm，teacher36.2mm。先做最便宜的两个部件反事实，
+不追加训练；固定s3_mug_drink_1为失败诊断，s5_cup_drink_2为另一drink对照。
+每条四行teacher/expanded/teacher-wrist+student-fingers/student-wrist+teacher-fingers，
+所有teacher查询来自该行自己的状态；只借部件，不借row0状态。后两行明确教师辅助，
+不能计入自主控制成功或主面板。长度/seed/物理设置保持原协议。
+
+若某种替换使s3物体mean降低>=50%、hold45保持且另一种未达门，优先对应部件修复；
+若都改善或都无改善则耦合/分布证据不足，记UNCLEAR，先看首次偏离，不扩大同类oracle
+搜索。另报s5控制以防牺牲已有行为。每条600s，上轮总30min/2GiB预算内，0/5两空闲GPU；
+产物component-attribution子目录。停止条件继承；无模型/claim/数据许可变化。
