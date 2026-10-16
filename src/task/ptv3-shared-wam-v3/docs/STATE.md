@@ -1,3 +1,11 @@
+## 2026-10-16 v3最终80k与v2同面板比较完成
+
+复用原固定544抽样（541不同窗口，旧抽样重复权重保留）与v2 best59k/final80k逐窗物理读数，新评v3 best31k/低LR best41k/final80k共1632次前向；index/capture/有效计数逐项一致，各自TRAIN normalizer反归一化。相对v2best，v3final原三域手宏误差44.933→44.392mm（-1.20%），scene12.365→12.356mm（近持平）；原三域手配对区间都跨零，视作基本保持。新增五域手44.469→28.793mm（-35.25%）、scene17.662→11.410mm（-35.39%）。HOT手仅改善3.61%且CI跨零，目标物体first8恶化24.15%，不称全面改善；其余四新增域手CI低于零，仍仅32窗/源的小面板。v3final相对v2final原三域手/scene改善2.21%/2.55%，新增五域38.60%/37.13%。
+
+重要修正：31k只是原256窗归一化综合loss最优，在更大的原三域物理面板上，手宏误差31k46.969、41k44.968、80k44.392mm。不能把31k作为所有下游的唯一最优；保留41k/80k为后续微调候选，最终取决于同配方下游评估。本轮PROMISING仅指新增域覆盖保留，原三域基本保持，不作数据源因果或机器人抓取结论。v3最终global512×80k的抽取曝光为v2final/global256的两倍。
+
+新推理80.2秒、GPU峰值1.15GiB/3GiB上限，已释放；固定原读数函数013105b1。首个工程入口错误要求抽样唯一，推理前退出，r2移除此假设并保留原面板。完整报告/图/配对区间 `outputs/ptv3-shared-wam-v3/main3-v2-v3-final-comparison-20261016-r2/`；未新增训练、未读取TEST，DexYCB无旧recipe DEV。详见[实验卡](experiments/probes/P-20261015-nine-source-pretrain.md)。
+
 ## 2026-10-16 09:21 核验：80k训练已正常结束，后半程未刷新best
 
 远端降LR续训约05:57 CST写完step80000完整checkpoint，process/progress均COMPLETED、exit_code0；当前四卡均0MiB、训练资源已释放。两组LR维持3e-5，输入仍是原strict冻结recipe，未部署Dex扩充或boundary修复。旧31k/37k、新41k/80k checkpoint均确认存在（各约1.18GB）。
