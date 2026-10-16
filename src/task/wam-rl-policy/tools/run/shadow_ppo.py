@@ -68,6 +68,7 @@ def main():
     p.add_argument('--capture-warm-state',action='store_true')
     p.add_argument('--worker',action='store_true');a=p.parse_args()
     a.output=a.output.resolve();a.checkpoint=a.checkpoint.resolve();a.cache=a.cache.resolve()
+    if a.rl_checkpoint:a.rl_checkpoint=a.rl_checkpoint.resolve()
     a.code_commit=os.environ.get('REF2DEX_CODE_COMMIT') or subprocess.check_output(['git','rev-parse','HEAD'],cwd=TASK,text=True).strip()
     if not 1<=a.envs<=256 or not 1<=a.updates<=200 or a.alpha!=.15 or not 1<=a.world_size<=4 or not -5<=a.initial_log_std<=-1.2:
         raise ValueError('Scale bounds:1..256env/rank,1..200updates,1..4ranks,alpha0.15')
