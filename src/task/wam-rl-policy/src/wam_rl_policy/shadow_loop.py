@@ -21,6 +21,9 @@ def write(path,value):
 
 
 def run(task,snapshot,env_objects,teacher,args):
+    # Existing bounded launchers may be initializing assets while optional diagnostics are added.
+    for name,default in [('initial_log_std',-2.5),('synchronize_warm_step',False),('capture_warm_state',False)]:
+        if not hasattr(args,name):setattr(args,name,default)
     out=args.output;started=time.monotonic()
     if args.world_size>1:
         torch.distributed.init_process_group('nccl',init_method=args.rendezvous,rank=args.rank,world_size=args.world_size,
