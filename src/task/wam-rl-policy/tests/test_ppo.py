@@ -3,6 +3,17 @@ import pytest
 from wam_rl_policy.ppo import Actor,Critic,advantages,apply_residual,observation,update
 
 
+def test_critic_health_stop_requires_sustained_known_full_episode_evidence():
+    from wam_rl_policy.ppo import dead_critic_streak
+    def row(value,count=13):return dict(ppo_segments=[dict(value_explained_variance=value) for _ in range(count)])
+    assert dead_critic_streak([row(1e-8)]*8,8)
+    assert not dead_critic_streak([row(0.)]*7,8)
+    assert not dead_critic_streak([row(0.)]*7+[row(.1)],8)
+    assert not dead_critic_streak([row(None)]*8,8)
+    assert not dead_critic_streak([row(0.,12)]*8,8)
+    assert not dead_critic_streak([row(0.)]*8,0)
+
+
 @pytest.mark.parametrize('minibatches',[1,2])
 def test_scaled_value_keeps_physical_bootstrap_gae_and_normalized_optimizer_units(minibatches):
     import copy

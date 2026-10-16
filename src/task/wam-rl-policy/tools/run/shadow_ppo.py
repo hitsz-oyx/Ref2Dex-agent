@@ -109,6 +109,7 @@ def main():
     p.add_argument('--clock-kind',choices=('none','zero','remaining'),default='none')
     p.add_argument('--critic-activation',choices=('tanh','elu'),default='tanh')
     p.add_argument('--value-scale',type=float,choices=(1.,100.),default=1.)
+    p.add_argument('--stop-after-dead-critic-episodes',type=int,default=0)
     p.add_argument('--rollout-steps',type=int,default=199)
     p.add_argument('--worker',action='store_true');a=p.parse_args()
     a.output=a.output.resolve();a.checkpoint=a.checkpoint.resolve();a.cache=a.cache.resolve()
@@ -125,6 +126,7 @@ def main():
     if a.force_zero_residual and a.mode!='evaluate':raise ValueError('Matched loaded-policy zero control is evaluate-only')
     if not 1<=a.rollout_steps<=199:raise ValueError('PPO chunk must contain 1..199 native transitions')
     if not 1<=a.ppo_epochs<=10 or not 1<=a.ppo_minibatches<=8:raise ValueError('PPO optimization budget bound')
+    if not 0<=a.stop_after_dead_critic_episodes<=20:raise ValueError('Bounded optional critic health stop required')
     if a.worker:worker(a);return
     if a.output.exists() or ROOT/'outputs/wam-rl-policy' not in a.output.parents:raise ValueError('Fresh Task output')
     occupied=subprocess.check_output(['nvidia-smi','-i',str(a.gpu),'--query-compute-apps=pid','--format=csv,noheader'],text=True).strip()

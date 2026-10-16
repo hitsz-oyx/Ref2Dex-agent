@@ -485,3 +485,45 @@ scale缩放代码d37bcea3的30项测试通过，含双精度单位协变（避�
 当前队列`shadow-value-scale-campaign-20261016-r1`继续fresh25对照，supervisor PID178810，
 实测约11s/episode、3GiB显存，两个smoke+25臂预计合计约12min（受资产初始化影响）。
 本地主训仍1–4、0/6/7空闲；没有使用外部进程或扩张磁盘预算。
+
+## 2026-10-16 20:12 全部预定队列结束后的读出
+
+本地WAM主训200轮已完成，256global env、累计10188800env steps；本次resume段curve只含32–200，
+不能将169行误读成只训练169轮。200轮core实际初态九项全部PASS：BC held80→78/256、
+end73→74、lift124→144、到达117→130、终点101→109；未改善持续保持，不称收敛成功。
+
+远端none/v3-aligned均完成200与freeze/分段/执行审计PASS，并完成249/250/251各256条DEV：
+none BC→PPO held69→65、59→68、76→70；三面板均有少数实际初态不一致，不称严格配对。
+v3 BC→PPO为69→72（初态1条不一致）、58→72（PASS）、75→64（PASS）。
+两个有效配对面板方向相反，不能把第50轮+9宣称为稳定复现，或跨不同BC初态拼总和证明v3有效。
+none200轮中33轮全部13段|EV|<1e-4（首105），v3为35轮（首86）；v3最后10轮均近零，
+none最后10轮9轮近零、200最后几段有恢复。不是不可恢复的永久判决，但现配方没有长时资格。
+数据JSON已同步本地对应remote run目录；这是训练配方失效证据，不作为WAM路线有效负证据。
+
+本地scale1/100各25轮及两次smoke均完整审计PASS；末10轮全段EV中位.783→.875、
+终末EV.441→.508，物理末minibatch MSE43.05→45.84；TRAIN held均值41.8→38.5/128。
+因此缩放有价值拟合信号，却没有闭环改善证据；还没有在WAM2631D输入上检验长期稳定。
+20:12查询本地8卡/远端4卡全部空闲，旧队列均按预算正常结束，无新的后台长训仍在运行。
+
+### Decision Note：WAM输入下的critic长时资格，四卡匹配2×2
+
+Blocker：短25轮不能覆盖旧none/v3在105/86轮首次全段近零的问题；下一步不能继续原配方盲训，
+也不能直接把BC-hidden上的缩放效果推广到WAM。最便宜可判别设计是保持相同WAM输入形状、
+共同已知remaining clock、比较none/aligned-v3 × value_scale1/100四臂。
+各32TRAIN/64env、125完整episode=1592000交互步，固定fresh MLP50k BC、v3 final80k encoder，
+2632D（raw300+type-summary2304+goal3+clock1+base24）、large Tanh actor/critic、fullGaussian、
+hold奖励、16步/5×4mini、seed245/246/247及独立shuffle seed不变。none计算同encoder后置零z。
+只有特征条件与value缩放两个因素不同；125覆盖旧105/86轮失稳区，不按DEV挑端点。
+run_id=shadow-wam-value-{none-scale1,none-scale100,v3-scale1,v3-scale100}-32obj-20261016-r1。
+远端GPU0/1/2/3分别对应上述四臂。先2episode工程smoke+原生/冻结/真实chunk审计，通过后fresh125。
+每臂训练<=2h、全队列<=4h；预计约80min训练+固定core64DEV×4、reset249/250/251读出。
+本地卡保持释放（至少6/7始终空闲），新增产物估计<8GiB，仍遵守总64GiB/磁盘保留20GiB。
+
+预先停止条件：若连续8个完整episode全部13段EV均已知且|EV|<1e-4，则保存本轮checkpoint、
+critic-health-stop.json与原始curve，标记STOPPED_CRITIC_QUALIFICATION后结束该owned训练及队列；
+未知EV、短chunk日志或单轮低EV不得触发。停止是配方资格失败，不是WAM负结果。
+正常完成125才运行冻结/执行审计和固定DEV；未完成臂不与125臂混作等预算有效性比较。
+判断：scale100能避免长时失稳且保留状态区分，才有资格扩大；是否改善抓取另看固定DEV，
+若无改善仍UNCLEAR，不把EV改善包装为行为收益。两条scale100 WAM臂都通过时，可在同配方内
+评估直接z；v2/shuffled推迟到这一Blocker通过之后，不增加当前无判别性的全网格。
+新gate默认关闭，旧运行/旧checkpoint行为不变；仅本轮显式设8。源版本写入实际manifest。

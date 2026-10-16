@@ -8,7 +8,7 @@ import time
 from datetime import timedelta
 import numpy as np
 import torch
-from .ppo import SCHEMA,Actor,Critic,observation,apply_policy_action,update_rollout,append_episode_clock
+from .ppo import SCHEMA,Actor,Critic,observation,apply_policy_action,update_rollout,append_episode_clock,dead_critic_streak
 from shadow_finetune.execution import Controller
 from shadow_finetune.metrics import native_report
 from .bc_mlp import MLPController
@@ -26,6 +26,7 @@ def run(task,snapshot,env_objects,teacher,args):
     # Existing bounded launchers may be initializing assets while optional diagnostics are added.
     for name,default in [('initial_log_std',-2.5),('synchronize_warm_step',False),('capture_warm_state',False),('retain_reset_indices',False),('single_reset_target_setter',False),('force_zero_residual',False),('outside_support_zero',False),('observation_kind','native'),('rollout_steps',199),('network_kind','small'),('action_kind','residual'),('reward_kind','native'),('ppo_epochs',4),('ppo_minibatches',1),('wam_feature_checkpoint',None),('clock_kind','none'),('critic_activation','tanh'),('value_scale',1.)]:
         if not hasattr(args,name):setattr(args,name,default)
+    if not hasattr(args,'stop_after_dead_critic_episodes'):args.stop_after_dead_critic_episodes=0
     out=args.output;started=time.monotonic()
     if args.world_size>1:
         torch.distributed.init_process_group('nccl',init_method=args.rendezvous,rank=args.rank,world_size=args.world_size,
@@ -124,6 +125,7 @@ def run(task,snapshot,env_objects,teacher,args):
         reward_kind=args.reward_kind,reward='official goal_cond=False native reward'+(' + 1/tick low-speed position hold: goal<=5cm,lift>=10cm,speed<=0.1m/s' if args.reward_kind=='hold' else ''),gamma=.99,gae_lambda=.95,
         bc_weight=.1,actor_lr=1e-4,critic_lr=3e-4,ppo_epochs=args.ppo_epochs,ppo_minibatches=args.ppo_minibatches,target_joint_kl=.02,
         rollout_steps=args.rollout_steps,interior_bootstrap='actual next-state critic before optimizer update; no simulator reset',
+        stop_after_dead_critic_episodes=args.stop_after_dead_critic_episodes,
         max_seconds=args.seconds,artifact_budget_bytes=2*2**30,
         controls_per_episode=int(task.max_episode_length)-1,objects=env_objects,
         selection='final update, no DEV checkpoint selection',
@@ -272,6 +274,13 @@ def run(task,snapshot,env_objects,teacher,args):
             if iteration in (50,100,200):torch.save(checkpoint,out/('update%d.pt'%iteration))
         write(out/'progress.json',dict(stats,eta_s=(time.monotonic()-started)/(iteration-offset)*(args.updates-iteration) if training else 0))
         print(json.dumps(stats),flush=True)
+        if training and dead_critic_streak(curves,args.stop_after_dead_critic_episodes):
+            failure=dict(status='STOPPED_CRITIC_QUALIFICATION',update=iteration,
+                consecutive_episodes=args.stop_after_dead_critic_episodes,all_13_chunks_abs_ev_below=1e-4,
+                interpretation='Training recipe failed qualification; not evidence against WAM; checkpoint preserved')
+            write(out/'critic-health-stop.json',failure)
+            manifest.update(status=failure['status']);write(out/'manifest.json',manifest)
+            raise RuntimeError('Persistent all-chunk critic collapse; preserved checkpoint and stopped owned run')
         if shutil.disk_usage(out).free<20*2**30:raise RuntimeError('Disk reserve')
     unchanged=all(torch.equal(v,bc.model.state_dict()[k]) for k,v in before.items())
     if not unchanged:raise ValueError('Frozen BC parameters/buffers changed')

@@ -65,6 +65,16 @@ def append_episode_clock(obs,tick,controls,kind='none'):
     return torch.cat((obs[...,:-24],clock,obs[...,-24:]),-1)
 
 
+def dead_critic_streak(curves,episodes):
+    """Unknown EV is not evidence of collapse; require all 13 actual chunks."""
+    if episodes<=0 or len(curves)<episodes:return False
+    for row in curves[-episodes:]:
+        segments=row.get('ppo_segments',[])
+        if len(segments)!=13:return False
+        if any(s.get('value_explained_variance') is None or abs(s['value_explained_variance'])>=1e-4 for s in segments):return False
+    return True
+
+
 def apply_policy_action(base,latent,kind='residual'):
     if kind=='residual':return apply_residual(base,latent)
     if kind!='reference-gaussian' or base.shape!=latent.shape:raise ValueError('Unknown policy action contract')
