@@ -93,6 +93,16 @@ sticky与末帧5cm、reward、clipping、残差RMS、KL/更新次数。保持增
 
 ## Limitations / future evidence
 
+2026-10-16用户要求优先看Shadow表现：不增加训练预算，从全部已存轨迹做行为分层与
+交互式回放。每物体12次，BC/PPO曾保持分别瓶子4/5、相机6/7、手机0/1、书1/2。
+抬升10cm总数均29/48、到过目标均26/48；末段持续60帧到结束为11/48→14/48，低于
+曾保持11→15。PPO仍15/24 DEV未抬高10cm；净增保持包含7条改善和3条退步，不是普遍提升。
+相机seed233/env6曾保持114帧，终点lift11.49cm/goal距离9.26cm；不把离开目标区自动说成掉落。
+行为总表、全部case CSV、原始日志点云/11关键点HTML回放和对象统计图位于run下
+`behavior-review-verified/`。CAD identity/scale与日志有限性校验通过；Node检查全部48case
+各5帧canvas坐标有限，统计PNG已查看，但尚无真实浏览器视觉检查。无新仿真或网络计算，
+纯文件统计使用CPU。原单训练seed/小面板/非接触认证/数值波动等限制全部保留，结论UNCLEAR。
+
 单seed两TRAIN对象探索只检查机制；多对象/多seed、token aligned/shuffled/none对照、
 reference dropout/独立动作路径及token训练留待正向信号后。训练checkpoint保存未来恢复
 所需的网络/optimizer/RNG，当前CLI仅evaluate加载actor，尚未实现train-resume。

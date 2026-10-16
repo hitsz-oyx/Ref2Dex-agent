@@ -1,5 +1,24 @@
 # 当前状态
 
+## 2026-10-16 用户转向Shadow：全量既有轨迹行为复查
+
+只读复查三对reset全部48轨迹/策略，无新训练或仿真。逐物体曾达到held60计数BC/PPO：
+瓶子TRAIN4/5、相机TRAIN6/7、手机DEV0/1、书DEV1/2，各12条。
+两策略总抬升10cm均29/48、到过5cm目标均26/48；曾保持11→15，末段持续60帧直到
+记录结束11→14。PPO仍15/24条DEV未抬到10cm，主要失败集中于DEV抓取/抬升。
+相同起点曾保持的转换为both8、BC-only3、PPO-only7、neither30；不能只看净增4忽略退步。
+相机233/env6虽曾保持114帧，终点抬升仍11.49cm但goal距离9.26cm，只能说明离开目标区，
+不能据此声称掉落。全部仍为UNCLEAR，未新增正式RL效用结论。
+
+新增离线HTML同步回放，覆盖所有48对起点，可切物体/seed/env、拖动旋转和逐帧查看；
+显示真实手部11关键点与按记录object pose变换的同scale CAD表面点，不是仿真相机视频。
+目录`outputs/wam-rl-policy/shadow-bc-ppo-20261016-r1/behavior-review-verified/`，
+含`replay.html`、`objects.png`、`behavior.json`、`cases.csv`和`viewer-audit.json`。
+生成code57151f23；48case×5帧的Node DOM/canvas-stub检查通过、坐标有限，已查看统计PNG；
+没有真实浏览器视觉测试。纯文件统计/CAD变换在CPU执行，无神经推理，不占GPU。
+
+## 先前Stage-0训练与评估
+
 2026-10-16：Shadow BC→RL Stage-0完成，UNCLEAR。代码在本Task，路线来自用户ref1；
 冻结Shadow9k BC/WAM，只训练新327D actor/critic。20×199×32=127360 env steps，
 约19.2分钟；80个actor epoch均接受，jointKL<=.01762，latent logprob重放最大5.73e-6。
