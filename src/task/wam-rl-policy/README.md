@@ -1,5 +1,10 @@
 # WAM robot BC→RL
 
+2026-10-16新增[任务读出与目标语义Probe](docs/experiments/probes/P-20261016-wam-task-readout.md)：
+`task_readout.py`支持状态/目标查询、真实短期物理辅助监督与冻结预测输入，不依赖BC动作
+监督。新读出未超过原mean，进一步定位到预训练短期终点条件与整任务goal的差异；
+下一步优先短期目标桥接，BC不再作为研究主线前置关卡。具体结果见[当前状态](docs/STATE.md)。
+
 实现冻结WAM/BC reference上的小型在线控制器。路线输入见
 [用户参考](docs/user/ref/ref1.md)；当前先做Shadow Stage-0 residual PPO，
 之后才根据结果决定RL-token readout与独立动作支路。

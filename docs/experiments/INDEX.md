@@ -851,7 +851,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261016-wam-task-readout](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261016-wam-task-readout.md) | WAM任务读出：空间交互先验能否帮助实际回报学习 | 见原卡 | 见原卡 | probes/UNCLEAR |
+| [P-20261016-wam-task-readout](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261016-wam-task-readout.md) | WAM任务读出：空间交互先验能否帮助实际回报学习 | 新空间读出未超过mean；确认短期终点与task goal条件差异，oracle同条件下WAM优于几何插值，线上效用仍UNCLEAR。 | 优先学习可实现短期目标并检验WAM交互先验的动作实现；不扩大BC或照搬当前forecast做PPO reward。 | probes/UNCLEAR |
 
 ## HF-weak-temporal-value
 
