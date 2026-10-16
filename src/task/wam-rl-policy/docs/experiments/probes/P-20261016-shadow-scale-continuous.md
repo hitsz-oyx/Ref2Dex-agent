@@ -337,3 +337,14 @@ actor更新、maxKL.019892、重放3.05e-5、冻结597字段不变，elapsed约2
 主要无进展，因此当前降低复杂absorbing-mask实现的优先级，先完成配方/直接WAM特征Probe。
 条件terminal及不等样本加权仍保留为后续Decision，不把未实现项隐藏。产物
 `outputs/wam-rl-policy/shadow-termination-opportunity-audit-20261016-r1/summary.json`。
+
+
+v3数据暴露边界已做源4物体身份CPU核对：Shadow388个DEV物体与v3原native源4的1653个TRAIN
+物体交集为0；388个全部属于其413个DEV物体。strict recipe只在此基础删除窗口，不新增训练物体。
+这只证明源4没有TRAIN对象泄漏；这些物体参与过预训练DEV验证，不冒称独立TEST。报告
+`outputs/wam-rl-policy/shadow-v3-pretrain-exposure-audit-20261016-r1/summary.json`。
+
+延后诊断：若当前WAM/配方仍无稳定收益，可检查有限199步horizon但current300没有显式剩余时间
+时，critic在终段的拟合歧义，以及直接微调自训练BC/critic warmup的资格对照；当前先完成已启动
+的特征决策，不因这些合理疑问立刻继续扩展GPU网格。完整Gaussian的噪声下界和旧residual
+具有不同物理单位，若长训触及std clamp必须先匹配实际动作单位边界，不能隐去此差异。
