@@ -630,6 +630,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261015-shadow-native-policy](../../src/task/shadow-finetune/docs/experiments/probes/P-20261015-shadow-native-policy.md) | 在ShadowHand自身环境中检验WAM动作微调 | 见原卡 | 见原卡 | probes/UNCLEAR |
 
+## HF-shadow-scale-continuous
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261016-shadow-scale-continuous](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261016-shadow-scale-continuous.md) | Shadow大规模持续推进 | 见原卡 | 见原卡 | probes/UNCLEAR |
+
 ## HF-shadow-startup-sampling
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

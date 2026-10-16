@@ -25,6 +25,19 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261016-shadow-scale-continuous:
+    seed_pool: probe
+    bc_model_seed: 241
+    bc_draw_seed: 242
+    training_panel_seed: 243
+    offline_DEV_panel_seed: 244
+    online_reset_seed: 245
+    policy_seed: 246
+    exploration_seed: 247
+    core_DEV_selection_seed: 248
+    native_evaluation_seed: 249
+    reuse_reason: expanded exploratory Shadow online training and frozen object-disjoint evaluation; not Validation
+
   P-20261016-query-capacity-goal:
     seed_pool: probe
     model_seed: 221
