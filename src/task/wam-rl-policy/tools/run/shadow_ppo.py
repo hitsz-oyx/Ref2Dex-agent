@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import signal
+import shutil
 import subprocess
 import sys
 import time
@@ -14,6 +15,9 @@ ROOT=Path(os.environ.get('REF2DEX_RUN_ROOT',TASK.parents[2])).resolve()
 
 
 def worker(a):
+    # Asset initialization can be slow: freeze the matching package before importing Gym.
+    frozen=a.output/'runtime-code'
+    shutil.copytree(TASK/'src/wam_rl_policy',frozen/'wam_rl_policy',ignore=shutil.ignore_patterns('__pycache__','*.pyc'))
     source=TASK.parent/'video-data-preparation/tools/run/replay_unidexgrasp.py'
     text=source.read_text()
     start=text.index('    records = []\n    begin = time.monotonic()')
@@ -57,6 +61,7 @@ def worker(a):
     dest=a.output/'runtime_replay.py';dest.write_text(text)
     for task in ('wam-rl-policy','shadow-finetune'):
         sys.path.insert(0,str(TASK.parent/task/'src'))
+    sys.path.insert(0,str(frozen))
     spec=importlib.util.spec_from_file_location('wam_rl_shadow_runtime',dest)
     module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
     a.vendor=ROOT/'third_party/UniDexGrasp2'
@@ -95,7 +100,9 @@ def main():
     p.add_argument('--worker',action='store_true');a=p.parse_args()
     a.output=a.output.resolve();a.checkpoint=a.checkpoint.resolve();a.cache=a.cache.resolve()
     if a.rl_checkpoint:a.rl_checkpoint=a.rl_checkpoint.resolve()
-    a.code_commit=os.environ.get('REF2DEX_CODE_COMMIT') or subprocess.check_output(['git','rev-parse','HEAD'],cwd=TASK,text=True).strip()
+    identity=ROOT/'outputs/wam-rl-policy/deployed-source.json'
+    a.code_commit=(json.loads(identity.read_text())['git_commit'] if identity.exists() else
+        os.environ.get('REF2DEX_CODE_COMMIT') or subprocess.check_output(['git','rev-parse','HEAD'],cwd=TASK,text=True).strip())
     if not 1<=a.envs<=256 or not 1<=a.updates<=200 or a.alpha!=.15 or not 1<=a.world_size<=4 or not -5<=a.initial_log_std<=-1.2:
         raise ValueError('Scale bounds:1..256env/rank,1..200updates,1..4ranks,alpha0.15')
     if a.mode=='evaluate' and a.rl_checkpoint is None:raise ValueError('Evaluate requires RL checkpoint')
