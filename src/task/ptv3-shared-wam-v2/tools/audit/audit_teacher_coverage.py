@@ -17,9 +17,12 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--run', type=Path, required=True)
     p.add_argument('--gpu', type=int, required=True)
+    p.add_argument('--output-name', default='audit')
     a = p.parse_args()
     run = a.run.resolve()
-    out = run / 'audit'
+    out = run / a.output_name
+    if out.parent != run:
+        raise ValueError('Audit directory must be directly inside run')
     if out.exists() or BASE not in run.parents:
         raise ValueError('Fresh task audit output required')
     if subprocess.check_output(['nvidia-smi', '-i', str(a.gpu), '--query-compute-apps=pid',
@@ -46,11 +49,17 @@ def main():
     held = np.array(member['interpolation']['cache_indices'])
     result = dict(arms={}, coverage={}, scope='Probe descriptive coverage, no causal equivalence claim')
     out.mkdir()
-    for arm in ('original', 'expanded'):
+    arms = [arm for arm in ('original', 'expanded', 'diverse') if (run / arm / 'final.pt').exists()]
+    if not {'original', 'expanded'} <= set(arms):
+        raise ValueError('Both primary arms required')
+    for arm in arms:
         cp = torch.load(run / arm / 'final.pt', map_location='cpu', weights_only=False)
         ids = np.load(run / arm / 'train-cache-indices.npy')
         if arm == 'original':
             assert np.array_equal(ids, original_ids)
+        if arm == 'diverse':
+            assert len(ids) == len(original_ids) == len(np.unique(ids))
+            assert np.isin(ids, np.load(run / 'expanded/train-cache-indices.npy')).all()
         # Independent brute support check, without calling the train membership helper.
         for s in np.unique(seq[held]):
             train_ticks = tick[ids[seq[ids] == s]]
@@ -85,6 +94,9 @@ def main():
                                  replay_max_abs=replay_max)
         checks['max_parameter_difference_from_old'] = max(float((cp['model'][k]-old['model'][k]).abs().max())
                                                            for k in cp['model'])
+        checks['training_membership'] = dict(rows=len(ids), sequences=len(np.unique(seq[ids])),
+            startup_rows=int((tick[ids] < 16).sum()), later_rows=int((tick[ids] >= 16).sum()),
+            original_seen_overlap=int(np.isin(ids, original_ids).sum()))
         if arm == 'original':
             assert checks['max_parameter_difference_from_old'] == 0
         result['arms'][arm] = checks
@@ -99,8 +111,8 @@ def main():
     with torch.no_grad():
         for name, dims in subsets.items():
             mu, sd = init['xmean'][dims].cuda(), init['xscale'][dims].cuda()
-            banks = {key: ((torch.tensor(np.array(train[rows][:, dims]), device='cuda') - mu) / sd).clamp(-5, 5)
-                     for key, rows in [('original', original_ids), ('expanded', expanded_ids)]}
+            banks = {key: ((torch.tensor(np.array(train[np.load(run / key / 'train-cache-indices.npy')][:, dims]),
+                                        device='cuda') - mu) / sd).clamp(-5, 5) for key in arms}
             panel = {}
             for group in ('interpolation', 'unseen'):
                 entry = member[group]
@@ -115,10 +127,11 @@ def main():
                             best = torch.minimum(best, torch.cdist(batch, block).min(1).values)
                         values.append(best.cpu().numpy() / np.sqrt(len(dims)))
                     minima[key] = np.concatenate(values)
-                ratio = minima['expanded'] / np.maximum(minima['original'], 1e-8)
-                panel[group] = dict(original_median=float(np.median(minima['original'])),
-                    expanded_median=float(np.median(minima['expanded'])),
-                    median_ratio=float(np.median(ratio)), fraction_improved_10pct=float((ratio < .9).mean()))
+                panel[group] = {}
+                for key in arms:
+                    ratio = minima[key] / np.maximum(minima['original'], 1e-8)
+                    panel[group][key] = dict(median=float(np.median(minima[key])),
+                        median_ratio=float(np.median(ratio)), fraction_improved_10pct=float((ratio < .9).mean()))
             result['coverage'][name] = panel
     result['status'] = 'PASS'
     (out / 'results.json').write_text(json.dumps(result, indent=2) + '\n')
