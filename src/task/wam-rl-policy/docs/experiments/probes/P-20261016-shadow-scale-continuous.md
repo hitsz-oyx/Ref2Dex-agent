@@ -98,3 +98,18 @@ MLP50k权重与全部所选原生资产；旧数据/权重不覆盖。全部nati
 首轮四卡smoke未编译出gymtorch，四rank退出1；supervisor快速失败误标COMPLETED的bug已修，
 原始日志/exit_codes保留，不算成功smoke。单进程fresh项目cache构建+加载PASS，重跑r2。
 仍在native工程核对阶段，不声称已开始远端有效训练。工程问题不构成方法负证据。
+
+## 后续最小判别（200轮读出前记录）
+
+远端50/100轮core held均71/256，对首次BC69/256，未见明显信号；独立审查发现其中4个
+warm后实际初态改变，故不作为配对增益。两个runtime/config/对象分配相同，剩余252初态
+逐值同一；相关3个mesh在BC首次VHACD、PPO读取cache，当前仅为候选因果。
+保持原始记录；安排在既有warm cache上补BC core/full基线，不删除cache、不剔除失败物体。
+
+Decision：若200轮仍无清晰DEV改善，优先区分“探索幅度不足”和“BC缺乏尾段标签”而非
+继续无条件增大预算。已测100轮确定性执行残差RMS约.004，初始latent log_std=-2.5；
+增加一个可审计的-1.5初始化选项，保持网络初始mean/权重/数据/奖励不变，先不启动科学运行。
+尾段问题先以最便宜离线GPU测量：固定388DEV每对象一条序列(seed244)、每4拍安全current
+标签，分别报告startup(<8)、原admitted时段(8..151)、late(152..198)的24D/root/finger MAE。
+如果late没有明显异常，不投入全量重训；若late误差明显高，则再考虑明确的新current-safe
+准入训练，不得称其与旧forecast准入数据完全匹配。该审计不改变训练、不使用未来输入。

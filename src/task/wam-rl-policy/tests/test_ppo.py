@@ -41,3 +41,13 @@ def test_real_ppo_update_replays_behavior_and_changes_only_optimized_heads():
     assert stats['behavior_logprob_error']<1e-4 and 1<=stats['actor_steps']<=4
     assert stats['joint_kl']<=.02 and torch.isfinite(torch.tensor(stats['value_loss']))
     assert not torch.equal(before,actor.net[-1].weight)
+
+
+def test_exploration_arm_changes_only_initial_latent_scale():
+    torch.manual_seed(31);reference=Actor()
+    torch.manual_seed(31);strong=Actor(-1.5)
+    x=torch.randn(7,327)
+    torch.testing.assert_close(reference.distribution(x).loc,strong.distribution(x).loc,rtol=0,atol=0)
+    torch.testing.assert_close(strong.distribution(x).scale/reference.distribution(x).scale,torch.full((7,24),torch.exp(torch.tensor(1.)).item()))
+    for key,value in reference.state_dict().items():
+        if key!='log_std':assert torch.equal(value,strong.state_dict()[key])

@@ -50,11 +50,12 @@ def apply_residual(base, latent, alpha=.15):
 
 
 class Actor(nn.Module):
-    def __init__(self):
+    def __init__(self,initial_log_std=-2.5):
         super().__init__()
+        if not -5<=initial_log_std<=-1.2:raise ValueError('Initial latent log_std outside admitted clamp')
         self.net=nn.Sequential(nn.Linear(OBS_DIM,256),nn.Tanh(),nn.Linear(256,256),nn.Tanh(),nn.Linear(256,ACTION_DIM))
         nn.init.zeros_(self.net[-1].weight);nn.init.zeros_(self.net[-1].bias)
-        self.log_std=nn.Parameter(torch.full((ACTION_DIM,),-2.5))
+        self.log_std=nn.Parameter(torch.full((ACTION_DIM,),float(initial_log_std)))
 
     def distribution(self,obs):
         return torch.distributions.Normal(self.net(obs),self.log_std.clamp(-5,-1.2).exp())

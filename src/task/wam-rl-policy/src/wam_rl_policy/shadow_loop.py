@@ -30,7 +30,7 @@ def run(task,snapshot,env_objects,teacher,args):
     bc=bc_type(args.checkpoint,env_objects,teacher,args.cache)
     bc.model.requires_grad_(False)
     torch.manual_seed(args.policy_seed)
-    actor=Actor().cuda();critic=Critic().cuda()
+    actor=Actor(args.initial_log_std).cuda();critic=Critic().cuda()
     saved=None;offset=0
     if args.rl_checkpoint:
         saved=torch.load(args.rl_checkpoint,map_location='cpu',weights_only=False)
@@ -55,7 +55,7 @@ def run(task,snapshot,env_objects,teacher,args):
         base_checkpoint=str(args.checkpoint.resolve()),rl_checkpoint=str(args.rl_checkpoint) if args.rl_checkpoint else None,
         uses_wam=args.bc_kind=='wam',frozen_wam=True if args.bc_kind=='wam' else None,frozen_bc=True,
         trainable='new327D actor/critic only; no WAM token adapter in Stage0',
-        alpha=args.alpha,exploration='tanh latent Normal; initial log_std=-2.5; independent CUDA RNG232',
+        alpha=args.alpha,exploration='tanh latent Normal; independent per-rank CUDA RNG',initial_log_std=args.initial_log_std,
         policy_seed=args.policy_seed,exploration_seed=args.exploration_seed+args.rank,reset_seed=args.seed,envs=args.envs,updates=args.updates,
         rank=args.rank,world_size=args.world_size,global_envs=args.envs*args.world_size,resume_update=offset,
         reward='unchanged official goal_cond=False native task reward',gamma=.99,gae_lambda=.95,
