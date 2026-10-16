@@ -22,7 +22,7 @@ def write(path,value):
 
 def run(task,snapshot,env_objects,teacher,args):
     # Existing bounded launchers may be initializing assets while optional diagnostics are added.
-    for name,default in [('initial_log_std',-2.5),('synchronize_warm_step',False),('capture_warm_state',False)]:
+    for name,default in [('initial_log_std',-2.5),('synchronize_warm_step',False),('capture_warm_state',False),('retain_reset_indices',False),('single_reset_target_setter',False)]:
         if not hasattr(args,name):setattr(args,name,default)
     out=args.output;started=time.monotonic()
     if args.world_size>1:
@@ -62,6 +62,7 @@ def run(task,snapshot,env_objects,teacher,args):
         policy_seed=args.policy_seed,exploration_seed=args.exploration_seed+args.rank,reset_seed=args.seed,envs=args.envs,updates=args.updates,
         rank=args.rank,world_size=args.world_size,global_envs=args.envs*args.world_size,resume_update=offset,
         synchronize_warm_step=args.synchronize_warm_step,capture_warm_state=args.capture_warm_state,
+        retain_reset_indices=args.retain_reset_indices,single_reset_target_setter=args.single_reset_target_setter,
         reward='unchanged official goal_cond=False native task reward',gamma=.99,gae_lambda=.95,
         bc_weight=.1,actor_lr=1e-4,critic_lr=3e-4,ppo_epochs=4,target_joint_kl=.02,
         max_seconds=args.seconds,artifact_budget_bytes=2*2**30,
@@ -71,6 +72,8 @@ def run(task,snapshot,env_objects,teacher,args):
     write(out/'manifest.json',manifest)
     curves=[]
     for iteration in range(offset+1,(args.updates if training else 1)+1):
+        if args.retain_reset_indices:
+            torch.cuda.synchronize();task._retained_gpu_indices=[]
         task.reset_buf[:]=1
         if args.synchronize_warm_step:
             task.id=-1

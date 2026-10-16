@@ -30,6 +30,30 @@ def worker(a):
         manifest=json.loads(a.object_manifest.read_text())
         if manifest.get('real_asset_closure_bytes',513*2**20)>512*2**20:raise ValueError('Scale shard asset closure unaudited')
         text=text.replace('> 128*2**20:', '> 512*2**20:')
+    interventions=[]
+    if a.retain_reset_indices:
+        helper='''def _keep_gpu_index(task, value):
+    if not hasattr(task, '_retained_gpu_indices'):task._retained_gpu_indices=[]
+    task._retained_gpu_indices.append(value)
+    return gymtorch.unwrap_tensor(value)
+
+
+'''
+        interventions.append(('class ShadowHandGrasp(BaseTask):',helper+'class ShadowHandGrasp(BaseTask):'))
+        for key in ('all_hand_indices','all_indices','goal_object_indices'):
+            interventions.append(('gymtorch.unwrap_tensor('+key+')','_keep_gpu_index(self, '+key+')'))
+    if a.single_reset_target_setter:
+        old='''        self.gym.set_dof_position_target_tensor_indexed(self.sim, gymtorch.unwrap_tensor(self.prev_targets),
+                                                        gymtorch.unwrap_tensor(all_hand_indices), len(all_hand_indices))'''
+        interventions.insert(0,(old,'        # The same pre_physics_step sets the final targets once, after reset.'))
+    if interventions:
+        insert=''
+        for old,new in interventions:
+            insert+='    if '+repr(old)+' not in source:raise ValueError("Pinned reset intervention source changed")\n'
+            insert+='    source=source.replace('+repr(old)+','+repr(new)+')\n'
+        text=text.replace('    source = source_path.read_text()\n','    source = source_path.read_text()\n'+insert)
+        (a.output/'reset-api-interventions.json').write_text(json.dumps(dict(retain_reset_indices=a.retain_reset_indices,
+            single_reset_target_setter=a.single_reset_target_setter,replacements=interventions),indent=2)+'\n')
     dest=a.output/'runtime_replay.py';dest.write_text(text)
     for task in ('wam-rl-policy','shadow-finetune'):
         sys.path.insert(0,str(TASK.parent/task/'src'))
@@ -66,6 +90,8 @@ def main():
     p.add_argument('--initial-log-std',type=float,default=-2.5)
     p.add_argument('--synchronize-warm-step',action='store_true')
     p.add_argument('--capture-warm-state',action='store_true')
+    p.add_argument('--retain-reset-indices',action='store_true')
+    p.add_argument('--single-reset-target-setter',action='store_true')
     p.add_argument('--worker',action='store_true');a=p.parse_args()
     a.output=a.output.resolve();a.checkpoint=a.checkpoint.resolve();a.cache=a.cache.resolve()
     if a.rl_checkpoint:a.rl_checkpoint=a.rl_checkpoint.resolve()

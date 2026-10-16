@@ -127,3 +127,11 @@ yaw/forces。固定shard01/128env/seed249，同GPU分别BC与PPO，区分reset�
 物理步差异。实际首轮只开同步、不额外CPU读pre-warm；保存pre-warm为独立的capture开关，
 避免CPU拷贝隐式同步混淆。若仍有问题再加capture并检查重复setter/foreign-stream临时索引
 生命期，不先大改RNG。
+
+同步warm Probe未消除BC/PPO初态差异（hand .05684m、object .16519m等），不能宣称修复。
+首次PPO子运行因相对checkpoint在vendor切换cwd后找不到而失败，保留日志；修复CLI提前
+resolve后用新evaluate-r2目录完成。下一工程判别为两个互相独立的可选runtime修改：
+`retain_reset_indices`保持传给Gym的int32索引引用直到simulate完成；
+`single_reset_target_setter`仅移除reset中的中间target setter，保留pre_physics末尾的最终
+setter。均只改自有runtime副本，不改vendor、奖励或物理参数。每个条件同GPU/同shard01
+BC与PPO50各一轮；先检查实际起点，再决定是否用于后续训练/评估，旧结果全部保留。
