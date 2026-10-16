@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from ptv3_shared_wam_v2.teacher_coverage import coverage_indices, phase_sampler, diverse_subset
+from ptv3_shared_wam_v2.teacher_coverage import coverage_indices, phase_sampler, diverse_subset, balanced_sampler
 from ptv3_shared_wam_v2.teacher_generalization import isolated_middle
 
 
@@ -40,3 +40,14 @@ def test_equal_label_budget_covers_sequences_without_new_rows():
     assert set(sequence[rows]) == {0, 1, 2}
     assert (sequence[rows] == 0).sum() == 2
     assert np.array_equal(rows, diverse_subset(legal, sequence, 20))
+
+
+def test_balanced_sampler_preserves_family_and_phase_exposure():
+    sequence = np.repeat(np.arange(3), 100)
+    ticks = np.tile(np.arange(100), 3)
+    sampler = balanced_sampler(np.arange(100), np.arange(300), sequence, ticks)
+    for _ in range(10):
+        rows = sampler()
+        assert (rows < 100).sum() == 256
+        assert (ticks[rows[:256]] < 16).all()
+        assert (ticks[rows[256:]] >= 16).all()

@@ -49,7 +49,7 @@ def main():
     held = np.array(member['interpolation']['cache_indices'])
     result = dict(arms={}, coverage={}, scope='Probe descriptive coverage, no causal equivalence claim')
     out.mkdir()
-    arms = [arm for arm in ('original', 'expanded', 'diverse') if (run / arm / 'final.pt').exists()]
+    arms = [arm for arm in ('original', 'expanded', 'diverse', 'balanced') if (run / arm / 'final.pt').exists()]
     if not {'original', 'expanded'} <= set(arms):
         raise ValueError('Both primary arms required')
     for arm in arms:
@@ -60,6 +60,11 @@ def main():
         if arm == 'diverse':
             assert len(ids) == len(original_ids) == len(np.unique(ids))
             assert np.isin(ids, np.load(run / 'expanded/train-cache-indices.npy')).all()
+        if arm == 'balanced':
+            assert np.array_equal(ids, np.load(run / 'expanded/train-cache-indices.npy'))
+            draw = np.load(run / arm / 'first-draw.npy')
+            assert np.isin(draw, original_ids).sum() == 256
+            assert (tick[draw[:256]] < 16).all() and (tick[draw[256:]] >= 16).all()
         # Independent brute support check, without calling the train membership helper.
         for s in np.unique(seq[held]):
             train_ticks = tick[ids[seq[ids] == s]]

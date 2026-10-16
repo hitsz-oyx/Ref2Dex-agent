@@ -26,7 +26,7 @@ def write(path, value):
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--output', type=Path, required=True)
-    p.add_argument('--arm', choices=['original', 'expanded', 'diverse'], required=True)
+    p.add_argument('--arm', choices=['original', 'expanded', 'diverse', 'balanced'], required=True)
     p.add_argument('--gpu', type=int, required=True)
     p.add_argument('--smoke', action='store_true')
     a = p.parse_args()
@@ -47,7 +47,7 @@ def main():
     import numpy as np
     import torch
     from ptv3_shared_wam_v2.feature_transfer import FeatureControl
-    from ptv3_shared_wam_v2.teacher_coverage import coverage_indices, phase_sampler, diverse_subset
+    from ptv3_shared_wam_v2.teacher_coverage import coverage_indices, phase_sampler, diverse_subset, balanced_sampler
     from ptv3_shared_wam_v2.teacher_generalization import summarize
     torch.set_num_threads(2)
     torch.backends.cuda.matmul.allow_tf32 = True
@@ -88,6 +88,7 @@ def main():
         train_sequences=len(np.unique(data['train']['sequence'][train_ids])),
         normalization='fixed original seen-only targets and original teacher RMS; no refit',
         fixed_seen_panel='Original cup training states; only partially trained in diverse arm',
+        sampling='half cup / half noncup, each half startup' if a.arm == 'balanced' else 'sequence uniform / half startup',
         updates=2 if a.smoke else 24000, batch=512, seeds=[180, 181],
         optimizer='AdamW lr3e-4 wd1e-4 clip1; cosine12k->24k final3e-6',
         limits=dict(seconds=1200, bytes=512_000_000, minimum_free_bytes=20 * 2**30))
@@ -104,6 +105,8 @@ def main():
         model.load_state_dict(init['model'], strict=True)
         optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4, weight_decay=1e-4)
         sample = phase_sampler(train_ids, data['train']['sequence'], data['train']['tick'])
+        if a.arm == 'balanced':
+            sample = balanced_sampler(seen, expanded, data['train']['sequence'], data['train']['tick'])
         evaluation = {}
         for group, entry in membership.items():
             split = entry['cache_split']

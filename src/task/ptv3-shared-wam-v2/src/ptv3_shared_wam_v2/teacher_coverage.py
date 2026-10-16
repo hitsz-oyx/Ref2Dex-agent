@@ -26,9 +26,11 @@ def coverage_indices(sequence, tick, original_seen, held, records):
     return expanded
 
 
-def phase_sampler(ids, sequence, tick, seed=181):
+def phase_sampler(ids, sequence, tick, seed=181, batch_size=512):
     """Same sequence-uniform, half-startup draw as the original experiment."""
     ids = np.asarray(ids)
+    if batch_size <= 0 or batch_size % 2:
+        raise ValueError('Even positive batch required')
     rng = np.random.default_rng(seed)
     phases = []
     for phase in (tick < 16, tick >= 16):
@@ -41,10 +43,21 @@ def phase_sampler(ids, sequence, tick, seed=181):
     def draw():
         batches = []
         for flat, offsets, lengths in phases:
-            seq = rng.integers(len(lengths), size=256)
-            local = (rng.random(256) * lengths[seq]).astype(np.int64)
+            seq = rng.integers(len(lengths), size=batch_size // 2)
+            local = (rng.random(batch_size // 2) * lengths[seq]).astype(np.int64)
             batches.append(flat[offsets[seq] + local])
         return np.concatenate(batches)
+    return draw
+
+
+def balanced_sampler(original, expanded, sequence, tick):
+    """Half original family, half other TRAIN; half startup within each half."""
+    other = np.setdiff1d(expanded, original)
+    first = phase_sampler(original, sequence, tick, batch_size=256)
+    second = phase_sampler(other, sequence, tick, batch_size=256)
+    def draw():
+        x, y = first(), second()
+        return np.r_[x[:128], y[:128], x[128:], y[128:]]
     return draw
 
 
