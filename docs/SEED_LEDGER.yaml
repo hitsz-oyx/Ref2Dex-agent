@@ -25,6 +25,12 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261016-wam-learned-short-goal:
+    seed_pool: probe
+    initialization_seed: 246
+    train_draw_seed: 247
+    reuse_reason: matched short-goal arms on existing task-readout split; not an independent replicate
+
   P-20261016-wam-task-readout:
     seed_pool: probe
     initialization_seed: 246

@@ -847,6 +847,12 @@
 | [P-20261014-wam-residual-basin](../../src/task/trajectory-policy/docs/experiments/probes/P-20261014-wam-residual-basin.md) | Frozen finger authority screen after the corrected PPO budget/course probe | 见原卡 | 见原卡 | probes/UNCLEAR |
 | [P-20261014-wam-residual-curriculum](../../src/task/trajectory-policy/docs/experiments/probes/P-20261014-wam-residual-curriculum.md) | More updates versus contact-focused residual curriculum | 见原卡 | 见原卡 | probes/UNCLEAR |
 
+## HF-wam-short-goal
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261016-wam-learned-short-goal](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261016-wam-learned-short-goal.md) | 从当前观测预测短期终点，检验可部署的WAM条件桥接 | 见原卡 | 见原卡 | probes/UNCLEAR |
+
 ## HF-wam-task-readout
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
