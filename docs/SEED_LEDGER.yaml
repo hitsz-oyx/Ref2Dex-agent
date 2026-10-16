@@ -1,5 +1,5 @@
 schema: ref2dex.seed_ledger.v1
-updated: 2026-10-13
+updated: 2026-10-16
 
 # Seed ownership is explicit.  Historical cards keep their original seeds;
 # this ledger governs new v2 cards and prevents a Probe from consuming the

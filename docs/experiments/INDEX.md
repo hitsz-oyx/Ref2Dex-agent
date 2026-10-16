@@ -835,7 +835,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261016-wrist-shared-matched](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261016-wrist-shared-matched.md) | 同一腕部MLP有无shared的匹配对照 | 见原卡 | 见原卡 | probes/RUNNING |
+| [P-20261016-wrist-shared-matched](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261016-wrist-shared-matched.md) | 同一腕部MLP有无shared的匹配对照 | UNPROMISING（限定本次冻结WAM、三组均值pooling及接入方式）：三个配对repeat中，aligned均降低TRAIN误差但增大DEV误差；冻结原MLP后线性shared残差也未改善主指标。 | 保留811D直通MLP，不扩大本次pooling接法到native或joint长训；原shared actor的128D融合、控制头和监督目标须另做匹配定位，不将本结果推广为WAM无效。 | probes/UNPROMISING |
 
 ## HF-y-noise-tolerance
 

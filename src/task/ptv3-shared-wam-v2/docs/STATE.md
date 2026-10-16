@@ -1,3 +1,33 @@
+## 2026-10-16 同一腕部MLP±shared：14组有界对照完成
+
+同811D直通、原腕部单拍目标、同优化与抽样下，none/aligned/shuffled三次配对6k的
+TRAIN256均值16.46/14.37/15.13mm，DEV256为37.84/42.54/40.52mm。aligned每次均
+比none差4.45–4.87mm，但TRAIN更准；首seed none精确复现历史MLP。固定原MLP后的
+线性shared残差也未改善DEV（37.83→38.16mm）。本次均值pooling接法UNPROMISING，
+不推广为WAM无效，不进native/joint长训。低LR单变量控制拖慢拟合，高WD未明显恶化；
+原128D控制头/融合/八拍目标差异仍待匹配定位。独立只读语义review、TRAIN-only统计、
+分片覆盖和三次配对初始身份通过；详见[实验卡](experiments/probes/P-20261016-wrist-shared-matched.md)。
+
+本地四卡冻结提取108.6s，MLP每组约20s；本地1–5已释放。远端同形状单卡/双卡DDP
+实测825/366 updates/s，故小MLP使用每卡独立对照。远端portable数据仍RECEIVING，
+未以其宣称实际远端学习结果。输出outputs/ptv3-shared-wam-v2/wrist-shared-matched-20261016-r1/。
+
+## 2026-10-16 721D shared首控定位：stored TRAIN仍未拟合精确
+
+接续原会话后，用已通过native执行的固定代码在GPU1对有效fresh8两组7k做冻结推理，
+54.88s完成。相同TRAIN balanced256上masked/current首控XYZ为58.08/56.05mm，
+startup为65.50/63.31mm；同一DEV256为60.10/56.12mm。既有wrist-only current MLP
+在同样评估身份上TRAIN/DEV为16.69/37.83mm，但其结构/目标/采样不同，不能将差异
+因果归给WAM或某个接口。源码复核确认两版同时改变输入融合、控制头、动作目标与优化。
+下一步优先同一腕部MLP的±shared配对，保持原811D输入直通和训练设置，先冻结WAM
+隔离特征效用；joint vs冻结WAM仅训R留作后续独立问题。本轮未启动新训练/PPO。
+
+现有fresh8 current飞机/球首拍PD误差46.49/56.95mm；tick16腕部相对同次teacher
+偏122.3/134.0mm，早于teacher接近物体。完整轨迹held独立重算一致，球partial单列。
+共同4k前缀评估实际已结束：纯单拍current杯子held92/91，其他对象没有一致收益，
+不将其扩展为主线。Probe仍UNCLEAR；详见[实验卡](experiments/probes/P-20261016-shared-action-horizon.md)
+及outputs/ptv3-shared-wam-v2/current-policy-fit-20261016-r1/。GPU1已释放。
+
 ## 2026-10-16 远端微调数据核验：预训练副本不足，独立补传已启动
 
 用户要求最近UniDex/Shadow与DExplore/Inspire微调可在远端运行。现用远端九源scope只有运动预训练native数据，不含Shadow原生300D状态/8×24命令cache；现用远端repo也没有DExplore新补采660/current721副本。已定位实际依赖：Shadow full12,456条（TRAIN1,536,897/DEV354,761窗，2.185GiB），DExplore660含current721（0.849GiB），两套DExplore参考/成员数据0.743GiB，以及CAD、原固定面板、controls和实验起点权重。v2预训练80k远端已存在，直接在远端复制入独立包，避免回传。

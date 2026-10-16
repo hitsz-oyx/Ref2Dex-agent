@@ -5,19 +5,22 @@ experiment_id: P-20261016-wrist-shared-matched
 date: 2026-10-16
 task: ptv3-shared-wam-v2
 branch: main
-git_commit: b209a2e7
+git_commit: 18dfb0f9
 claim_id: C1
 hypothesis_family: HF-wrist-shared-matched
 probe_index_in_family: 1
 seed_pool: probe
-seeds: [196, 197, 199, 148]
+seeds: [148, 196, 197, 199, 200, 201, 202, 203, 204]
 decision_changed_if_positive: retain a direct811D control path and test aligned shared conditions in native grasp execution
 decision_changed_if_negative: prioritize control training and feature readout before joint WAM adaptation
-status: RUNNING
+status: UNPROMISING
 run_id: wrist-shared-matched-20261016-r1
 ---
 
 # 同一腕部MLP有无shared的匹配对照
+
+Result: UNPROMISING（限定本次冻结WAM、三组均值pooling及接入方式）：三个配对repeat中，aligned均降低TRAIN误差但增大DEV误差；冻结原MLP后线性shared残差也未改善主指标。
+Decision: 保留811D直通MLP，不扩大本次pooling接法到native或joint长训；原shared actor的128D融合、控制头和监督目标须另做匹配定位，不将本结果推广为WAM无效。
 
 Class: Decision。服务解释Inspire控制映射误差，以及预训练交互表示是否能改善机器人执行。
 此前MLP与shared actor同时改变融合、目标、网络与优化，不能用其差距归因shared。
@@ -99,3 +102,68 @@ GPU1/2/3并行，每臂<=900s，预计<1分钟，新增<=50MiB，磁盘底线20G
 
 重复调度器记录写入曾发生并发rename冲突；五条已启动训练均正常COMPLETED，原失败
 repeat-driver.json保留。仅补未启动的repeat203-shuffled，无权重或数值记录被覆盖。
+
+## 最终结果（14个有界训练/控制运行均完成）
+
+以下均固定6000步，未按DEV选点。主三臂使用三个配对model/draw（196/197、201/202、
+203/204）；表内为三个run各自固定面板指标的均值，不把重复读取的同DEV256当成768条
+独立样本。含控制的全部14行、每seed、startup、全量窗口指标见summary/results.json/csv。
+
+| 主条件 | TRAIN256 XYZ mean mm | DEV256 XYZ mean mm | DEV startup mean mm |
+| --- | ---: | ---: | ---: |
+| none | 16.46 | 37.84 | 53.12 |
+| aligned shared | 14.37 | 42.54 | 63.36 |
+| shuffled shared | 15.13 | 40.52 | 61.74 |
+
+aligned相对none的DEV mean三次分别增加4.78/4.45/4.87mm，约12.4%的平均退化；
+TRAIN更准但DEV更差，且未优于shuffled。这个模式与额外条件过拟合/原路径共适配一致，
+尚不能因果区分具体统计机制，不能从较低TRAIN误差宣布shared更有用。
+
+单变量优化控制（seed196）：低LR5e-5的TRAIN/DEV35.90/40.19mm；高WD0.01为
+17.30/36.95mm，基线16.69/37.83mm。降低LR显著拖慢固定预算拟合，高WD在此设置下
+未造成明显退化；不能把原shared actor全部差距归给这两个超参数。
+
+冻结原none6k MLP后的线性残差三臂：none DEV37.83/p95106.32，aligned38.16/110.72，
+shuffled39.04/110.55mm。原MLP参数不变、无梯度及条件0精确恢复base的运行断言通过；
+仍未达到主DEV增益门。此为单seed、无bias线性readout，不否定其他readout。
+
+### 实现、资源和重放认证
+
+原MLP四组raw归一化、第一批draw、新模型原net全部初始参数逐位一致；seed196 none
+终点TRAIN/DEV16.69207/37.82655及loss完全复现历史MLP。三次配对各自全部初始参数和
+第一批draw相同。独立review的身份、未来标签干预、统计和缓存检查通过。
+
+独立smoke与四卡提取因TF32推理数值并非逐位一致：train/val特征最大绝对差
+0.00518/0.00771，归一化后max0.00134/0.00203；检查的256窗经已训aligned模型映射后
+腕部XYZ平均差0.0013/0.0024mm、最大0.066/0.040mm。该范围远小于本轮DEV退化量，
+且主三臂始终共用同份冻结缓存；详见feature-replay-parity.json，不把任意latent绝对阈值
+当作物理结论认证。后续native仍需独立实测执行审计。
+
+四卡提取108.58s、每卡约3.9–4.1GiB；MLP各6k约19–21s，residual各约10–11s。
+训练运行均有首步/阶段GPU利用率和显存采样，小head受host dispatch影响，未改用CPU。
+本run约3.10GiB，低于8GiB；本地1–5现已释放，外部GPU0未操作。
+
+远端约48GiB卡的同global512工程基准：单卡825.28 updates/s、双卡DDP365.79，
+DDP仅单卡44.3%吞吐，因此选择每卡独立对照。该合成同形状benchmark只证明执行吞吐，
+没有使用远端尚在RECEIVING的portable数据形成科学结果。远端benchmark进程已退出。
+
+本轮code18dfb0f9，残差code d6e95c73；各运行process/manifest保存实际身份。未运行native，
+未启动PPO，未更新/覆盖原始示范或checkpoint。结果只将本次pooling的两种接入方式记UNPROMISING。
+
+### Limitations / future evidence
+
+- 这不是正式Validation，不外推到所有对象、状态或整套WAM；固定DEV面板仅256窗，
+  全量窗口指标单列，不以其替换主要门。
+- 2304D由scene/hand/goal三组均值构成，未检验逐token注意力、其他WAM checkpoint或
+  与shared等信息的原始H4/CAD/完整目标输入；正负归因均受该边界约束。
+- 当前标签仍是teacher状态上的监督，未增加学生偏离状态的恢复数据，未证明闭环抓取。
+- 原shared actor与腕部MLP之间的128D融合/decoder/八拍全动作监督差异尚未隔离；
+  本轮只排除了“保持MLP其他设置后，当前冻结pooling条件自然带来收益”的近期预期。
+
+残差独立review亦通过。残差none是本组三臂的实际对照：其head最终全0、终点与本轮
+初始化面板逐位一致。与历史日志相比，全窗口1024批缓存base引起很小TF32批形状舍入
+（主DEV mean一致，p95差0.000126mm；对象分项最大差0.11943mm），不声称历史各指标
+逐位复刻。固定6k线性残差的负结果也不证明线性最优解无收益或shared没有有用信息。
+
+汇总重导出（CPU文件/统计/绘图，无新增模型计算）：
+`tools/audit/summarize_wrist_shared.py --source outputs/ptv3-shared-wam-v2/wrist-shared-matched-20261016-r1 --output outputs/ptv3-shared-wam-v2/<fresh-summary>`。
