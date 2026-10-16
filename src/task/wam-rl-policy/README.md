@@ -1,5 +1,11 @@
 # WAM-assisted robot RL
 
+2026-10-16 [共同抓取起点上的协调奖励Probe](docs/experiments/probes/P-20261016-wam-coordination-bonus.md)
+已完成：固定DEV同初态BC/none/geometry/WAM保持28/26/23/25，当前抬起后辅助奖励接法
+UNPROMISING，停止增加其权重或训练预算。实现提供`--coordination-kind none/geometry/wam`、
+真实next-state相对构型评分、逐步跌落禁奖及独立审查；下一步先定位关键转折阶段的目标条件
+与预测信息，不扩大BC或把一般预测提升等同于策略收益。
+
 2026-10-16 [独立PPO与运动参考Probe](docs/experiments/probes/P-20261016-independent-motion-ppo.md)：
 `--bc-kind none --action-kind independent-gaussian`可不传BC checkpoint，跳过官方actor加载与BC正则；
 `--observation-kind motion-none/motion-geometry/motion-wam`支持固定时间窗的因果运动参考。

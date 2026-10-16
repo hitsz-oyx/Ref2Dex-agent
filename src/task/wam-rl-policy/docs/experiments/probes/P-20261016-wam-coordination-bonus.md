@@ -13,11 +13,14 @@ seed_pool: probe
 seeds: [245, 246, 247, 249]
 decision_changed_if_positive: validate WAM relative coordination for stable holding before scaling generalist training
 decision_changed_if_negative: audit reference and auxiliary incentive before adding compute or robot data
-status: UNCLEAR
+status: UNPROMISING
 run_id: coordination-{none,geometry,wam}-20261016-r1
 ---
 
 # 保留抓取起点，检验WAM相对协调奖励
+
+Result: 固定DEV同初态保持BC/none/geometry/WAM=28/26/23/25，未过门槛；当前抬起后协调奖励接法UNPROMISING，不否定WAM主假设。
+Decision: 停止增加该奖励的权重或训练预算；先在接触转折片段区分短目标条件错误与WAM先验不足，不扩大BC。
 
 Class: Decision。服务WAM帮助真实机器人RL抓取的目标。前一轮冷启动学会靠近但未形成保持，
 不证明冷启动无效；当前更有信息价值的问题是：在已有抓取能力上，WAM运动先验能否减少
@@ -95,3 +98,65 @@ WAM参考在启用phase内100%准入，TRAIN/DEV启用比例25.1%/15.6%，相对
 后续审查字段改为reference_only，正式DEV以实际BC baseline为anchor。
 
 按既定协议进入fresh25轮及固定DEV读出，不按smoke行为挑选参数。
+
+## 固定终点结果与执行审查
+
+fresh三臂和最终DEV运行代码`4b82bd84`，基线/工程smoke为`360054d7`；两者模型与物理
+执行代码相同，后一个提交只增加审查工具和基线记录。各25轮、636800实际交互步，
+没有挑选中间checkpoint。DEV九类实际首帧逐值一致，配对审查PASS。
+
+| 策略 | 抬升>=10cm | 到达 | 保持>=60帧且抬升>=10cm | 到达但未保持 | BC-only保持 | 新增保持 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 共同BC | 52 | 42 | 28 | 14 | 0 | 0 |
+| PPO none | 58 | 51 | 26 | 25 | 18 | 16 |
+| PPO geometry | 48 | 46 | 23 | 23 | 19 | 14 |
+| PPO WAM | 57 | 51 | 25 | 26 | 18 | 15 |
+
+每行128条。WAM相对none为control-only17/WAM-only16，相对geometry为13/15。
+既没有比两对照均多5条，也没有达到BC的28条，按预设门槛不进入Validation。
+当前接法标记UNPROMISING只表示不值得继续加码本配方，不是统计上证明WAM无效。
+
+三臂actor分别更新6128/6142/6182次，最后episode的chunk critic EV中位数
+.912/.925/.920；未触发死critic停止。实际动作、behavior logprob、BC/WAM冻结与
+奖励分解审查通过，真实next-state重算奖励最大误差2.98e-8。参考在第一episode真实phase
+内均100%准入；没有发现导致本次负结果的明确接线错误。TRAIN最终保持36/39/42只作
+运行诊断，不能替代DEV或与BC另一次reset直接作行为比较。
+
+## 事后语义定位：模型信息与奖励信号的区别
+
+对既有BC轨迹做CPU统计，不新增训练、模型推理或仿真，也不调整预设门槛。
+固定16步WAM参考与“保持当前相对构型”比较，未来真实状态只用于诊断标签。
+同一轨迹窗口相关，以下样本数不是独立实验数；lifted-nearby仍是几何代理而非接触标签。
+
+- 随后仍满足抬起/靠近条件：TRAIN364窗，WAM/geometry误差4.02/2.47mm；
+  DEV223窗为4.06/2.66mm。稳定阶段几何恒定已很强，WAM的毫米级改动不是可靠改进。
+- 在完全相同的实际BC next-state和gate下，仅替换参考目标，DEV启用的3986个转移中
+  WAM/geometry score均值.98285/.98855，实际bonus绝对差均值.001295、p95=.003834，
+  对照bonus上限.2。当前标量奖励主要提供phase存活信号，WAM特异信息弱。
+  观测中也有参考差异，因此不能把整个PPO结果归因到这个奖励差值。
+- 扩展到抬起前且参考准入的窗口，DEV1284窗WAM/geometry为25.61/28.07mm；
+  但其中16步后进入lifted-nearby的58窗为7.98/5.33mm。TRAIN对应1141窗29.18/31.87mm、
+  79个转折窗8.88/6.37mm。一般预测优势没有自然集中在建立抓取的关键转折。
+  这不是证明WAM目标有害或真实BC未来最优，也不支持简单把同一bonus前移即可成功。
+
+工具：`tools/audit/audit_coordination.py`与`tools/audit/audit_coordination_targets.py`
+（均相对本Task）。产物根`outputs/wam-rl-policy/coordination-panel-20261016-r1/`：
+`train-audit.json`、`final-dev-audit.json`、`target-semantics-v3.json`、`decision-summary.json`。
+target-semantics/v2为保留的早期审查，v3补充阶段划分；无原始运行覆盖。
+train-audit中的配对字段仅相对第一条none训练记录，不能解释为BC保持退步。
+
+## Decision Note / 收束与下一步
+
+问题：是否扩大抬起后相对协调奖励训练？关键证据是同初态DEV未改善、原有成功病例大量
+替换，以及WAM特异bonus很弱，稳定/抬升转折预测没有超越几何参考。
+root选择停止本接法的权重和时长搜索，保留能抓取的共同起点，不重训BC、不关闭WAM。
+
+下一项最小Decision应使用这些已有关键转折状态，固定状态与预测跨度，比较可部署短goal
+和真实短期终点oracle下的WAM/geometry相对协调预测。oracle仅诊断：若关键阶段只在oracle
+下改善，优先修复目标条件接口；若oracle仍无优势，优先审查该阶段预训练数据/目标覆盖，
+暂停更多在线reward改法。不能再用总体预测均值改善跳过关键阶段资格。此项尚未启动，
+需单立卡固定面板、预算和门槛后才执行，不把事后误差直接升级为任务收益。
+
+本轮训练监督器墙钟none/geometry/WAM为271.9/271.9/523.8s，显存约2.8/2.8/6.8GiB，
+WAM推理期间利用率可达100%。基线+smoke+训练+DEV总产物892.6MiB，低于1GiB。
+所有进程正常结束，GPU已释放，无额外外部授权边界。

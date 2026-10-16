@@ -844,7 +844,7 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261016-independent-motion-ppo](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261016-independent-motion-ppo.md) | 无BC的PPO与因果运动参考接口资格 | 见原卡 | 见原卡 | probes/PROMISING |
-| [P-20261016-wam-coordination-bonus](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261016-wam-coordination-bonus.md) | 保留抓取起点，检验WAM相对协调奖励 | 见原卡 | 见原卡 | probes/UNCLEAR |
+| [P-20261016-wam-coordination-bonus](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261016-wam-coordination-bonus.md) | 保留抓取起点，检验WAM相对协调奖励 | 固定DEV同初态保持BC/none/geometry/WAM=28/26/23/25，未过门槛；当前抬起后协调奖励接法UNPROMISING，不否定WAM主假设。 | 停止增加该奖励的权重或训练预算；先在接触转折片段区分短目标条件错误与WAM先验不足，不扩大BC。 | probes/UNPROMISING |
 
 ## HF-wam-residual-ppo
 
