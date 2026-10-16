@@ -5,7 +5,7 @@ experiment_id: P-20261016-shadow-bc-ppo
 date: 2026-10-16
 task: wam-rl-policy
 branch: main
-git_commit: recorded-in-run-manifest
+git_commit: 2879b585
 claim_id: C1
 hypothesis_family: HF-shadow-bc-ppo
 probe_index_in_family: 1
@@ -19,9 +19,37 @@ run_id: shadow-bc-ppo-20261016-r1
 
 # Shadow冻结BC+小型PPO Stage-0
 
+Result: UNCLEAR。真实原生PPO20更新完成，冻结/执行审计PASS；三对固定终点reset面板
+保持11/48→15/48，但方向+3/-1/+2不一致且BC自身回放波动显著，不足以确认RL收益。
+Decision: 保留Stage-0接口，优先检查有效探索、饱和与reward/保持关系，再决定扩大
+在线预算或接learned RL-token；不更新WAM，不把本轮当作token效用或正式RL改进证据。
+
 Class: Decision。服务Objective B的在线policy improvement接口。用户指定在wam-rl-policy
 中推进并提供ref1路线：冻结WAM+BC，小RL actor/critic，先验证residual PPO机制。
 此轮不声称验证WAM token效用，不更新1亿参数backbone，不同时添加learned token或新reward。
+
+## 固定终点实际读出
+
+20更新、127360环境步、约1149s；80个actor epoch均接受，jointKL最高.017618，
+behavior latent logprob最大误差5.73e-6。597个冻结字段逐值未变且无gradient。
+逐拍canonical/yaw、force、torque误差均0，finger-target最大1.2e-7。
+
+| reset seed | BC保持/16 | PPO保持/16 | BC DEV保持/8 | PPO DEV保持/8 | official BC/PPO |
+|---|---:|---:|---:|---:|---:|
+| 216 | 5 | 8 | 1 | 1 | 11/11 |
+| 233 | 4 | 3 | 0 | 0 | 8/9 |
+| 234 | 2 | 4 | 0 | 2 | 7/6 |
+
+合计保持11/48→15/48（TRAIN10/24→12/24、DEV1/24→3/24），official26/48→26/48，
+末帧21/48→22/48。三对全部九类初态逐值相同，独立从raw状态复算各split指标一致。
+PPO确定性执行残差RMS .00233–.00249、intent clipping约29%–31%；训练采样执行RMS约.01、
+裁剪35%。这些表示探索/修正已实际进入执行，不是成功率或残差足够大的证明。
+
+训练前5/后5episode回报均值131.38/126.27，reset不同，仅说明曲线未现清晰上升，
+不把它视作配对退步证据。保持方向混合且BC自身回放波动明显，最终UNCLEAR。
+训练commit2879b585，评估dcce7a33；模型train/latest.pt、评估evaluation-pairs.json、
+汇总summary/results.json/csv与comparison.png，均在run根目录。六次冻结/执行审计PASS。
+全部运行完成退出，GPU1–7释放，不动GPU0外部作业。
 
 ## 假设、决策与最低成本协议
 

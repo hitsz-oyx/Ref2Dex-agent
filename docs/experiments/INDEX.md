@@ -519,7 +519,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261016-query-capacity-goal](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261016-query-capacity-goal.md) | Inspire query控制头容量、直接goal与当前观测瓶颈 | 见原卡 | 见原卡 | probes/UNCLEAR |
+| [P-20261016-query-capacity-goal](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261016-query-capacity-goal.md) | Inspire query控制头容量、直接goal与当前观测瓶颈 | UNCLEAR。五臂固定6000步均COMPLETED。扩宽有中等正向信号，但未达预设 | 不据此替换native控制器或扩大joint WAM更新；保留width512/no-direct-goal候选。 | probes/UNCLEAR |
 
 ## HF-rawsensor-hand-conditioning
 
@@ -610,7 +610,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261016-shadow-bc-ppo](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261016-shadow-bc-ppo.md) | Shadow冻结BC+小型PPO Stage-0 | 见原卡 | 见原卡 | probes/UNCLEAR |
+| [P-20261016-shadow-bc-ppo](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261016-shadow-bc-ppo.md) | Shadow冻结BC+小型PPO Stage-0 | UNCLEAR。真实原生PPO20更新完成，冻结/执行审计PASS；三对固定终点reset面板 | 保留Stage-0接口，优先检查有效探索、饱和与reward/保持关系，再决定扩大 | probes/UNCLEAR |
 
 ## HF-shadow-data-scale
 

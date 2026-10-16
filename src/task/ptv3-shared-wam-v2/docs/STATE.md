@@ -1,3 +1,22 @@
+## 2026-10-16 query控制头容量/goal五臂完成，Shadow BC→RL已同步试跑
+
+冻结原shared7k WAM、同strict窗口和完整tokens，fresh query头6000步五臂全部完成。
+DEV256 XYZ：128无goal47.151、128直接goal48.291、512无goal43.304、512直接goal48.808、
+512直接goal+721直连45.662mm。同宽初始张量、所有首draw完全匹配。无goal扩宽mean/P95/
+startup改善8.16%/16.53%/21.75%，未达预设mean10%门；直接goal和bypass无一致收益。
+UNCLEAR，不据此关闭容量/goal假设或判定128瓶颈无关，也不与目标不同的腕部MLP直接归因。
+下一步优先固定头区分单拍/8拍、腕部/全动作监督；不扩大joint WAM更新。
+512无goal原生4-control smoke通过，仅工程证据，不是完整抓取评估；goal-on/bypass未物理验证。
+详见P-20261016-query-capacity-goal及run的summary/results.json/comparison.png。
+
+新wam-rl-policy Task完成Shadow冻结9k BC+新actor/critic的20更新、127360 env steps；
+三个配对reset保持BC/PPO为5/8、4/3、2/4（总11/48→15/48、DEV1/24→3/24），
+official均26/48。BC自身还存在同初态数值回放波动，故UNCLEAR，不能宣布RL收益。
+全部冻结、canonical/force/torque/target、初态和raw复算通过。见
+`src/task/wam-rl-policy/docs/STATE.md`与P-20261016-shadow-bc-ppo；learned RL-token未开始。
+远端训练数据读取和小型GPU forward/backward已修复验证，未做远端native仿真。
+本轮所有进程结束，GPU1–7释放，GPU0外部任务保留。
+
 ## 2026-10-16 新腕部MLP实际抓取评估完成：shared收益因对象而异
 
 用户要求直接核对行为，已运行固定seed1966k的none/aligned腕部MLP，手指共用原
