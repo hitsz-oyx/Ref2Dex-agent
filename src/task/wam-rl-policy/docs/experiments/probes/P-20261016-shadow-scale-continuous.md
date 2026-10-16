@@ -468,3 +468,20 @@ normalized_value_loss。scale默认1，旧checkpoint缺字段自动1，resume必
 normalized loss及actor/critic更新相符。该测试只证明单位接线，不证明实验效果。
 判定看末10轮真实全chunk与终末EV/物理MSE、TRAIN保持、饱和及执行/冻结合同，不按DEV选端点；
 明显改善才将通过的方案用于新一轮matched WAM特征Probe，否则不扩张盲训。
+
+第50轮v3中期抓取读出已完成，两组各256条完整199步轨迹，均为固定core64DEV×4/reset249。
+共同BC held69/end66、lift141、到达121、终点106；none PPO held76/end74、lift121、到达109、终点99；
+aligned-v3 PPO held85/end83、lift136、到达126、终点111。
+两组各自BC/候选初态审计PASS；追加直接none-PPO→aligned-v3-PPO的九类实际首帧审计也全逐值相同。
+直接比较held双方44、none-only32、v3-only41、均失败139；不能只报净增9而隐藏32条退步。
+因此v3较none多9/256=3.516个百分点，较BC多16/256=6.25点；尚未达到预设10点且只有
+单训练seed/单reset，当前UNCLEAR，有小幅正向读数，不作为v3胜v2或正式WAM有效性结论。
+两臂继续固定200轮及原249/250/251，不因这个端点读数挑checkpoint/增加DEV搜索。
+结果与直接比较已同步本地相应u50目录和
+`outputs/wam-rl-policy/shadow-wam-feature-v3-aligned-vs-none-u50-audit-20261016-r1/comparison.json`。
+
+scale缩放代码d37bcea3的30项测试通过，含双精度单位协变（避免近零梯度经Adam放大的float32
+微量舍入差异）；GPU5原生scale1两episode smoke及实际执行/冻结/13段审计PASS。
+当前队列`shadow-value-scale-campaign-20261016-r1`继续fresh25对照，supervisor PID178810，
+实测约11s/episode、3GiB显存，两个smoke+25臂预计合计约12min（受资产初始化影响）。
+本地主训仍1–4、0/6/7空闲；没有使用外部进程或扩张磁盘预算。

@@ -1,5 +1,20 @@
 # 当前状态
 
+## 2026-10-16 v3第50轮行为读出（最新）
+
+固定64DEV×4=256条完整原生轨迹、reset249：BC持续保持69，PPO零WAM特征76，PPO正确v3特征85。
+两组分别与BC及直接互比的九类实际首帧均逐值相同，审计PASS。v3比none多9条（3.52点），
+但有none-only32/v3-only41，未达到预设10点，单训练seed/单reset；仍UNCLEAR，不宣称已验证WAM，
+也没有v3胜v2的有效比较。none/aligned两臂继续固定200和249/250/251，不挑中期端点。
+产物：`shadow-wam-feature-v3-{none,aligned}-u50-core-seed249-20261016-r1/`、
+`shadow-wam-feature-v3-aligned-vs-none-u50-audit-20261016-r1/comparison.json`，JSON已同步本地。
+
+critic短在线四组25轮均完成审计PASS；时钟轻度改善Tanh，但没有TRAIN保持提升，
+ELU终末EV仍负，未将ELU推广为修复。已有轨迹scale100回归使Tanh+clock末层饱和率.657→0、
+留出MSE572→445，终末MSE92→171却变差；只作为资格线索。
+GPU5正在跑同机fresh value_scale1/100各25轮，物理bootstrap/GAE单位不变、critic loss归一化，
+30项测试通过、scale1原生smoke审计PASS。主训仍GPU1–4，6/7留空；详见规模卡Decision Note。
+
 ## 2026-10-16 critic资格诊断与v3直接特征（最新）
 
 远端small/large/free/hold四组200episode已完成，没有方向稳定的10点保持增益。
