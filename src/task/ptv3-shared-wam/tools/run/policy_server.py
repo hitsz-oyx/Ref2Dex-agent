@@ -123,7 +123,15 @@ def main():
                 with torch.inference_mode():
                     if a.shared_actor:
                         from ptv3_shared_wam_v2.native_execution import predict_shared_action
-                        result=predict_shared_action(model,batch,state,current_obs,return_pooled=bool(a.wrist_shared_probe))
+                        explicit_goal=None
+                        if packet['config'].get('query_capacity_probe') is not None:
+                            # Planned reference only; each row subtracts its own current object center.
+                            goals=torch.as_tensor([q['planned_object_goal'] for q in requests],device='cuda',dtype=torch.float32)
+                            objects=torch.as_tensor([q['object_history'][-1] for q in requests],device='cuda',dtype=torch.float32)
+                            if not torch.allclose(objects[:,:3,3],state[:,[72,76,80]],atol=1e-6,rtol=0):
+                                raise ValueError('Explicit goal and state87 must share the same current object')
+                            explicit_goal=goals[:,:3,3]-objects[:,:3,3]
+                        result=predict_shared_action(model,batch,state,current_obs,return_pooled=bool(a.wrist_shared_probe),explicit_goal=explicit_goal)
                         chunk,tau=result[:2]
                         if a.wrist_shared_probe:pooled=result[2]
                     else:

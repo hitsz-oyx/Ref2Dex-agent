@@ -50,14 +50,20 @@ def load_robot_checkpoint(path, allow_shared=False):
     return validate_robot_packet(torch.load(path, map_location="cpu", weights_only=False), allow_shared)
 
 
-def predict_shared_action(model, batch, state,current_obs=None,return_pooled=False):
+def predict_shared_action(model, batch, state,current_obs=None,return_pooled=False,explicit_goal=None):
     """Run the trained shared interface with measured current state; labels are absent."""
+    import torch
     from ptv3_shared_wam.robot import native_trajectory
     if model.action_interface != 'shared':
         raise ValueError('shared-only model required')
     prediction = model.forecaster(batch, return_shared=True)
     tau = native_trajectory(prediction['trajectory'], batch['start_hand_valid'])
-    chunk = model.retargeter(state, tau, prediction['shared_tokens'], prediction['shared_valid'],current_obs)
+    if getattr(model,'capacity_probe',None) is not None:
+        if explicit_goal is None or explicit_goal.shape!=(len(state),3) or not torch.isfinite(explicit_goal).all():
+            raise ValueError('Own planned t+24 goal minus current object position required')
+        chunk=model.retargeter(state,prediction['shared_tokens'],prediction['shared_valid'],current_obs,explicit_goal)
+    else:
+        chunk = model.retargeter(state, tau, prediction['shared_tokens'], prediction['shared_valid'],current_obs)
     if return_pooled:
         from .wrist_shared_probe import pool_shared
         count=prediction['shared_tokens'].shape[1]-22-batch['object_goal_valid'].shape[1]

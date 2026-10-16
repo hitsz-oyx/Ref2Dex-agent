@@ -37,6 +37,7 @@ allocations:
     online_reset_seed: 230
     model_seed: 231
     exploration_seed: 232
+    supplemental_evaluation_reset_seeds: [233, 234]
     reuse_reason: original Shadow native evaluation identities; TRAIN-only online Probe, not Validation
 
   P-20261016-wrist-shared-grasp:

@@ -24,6 +24,7 @@ class SharedWAMV2Robot(nn.Module):
         self.forecaster = SharedWAMV2(stats, config)
         self.action_representation = action_representation
         self.action_interface = config.get("action_interface")
+        self.capacity_probe = config.get('query_capacity_probe')
         self.anchor_weight = config.get("anchor_weight", 1.)
         if self.action_interface is None:
             self.retargeter = make_retargeter(action_representation)
@@ -32,9 +33,16 @@ class SharedWAMV2Robot(nn.Module):
             from ptv3_shared_wam.action_targets import GEOMETRY_LIFTED, action_dimension
             if action_representation not in (NATIVE,GEOMETRY_LIFTED) or self.anchor_weight != 0:
                 raise ValueError("matched shared actor requires native/geometry-lift and anchor_weight=0")
-            self.retargeter = SharedQueryActor(self.action_interface, config['shared_width'],
-                action_dim=action_dimension(action_representation),
-                current_observation=config.get('current_observation_input'))
+            capacity = config.get('query_capacity_probe')
+            if capacity is not None:
+                from .capacity_actor import CapacityActor
+                if self.action_interface!='shared' or action_dimension(action_representation)!=15 or config.get('current_observation_input')!='delta0':
+                    raise ValueError('Capacity probe requires shared-only geometry-lift and current721')
+                self.retargeter=CapacityActor(capacity['width'],capacity['direct_goal'],capacity['bypass'])
+            else:
+                self.retargeter = SharedQueryActor(self.action_interface, config['shared_width'],
+                    action_dim=action_dimension(action_representation),
+                    current_observation=config.get('current_observation_input'))
 
     def forward(self, batch):
         prediction = self.forecaster(batch, return_shared=True) if self.action_interface else self.forecaster(batch)
@@ -42,7 +50,10 @@ class SharedWAMV2Robot(nn.Module):
         if has_action is None or not bool(has_action.all()):
             raise ValueError("v2 robot fine-tune requires action labels on every row")
         tau = native_trajectory(prediction["trajectory"], batch["start_hand_valid"])
-        if self.action_interface:
+        if self.capacity_probe is not None:
+            prediction['action']=self.retargeter(batch['native_state'],prediction.pop('shared_tokens'),
+                prediction.pop('shared_valid'),batch['native_current_obs'],batch['explicit_control_goal'])
+        elif self.action_interface:
             prediction["action"] = self.retargeter(batch["native_state"], tau,
                 prediction.pop("shared_tokens"), prediction.pop("shared_valid"),batch.get('native_current_obs'))
         else:

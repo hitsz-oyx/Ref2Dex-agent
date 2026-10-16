@@ -10,7 +10,7 @@ claim_id: C1
 hypothesis_family: HF-shadow-bc-ppo
 probe_index_in_family: 1
 seed_pool: probe
-seeds: [216, 230, 231, 232]
+seeds: [216, 230, 231, 232, 233, 234]
 decision_changed_if_positive: retain native BC-to-RL substrate and test frozen-WAM RL-token versus no-token and shuffled controls
 decision_changed_if_negative: inspect residual exploration and task reward before investing in token adaptation
 status: UNCLEAR
@@ -83,3 +83,9 @@ same-packet零残差逐值一致、初态逐值一致，以及逐拍独立解析
 finger-target执行核验。原失败不覆盖、不调宽轨迹tol。推进Stage-0机制Probe，但单次
 BC/PPO结果须结合BC自身回放波动，仅描述、记UNCLEAR，明显正信号也先做重复回放确认。
 固定终点保持指标与训练预算不变；不是科研判定门的事后放宽。
+
+终点评估追加（查看PPO终点行为前记录）：等价BC的3/16波动已超过原±2/16门，不能再
+以一次±2/16判断RL正负。保留216为原主面板，另预先固定233/234两个reset seed，
+每seed在同GPU独立BC/PPO配对各16env，核对全部初态。六次回放每臂总预算仍<=600s，
+三对可并行，输出eval-seed*/。三对方向冲突或增益处于已知BC波动范围内均UNCLEAR；
+只有方向一致且明显超出波动才支持进一步重复，不升级正式方法结论。
