@@ -61,3 +61,50 @@ def test_exploration_arm_changes_only_initial_latent_scale():
     torch.testing.assert_close(strong.distribution(x).scale/reference.distribution(x).scale,torch.full((7,24),torch.exp(torch.tensor(1.)).item()))
     for key,value in reference.state_dict().items():
         if key!='log_std':assert torch.equal(value,strong.state_dict()[key])
+
+
+def test_segmented_rollout_bootstraps_actual_next_state_and_replays_new_policy(monkeypatch):
+    from wam_rl_policy import ppo
+    torch.manual_seed(61);actor=Actor();critic=Critic()
+    actor_optimizer=torch.optim.Adam(actor.parameters(),lr=1e-4)
+    critic_optimizer=torch.optim.Adam(critic.parameters(),lr=3e-4)
+    observed=[];original=ppo.update
+    def capture(*args,**kwargs):
+        observed.append(args[2]['bootstrap'].clone())
+        return original(*args,**kwargs)
+    monkeypatch.setattr(ppo,'update',capture)
+    storage={key:[] for key in ('observation','latent','mean','std','logp','value','reward','done')}
+    def collect(count,terminal):
+        with torch.no_grad():
+            for t in range(count):
+                obs=torch.randn(3,327);obs[:,-24:]=0;dist=actor.distribution(obs);latent=dist.sample()
+                values=dict(observation=obs,latent=latent,mean=dist.loc,std=dist.scale,logp=dist.log_prob(latent).sum(-1),
+                    value=critic(obs),reward=torch.randn(3),done=torch.full((3,),terminal and t==count-1))
+                for key,value in values.items():storage[key].append(value)
+    collect(4,False)
+    with pytest.raises(ValueError,match='real terminal'):ppo.update_rollout(actor,critic,storage,actor_optimizer,critic_optimizer)
+    next_obs=torch.randn(3,327);expected=critic(next_obs).detach().clone()
+    first=ppo.update_rollout(actor,critic,storage,actor_optimizer,critic_optimizer,next_obs)
+    assert torch.equal(observed[0],expected) and all(not values for values in storage.values())
+    collect(3,True)
+    second=ppo.update_rollout(actor,critic,storage,actor_optimizer,critic_optimizer)
+    assert torch.equal(observed[1],torch.zeros(3)) and all(not values for values in storage.values())
+    assert first['rollout_steps']==4 and second['rollout_steps']==3
+    assert first['behavior_logprob_error']<1e-4 and second['behavior_logprob_error']<1e-4
+
+
+def test_full_episode_rollout_retains_previous_optimizer_result():
+    import copy
+    from wam_rl_policy.ppo import update_rollout
+    torch.manual_seed(71);actor=Actor();critic=Critic();other_actor=copy.deepcopy(actor);other_critic=copy.deepcopy(critic)
+    obs=torch.randn(5,3,327);obs[:,:,-24:]=0
+    with torch.no_grad():
+        dist=actor.distribution(obs);latent=dist.sample()
+        batch=dict(observation=obs,latent=latent,logp=dist.log_prob(latent).sum(-1),mean=dist.loc,std=dist.scale,
+            value=critic(obs),reward=torch.randn(5,3),done=torch.zeros(5,3,dtype=torch.bool),bootstrap=torch.zeros(3))
+        batch['done'][-1]=True
+    update(actor,critic,batch,torch.optim.Adam(actor.parameters(),lr=1e-4),torch.optim.Adam(critic.parameters(),lr=3e-4))
+    storage={key:list(value.unbind(0)) for key,value in batch.items() if key!='bootstrap'}
+    update_rollout(other_actor,other_critic,storage,torch.optim.Adam(other_actor.parameters(),lr=1e-4),torch.optim.Adam(other_critic.parameters(),lr=3e-4))
+    for original,other in [(actor,other_actor),(critic,other_critic)]:
+        for key,value in original.state_dict().items():assert torch.equal(value,other.state_dict()[key])

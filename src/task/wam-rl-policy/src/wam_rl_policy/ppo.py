@@ -85,6 +85,22 @@ def advantages(rewards,values,dones,bootstrap,gamma=.99,lam=.95):
     return adv,adv+values
 
 
+def update_rollout(actor,critic,storage,actor_optimizer,critic_optimizer,next_observation=None):
+    """Consume one on-policy chunk; only real terminals have zero bootstrap."""
+    batch={key:torch.stack(values) for key,values in storage.items()}
+    if next_observation is None:
+        if not batch['done'][-1].all():raise ValueError('Zero bootstrap requires real terminal states')
+        batch['bootstrap']=torch.zeros_like(batch['value'][-1])
+    else:
+        if batch['done'][-1].any():raise ValueError('Interior chunk cannot contain episode reset')
+        with torch.no_grad():batch['bootstrap']=critic(next_observation).detach()
+    result=update(actor,critic,batch,actor_optimizer,critic_optimizer)
+    result.update(rollout_steps=len(batch['reward']),bootstrap_mean=float(batch['bootstrap'].mean()),
+                  bootstrap_kind='terminal-zero' if next_observation is None else 'actual-next-state-before-update')
+    for values in storage.values():values.clear()
+    return result
+
+
 def update(actor,critic,batch,actor_optimizer,critic_optimizer,bc_weight=.1,target_kl=.02,epochs=4):
     adv,returns=advantages(batch['reward'],batch['value'],batch['done'],batch['bootstrap'])
     obs=batch['observation'].flatten(0,1);latent=batch['latent'].flatten(0,1)

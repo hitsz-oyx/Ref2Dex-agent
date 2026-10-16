@@ -100,6 +100,7 @@ def main():
     p.add_argument('--force-zero-residual',action='store_true')
     p.add_argument('--outside-support-zero',action='store_true')
     p.add_argument('--observation-kind',choices=('native','normalized','bc-hidden'),default='native')
+    p.add_argument('--rollout-steps',type=int,default=199)
     p.add_argument('--worker',action='store_true');a=p.parse_args()
     a.output=a.output.resolve();a.checkpoint=a.checkpoint.resolve();a.cache=a.cache.resolve()
     if a.rl_checkpoint:a.rl_checkpoint=a.rl_checkpoint.resolve()
@@ -112,6 +113,7 @@ def main():
     if a.rl_checkpoint and a.mode not in ('train','evaluate'):raise ValueError('RL checkpoint only for train resume/evaluate')
     if a.capture_warm_state and not a.synchronize_warm_step:raise ValueError('Warm capture requires explicitly synchronized probe')
     if a.force_zero_residual and a.mode!='evaluate':raise ValueError('Matched loaded-policy zero control is evaluate-only')
+    if not 1<=a.rollout_steps<=199:raise ValueError('PPO chunk must contain 1..199 native transitions')
     if a.worker:worker(a);return
     if a.output.exists() or ROOT/'outputs/wam-rl-policy' not in a.output.parents:raise ValueError('Fresh Task output')
     occupied=subprocess.check_output(['nvidia-smi','-i',str(a.gpu),'--query-compute-apps=pid','--format=csv,noheader'],text=True).strip()

@@ -208,3 +208,34 @@ normalized用与BC完全相同的raw clamp/训练集标准化300D，再补212个
 
 独立只读审查用真实MLP50k权重重放确认：新BC action逐位等于原forward、512D特征冻结，
 两臂后27D goal/base一致，同seed初始Actor/Critic逐位一致。11项测试通过；这些只证明工程接线。
+
+
+## Decision Note：相同交互预算的PPO采集/更新节奏（2026-10-16）
+
+问题：200轮交互不能回答优化是否充分；当前整199步才做4次full-batch actor更新，
+总800次。只读核对既有原版
+`outputs/video-data-preparation/unidexgrasp-local-subset-20261014-r1/plus/dexgrasp/cfg/ppo/config.yaml`
+为nsteps8、noptepochs5、nminibatches4。原版网络/环境数/优化器等也不同，不据步数比例宣称
+当前实现有错，但优化节奏是有依据的下一项Decision变量。
+表征两臂200轮均完成，末段critic EV约.85/.78，暂未见价值完全不学；行为读出仍进行中。
+本地WAM50 core held80→83/256，official117→139、final101→114，不能称保持已明显改善。
+
+选择远端fresh两卡full199 vs fresh两卡chunk16；两者固定同BC50k的冻结512D特征、539D小头，
+同seed、64TRAIN、256global env、200个完整199步episode/10,188,800 env steps；
+不按DEV选择checkpoint/表征。`shadow-cadence-{full199,chunk16}-64obj-20261016-r1`。
+chunk16每episode12×16+7，最多52次actor步，200episode最多10400次；每样本仍4个actor epoch。
+chunk16同时改变采集/更新节奏、GAE段边界bootstrap与段内全局advantage归一化，不作单一
+“optimizer步数”因果归因。相同BC、残差范围、奖励/种子/网络容量/学习率/KL保护不变。
+
+执行前先远端两卡两episode工程smoke，确认26批/最多104个actor步、更新前critic实际next-state
+bootstrap、最后7步真正terminal零bootstrap、无内部reset/BC重复forward、跨rankactor/critic一致、
+冻结reference不变、latent重放及执行合同。smoke只证明接线；通过后完整200episode。
+两臂都待旧表征队列完成后才占对应GPU，不与已有作业竞争。每臂训练<=2h、队列<=4h；
+固定core64DEV×4、reset249/250/251读出，沿用10个百分点/方向稳定才继续全DEV的判定。
+若无明显收益，不把此结果升级为RL无效；下一步结合实际策略偏移/奖励与保持的差异再判断。
+硬合同/非有限/资源越界停止本组并保留产物；本地6/7空闲、旧checkpoint不覆盖，无新授权边界。
+
+测试13项通过；含默认full199与原更新后actor/critic逐tensor相同、非terminal零bootstrap拒绝、
+实际next-state bootstrap和更新后新策略重放。独立只读审查未见阻断问题。
+`stats.ppo`是最后一段摘要；分段整episode必须读`ppo_segments`及
+`actor_optimizer_steps_this_episode`，不得拿最后7步的EV/loss冒充全199步。

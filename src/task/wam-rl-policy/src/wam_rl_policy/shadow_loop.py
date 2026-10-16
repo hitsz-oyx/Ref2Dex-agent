@@ -8,7 +8,7 @@ import time
 from datetime import timedelta
 import numpy as np
 import torch
-from .ppo import SCHEMA,Actor,Critic,observation,apply_residual,update
+from .ppo import SCHEMA,Actor,Critic,observation,apply_residual,update_rollout
 from shadow_finetune.execution import Controller
 from shadow_finetune.metrics import native_report
 from .bc_mlp import MLPController
@@ -22,7 +22,7 @@ def write(path,value):
 
 def run(task,snapshot,env_objects,teacher,args):
     # Existing bounded launchers may be initializing assets while optional diagnostics are added.
-    for name,default in [('initial_log_std',-2.5),('synchronize_warm_step',False),('capture_warm_state',False),('retain_reset_indices',False),('single_reset_target_setter',False),('force_zero_residual',False),('outside_support_zero',False),('observation_kind','native')]:
+    for name,default in [('initial_log_std',-2.5),('synchronize_warm_step',False),('capture_warm_state',False),('retain_reset_indices',False),('single_reset_target_setter',False),('force_zero_residual',False),('outside_support_zero',False),('observation_kind','native'),('rollout_steps',199)]:
         if not hasattr(args,name):setattr(args,name,default)
     out=args.output;started=time.monotonic()
     if args.world_size>1:
@@ -41,6 +41,9 @@ def run(task,snapshot,env_objects,teacher,args):
         saved_kind=saved.get('config',{}).get('observation_kind','native')
         if args.mode=='train' and saved_kind!=args.observation_kind:raise ValueError('Resume must retain observation representation')
         args.observation_kind=saved_kind
+        saved_steps=saved.get('config',{}).get('rollout_steps',199)
+        if args.mode=='train' and saved_steps!=args.rollout_steps:raise ValueError('Resume must retain PPO rollout length')
+        args.rollout_steps=saved_steps
         if saved.get('config',{}).get('outside_support_policy')=='persistent zero BC reference until episode reset':
             args.outside_support_zero=True;bc.allow_invalid_zero=True
     if args.observation_kind!='native' and args.bc_kind!='mlp':raise ValueError('Current BC features require the MLP reference')
@@ -77,6 +80,7 @@ def run(task,snapshot,env_objects,teacher,args):
         outside_support_policy='persistent zero BC reference until episode reset' if args.outside_support_zero else 'reject run',
         reward='unchanged official goal_cond=False native task reward',gamma=.99,gae_lambda=.95,
         bc_weight=.1,actor_lr=1e-4,critic_lr=3e-4,ppo_epochs=4,target_joint_kl=.02,
+        rollout_steps=args.rollout_steps,interior_bootstrap='actual next-state critic before optimizer update; no simulator reset',
         max_seconds=args.seconds,artifact_budget_bytes=2*2**30,
         controls_per_episode=int(task.max_episode_length)-1,objects=env_objects,
         selection='final update, no DEV checkpoint selection',
@@ -102,7 +106,7 @@ def run(task,snapshot,env_objects,teacher,args):
         else:task.step(torch.zeros((args.envs,24),device='cuda'),-1)
         frames=[snapshot()];commands=[];bases=[];latents=[];intendeds=[];applied=[];forces=[];torques=[];targets=[]
         rewards=[];storage={k:[] for k in ('observation','latent','mean','std','logp','value','reward','done')}
-        execution_error=dict(canonical_to_world=0.,force=0.,torque=0.,finger_target=0.);fallback_env_ticks=0
+        execution_error=dict(canonical_to_world=0.,force=0.,torque=0.,finger_target=0.);fallback_env_ticks=0;ppo_segments=[]
         for tick in range(1,int(task.max_episode_length)):
             if time.monotonic()-started>args.seconds:raise TimeoutError('Shadow PPO wall budget')
             if tick>1 and task.reset_buf.any():raise ValueError('Unexpected interior reset; reject unspliced episode')
@@ -123,6 +127,9 @@ def run(task,snapshot,env_objects,teacher,args):
                     normalized=(task.obs_buf.clamp(-5,5)-bc.model.x_mean)/bc.model.x_scale
                     features=torch.nn.functional.pad(normalized,(0,212))
                 obs=observation(task.obs_buf,relative_goal,base,features)
+            if training and len(storage['reward'])>=args.rollout_steps:
+                ppo_segments.append(update_rollout(actor,critic,storage,actor_optimizer,critic_optimizer,obs))
+            with torch.no_grad():
                 dist=actor.distribution(obs)
                 latent=(dist.loc+dist.scale*torch.randn(dist.loc.shape,device='cuda',generator=generator)) if training else dist.loc
                 if args.mode=='bc' or args.force_zero_residual:latent=torch.zeros_like(latent)
@@ -183,8 +190,11 @@ def run(task,snapshot,env_objects,teacher,args):
             applied_residual_rms=float(np.sqrt(np.mean((data['action']-data['base'])**2))),
             clip_fraction=float(np.mean(np.abs(data['intended']-data['action'])>1e-6)))
         if training:
-            batch={k:torch.stack(v) for k,v in storage.items()};batch['bootstrap']=torch.zeros(args.envs,device='cuda')
-            stats['ppo']=update(actor,critic,batch,actor_optimizer,critic_optimizer)
+            ppo_segments.append(update_rollout(actor,critic,storage,actor_optimizer,critic_optimizer))
+            stats['ppo']=ppo_segments[-1]
+            stats['ppo_update_batches']=len(ppo_segments)
+            stats['actor_optimizer_steps_this_episode']=sum(segment['actor_steps'] for segment in ppo_segments)
+            if len(ppo_segments)>1:stats['ppo_segments']=ppo_segments
         curves.append(stats);write(out/'curve.json',curves)
         if not training or iteration%args.trace_every==0 or iteration==args.updates:np.savez_compressed(out/'last-episode.npz',**data)
         if iteration==1:np.savez_compressed(out/'first-episode.npz',**data)
