@@ -165,11 +165,16 @@ def main():
                 raise ValueError('Scientific fit uses fixed24000 endpoint')
             meta = json.loads((a.cache / 'data/manifest.json').read_text())
             input_stats = dict(np.load(a.cache / 'data/input-statistics.npz'))
+            # Match the prior baseline's CUDA float32 RMS arithmetic exactly.
+            rms = torch.load('/home2/wyy/oyx_ws/_external/dexplore_official_v120/checkpoint/inspire.pth',
+                map_location='cpu', weights_only=False)['running_mean_std']
+            xmean = rms['running_mean'].float().cuda()
+            xscale = torch.sqrt(rms['running_var'].float().cuda() + 1e-5)
+            input_stats = dict(mean=xmean.cpu().numpy(), scale=xscale.cpu().numpy())
             data = {}
             for group in meta['groups']:
                 d = dict(np.load(a.cache / ('data/' + group + '.npz')))
-                d['x'] = ((torch.tensor(d['x'], device='cuda') - torch.tensor(input_stats['mean'], device='cuda'))
-                          / torch.tensor(input_stats['scale'], device='cuda')).clamp(-5, 5)
+                d['x'] = ((torch.tensor(d['x'], device='cuda') - xmean) / xscale).clamp(-5, 5)
                 data[group] = d
             y = torch.tensor(data['seen']['y'], device='cuda')
             ymean, yscale = y.mean(0), y.std(0, unbiased=False).clamp_min(1e-3)
