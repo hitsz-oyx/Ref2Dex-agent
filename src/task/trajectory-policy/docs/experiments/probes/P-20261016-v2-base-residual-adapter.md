@@ -69,3 +69,21 @@ cannot consume a v2 checkpoint directly. The static audit is `UNCLEAR` rather
 than a scientific success or failure because no adapter code or physical
 zero-residual run has yet been executed. Existing residual integration evidence
 remains bounded and negative on clipping/placement; it does not transfer to v2.
+
+## Post-panel zero-residual contract smoke
+
+After the four action-horizon arms completed, the successful v2 native panels
+were replayed through the old residual module's `apply_residual(base, 0)`
+function. Across 10 successful airplane/sphere/mug panel roles, the 18D base
+command after a zero residual matched v2's applied command exactly (maximum
+absolute difference `0.0`); the recorded same-tick current input remained
+`(controls, 3, 721)` and the one-step chunk clock was valid. The machine-readable
+engineering result is
+`outputs/trajectory-policy/v2-base-residual-adapter-20261016-r1/zero_residual_audit.json`.
+
+This closes only the coordinate/clipping part of the adapter contract. It is
+not an old-server integration: no residual IPC server was modified, and the
+zero-residual replay does not establish placement or PPO utility. The next
+implementation should expose this exact 18D applied command as `base_action`,
+retain v2's same-tick 721D admission and chunk state, and then run a fresh
+zero-residual fixed panel before any nonzero residual training.
