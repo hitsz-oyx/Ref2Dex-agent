@@ -36,6 +36,7 @@ allocations:
     exploration_seed: 247
     core_DEV_selection_seed: 248
     native_evaluation_seed: 249
+    supplemental_native_reset_seeds: [250, 251]
     reuse_reason: expanded exploratory Shadow online training and frozen object-disjoint evaluation; not Validation
 
   P-20261016-query-capacity-goal:

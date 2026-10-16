@@ -10,7 +10,7 @@ claim_id: C1
 hypothesis_family: HF-shadow-scale-continuous
 probe_index_in_family: 1
 seed_pool: probe
-seeds: [241, 242, 243, 244, 245, 246, 247, 248, 249]
+seeds: [241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251]
 decision_changed_if_positive: retain a competent self-trained Shadow BC bootstrap and scale online improvement before frozen-WAM token validation
 decision_changed_if_negative: diagnose coverage objective reward and exploration instead of treating a short two-object run as method failure
 status: UNCLEAR
@@ -143,3 +143,20 @@ retained/single-setter独立Probe均未消除起点差异，当前不能归因�
 实际起点后才允许配对解释。若成立用于阶段读出，仍保留初始化问题的根因未明限制。
 同时每个新native worker在慢资产初始化前复制自有wam_rl_policy包到输出runtime-code，
 避免正在初始化的旧入口后加载到新模块；旧worker缺省可选诊断字段以向后兼容。
+
+## Decision Note：200轮之后
+
+远端MLP 128TRAIN/512env已完成200轮=20377600步；core持握BC69、PPO50/100均71、
+PPO200为66（各256），未见预定义10个百分点的信号。252个相同起点之外有4个初态不等；
+不同加载路径、warm同步、索引保留、单setter和同checkpoint零残差控制均未消除，因此
+根因仍未明，暂不把任一候选解释升级结论。即使这4个结果全部有利翻转，也不足以产生
+本面板所需26条改善；该限制不阻止进行最小的探索幅度判别，但正式归因必须补齐。
+
+选择下一最小并行对照：同一MLP50k、前64个固定TRAIN对象（两个原32对象分片），
+每臂2GPU×128env、200轮/10188800步，参数/初始化/draw/reset/reward均同，只改初始
+latent log_std=-2.5 vs -1.5（标准差2.718倍）。每臂<=2h；各自固定core_DEV进行249/250/251
+三个reset读出，不把初态不匹配的逐轨迹转换当配对收益。若强探索出现跨reset清晰改善，
+再扩128物体/多seed；否则优先考虑策略可训练容量/BC约束和任务reward，而非无界加轮数。
+这是Decision Probe，不是正式Validation；补充250/251仅为exploratory reset，未触及保留池。
+初始化深挖先保留现有诊断与限制，最便宜的下一定位是pre-warm完整状态与Gym刷新同步，
+待它能改变后续决策时再做，不能让流程完整性替代有效行为推进。
