@@ -3,6 +3,7 @@ import argparse
 import csv
 import json
 import os
+import sys
 from pathlib import Path
 import numpy as np
 
@@ -24,7 +25,7 @@ def main():
     left=json.loads((a.bc/'manifest.json').read_text());right=json.loads((a.candidate/'manifest.json').read_text())
     if left['status']!='COMPLETED' or right['status']!='COMPLETED':raise ValueError('Completed suites required')
     if left['shards']!=right['shards'] or left['seed']!=right['seed']:raise ValueError('Same frozen panel/reset required')
-    rows=[];initial={k:0. for k in ('hand','object','q','dq','hand_root','observation','goal','success','reset')}
+    rows=[];mismatches=[];initial={k:0. for k in ('hand','object','q','dq','hand_root','observation','goal','success','reset')}
     transitions={metric:dict(both=0,bc_only=0,candidate_only=0,neither=0) for metric in ('held60','held60_at_end')}
     for shard in range(len(left['results'])):
         folders=[root/('shard%02d'%shard) for root in (a.bc,a.candidate)]
@@ -32,16 +33,18 @@ def main():
         if identities[0]!=identities[1]:raise ValueError('Object mapping differs')
         with np.load(folders[0]/'last-episode.npz') as z:bc={k:z[k] for k in z.files}
         with np.load(folders[1]/'last-episode.npz') as z:candidate={k:z[k] for k in z.files}
+        invalid=np.zeros(len(identities[0]),bool)
         for key in initial:
             error=float(np.max(np.abs(bc[key][0]-candidate[key][0])));initial[key]=max(initial[key],error)
-            if error!=0:raise ValueError('Actual initial state differs: '+key+' '+str(error))
+            invalid|=np.any((bc[key][0]!=candidate[key][0]).reshape(len(invalid),-1),axis=1)
+        mismatches.extend(dict(shard=shard,env=int(env),object_code=identities[0][env]['object_code']) for env in np.flatnonzero(invalid))
         for env,identity in enumerate(identities[0]):
             pair={}
             for role,data in [('bc',bc),('candidate',candidate)]:
                 distance=np.linalg.norm(data['object'][:,env,:3]-data['goal'][:,env],axis=-1)
                 lift=data['object'][:,env,2]-data['object'][0,env,2]
                 longest,tail=holds((distance<=.05)&(lift>=.1))
-                row=dict(shard=shard,env=env,role=role,object_code=identity['object_code'],split=identity['split'],
+                row=dict(shard=shard,env=env,role=role,object_code=identity['object_code'],split=identity['split'],initial_state_exact_match=not bool(invalid[env]),
                     held60=longest>=60,held60_at_end=tail>=60,longest_hold_frames=longest,endpoint_hold_frames=tail,
                     lift10=bool(lift.max()>=.1),reached5cm=bool((distance<=.05).any()),final_within5cm=bool(distance[-1]<=.05),
                     final_goal_distance_m=float(distance[-1]),max_lift_m=float(lift.max()),final_lift_m=float(lift[-1]),
@@ -58,8 +61,10 @@ def main():
         if aggregate[role]['held60']!=suite['totals']['held60_with_lift10cm'] or aggregate[role]['final_within5cm']!=suite['totals']['final_within5cm']:
             raise ValueError('Raw independent metric differs from reported metric')
     out.mkdir(parents=True)
-    report=dict(status='UNCLEAR',initial_state_max_errors=initial,initial_state_exact_match=True,aggregate=aggregate,
-        paired_transitions=transitions,pairs=len(rows)//2,source_bc=str(a.bc.resolve()),source_candidate=str(a.candidate.resolve()),
+    report=dict(status='UNCLEAR',initial_state_max_errors=initial,initial_state_exact_match=not mismatches,aggregate=aggregate,
+        pairing_status='PASS' if not mismatches else 'FAILED_ACTUAL_INITIAL_STATE',initial_state_mismatch_envs=mismatches,
+        paired_transitions=transitions if not mismatches else None,pairs=len(rows)//2,
+        source_bc=str(a.bc.resolve()),source_candidate=str(a.candidate.resolve()),
         scope='All stored paired native trajectories; position hold proxies, not contact certification',model_compute=False)
     (out/'comparison.json').write_text(json.dumps(report,indent=2)+'\n')
     with (out/'cases.csv').open('w') as stream:
@@ -73,7 +78,9 @@ def main():
         x=np.arange(len(keys))+offset;ax.bar(x,[aggregate[role][key]/aggregate[role]['episodes'] for key in keys],.36,label=role)
     ax.set_xticks(np.arange(len(keys)));ax.set_xticklabels(['Lift10cm','Reach5cm','Hold1s','Hold1s to end'])
     ax.set_ylim(0,1);ax.set_ylabel('Fraction of paired rollouts');ax.legend();ax.grid(axis='y',alpha=.2)
+    if mismatches:ax.set_title('Descriptive only: actual initial states differ')
     fig.tight_layout();fig.savefig(out/'comparison.png',dpi=160);plt.close(fig);print(json.dumps(report))
+    if mismatches:sys.exit(2)
 
 
 if __name__=='__main__':main()
