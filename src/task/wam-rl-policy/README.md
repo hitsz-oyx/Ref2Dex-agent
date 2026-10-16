@@ -1,4 +1,8 @@
-# WAM robot BC→RL
+# WAM-assisted robot RL
+
+2026-10-16 [学习短期终点Probe](docs/experiments/probes/P-20261016-wam-learned-short-goal.md)已完成：
+终点回归未过预设门槛，WAM条件运动预测保留局部改善。下一步先建立独立动作与运动参考接口，
+再检验原生执行收益；不将BC或复现旧策略未来作为最终研究目标。
 
 2026-10-16新增[任务读出与目标语义Probe](docs/experiments/probes/P-20261016-wam-task-readout.md)：
 `task_readout.py`支持状态/目标查询、真实短期物理辅助监督与冻结预测输入，不依赖BC动作

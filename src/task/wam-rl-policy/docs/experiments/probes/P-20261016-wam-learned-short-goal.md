@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [246, 247]
 decision_changed_if_positive: test native realization of a predicted short goal using WAM versus geometric interaction priors
 decision_changed_if_negative: separate current-behavior prediction from goal selection and diagnose uncertainty before native rollout
-status: UNCLEAR
+status: UNPROMISING
 run_id: learned-short-goal-20261016-r1
 ---
 
@@ -65,3 +65,53 @@ GPU0启动前检查空闲；拟合+WAM推理<=10min、额外产物<=100MiB，保
 单seed、少对象、同面板探索、预训练可见性与网络容量差异均限制结论。
 若进入闭环，须测真实任务reward/holding和退步病例，不能把运动预测改善写成PPO提点。
 WAM仍不接动作，不能从本实验推导动作反事实或终点的真实可达性。
+
+## 实际结果与审查
+
+运行代码 `c85a1837`，两臂均完成固定1000步，未按留出成绩选模型。
+产物 `outputs/wam-rl-policy/learned-short-goal-20261016-r1/`：
+`manifest.json`、`summary.json`、两臂checkpoint、`predicted-goal-forecasts.pt`、`audit.json`。
+模型计算总51.69s，GPU0采样显存最高1167MiB，产物13MiB；运行完成并释放GPU。
+
+以下均为8个留出物体的对象宏平均、单位mm；448状态，其中146个progress状态。
+
+| 终点条件 | endpoint48全体 | endpoint48 progress | WAM hand32 | WAM scene32 |
+|---|---:|---:|---:|---:|
+| 零位移 | 66.73 | 136.21 | 47.65 | 47.50 |
+| 按剩余时间插值 | 101.76 | 80.93 | 56.84 | 57.15 |
+| raw-query预测 | 73.32 | 118.82 | 45.57 | 48.26 |
+| wam-mean预测 | 67.61 | 103.05 | 42.54 | 44.58 |
+
+两臂均未过预设gate，当前固定方案 **UNPROMISING**。wam-mean的fit endpoint18.87mm、
+held67.61mm存在明显泛化差距；held translation误差64.00mm，不能把问题主要归于旋转。
+这不能区分数据不足、混合行为多义性、输入表征和拟合方式，也不构成WAM路线的负结论。
+
+保留的局部信号：wam-mean目标下WAM hand32/scene32比零目标改善10.7%/6.2%；
+progress子集两域改善29.2%/27.3%。相同预测终点的几何插值hand32/scene32为60.48/47.85mm，
+WAM为42.54/44.58mm，提示条件手物协同信息在非oracle目标下仍有作用；不代表PPO收益。
+
+审查：10项相关单测通过。独立audit重载两模型，在相同TF32精度与128 batch下
+预测逐值重放一致；对象fit/held不交叉、合法旋转、刚体点变换与全留出误差重算通过。
+最初审查用不同精度/64 batch出现最高0.102mm位移差，统一运行精度与batch后归零；
+未改模型或放宽gate。审查仅验证保存/计算关键链路，不能认证目标可达或预训练因果贡献。
+
+## 结果后的 Decision Note
+
+- 决定：不追加旧混合行为终点回归预算，也不把本次失败改判为通过；不启动原定的
+  “合格预测终点直接接原生PPO”分支。保留当前模型用于诊断。
+- 理由：旧行为终点预测不是任务目标选择；即使预测准确，也没有回答机器人如何实现它。
+  当前代码 `Actor(reference-gaussian)` 仍加BC动作均值，`shadow_loop`每拍调用BC，
+  因而此前full-action实验也不能代表从零、无BC依赖的PPO路线。
+- 下一项最便宜的blocker工作：建立独立动作入口和明确的运动参考观测合同，先做原生
+  工程smoke；之后另立Decision Probe，检验同一因果短目标下WAM参考是否让PPO更易执行。
+  短目标应受速度/位移约束并在明确控制间隔内固定，由真实任务回报选择，不能把旧轨迹
+  回归误差作为唯一资格。新实验须声明目标来源，不能用真实未来作在线目标。
+- 比较对象：同目标WAM参考、同目标几何参考、task-only；共享原生动作空间和交互预算。
+  先检验真实状态转移与任务保持，再决定是否扩训练。辅助tracking不能替代任务结果。
+  WAM无动作输入，禁止把其预测误用为候选动作反事实打分器。
+- 此轮到此停止新增训练。下一轮先完成接口smoke及单独有界协议，出现非有限、目标/动作
+  坐标错配或干预未进入执行即停。未改变MISSION/claim，不需要新外部授权。
+
+相关方法边界见[运动先验到RL的一手文献审计](../../../../../../paper/point-motion-goal-policy/2026-10-16-motion-prior-rl-bridge.md)。
+Dream2Flow的flow-reward SAC支持无BC桥接的可行性，但不是通用小数据PPO证据；
+Track2Act的共享残差控制器依赖机器人示范BC，不能直接当作我们的既有执行桥。

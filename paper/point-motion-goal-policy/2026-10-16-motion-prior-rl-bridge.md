@@ -1,0 +1,24 @@
+# Motion priors → executable RL: bounded primary-source audit
+
+Date: 2026-10-16. Question: can a goal-conditioned motion prior support robot RL without first solving BC, and does existing evidence establish a reusable small-data tracker? Read-only literature audit; no reproduction, downloads, or training. Complements the existing 2026-10-13 interface notes; does not change the research claim.
+
+## What the two papers actually establish
+
+**Dream2Flow:** the simulator Open Door branch trains **SAC**, with separate Panda, Spot, and GR1 policies. Flow supplies reward: nearest-reference-frame progress plus end-effector proximity to object particles. Door joint state transforms those particles; this is not online visual tracking. No BC prerequisite is described for that branch. Evaluation varies door placement, not arbitrary unseen tasks through one shared controller. The reported 5,000 training iterations (10,000 for GR1) do not establish a small interaction budget without an environment-step accounting. [Paper §III-C, IV-D, Appendix H](https://arxiv.org/html/2512.24766v1)
+
+Its real-robot branch instead uses AnyGrasp proposals, generated-hand cues for selecting a grasp, rigid-grasp dynamics, and PyRoki trajectory optimization. It is neither the SAC experiment nor evidence of a universal learned tracker. Push-T uses an explicitly action-conditioned learned particle model and random shooting. Thus a motion target can inform RL or optimization without BC, but the control bridge and physical assumptions remain essential. [Paper §III-C](https://arxiv.org/html/2512.24766v1)
+
+**Track2Act:** predicted object tracks become rigid transforms and an end-effector plan after a grasp heuristic. A shared goal-conditioned residual controller corrects that plan, using current observations, goal, tracks, and planned actions. It is explicitly **BC-trained on approximately 400 Spot demonstrations across 10 tasks**, rather than RL-trained or trained afresh for each evaluation task. Experiments use one Spot embodiment, and the paper limits its scope to short-horizon single-object manipulation. This is evidence for a reusable plan-conditioned controller with embodiment-specific supervision, not no-BC PPO. Grasp failures and infeasible motions remain failure cases. [Paper §3.3–3.4, §4.3, §5.3, §6.6](https://arxiv.org/html/2405.01527v2)
+
+Neither paper establishes the combined claim “little robot interaction + one universal PPO policy + frozen non-action-conditioned motion model.” Their official pages summarize the same distinction: [Dream2Flow flow-as-reward results](https://dream2flow.github.io/), [Track2Act generalization demonstrations](https://homangab.github.io/track2act/).
+
+## Implications for Ref2Dex — inference and recommendation
+
+The local [readout probe](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261016-wam-task-readout.md) found useful conditional hand/object prediction when given the actual short endpoint, while deployable scheduled goals remain unqualified. That supports investigating a motion prior; it does not yet provide an executable action prior.
+
+1. **Keep two questions separate.** Can a causal module propose useful 0.8-second object targets? Can a robot policy execute the resulting hand/object motion? A regression model trained on old rollouts predicts that behavior distribution; lower endpoint error does not establish task improvement or goal attainability under a fresh policy.
+2. **Use WAM as a reference, not counterfactual dynamics.** The frozen goal-conditioned WAM lacks a candidate-action input. Searching native actions against its output cannot identify action consequences. PPO can instead consume the reference and learn consequences through simulator transitions; BC initialization remains optional.
+3. **Qualify execution before scaling.** Under the same causal short targets, compare WAM reference, geometric reference, and task-only control with the same native reward and interaction budget. Track task success and hand/object execution separately. Hold reference snapshots over a declared interval; otherwise a changing prediction can make “tracking progress” ambiguous. Any added tracking reward must not replace evaluation by actual task outcome.
+4. **Define the future generality test now.** One shared policy must receive varying targets and be evaluated on held-out objects/tasks without per-test retraining. Report pretraining exposure, offline robot trajectories, and online steps separately. A single-task SAC/PPO success or oracle-endpoint result cannot satisfy that test.
+
+Recommended near-term decision: finish the cheap causal-target qualification, then test a bounded native action bridge. Do not make a perfect BC actor a prerequisite; equally, do not infer executable dexterous contact from accurate predicted motion alone.

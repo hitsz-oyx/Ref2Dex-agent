@@ -851,7 +851,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261016-wam-learned-short-goal](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261016-wam-learned-short-goal.md) | 从当前观测预测短期终点，检验可部署的WAM条件桥接 | 见原卡 | 见原卡 | probes/UNCLEAR |
+| [P-20261016-wam-learned-short-goal](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261016-wam-learned-short-goal.md) | 从当前观测预测短期终点，检验可部署的WAM条件桥接 | 见原卡 | 见原卡 | probes/UNPROMISING |
 
 ## HF-wam-task-readout
 
