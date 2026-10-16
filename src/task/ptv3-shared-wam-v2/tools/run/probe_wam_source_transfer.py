@@ -62,12 +62,18 @@ def main():
                   git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip())
     write(out / 'process.json', status)
     def resource():
+        consumers = set(map(int, subprocess.check_output(['nvidia-smi', '-i', str(a.gpu),
+            '--query-compute-apps=pid', '--format=csv,noheader'], text=True).split()))
+        if consumers - {os.getpid()}:
+            raise RuntimeError('Foreign GPU consumer: ' + str(sorted(consumers - {os.getpid()})))
         value = dict(elapsed_s=time.monotonic() - started,
                      gpu=subprocess.check_output(['nvidia-smi', '-i', str(a.gpu), '--query-gpu=utilization.gpu,memory.used', '--format=csv,noheader'], text=True).strip())
         with (out / 'resources.jsonl').open('a') as stream:
             stream.write(json.dumps(value) + '\n')
         if shutil.disk_usage(ROOT).free < 20 * 2**30:
             raise RuntimeError('Disk reserve')
+        if sum(p.stat().st_size for p in out.parent.rglob('*') if p.is_file()) > 2 * 2**30:
+            raise RuntimeError('Probe artifact budget')
         return value
     try:
         if a.stage == 'prepare':
@@ -114,6 +120,8 @@ def main():
             model.cuda().eval().requires_grad_(False)
             meta = json.loads((a.cache / 'manifest.json').read_text())
             checks = {}
+            completed_rows = 0
+            total_rows = sum(g['rows'] for g in meta['groups'].values())
             for group, entry in meta['groups'].items():
                 ds = V2RLRobotWindows(Path(meta['source']), entry['split'], 32, GEOMETRY_LIFTED)
                 lookup = {r['sequence']: i for i, r in enumerate(ds.records)}
@@ -138,7 +146,9 @@ def main():
                             stores[mode][cursor:cursor + len(values)] = values.cpu().numpy()
                         cursor += len(tokens)
                         if cursor == len(tokens) or cursor % 1024 == 0:
-                            row = dict(group=group, rows=cursor, total=len(ds), **resource())
+                            timing = resource()
+                            row = dict(group=group, rows=cursor, total=len(ds),
+                                eta_s=timing['elapsed_s'] / (completed_rows + cursor) * (total_rows - completed_rows - cursor), **timing)
                             write(out / 'progress.json', row)
                             print(json.dumps(row), flush=True)
                 assert cursor == len(ds)
@@ -146,6 +156,7 @@ def main():
                     store.flush()
                     assert np.isfinite(store).all()
                 checks[group] = dict(rows=cursor, exact_key_order=True, workspace_passed=True)
+                completed_rows += cursor
             write(out / 'manifest.json', dict(source=a.source_name, checkpoint=str(a.checkpoint.resolve()),
                 config=config, groups=checks, frozen=True, grad_absent=all(p.grad is None for p in model.parameters()),
                 feature_contract='scene mean + hand mean or right wrist + goal mean; all2304D'))
@@ -220,7 +231,9 @@ def main():
                         raise FloatingPointError('Nonfinite fit')
                     optimizer.step()
                 if step % 3000 == 0 or step == a.steps:
-                    row = dict(step=step, groups=evaluate(save=step == a.steps), **resource())
+                    timing = resource()
+                    row = dict(step=step, groups=evaluate(save=step == a.steps),
+                        eta_s=timing['elapsed_s'] / step * (a.steps - step) if step else None, **timing)
                     curve.append(row)
                     write(out / 'curve.json', curve)
                     print(json.dumps(row), flush=True)
