@@ -27,6 +27,17 @@ def main():
         if packet['config'].get('wam_feature_checkpoint'):
             frozen_features=json.loads((folder/'feature-freeze-audit.json').read_text())
             assert frozen_features['status']=='PASS' and frozen_features['exact_state_dict_unchanged'] and frozen_features['gradients_absent']
+        condition=packet['config'].get('observation_kind','native')
+        if condition.startswith('wam-'):
+            inputs=torch.load(folder/'first-wam-input.pt',map_location='cpu',weights_only=False)
+            source=inputs['source_z'];supplied=inputs['supplied_z'];obs=inputs['observation']
+            assert source.shape==supplied.shape==(len(obs),2304) and torch.isfinite(source).all()
+            if condition=='wam-none':assert not supplied.any()
+            elif condition=='wam-shuffled':assert torch.equal(supplied,source[inputs['donor_indices']])
+            else:assert torch.equal(supplied,source)
+            expected=torch.nn.functional.layer_norm(supplied.reshape(-1,3,768),(768,)).flatten(1)
+            torch.testing.assert_close(obs[:,300:2604],expected,rtol=2e-5,atol=2e-5)
+            assert torch.equal(obs[:,:300],inputs['current'].clamp(-5,5)) and torch.equal(obs[:,-24:],inputs['base'])
         for key in ('actor','critic'):
             assert all(torch.isfinite(value).all() and torch.equal(value,packets[0][key][name]) for name,value in packet[key].items())
         curve=json.loads((folder/'curve.json').read_text())

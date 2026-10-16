@@ -175,6 +175,10 @@ def run(task,snapshot,env_objects,teacher,args):
                     if args.observation_kind=='wam-none':wam_features=torch.zeros_like(wam_features)
                     elif args.observation_kind=='wam-shuffled':wam_features=wam_features[donor_indices]
                 obs=observation(task.obs_buf,relative_goal,base,features,wam_features)
+                if use_wam and iteration==offset+1 and tick==1:
+                    torch.save(dict(source_z=feature_bc.last_wam_features.detach().cpu(),supplied_z=wam_features.detach().cpu(),
+                        current=task.obs_buf.detach().cpu(),goal=relative_goal.detach().cpu(),base=base.detach().cpu(),
+                        observation=obs.detach().cpu(),donor_indices=permutation,condition=args.observation_kind),out/'first-wam-input.pt')
             if training and len(storage['reward'])>=args.rollout_steps:
                 ppo_segments.append(update_rollout(actor,critic,storage,actor_optimizer,critic_optimizer,obs,epochs=args.ppo_epochs,minibatches=args.ppo_minibatches,shuffle_generator=optimizer_generator))
             with torch.no_grad():

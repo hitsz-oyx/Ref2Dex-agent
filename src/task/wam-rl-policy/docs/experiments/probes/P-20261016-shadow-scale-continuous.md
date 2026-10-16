@@ -328,3 +328,12 @@ actor更新、maxKL.019892、重放3.05e-5、冻结597字段不变，elapsed约2
 仍4远端卡/64GiB总产物/20GiB磁盘保留、本地保留6/7。smoke测实际吞吐后报告ETA，若4h仍不足，
 保留共同milestone并停止，不无界延长。各GPU先完成本卡第一波配方队列，再2episode新源smoke，
 审计通过后fresh200，终点仍core64DEV×4、249/250/251，不按评估挑端点。
+
+
+终止优先级的最便宜诊断（已有轨迹CPU复算，无新增模型推理/仿真）：全1552DEV的MLP/WAM BC，
+按曾lift>=10cm后跌至<2cm、低于初态10cm、物体平移逃逸>.75m、手物距离>.75m四类合并，
+分别150/158条出现，首次后剩余控制帧仅占3.49%/3.57%；WAM PPO50核心256条为16条/2.21%。
+这些保守阈值不能覆盖参考偏离/真实contact loss，也不能证明终止无效；它们不足以解释
+主要无进展，因此当前降低复杂absorbing-mask实现的优先级，先完成配方/直接WAM特征Probe。
+条件terminal及不等样本加权仍保留为后续Decision，不把未实现项隐藏。产物
+`outputs/wam-rl-policy/shadow-termination-opportunity-audit-20261016-r1/summary.json`。
