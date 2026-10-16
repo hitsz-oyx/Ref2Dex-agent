@@ -408,6 +408,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261011-official-reference-screen](../../src/task/trajectory-policy/docs/experiments/probes/P-20261011-official-reference-screen.md) | Current corrected12 references: official actor physical screening | 见原卡 | candidate competent sources s3/s9 airplane, toothpaste and waterbottle; | probes/UNCLEAR |
 
+## HF-official-unidex-ppo
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261016-official-unidex-ppo](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261016-official-unidex-ppo.md) | 先接通官方UniDexGrasp++状态PPO | 尚未完成；不能把入口接通或短smoke当作抓取能力复现。 | 按用户要求先用远端官方PPO训练，底座通过后再接WAM。 | probes/UNCLEAR |
+
 ## HF-official-video-data
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

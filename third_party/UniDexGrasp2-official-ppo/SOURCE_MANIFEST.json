@@ -1,0 +1,18 @@
+{
+  "repository": "https://github.com/PKU-EPIC/UniDexGrasp2",
+  "upstream_commit": "6c9e710b04769bf5d9765e3233820101cb3d718f",
+  "scope": "Selected official state PPO source; no model or dataset download",
+  "files": [
+    "dexgrasp/train.py",
+    "dexgrasp/script/run_train_ppo_state.sh",
+    "dexgrasp/cfg/ppo/config.yaml",
+    "dexgrasp/utils/config.py",
+    "dexgrasp/utils/parse_task.py",
+    "dexgrasp/utils/process_sarl.py",
+    "dexgrasp/algorithms/__init__.py",
+    "dexgrasp/algorithms/rl/ppo/__init__.py",
+    "dexgrasp/algorithms/rl/ppo/storage.py",
+    "dexgrasp/algorithms/rl/ppo/ppo.py",
+    "dexgrasp/algorithms/rl/ppo/module.py"
+  ]
+}
