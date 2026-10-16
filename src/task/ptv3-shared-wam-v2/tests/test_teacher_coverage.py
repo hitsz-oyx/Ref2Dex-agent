@@ -1,0 +1,31 @@
+import numpy as np
+import pytest
+
+from ptv3_shared_wam_v2.teacher_coverage import coverage_indices, phase_sampler
+from ptv3_shared_wam_v2.teacher_generalization import isolated_middle
+
+
+def test_added_object_preserves_cup_support_and_original_rows():
+    ticks = np.tile(np.arange(200), 2)
+    sequence = np.repeat([0, 1], 200)
+    keep, held, _ = isolated_middle(np.arange(200))
+    seen = np.flatnonzero(keep)
+    expanded = coverage_indices(sequence, ticks, seen, np.flatnonzero(held),
+                                [{'object': 'cup'}, {'object': 'ball'}])
+    assert np.array_equal(expanded[expanded < 200], seen)
+    assert np.array_equal(expanded[expanded >= 200], np.arange(200, 400))
+    with pytest.raises(ValueError, match='membership'):
+        coverage_indices(sequence, ticks, seen[1:], np.flatnonzero(held),
+                         [{'object': 'cup'}, {'object': 'ball'}])
+
+
+def test_sampler_never_draws_holdout_and_retains_half_startup():
+    ticks = np.arange(200)
+    keep, held, _ = isolated_middle(ticks)
+    sampler = phase_sampler(np.flatnonzero(keep), np.zeros(200), ticks)
+    for _ in range(10):
+        draw = sampler()
+        assert len(draw) == 512
+        assert (ticks[draw[:256]] < 16).all()
+        assert (ticks[draw[256:]] >= 16).all()
+        assert keep[draw].all()
