@@ -1,5 +1,38 @@
 # 当前状态
 
+## 2026-10-16 用户授权大规模持续推进（进行中）
+
+[规模Probe](experiments/probes/P-20261016-shadow-scale-continuous.md)：本地GPU1–4同步PPO已启动，
+128个TRAIN物体、64env/rank、256个全局环境，目标200次更新/10188800环境步，最多12h。
+保留50/100/200轮checkpoint；GPU5自动完成全部388DEV基线和固定64DEV阶段读出。
+本地GPU0外部作业保护，6/7始终空闲。四卡实际显存约5.2GiB/卡，实测约95s/update，
+初步预计总训练约5.3h；资源持续写入run的resources.jsonl。不能把启动训练当有效结果。
+
+代码加入显式all-reduce梯度、全局advantage归一化/重放误差/KL、共同rollback，
+两进程CPU合并batch等价测试通过；两卡原生2轮smoke的actor/critic跨rank逐值相同，
+两卡全部597个冻结字段未变、无grad、原生action/force/torque误差0。
+训练恢复包括actor/critic/Adam及各rank RNG，限定episode边界重新reset，非PhysX精确续跑。
+WAM BC省略未被actor使用的forecast readout，批量H4输入各字段与旧路径测试一致。
+
+并行单拍BC MLP为fresh current300→1024→1024→512→512→24；采用相同strict源窗口，
+完整TRAIN1536897/DEV354761条标签，TRAIN-only归一化；50k步/batch2048约163s。
+离线固定6208窗DEV动作MAE=.01939，root=.03302、finger=.01485，不能当闭环误差。
+全部388DEV×4起点=1552条真实native rollout：official679/1552、final590/1552、
+held60+lift10cm396/1552=25.52%。全DEV WAM BC基线仍在计算，不预判两者优劣。
+另同一32DEV×4起点面板，旧WAM9k与MLP20k均held37/128，final64/55、official70/61；
+九类首帧状态逐值相同。不是MLP50k的配对全DEV比较，不能混合宣称改善。
+
+远端4×4090部署完成，128TRAIN/388DEV全部原生资产链接核对通过。首轮native smoke
+在gymtorch尚未构建时失败，无训练结果；旧supervisor曾将快速全rank失败误写COMPLETED，
+exit_codes全1为真实证据，已修复末尾退出码检查。单进程项目内新cache的gymtorch编译/加载
+已通过，改用该cache且补齐conda/bin PATH，再做四卡真实native smoke。
+不同Torch/CUDA版本须在各机器内部建立BC/RL配对，不作跨机器单变量比较。
+
+关键产物：`outputs/wam-rl-policy/shadow-scale-panels-20261016-r1/`、
+`shadow-scale-wam-128obj-4gpu-20261016-r1/`、`shadow-current-bc-seed241-20261016-r1/`、
+`shadow-scale-mlp50k-alldev-20261016-r1/`、`shadow-scale-eval-queue-20261016-r1/`。
+新实验状态仍为UNCLEAR；正式研究claim和learned RL-token效用尚未得到验证。
+
 ## 2026-10-16 用户转向Shadow：全量既有轨迹行为复查
 
 只读复查三对reset全部48轨迹/策略，无新训练或仿真。逐物体曾达到held60计数BC/PPO：
@@ -40,6 +73,6 @@ PPO预算；不要因合计增益直接放开WAM。learned RL-token、aligned/sh
 
 产物`outputs/wam-rl-policy/shadow-bc-ppo-20261016-r1/`；模型`train/latest.pt`，
 评估`evaluation-pairs.json`，汇总`summary/results.json/csv`与`comparison.png`。
-checkpoint保存actor/critic/optimizer/RNG；CLI仅evaluate加载actor，未实现train-resume。
+当时checkpoint保存actor/critic/optimizer/RNG，CLI仅evaluate加载actor；本轮规模实现已补齐train-resume。
 全部有界作业退出，未停止外部GPU0任务。协议与证据见
 [P-20261016-shadow-bc-ppo](experiments/probes/P-20261016-shadow-bc-ppo.md)。

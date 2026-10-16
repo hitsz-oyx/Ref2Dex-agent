@@ -8,10 +8,16 @@
 `shadow_loop.py`连接既有原生Shadow BC，`tools/run/shadow_ppo.py`复用固定collector
 的环境初始化和物理循环。代码不修改第三方物理实现。
 
-当前Stage-0已完成20次真实PPO更新和三对reset评估，保持11/48→15/48但方向不一致，
-结论UNCLEAR；冻结与原生执行审计通过。详见[当前状态](docs/STATE.md)。
+当前已按用户授权启动128个TRAIN物体的四卡同步PPO，200轮目标、50/100/200轮固定DEV
+读出；另完整训练fresh单拍BC MLP并完成388DEV/1552起点native基线，held396/1552。
+此前两物体Stage-0保持11/48→15/48但方向不一致，仍UNCLEAR。详见[当前状态](docs/STATE.md)。
 
 使用`/home2/wyy/miniconda3/envs/graspenv/bin/python`，入口先加载IsaacGym再导入Torch。
 `--mode bc/zero/train/evaluate`分别进行BC、零残差、PPO和确定性PPO评估。
 TRAIN-only在线探索，DEV只用于固定终点评估；固定原官方reward。
 研究协议与输出路径见[首轮Probe](docs/experiments/probes/P-20261016-shadow-bc-ppo.md)。
+
+规模入口为`tools/run/launch_scale_ppo.py`；`prepare_scale_panels.py`固定对象和资产，
+`evaluate_scale.py`执行完整DEV/阶段面板，`run_scale_queue.py`监督有界读出队列。
+`train_current_bc.py`整理同拍标签并训练MLP；`--bc-kind mlp`连接相同native PPO。
+参见[规模Probe](docs/experiments/probes/P-20261016-shadow-scale-continuous.md)。

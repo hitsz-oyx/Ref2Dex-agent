@@ -65,3 +65,36 @@ GPU利用率、显存、吞吐和ETA实际记录；冻结WAM/BC可逐阶段抽�
 本卡是探索性规模推进，不是正式Validation。多个训练seed、reward对照与learned RL-token
 只有在会改变下一步决策时启动，不能把资源充足作为无界实验理由。正式效用claim仍需
 匹配none/shuffled/aligned及冻结评估协议；暂不更新整个WAM。
+
+## 已执行 / 运行中（2026-10-16）
+
+实现commit：53dccda5（fresh单拍BC），92b4231c（同步PPO/面板/提速），53fcd641（整套DEV），
+b73ecf74（portable身份），9adc6693（阶段自动评估），a3d804f7（失败退出码/扩展cache）。
+六项Task测试通过，包括两进程PPO与拼接全局batch的优化更新等价，以及随机H4/ragged CAD
+各字段与原输入路径等价。原生两卡2轮后，actor/critic逐tensor跨rank相同，597字段冻结审计通过。
+
+已冻结128TRAIN、388DEV、64core_DEV面板；每32对象一片，实际完整资产闭包3.95–38.95MiB，
+含手模型/纹理/所有linked目标，均在原128MiB界内。仅runtime独立副本的guard支持已审计
+512MiB，不改第三方或原collector；本轮未实际需要更大资产预算。
+
+| run_id（均在outputs/wam-rl-policy） | 状态/要点 |
+|---|---|
+| shadow-current-cache-20261016-r1 | COMPLETED，原strict源窗TRAIN1536897、DEV354761 |
+| shadow-current-bc-seed241-20261016-r1 | COMPLETED，50k×2048，163.35s，GPU5峰值2.39GiB allocated；GPU2.73GiB used |
+| shadow-scale-wam-smoke-20261016-r1 | 两卡64对象/128env，2轮，211.6s，退出码0/0；native/同步/freeze通过 |
+| shadow-scale-wam-128obj-4gpu-20261016-r1 | RUNNING，GPU1–4，128TRAIN/256env；200轮=10188800 envsteps，<=12h，初步95s/update约5.3h |
+| shadow-scale-mlp20k-core00-20261016-r1 | COMPLETED，32DEV/128起点，held37、final55、official61 |
+| shadow-scale-wam9k-core00-20261016-r1 | COMPLETED，同对象/seed/env，held37、final64、official70；九类初态全部逐值同一 |
+| shadow-scale-mlp50k-alldev-20261016-r1 | COMPLETED，388DEV/1552起点，held396(25.52%)、final590(38.02%)、official679(43.75%) |
+| shadow-scale-wam9k-alldev-20261016-r1 | RUNNING，同全DEV对象/seed/env的旧WAM基线；等待后再做配对比较 |
+| shadow-scale-eval-queue-20261016-r1 | RUNNING，GPU5：完整旧BC→固定core两种BC→WAM PPO50/100/200；有界13h |
+
+50k MLP离线DEV固定6208窗动作MAE=.0193933、root=.0330181、finger=.0148517。
+这些为标准canonical命令单位，不是手腕位置误差；50k native保持25.52%不是好效果或RL增益证明。
+32DEV面板采用MLP20k，不与50k全DEV比例相减；完整评估面板对象排序/重置相同才可配对。
+
+远端部署到已有本项目scope的`repo/outputs/wam-rl-policy/`，98MB包包含新Task代码、精简
+MLP50k权重与全部所选原生资产；旧数据/权重不覆盖。全部native链接检查通过，外部vendor只读。
+首轮四卡smoke未编译出gymtorch，四rank退出1；supervisor快速失败误标COMPLETED的bug已修，
+原始日志/exit_codes保留，不算成功smoke。单进程fresh项目cache构建+加载PASS，重跑r2。
+仍在native工程核对阶段，不声称已开始远端有效训练。工程问题不构成方法负证据。
