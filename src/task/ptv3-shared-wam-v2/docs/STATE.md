@@ -1,3 +1,19 @@
+## 2026-10-16 冻结来源/腕部读出六臂：未改善控制泛化
+
+固定上一实验的1442D输入、成员、raw初始参数和24k更新，比较none、raw随机投影、
+三域parent80k与robot7k的mean/wrist2304D支路。隔离/unseen序列等权XYZ mm依次为
+none32.652/42.436、random30.816/41.652、parent-mean36.925/48.588、
+parent-wrist37.311/48.887、robot-mean36.636/51.777、robot-wrist37.333/52.225。
+真实WAM各臂seen约0.16–0.19mm，但两留出macro/p95均劣化；none终点raw权重与旧实验
+逐位相同，六臂原标签/成员/指标复算通过。本接法UNPROMISING，结束当前来源/聚合扩展，
+不据此否定WAM、九源v3或跨手型核心假设。下一步优先区分BC状态覆盖与控制学习归纳偏置。
+
+重要边界：robot7k此前旧TRAIN已覆盖本轮隔离1670/1707条，因此“未见”仅针对新控制头；
+unseen987中800曾用于旧DEV选点。本轮不是整个系统无暴露的泛化Validation。
+代码e98b9a48；用户允许临时使用GPU6/7，约10min单卡合计计算、567MiB产物，现已释放。
+证据见[实验卡](experiments/probes/P-20261016-wam-source-control-transfer.md)与
+`outputs/ptv3-shared-wam-v2/wam-source-control-transfer-20261016-r1/summary/`。
+
 ## 2026-10-16 完整teacher输入：隔离局部插值也未泛化
 
 用户指定的三条件Probe已完成，固定Inspire/cup-mug、原完整1442D输入/单步q_PD/MLP，
