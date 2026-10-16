@@ -239,3 +239,8 @@ bootstrap、最后7步真正terminal零bootstrap、无内部reset/BC重复forwar
 实际next-state bootstrap和更新后新策略重放。独立只读审查未见阻断问题。
 `stats.ppo`是最后一段摘要；分段整episode必须读`ppo_segments`及
 `actor_optimizer_steps_this_episode`，不得拿最后7步的EV/loss冒充全199步。
+
+补充工程审计：KL保护若最终拒绝候选，原诊断可能记录已回滚候选的KL；现只读重算
+最终保留策略的KL，训练loss/accept/rollback不变。新增强制拒绝测试，14项通过。
+两卡smoke结束用`tools/audit/audit_distributed_ppo.py`审计跨rank权重、真实chunk长度、
+terminal/bootstrap标签、重放误差、冻结性及实际actor更新数后才进入训练。

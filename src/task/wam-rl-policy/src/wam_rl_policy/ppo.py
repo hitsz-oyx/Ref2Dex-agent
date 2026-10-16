@@ -131,6 +131,8 @@ def update(actor,critic,batch,actor_optimizer,critic_optimizer,bc_weight=.1,targ
             for group,rate in zip(actor_optimizer.param_groups,rates):group['lr']=rate
         if not accepted:break
         steps+=1
+    # A rejected candidate has been rolled back: report the actual retained policy.
+    with torch.no_grad():kl=float(reduce(torch.distributions.kl_divergence(old,actor.distribution(obs)).sum(-1).mean()))
     for _ in range(epochs):
         value_loss=(critic(obs)-returns).square().mean()
         if not torch.isfinite(value_loss):raise FloatingPointError('Nonfinite critic objective')

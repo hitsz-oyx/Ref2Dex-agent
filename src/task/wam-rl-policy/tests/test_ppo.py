@@ -108,3 +108,16 @@ def test_full_episode_rollout_retains_previous_optimizer_result():
     update_rollout(other_actor,other_critic,storage,torch.optim.Adam(other_actor.parameters(),lr=1e-4),torch.optim.Adam(other_critic.parameters(),lr=3e-4))
     for original,other in [(actor,other_actor),(critic,other_critic)]:
         for key,value in original.state_dict().items():assert torch.equal(value,other.state_dict()[key])
+
+
+def test_kl_rejection_reports_retained_policy_after_rollback():
+    torch.manual_seed(91);actor=Actor();critic=Critic();obs=torch.randn(4,3,327);obs[:,:,-24:]=0
+    with torch.no_grad():
+        dist=actor.distribution(obs);latent=dist.sample()
+        batch=dict(observation=obs,latent=latent,logp=dist.log_prob(latent).sum(-1),mean=dist.loc,std=dist.scale,
+            value=critic(obs),reward=torch.randn(4,3),done=torch.zeros(4,3,dtype=torch.bool),bootstrap=torch.zeros(3))
+        batch['done'][-1]=True
+    before={key:value.clone() for key,value in actor.state_dict().items()}
+    stats=update(actor,critic,batch,torch.optim.Adam(actor.parameters(),lr=1000),torch.optim.Adam(critic.parameters(),lr=3e-4))
+    assert stats['actor_steps']==0 and stats['joint_kl']==0
+    for key,value in actor.state_dict().items():assert torch.equal(value,before[key])
