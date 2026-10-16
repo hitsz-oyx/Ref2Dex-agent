@@ -7,10 +7,11 @@
 各组确实有约1.9万–2.8万次actor更新，不是未训练；full-action确定性偏离BC始终<.14，未真正挑战旧cap。
 因此这些负结果不用于关闭大网络、自由动作、保持奖励或WAM路线。当前结论UNCLEAR。
 下一项最便宜Decision：固定已有free TRAIN轨迹，GPU做Tanh/ELU × zero/remaining clock四臂
-fresh critic MC-return回归，同540D/初值/1000步；按物体留出，只判断价值学习资格。
+fresh critic MC-return回归，同540D/初值/1000步；按物体留出，只判断价值学习资格。已完成：留出MSE依次830/572/833/435；时钟PROMISING，尚非行为收益。
 
 远端四卡现在实际运行v3-none/v2-aligned/v3-aligned/v3-shuffled各200episode，公共MLP50k BC，
-独立冻结WAM encoder。当前13段在线EV多数仍为正，不能外推旧critic问题并停止WAM；保持队列。
+独立冻结WAM encoder。后续v2/shuffled分别连续8/10轮全部13段EV近零，且末两Tanh100%饱和，现保留产物并用owned STOP停止；
+不能以它们否定WAM。none/aligned仍有学习信号，继续200。释放GPU1/3做四臂25轮在线价值资格对照。
 v3物理预测新五域约35%改善尚未证明机器人收益；Shadow388DEV与v3源4 TRAIN对象无交集，
 但参与过预训练DEV，不称独立TEST。本地WAM PPO继续至200；100轮core held80→75/256，
 lift124→143、到达117→130、终点101→116；2条实际初态不一致，只作描述性读数。

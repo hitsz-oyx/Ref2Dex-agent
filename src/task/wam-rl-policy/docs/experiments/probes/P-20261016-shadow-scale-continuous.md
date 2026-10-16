@@ -378,3 +378,34 @@ run_id=shadow-critic-fit-20261016-r1；输入来自远端本scope既有free产�
 
 本地WAM第100轮core读出held80→75/256（第50轮83），lift124→143、到达117→130、终点101→116。
 实际首帧审计2/256不一致，故不是严格配对退步证据；保留独立comparison产物，不宣称收敛。
+
+离线资格Probe已完成，实际GPU拟合四臂共12.64s（含输入重构）；smoke20步亦通过。
+按物体留出的TRAIN MSE：Tanh-zero830.106、Tanh-remaining571.856、ELU-zero832.982、
+ELU-remaining434.903；对应fit MSE455.592/401.573/408.686/322.752。
+留出终末7步MSE817.451/92.337/1055.837/126.564。
+整体EV .336/.569/.325/.655。单换ELU没有留出改善，clock两种激活下均明显改善；
+clock-only时间均值基线1089.249，仍差于完整状态模型，不能说状态不重要。
+结果仅PROMISING于时间可观测性的回归修正，未证明PPO或机器人行为已改善。
+全部JSON已同步本地`outputs/wam-rl-policy/shadow-critic-fit-20261016-r1/`，模型留远端。
+独立只读审查确认目标对齐/按物体分组/四臂Linear初值与batch匹配；默认旧网络初始化逐值不变。
+这些fresh540D critic并非原在线539D critic初始化重放，且BC见过这些TRAIN留出物体，边界保留。
+
+### Decision Note：两臂后续持续塌缩，释放GPU做短在线资格（2026-10-16）
+
+新证据改变上一条保留判断：v2-aligned ep30–37连续8episode、v3-shuffled ep26–35连续10episode，
+全部13段|EV|<1e-4。实际64×2631输入上v2输出逐值同63.1915817，shuffled仅59.6794853..59.6794891；
+两臂最后两Tanh全100%饱和、512末层单元跨state std<1e-5，终末loss约2000–2900。
+none/aligned尚无全段近零episode，在线EV仍.426–.961/.554–.979。
+root选择通过本任务queue STOP保留并停止v2-aligned、v3-shuffled，标记INTERRUPTED_RECIPE_COLLAPSE；
+不能将不等训练预算、未完成审计/未完成DEV面板作为WAM比较，也不认为v2无效。none/aligned继续200。
+
+下一步在释放的远端GPU1/3顺序各跑两臂，Tanh/ELU × zero/remaining clock，fresh25episode、
+各32TRAIN/128env、636800envsteps，540D同large actor，fullGaussian/native、16步/5×4mini，
+相同BC50k/seed245,246,247/Linear初值、每臂先2episode工程smoke+分布式审计。
+run_id=shadow-value-qualification-{tanh-zero,tanh-remaining,elu-zero,elu-remaining}-32obj-20261016-r1。
+clock此处同时提供actor和critic，不将任何行为差异单独归因critic时钟。全部臂固定25终点，
+用TRAIN内在线EV/终末误差/真实动作偏移/饱和验证优化资格；不按DEV挑配方，不在此时启动正式结论。
+每臂<=20min、每卡两臂队列<=1h；沿用冻结/原生执行/重放/真实terminal/bootstrap硬合同。
+若末10轮大部分chunk EV>0且无连续3轮全13段近零，可继续其200episode与固定DEV读出；
+若四臂都失败，保留结果，检查value target尺度/critic warmup，不追加盲目大规模训练。
+两卡通过STOP确认原owned进程结束、nvidia-smi空闲才启动，不能干预其他GPU或外部作业。
