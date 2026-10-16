@@ -34,6 +34,10 @@ def worker(a):
         manifest=json.loads(a.object_manifest.read_text())
         if manifest.get('real_asset_closure_bytes',513*2**20)>512*2**20:raise ValueError('Scale shard asset closure unaudited')
         text=text.replace('> 128*2**20:', '> 512*2**20:')
+    if a.bc_kind=='none':
+        begin=text.index('    actor_layers = []')
+        end=text.index('    # The official replay asset',begin)
+        text=text[:begin]+'    actor = None  # Independent PPO never loads an official actor.\n'+text[end:]
     interventions=[]
     if a.retain_reset_indices:
         helper='''def _keep_gpu_index(task, value):
@@ -72,7 +76,7 @@ def worker(a):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--checkpoint',type=Path,required=True)
+    p.add_argument('--checkpoint',type=Path)
     p.add_argument('--wam-feature-checkpoint',type=Path)
     p.add_argument('--cache',type=Path,required=True)
     p.add_argument('--object-manifest',type=Path,required=True)
@@ -85,7 +89,7 @@ def main():
     p.add_argument('--updates',type=int,default=20)
     p.add_argument('--seconds',type=int,default=2400)
     p.add_argument('--alpha',type=float,default=.15)
-    p.add_argument('--bc-kind',choices=('wam','mlp'),default='wam')
+    p.add_argument('--bc-kind',choices=('wam','mlp','none'),default='wam')
     p.add_argument('--experiment-id',default='P-20261016-shadow-bc-ppo')
     p.add_argument('--policy-seed',type=int,default=231)
     p.add_argument('--exploration-seed',type=int,default=232)
@@ -100,9 +104,9 @@ def main():
     p.add_argument('--single-reset-target-setter',action='store_true')
     p.add_argument('--force-zero-residual',action='store_true')
     p.add_argument('--outside-support-zero',action='store_true')
-    p.add_argument('--observation-kind',choices=('native','normalized','bc-hidden','wam-none','wam-aligned','wam-shuffled'),default='native')
+    p.add_argument('--observation-kind',choices=('native','normalized','bc-hidden','wam-none','wam-aligned','wam-shuffled','motion-none','motion-geometry','motion-wam'),default='native')
     p.add_argument('--network-kind',choices=('small','large'),default='small')
-    p.add_argument('--action-kind',choices=('residual','reference-gaussian'),default='residual')
+    p.add_argument('--action-kind',choices=('residual','reference-gaussian','independent-gaussian'),default='residual')
     p.add_argument('--reward-kind',choices=('native','hold'),default='native')
     p.add_argument('--ppo-epochs',type=int,default=4)
     p.add_argument('--ppo-minibatches',type=int,default=1)
@@ -112,7 +116,7 @@ def main():
     p.add_argument('--stop-after-dead-critic-episodes',type=int,default=0)
     p.add_argument('--rollout-steps',type=int,default=199)
     p.add_argument('--worker',action='store_true');a=p.parse_args()
-    a.output=a.output.resolve();a.checkpoint=a.checkpoint.resolve();a.cache=a.cache.resolve()
+    a.output=a.output.resolve();a.checkpoint=a.checkpoint.resolve() if a.checkpoint else None;a.cache=a.cache.resolve()
     if a.rl_checkpoint:a.rl_checkpoint=a.rl_checkpoint.resolve()
     if a.wam_feature_checkpoint:a.wam_feature_checkpoint=a.wam_feature_checkpoint.resolve()
     identity=ROOT/'outputs/wam-rl-policy/deployed-source.json'
@@ -120,6 +124,15 @@ def main():
         os.environ.get('REF2DEX_CODE_COMMIT') or subprocess.check_output(['git','rev-parse','HEAD'],cwd=TASK,text=True).strip())
     if not 1<=a.envs<=256 or not 1<=a.updates<=200 or a.alpha!=.15 or not 1<=a.world_size<=4 or not -5<=a.initial_log_std<=-1.2:
         raise ValueError('Scale bounds:1..256env/rank,1..200updates,1..4ranks,alpha0.15')
+    if a.bc_kind=='none':
+        if a.checkpoint or a.action_kind!='independent-gaussian' or a.mode not in ('train','evaluate') or a.force_zero_residual:
+            raise ValueError('Independent mode requires no BC checkpoint, independent actions and train/evaluate')
+        if a.observation_kind not in ('native','motion-none','motion-geometry','motion-wam'):
+            raise ValueError('Independent mode admits native or motion reference observations')
+    elif a.checkpoint is None or a.action_kind=='independent-gaussian':
+        raise ValueError('Legacy BC modes require checkpoint and reference action kind')
+    if a.observation_kind=='motion-wam' and a.wam_feature_checkpoint is None:raise ValueError('Motion WAM requires its frozen checkpoint')
+    if a.observation_kind in ('motion-none','motion-geometry') and a.wam_feature_checkpoint:raise ValueError('Control arms must not load WAM')
     if a.mode=='evaluate' and a.rl_checkpoint is None:raise ValueError('Evaluate requires RL checkpoint')
     if a.rl_checkpoint and a.mode not in ('train','evaluate'):raise ValueError('RL checkpoint only for train resume/evaluate')
     if a.capture_warm_state and not a.synchronize_warm_step:raise ValueError('Warm capture requires explicitly synchronized probe')

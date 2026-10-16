@@ -25,6 +25,13 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261016-independent-motion-ppo:
+    seed_pool: probe
+    reset_seed: 245
+    initialization_seed: 246
+    exploration_seed: 247
+    reuse_reason: independent action bridge on existing TRAIN panel; matched arms, not an independent replicate
+
   P-20261016-wam-learned-short-goal:
     seed_pool: probe
     initialization_seed: 246

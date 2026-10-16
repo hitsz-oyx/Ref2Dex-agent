@@ -77,7 +77,7 @@ def dead_critic_streak(curves,episodes):
 
 def apply_policy_action(base,latent,kind='residual'):
     if kind=='residual':return apply_residual(base,latent)
-    if kind!='reference-gaussian' or base.shape!=latent.shape:raise ValueError('Unknown policy action contract')
+    if kind not in ('reference-gaussian','independent-gaussian') or base.shape!=latent.shape:raise ValueError('Unknown policy action contract')
     return latent.clamp(-1,1),latent,latent-base
 
 
@@ -96,7 +96,7 @@ class Actor(nn.Module):
     def __init__(self,initial_log_std=-2.5,obs_dim=OBS_DIM,network_kind='small',action_kind='residual'):
         super().__init__()
         if not -5<=initial_log_std<=-1.2:raise ValueError('Initial latent log_std outside admitted clamp')
-        if action_kind not in ('residual','reference-gaussian'):raise ValueError('Unknown policy action kind')
+        if action_kind not in ('residual','reference-gaussian','independent-gaussian'):raise ValueError('Unknown policy action kind')
         self.action_kind=action_kind
         self.net=control_mlp(obs_dim,ACTION_DIM,network_kind)
         nn.init.zeros_(self.net[-1].weight);nn.init.zeros_(self.net[-1].bias)
@@ -165,7 +165,8 @@ def update(actor,critic,batch,actor_optimizer,critic_optimizer,bc_weight=.1,targ
         surrogate=-torch.minimum(ratio*adv,ratio.clamp(.8,1.2)*adv).mean()
         # Penalize executed deterministic canonical deviation, not latent units.
         base=obs[:,-24:];reference=apply_policy_action(base,dist.loc,actor.action_kind)[0]
-        reg=(reference-base).square().mean();loss=surrogate+bc_weight*reg
+        reg=(reference-base).square().mean() if actor.action_kind!='independent-gaussian' else dist.loc.sum()*0
+        loss=surrogate+bc_weight*reg
         if not torch.isfinite(loss):raise FloatingPointError('Nonfinite actor objective')
         actor_optimizer.zero_grad(set_to_none=True);loss.backward();synchronize_gradients(actor);nn.utils.clip_grad_norm_(actor.parameters(),.5)
         before=copy.deepcopy(actor.state_dict());optim_before=copy.deepcopy(actor_optimizer.state_dict())

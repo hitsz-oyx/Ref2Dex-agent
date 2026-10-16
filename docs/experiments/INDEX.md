@@ -839,6 +839,12 @@
 | [P-20261010-video-point-dynamics](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-video-point-dynamics.md) | Video point prediction without dense future hand labels | 见原卡 | distinguish premature clip-start track death from intrinsically poor | probes/UNPROMISING |
 | [P-20261011-video-motion-token](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-video-motion-token.md) | Metric-3D history motion-token Probe | 见原卡 | 见原卡 | probes/UNPROMISING |
 
+## HF-wam-motion-execution
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261016-independent-motion-ppo](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261016-independent-motion-ppo.md) | 无BC的PPO与因果运动参考接口资格 | 见原卡 | 见原卡 | probes/UNCLEAR |
+
 ## HF-wam-residual-ppo
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
