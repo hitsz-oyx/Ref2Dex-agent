@@ -81,3 +81,17 @@ BC regularizer=0，仍保留BC这一初始化/参数化，不能称无BC或零�
 skip-official-actor参数，防止加载记录与实际不符。none的几何观测差异已明确记录，
 WAM/geometry比较不声称隔离了纯奖励贡献。四项协调数学测试覆盖刚体不变性、滑落、
 proper rotation与跌落禁奖；小数学测试CPU，模型/仿真使用GPU。
+
+## 基线与工程资格（代码360054d7）
+
+BC固定动作下TRAIN保持45/128、到达68；DEV保持28/128、到达42，满足基线资格。
+WAM参考在启用phase内100%准入，TRAIN/DEV启用比例25.1%/15.6%，相对手目标平均
+改变4.25/4.27mm；说明这次主要检验毫米级稳定构型修正，不能宣传大幅技能生成。
+
+三臂2episode smoke全部完成，真实九类首帧逐值一致；奖励按真实next-state独立重算
+最大误差2.98e-8，none bonus严格为0，BC/WAM冻结和执行链路通过。28项相关单测通过。
+`coordination-panel-20261016-r1/{baseline-audit,smoke-audit}.json`保存证据；smoke审查
+中的历史字段bc_only实际以第一条none-smoke为anchor，仅检查配对，不当作BC退步指标。
+后续审查字段改为reference_only，正式DEV以实际BC baseline为anchor。
+
+按既定协议进入fresh25轮及固定DEV读出，不按smoke行为挑选参数。
