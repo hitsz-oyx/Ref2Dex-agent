@@ -1,3 +1,16 @@
+## 2026-10-16 完整teacher输入：隔离局部插值也未泛化
+
+用户指定的三条件Probe已完成，固定Inspire/cup-mug、原完整1442D输入/单步q_PD/MLP，
+代码ce823f98、GPU5/24k/77秒。seen6849tick序列等权PDXYZ mean0.564mm，
+同序列隔离1707tick/47序列32.652mm，原DEV987tick/6序列42.436mm；
+逐帧mean分别1.334/30.371/41.623mm。原H4–future24支持不重叠，隔离带2538tick不训练，
+目标归一化仅训练行；新进程checkpoint重推/原label复算/初始参数一致性审计PASS。
+同47序列seen-later仅0.662mm，45/47插值序列mean>10mm，差距不靠startup比例或个别异常解释。
+当前学生局部泛化UNPROMISING；不把它认定成仅新序列覆盖问题或已证明序列ID记忆。
+下一步优先在固定隔离面板上区分控制表示/目标损失/优化归纳偏置；不追加同类整套训练，
+尚未进入闭环动力学归因。GPU5已释放，无新训练启动。详见
+[实验卡](experiments/probes/P-20261016-teacher-sequence-generalization.md)。
+
 ## 2026-10-16 query控制头容量/goal五臂完成，Shadow BC→RL已同步试跑
 
 冻结原shared7k WAM、同strict窗口和完整tokens，fresh query头6000步五臂全部完成。
