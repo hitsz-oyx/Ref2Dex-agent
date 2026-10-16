@@ -113,3 +113,15 @@ Decision：若200轮仍无清晰DEV改善，优先区分“探索幅度不足”
 标签，分别报告startup(<8)、原admitted时段(8..151)、late(152..198)的24D/root/finger MAE。
 如果late没有明显异常，不投入全量重训；若late误差明显高，则再考虑明确的新current-safe
 准入训练，不得称其与旧forecast准入数据完全匹配。该审计不改变训练、不使用未来输入。
+
+上述离线审计已完成（388DEV每对象一序列，GPU2，1.99s）：startup MAE .005789，admitted
+period .020785，late .005250；对应root .009196/.035539/.015350。因此不启动尾段准入重训。
+这只说明所采离线安全尾段拟合未见异常，不证明所有闭环分布外尾段都没有问题。
+
+warm-cache BC再次得到与cold BC相同的4环境初态，cold/cache本身不充分解释。独立审查
+未见全局RNG分支错误；发现vendor reset内和pre_physics_step末尾在同次simulate前两次
+调用同一GPU position-target setter，与本机官方Gym文档建议不一致，尚未证实因果。
+下一最小工程probe：只在新输出开`synchronize_warm_step`，把原warm step展开为相同zero
+pre_physics→Torch synchronize→simulate/fetch→post；保存pre-warm完整root/DOF/targets/
+yaw/forces。固定shard01/128env/seed249，同GPU分别BC与PPO，区分reset输入差异和warm
+物理步差异。若仍有问题再检查重复setter/foreign-stream临时索引生命期，不先大改RNG。

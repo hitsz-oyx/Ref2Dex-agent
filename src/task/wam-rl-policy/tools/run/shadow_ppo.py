@@ -64,6 +64,7 @@ def main():
     p.add_argument('--rendezvous',default='tcp://127.0.0.1:29541')
     p.add_argument('--trace-every',type=int,default=1)
     p.add_argument('--initial-log-std',type=float,default=-2.5)
+    p.add_argument('--synchronize-warm-step',action='store_true')
     p.add_argument('--worker',action='store_true');a=p.parse_args()
     a.output=a.output.resolve();a.checkpoint=a.checkpoint.resolve();a.cache=a.cache.resolve()
     a.code_commit=os.environ.get('REF2DEX_CODE_COMMIT') or subprocess.check_output(['git','rev-parse','HEAD'],cwd=TASK,text=True).strip()
