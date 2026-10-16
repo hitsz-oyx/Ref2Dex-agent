@@ -420,3 +420,30 @@ evaluate_scale_pair与真实初态审计。两组仍继续200；不根据中期D
 run_id=shadow-wam-feature-{v3-none,v3-aligned}-u50-core-seed249-20261016-r1。
 目的是获得及时的闭环初步读数，若无稳定明显收益仍等固定200及后续修正配方，不追加DEV网格。
 每组配对评估<=1h、含等待队列<=2h；相同64物体/256轨迹，非全388DEV，不作正式结论。
+
+停机后可重放检查由`tools/audit/audit_critic_saturation.py`保存至
+`outputs/wam-rl-policy/shadow-feature-saturation-audit-20261016-r1.json`（本地已同步）。
+最终保留v2/shuffled checkpoint为39/37轮，native训练在STOP响应期间完成了少量额外episode。
+v2第39轮后半chunk EV已从接近0恢复到.89，但终段仍.00015；不能描述为“从此不可恢复”的塌缩。
+shuffled终点仍连续12轮全13段近零。停止依据是先前长段学习失效和优先诊断配方，而非证明永久失效。
+none/v3-aligned第56/51轮仍在线EV正；陈旧初始输入上深层饱和较高不单独触发停止。
+四组actor在同一实际初始输入上的四层Tanh饱和率均为0，未发现与critic相同的actor饱和证据；
+因此当前只修critic激活/显式时钟，不扩展无证据的actor激活网格。
+
+在线25轮四臂全部完成且各freeze/原生执行/实际chunk审计PASS。末10轮全chunk EV中位
+Tanh-zero/.remaining=.866/.916，ELU-zero/.remaining=.953/.966；终末7步EV中位为
+.517/.559/-.114/-.204，对应末minibatch物理MSE中位43.1/32.2/368.4/220.5。
+TRAIN held均值39.4/38.9/38.2/38.1（每轮128条），没有行为提升信号；不能按最后一轮49条挑选。
+clock稍改善Tanh，ELU终段仍不合格；没有证据支持立即将ELU配方推广为WAM“修复”。
+全部curve/manifest/audit及摘要已同步本地`shadow-value-qualification-summary-20261016-r2.json`。
+
+### Decision Note：先便宜检验value target尺度（2026-10-16）
+
+目的：区分“必须更大网络”与“深层critic被数十量级的原始target推向饱和”；在线clock/ELU尚不足。
+只追加已有free同两批TRAIN轨迹的GPU回归，每臂1000步/同540D/同初值/batch/物体分组，
+target除以固定100，推理乘100还原为原物理return单位；所有报告MSE/EV仍用原单位。
+与既有scale1比较，完整四臂重复总预计<30s；它同时改变回归参数化与有效gradient clipping尺度，
+不宣称只是无影响的数值单位变换。run_id=shadow-critic-fit-scale100-20261016-r1。
+只在本任务远端GPU0短暂共享，<=600s/新增<128MiB；不改PPO、不改native reward、不重跑仿真。
+若明显缓解饱和并改善留出误差，再实现正确物理bootstrap/GAE的短在线scale1/100对照；
+否则不扩张此变量。当前v3两组50轮行为评估继续，本地与远端未停止的200轮训练继续。

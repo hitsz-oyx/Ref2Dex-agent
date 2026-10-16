@@ -44,8 +44,8 @@ def metrics(prediction, target):
 
 
 @torch.no_grad()
-def evaluate(model, x, y, train_mask, terminal_mask):
-    pred = torch.cat([model(chunk) for chunk in x.split(2048)])
+def evaluate(model, x, y, train_mask, terminal_mask, target_scale=1.):
+    pred = torch.cat([model(chunk) for chunk in x.split(2048)]) * target_scale
     result = {}
     for name, selected in [('fit', train_mask), ('heldout_objects', ~train_mask)]:
         result[name] = metrics(pred[selected], y[selected])
@@ -69,6 +69,7 @@ def main():
     p.add_argument('--allow-owned-gpu-share', action='store_true')
     p.add_argument('--steps', type=int, default=1000)
     p.add_argument('--seconds', type=int, default=600)
+    p.add_argument('--target-scale', type=float, choices=(1.,100.), default=1.)
     a = p.parse_args()
     if a.output.exists() or not 1 <= a.steps <= 2000 or not 1 <= a.seconds <= 600:
         raise ValueError('Fresh bounded output required')
@@ -124,6 +125,7 @@ def main():
         samples=len(y),fit_samples=int(fit.sum()),gamma=.99,finite_terminal_bootstrap=0,
         target='actual finite discounted return of recorded within-episode policy mixture; not GAE',
         network='1024/1024/1024/512',steps=a.steps,batch=1024,lr=3e-4,gradient_clip=1.,
+        target_scale=a.target_scale,value_reconstruction='physical V = target_scale * raw network output',
         policy_seed=246,batch_seed=1000247,gpu=a.gpu,max_seconds=a.seconds,
         shared_with_owned_wam_none=a.allow_owned_gpu_share,
         scope='TRAIN-only fresh critic regression qualification; no fixed-policy V or robot improvement claim')
@@ -147,18 +149,19 @@ def main():
             history=[]
             for step in range(a.steps+1):
                 if step in (0,100,300,a.steps):
-                    report=evaluate(model,obs,y,fit,terminal)
+                    report=evaluate(model,obs,y,fit,terminal,a.target_scale)
                     history.append(dict(step=step,elapsed_s=time.monotonic()-started,**report))
                     print(json.dumps(dict(arm=name,step=step,heldout=report['heldout_objects'],fit=report['fit'])),flush=True)
                     write(a.output/(name+'.json'),history)
                 if step==a.steps:break
                 if time.monotonic()-started>a.seconds:raise TimeoutError('Bounded critic regression budget')
                 ids=train_indices[torch.randint(len(train_indices),(1024,),device=device,generator=generator)]
-                loss=(model(obs[ids])-y[ids]).square().mean()
+                loss=(model(obs[ids])-y[ids]/a.target_scale).square().mean()
                 if not torch.isfinite(loss):raise FloatingPointError('Nonfinite critic fit')
                 optimizer.zero_grad(set_to_none=True);loss.backward()
                 nn.utils.clip_grad_norm_(model.parameters(),1.);optimizer.step()
-            torch.save(dict(critic=model.state_dict(),activation=activation,clock_kind=clock,steps=a.steps),a.output/(name+'.pt'))
+            torch.save(dict(critic=model.state_dict(),activation=activation,clock_kind=clock,steps=a.steps,
+                            target_scale=a.target_scale),a.output/(name+'.pt'))
             results[name]=history[-1]
             del model,optimizer,obs
     write(a.output/'summary.json',dict(status='UNCLEAR',baselines=baselines,arms=results,
