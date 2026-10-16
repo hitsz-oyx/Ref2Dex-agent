@@ -844,6 +844,7 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261016-independent-motion-ppo](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261016-independent-motion-ppo.md) | 无BC的PPO与因果运动参考接口资格 | 见原卡 | 见原卡 | probes/PROMISING |
+| [P-20261016-wam-coordination-bonus](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261016-wam-coordination-bonus.md) | 保留抓取起点，检验WAM相对协调奖励 | 见原卡 | 见原卡 | probes/UNCLEAR |
 
 ## HF-wam-residual-ppo
 

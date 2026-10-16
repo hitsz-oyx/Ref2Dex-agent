@@ -34,7 +34,7 @@ def worker(a):
         manifest=json.loads(a.object_manifest.read_text())
         if manifest.get('real_asset_closure_bytes',513*2**20)>512*2**20:raise ValueError('Scale shard asset closure unaudited')
         text=text.replace('> 128*2**20:', '> 512*2**20:')
-    if a.bc_kind=='none':
+    if a.bc_kind=='none' or a.skip_official_actor:
         begin=text.index('    actor_layers = []')
         end=text.index('    # The official replay asset',begin)
         text=text[:begin]+'    actor = None  # Independent PPO never loads an official actor.\n'+text[end:]
@@ -89,6 +89,10 @@ def main():
     p.add_argument('--updates',type=int,default=20)
     p.add_argument('--seconds',type=int,default=2400)
     p.add_argument('--alpha',type=float,default=.15)
+    p.add_argument('--skip-official-actor',action='store_true')
+    p.add_argument('--bc-weight',type=float,default=.1)
+    p.add_argument('--coordination-kind',choices=('off','none','geometry','wam'),default='off')
+    p.add_argument('--coordination-weight',type=float,default=.2)
     p.add_argument('--bc-kind',choices=('wam','mlp','none'),default='wam')
     p.add_argument('--experiment-id',default='P-20261016-shadow-bc-ppo')
     p.add_argument('--policy-seed',type=int,default=231)
@@ -124,6 +128,11 @@ def main():
         os.environ.get('REF2DEX_CODE_COMMIT') or subprocess.check_output(['git','rev-parse','HEAD'],cwd=TASK,text=True).strip())
     if not 1<=a.envs<=256 or not 1<=a.updates<=200 or a.alpha!=.15 or not 1<=a.world_size<=4 or not -5<=a.initial_log_std<=-1.2:
         raise ValueError('Scale bounds:1..256env/rank,1..200updates,1..4ranks,alpha0.15')
+    if a.skip_official_actor and a.bc_kind not in ('none','mlp'):raise ValueError('Only MLP/independent policy can skip official actor')
+    if not 0<=a.bc_weight<=.1 or not 0<=a.coordination_weight<=.2:raise ValueError('Bounded shaping coefficients required')
+    if a.coordination_kind!='off':
+        if a.bc_kind!='mlp' or a.observation_kind!='native' or a.action_kind!='reference-gaussian':raise ValueError('Coordination probe requires common MLP and native reference-gaussian policy')
+        if (a.coordination_kind=='wam') != (a.wam_feature_checkpoint is not None):raise ValueError('Only WAM coordination loads WAM')
     if a.bc_kind=='none':
         if a.checkpoint or a.action_kind!='independent-gaussian' or a.mode not in ('train','evaluate') or a.force_zero_residual:
             raise ValueError('Independent mode requires no BC checkpoint, independent actions and train/evaluate')

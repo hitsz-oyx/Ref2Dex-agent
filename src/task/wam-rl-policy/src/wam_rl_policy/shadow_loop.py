@@ -16,6 +16,7 @@ from .fast_bc import FastController
 from .rewards import position_hold_bonus
 from .wam_features import FeatureController
 from .motion_reference import NoReference, MotionReference
+from .coordination import CoordinationReference
 
 
 def write(path,value):
@@ -25,7 +26,7 @@ def write(path,value):
 
 def run(task,snapshot,env_objects,teacher,args):
     # Existing bounded launchers may be initializing assets while optional diagnostics are added.
-    for name,default in [('initial_log_std',-2.5),('synchronize_warm_step',False),('capture_warm_state',False),('retain_reset_indices',False),('single_reset_target_setter',False),('force_zero_residual',False),('outside_support_zero',False),('observation_kind','native'),('rollout_steps',199),('network_kind','small'),('action_kind','residual'),('reward_kind','native'),('ppo_epochs',4),('ppo_minibatches',1),('wam_feature_checkpoint',None),('clock_kind','none'),('critic_activation','tanh'),('value_scale',1.)]:
+    for name,default in [('initial_log_std',-2.5),('synchronize_warm_step',False),('capture_warm_state',False),('retain_reset_indices',False),('single_reset_target_setter',False),('force_zero_residual',False),('outside_support_zero',False),('observation_kind','native'),('rollout_steps',199),('network_kind','small'),('action_kind','residual'),('reward_kind','native'),('ppo_epochs',4),('ppo_minibatches',1),('wam_feature_checkpoint',None),('clock_kind','none'),('critic_activation','tanh'),('value_scale',1.),('bc_weight',.1),('coordination_kind','off'),('coordination_weight',.2),('skip_official_actor',False)]:
         if not hasattr(args,name):setattr(args,name,default)
     if not hasattr(args,'stop_after_dead_critic_episodes'):args.stop_after_dead_critic_episodes=0
     out=args.output;started=time.monotonic()
@@ -52,9 +53,9 @@ def run(task,snapshot,env_objects,teacher,args):
         saved_steps=saved.get('config',{}).get('rollout_steps',199)
         if args.mode=='train' and saved_steps!=args.rollout_steps:raise ValueError('Resume must retain PPO rollout length')
         args.rollout_steps=saved_steps
-        for name,default in [('network_kind','small'),('action_kind','residual'),('reward_kind','native'),('ppo_epochs',4),('ppo_minibatches',1),('clock_kind','none'),('critic_activation','tanh'),('value_scale',1.)]:
+        for name,default in [('network_kind','small'),('action_kind','residual'),('reward_kind','native'),('ppo_epochs',4),('ppo_minibatches',1),('clock_kind','none'),('critic_activation','tanh'),('value_scale',1.),('bc_weight',.1),('coordination_kind','off'),('coordination_weight',.2),('skip_official_actor',False)]:
             value=saved.get('config',{}).get(name,default)
-            if args.mode=='train' and getattr(args,name)!=value:raise ValueError('Resume must retain '+name)
+            if (args.mode=='train' or name=='skip_official_actor') and getattr(args,name)!=value:raise ValueError('Resume/evaluate must retain '+name)
             setattr(args,name,value)
         feature_path=saved.get('config',{}).get('wam_feature_checkpoint')
         if args.mode=='train' and feature_path!=(str(args.wam_feature_checkpoint) if args.wam_feature_checkpoint else None):raise ValueError('Resume must retain independent WAM feature source')
@@ -67,13 +68,15 @@ def run(task,snapshot,env_objects,teacher,args):
     if args.observation_kind in ('normalized','bc-hidden') and args.bc_kind!='mlp':raise ValueError('Current BC features require the MLP reference')
     use_motion=args.observation_kind.startswith('motion-')
     if use_motion and not independent:raise ValueError('Motion bridge currently requires independent policy')
-    if args.wam_feature_checkpoint and not (use_wam or use_motion):raise ValueError('Independent WAM source requires an explicit z condition')
-    feature_bc=FeatureController(args.wam_feature_checkpoint,env_objects,args.cache) if args.wam_feature_checkpoint and not use_motion else bc
+    use_coordination=args.coordination_kind!='off'
+    if args.wam_feature_checkpoint and not (use_wam or use_motion or use_coordination):raise ValueError('Independent WAM source requires an explicit z condition')
+    feature_bc=FeatureController(args.wam_feature_checkpoint,env_objects,args.cache) if args.wam_feature_checkpoint and not (use_motion or use_coordination) else bc
     if use_wam and not isinstance(feature_bc,FastController):raise ValueError('Direct WAM summaries require a WAM feature source')
     feature_bc.expose_wam_features=use_wam
     feature_bc.allow_invalid_zero=args.outside_support_zero
     motion=MotionReference(args.observation_kind,args.wam_feature_checkpoint,env_objects,args.cache) if use_motion else None
-    obs_dim=586 if use_motion else 2631 if use_wam else (327 if args.observation_kind=='native' else 539)
+    if use_coordination:motion=CoordinationReference(args.coordination_kind,args.wam_feature_checkpoint,env_objects,args.cache)
+    obs_dim=362 if use_coordination else 586 if use_motion else 2631 if use_wam else (327 if args.observation_kind=='native' else 539)
     if args.clock_kind!='none':obs_dim+=1
     permutation=list(range(len(env_objects)))
     if args.observation_kind=='wam-shuffled':
@@ -107,8 +110,9 @@ def run(task,snapshot,env_objects,teacher,args):
     manifest=dict(schema=SCHEMA,status='RUNNING',mode=args.mode,pid=__import__('os').getpid(),
         experiment_id=args.experiment_id,run_id=out.name,git_commit=args.code_commit,bc_kind=args.bc_kind,
         base_checkpoint=base_checkpoint,rl_checkpoint=str(args.rl_checkpoint) if args.rl_checkpoint else None,
-        uses_wam=args.bc_kind=='wam' or use_wam or args.observation_kind=='motion-wam',frozen_wam=True if args.bc_kind=='wam' or use_wam or args.observation_kind=='motion-wam' else None,frozen_bc=not independent,official_actor_loaded=not independent,
+        uses_wam=args.bc_kind=='wam' or use_wam or args.observation_kind=='motion-wam' or args.coordination_kind=='wam',frozen_wam=True if args.bc_kind=='wam' or use_wam or args.observation_kind=='motion-wam' or args.coordination_kind=='wam' else None,frozen_bc=not independent,official_actor_loaded=not (independent or args.skip_official_actor),skip_official_actor=args.skip_official_actor,
         motion_reference=motion.contract if motion else None,
+        coordination_kind=args.coordination_kind,coordination_weight=args.coordination_weight,
         wam_feature_checkpoint=str(args.wam_feature_checkpoint) if args.wam_feature_checkpoint else None,
         wam_feature_schema=getattr(feature_bc,'schema',None),wam_feature_step=getattr(feature_bc,'source_step',None),
         trainable=('new%dD actor/critic only; no BC or official actor'%obs_dim if independent else 'new%dD actor/critic only; frozen BC features; no WAM token adapter'%obs_dim),
@@ -119,7 +123,7 @@ def run(task,snapshot,env_objects,teacher,args):
         wam_donor_indices=permutation if use_wam else None,
         direct_wam_condition=args.observation_kind if use_wam else None,
         wam_input_audit=use_wam,
-        representation=('native current300 + explicit goal3 + held motion errors258/age1 + zero compatibility24' if use_motion else 'native current300 + per-type LayerNorm WAM2304 + explicit goal3/reference24' if use_wam else
+        representation=('native current300 + goal3 + relative hand errors33/age1/eligible1 + BC24' if use_coordination else 'native current300 + explicit goal3 + held motion errors258/age1 + zero compatibility24' if use_motion else 'native current300 + per-type LayerNorm WAM2304 + explicit goal3/reference24' if use_wam else
             ('native clamp current300' if args.observation_kind=='native' else '512D current-only frozen prefix, per-state LayerNorm; explicit goal3/reference24 unchanged')),
         alpha=args.alpha if args.action_kind=='residual' else None,
         exploration=('tanh latent Normal residual' if args.action_kind=='residual' else 'direct canonical Normal around learned mean; no BC bias' if independent else 'direct canonical Normal around BC+learned mean; native clip only')+'; independent per-rank CUDA RNG',initial_log_std=args.initial_log_std,
@@ -133,7 +137,7 @@ def run(task,snapshot,env_objects,teacher,args):
         outside_support_policy=('persistent zero BC reference until episode reset' if args.outside_support_zero else 'reject run') if args.bc_kind=='wam' else 'no BC' if independent else 'current MLP BC has no history-range gate',
         wam_feature_outside_support_policy=('zero z until episode reset; BC action unchanged' if args.outside_support_zero else 'reject run') if use_wam and feature_bc is not bc else None,
         reward_kind=args.reward_kind,reward='official goal_cond=False native reward'+(' + 1/tick low-speed position hold: goal<=5cm,lift>=10cm,speed<=0.1m/s' if args.reward_kind=='hold' else ''),gamma=.99,gae_lambda=.95,
-        bc_weight=0. if independent else .1,actor_lr=1e-4,critic_lr=3e-4,ppo_epochs=args.ppo_epochs,ppo_minibatches=args.ppo_minibatches,target_joint_kl=.02,
+        bc_weight=0. if independent else args.bc_weight,actor_lr=1e-4,critic_lr=3e-4,ppo_epochs=args.ppo_epochs,ppo_minibatches=args.ppo_minibatches,target_joint_kl=.02,
         rollout_steps=args.rollout_steps,interior_bootstrap='actual next-state critic before optimizer update; no simulator reset',
         stop_after_dead_critic_episodes=args.stop_after_dead_critic_episodes,
         max_seconds=args.seconds,artifact_budget_bytes=2*2**30,
@@ -160,7 +164,7 @@ def run(task,snapshot,env_objects,teacher,args):
             torch.cuda.synchronize();task.post_physics_step()
         else:task.step(torch.zeros((args.envs,24),device='cuda'),-1)
         frames=[snapshot()];commands=[];bases=[];latents=[];intendeds=[];applied=[];forces=[];torques=[];targets=[]
-        rewards=[];native_rewards=[];hold_bonuses=[];storage={k:[] for k in ('observation','latent','mean','std','logp','value','reward','done')}
+        rewards=[];native_rewards=[];hold_bonuses=[];coordination_bonuses=[];coordination_enabled=[];coordination_valid=[];storage={k:[] for k in ('observation','latent','mean','std','logp','value','reward','done')}
         motion_max_clip=0.;motion_max_error=0.
         initial_z=torch.as_tensor(frames[0]['object'][:,2],device='cuda')
         execution_error=dict(canonical_to_world=0.,force=0.,torque=0.,finger_target=0.);fallback_env_ticks=0;feature_fallback_ticks=0;ppo_segments=[]
@@ -192,7 +196,8 @@ def run(task,snapshot,env_objects,teacher,args):
                     elif args.observation_kind=='wam-shuffled':wam_features=wam_features[donor_indices]
                 obs=observation(task.obs_buf,relative_goal,base,features,wam_features)
                 if motion is not None:
-                    reference=motion.observe(snap,tick,task.z_theta if task.repose_z else torch.zeros(args.envs,device='cuda'))
+                    yaw=task.z_theta if task.repose_z else torch.zeros(args.envs,device='cuda')
+                    reference=motion.observe(snap,tick,yaw,initial_z) if use_coordination else motion.observe(snap,tick,yaw)
                     obs=torch.cat((obs[:,:-24],reference,obs[:,-24:]),-1)
                     motion_max_clip=max(motion_max_clip,motion.clipped_fraction)
                     motion_max_error=max(motion_max_error,motion.unclipped_max_m)
@@ -204,7 +209,7 @@ def run(task,snapshot,env_objects,teacher,args):
                         current=task.obs_buf.detach().cpu(),goal=relative_goal.detach().cpu(),base=base.detach().cpu(),
                         observation=obs.detach().cpu(),donor_indices=permutation,condition=args.observation_kind),out/'first-wam-input.pt')
             if training and len(storage['reward'])>=args.rollout_steps:
-                ppo_segments.append(update_rollout(actor,critic,storage,actor_optimizer,critic_optimizer,obs,epochs=args.ppo_epochs,minibatches=args.ppo_minibatches,shuffle_generator=optimizer_generator,bc_weight=0. if independent else .1))
+                ppo_segments.append(update_rollout(actor,critic,storage,actor_optimizer,critic_optimizer,obs,epochs=args.ppo_epochs,minibatches=args.ppo_minibatches,shuffle_generator=optimizer_generator,bc_weight=0. if independent else args.bc_weight))
             with torch.no_grad():
                 dist=actor.distribution(obs)
                 latent=(dist.loc+dist.scale*torch.randn(dist.loc.shape,device='cuda',generator=generator)) if training else dist.loc
@@ -241,14 +246,21 @@ def run(task,snapshot,env_objects,teacher,args):
                 task.gym.simulate(task.sim);task.gym.fetch_results(task.sim,True)
             task.post_physics_step()
             native_reward=task.rew_buf.detach().clone();done=task.reset_buf.bool().clone()
+            next_snapshot=snapshot()
+            coord_score=motion.score(next_snapshot) if use_coordination else torch.zeros_like(native_reward)
+            coord_weight=args.coordination_weight if use_coordination and args.coordination_kind!='none' else 0.
+            coord_bonus=coord_weight*coord_score
+            coordination_bonuses.append(coord_bonus.cpu().numpy())
+            coordination_enabled.append(motion.reward_enabled.cpu().numpy().copy() if use_coordination else np.zeros(args.envs,bool))
+            coordination_valid.append(motion.admitted.cpu().numpy().copy() if use_coordination else np.zeros(args.envs,bool))
             hold_bonus=position_hold_bonus(task.object_pos,task.goal_pos,task.object_linvel,initial_z)
-            reward=native_reward+hold_bonus if args.reward_kind=='hold' else native_reward
+            reward=(native_reward+hold_bonus if args.reward_kind=='hold' else native_reward)+coord_bonus
             if not torch.isfinite(reward).all():raise FloatingPointError('Nonfinite native reward')
             rewards.append(reward.cpu().numpy())
             native_rewards.append(native_reward.cpu().numpy());hold_bonuses.append(hold_bonus.cpu().numpy())
             for key,val in dict(observation=obs,latent=latent,mean=dist.loc,std=dist.scale,
                                 logp=logp,value=value,reward=reward,done=done).items():storage[key].append(val.detach())
-            frames.append(snapshot())
+            frames.append(next_snapshot)
             if tick==1 or tick%50==0:
                 write(out/'progress.json',dict(update=iteration,tick=tick,elapsed_s=time.monotonic()-started,
                     completed_env_steps=((iteration-1)*(int(task.max_episode_length)-1)+tick)*args.envs,
@@ -257,6 +269,7 @@ def run(task,snapshot,env_objects,teacher,args):
         data={key:np.stack([frame[key] for frame in frames]) for key in frames[0]}
         data.update(action=np.stack(commands),base=np.stack(bases),latent=np.stack(latents),intended=np.stack(intendeds),
             applied=np.stack(applied),force=np.stack(forces),torque=np.stack(torques),target=np.stack(targets),reward=np.stack(rewards),
+            coordination_bonus=np.stack(coordination_bonuses),coordination_enabled=np.stack(coordination_enabled),coordination_admitted=np.stack(coordination_valid),
             native_reward=np.stack(native_rewards),position_hold_bonus=np.stack(hold_bonuses),
             time=np.arange(1,len(frames)+1)/60.)
         if any(not np.isfinite(v).all() for v in data.values()):raise FloatingPointError('Nonfinite physics trace')
@@ -266,14 +279,15 @@ def run(task,snapshot,env_objects,teacher,args):
             elapsed_s=time.monotonic()-started,native=report,
             mean_episode_return=float(data['reward'].sum(0).mean()),
             mean_native_episode_return=float(data['native_reward'].sum(0).mean()),mean_position_hold_bonus=float(data['position_hold_bonus'].sum(0).mean()),
-            native_execution_error=execution_error,
+            native_execution_error=execution_error,mean_coordination_bonus=float(data['coordination_bonus'].mean()),
+            coordination_enabled_fraction=float(data['coordination_enabled'].mean()),coordination_admitted_fraction=float(data['coordination_admitted'].mean()),
             bc_support_fallback_envs=sorted(bc.invalid),bc_support_fallback_env_ticks=fallback_env_ticks,
             wam_feature_fallback_envs=sorted(feature_bc.invalid) if use_wam else [],wam_feature_fallback_env_ticks=feature_fallback_ticks,
             applied_residual_rms=float(np.sqrt(np.mean((data['action']-data['base'])**2))),
             motion_max_clip_fraction=motion_max_clip,motion_max_error_m=motion_max_error,
             clip_fraction=float(np.mean(np.abs(data['intended']-data['action'])>1e-6)))
         if training:
-            ppo_segments.append(update_rollout(actor,critic,storage,actor_optimizer,critic_optimizer,epochs=args.ppo_epochs,minibatches=args.ppo_minibatches,shuffle_generator=optimizer_generator,bc_weight=0. if independent else .1))
+            ppo_segments.append(update_rollout(actor,critic,storage,actor_optimizer,critic_optimizer,epochs=args.ppo_epochs,minibatches=args.ppo_minibatches,shuffle_generator=optimizer_generator,bc_weight=0. if independent else args.bc_weight))
             stats['ppo']=ppo_segments[-1]
             stats['ppo_update_batches']=len(ppo_segments)
             stats['actor_optimizer_steps_this_episode']=sum(segment['actor_steps'] for segment in ppo_segments)
