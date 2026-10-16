@@ -24,7 +24,7 @@ def write(path,value):
 
 def run(task,snapshot,env_objects,teacher,args):
     # Existing bounded launchers may be initializing assets while optional diagnostics are added.
-    for name,default in [('initial_log_std',-2.5),('synchronize_warm_step',False),('capture_warm_state',False),('retain_reset_indices',False),('single_reset_target_setter',False),('force_zero_residual',False),('outside_support_zero',False),('observation_kind','native'),('rollout_steps',199),('network_kind','small'),('action_kind','residual'),('reward_kind','native'),('ppo_epochs',4),('ppo_minibatches',1),('wam_feature_checkpoint',None),('clock_kind','none'),('critic_activation','tanh')]:
+    for name,default in [('initial_log_std',-2.5),('synchronize_warm_step',False),('capture_warm_state',False),('retain_reset_indices',False),('single_reset_target_setter',False),('force_zero_residual',False),('outside_support_zero',False),('observation_kind','native'),('rollout_steps',199),('network_kind','small'),('action_kind','residual'),('reward_kind','native'),('ppo_epochs',4),('ppo_minibatches',1),('wam_feature_checkpoint',None),('clock_kind','none'),('critic_activation','tanh'),('value_scale',1.)]:
         if not hasattr(args,name):setattr(args,name,default)
     out=args.output;started=time.monotonic()
     if args.world_size>1:
@@ -46,7 +46,7 @@ def run(task,snapshot,env_objects,teacher,args):
         saved_steps=saved.get('config',{}).get('rollout_steps',199)
         if args.mode=='train' and saved_steps!=args.rollout_steps:raise ValueError('Resume must retain PPO rollout length')
         args.rollout_steps=saved_steps
-        for name,default in [('network_kind','small'),('action_kind','residual'),('reward_kind','native'),('ppo_epochs',4),('ppo_minibatches',1),('clock_kind','none'),('critic_activation','tanh')]:
+        for name,default in [('network_kind','small'),('action_kind','residual'),('reward_kind','native'),('ppo_epochs',4),('ppo_minibatches',1),('clock_kind','none'),('critic_activation','tanh'),('value_scale',1.)]:
             value=saved.get('config',{}).get(name,default)
             if args.mode=='train' and getattr(args,name)!=value:raise ValueError('Resume must retain '+name)
             setattr(args,name,value)
@@ -76,7 +76,7 @@ def run(task,snapshot,env_objects,teacher,args):
     donor_indices=torch.as_tensor(permutation,device='cuda')
     torch.manual_seed(args.policy_seed)
     actor=Actor(args.initial_log_std,obs_dim=obs_dim,network_kind=args.network_kind,action_kind=args.action_kind).cuda()
-    critic=Critic(obs_dim=obs_dim,network_kind=args.network_kind,activation=args.critic_activation).cuda()
+    critic=Critic(obs_dim=obs_dim,network_kind=args.network_kind,activation=args.critic_activation,value_scale=args.value_scale).cuda()
     if saved:actor.load_state_dict(saved['actor'],strict=True)
     torch.set_rng_state(rng[0]);torch.cuda.set_rng_state(rng[1]);np.random.set_state(rng[2]);random.setstate(rng[3])
     before={k:v.clone() for k,v in bc.model.state_dict().items()}
@@ -102,7 +102,7 @@ def run(task,snapshot,env_objects,teacher,args):
         wam_feature_schema=getattr(feature_bc,'schema',None),wam_feature_step=getattr(feature_bc,'source_step',None),
         trainable='new%dD actor/critic only; frozen BC features; no WAM token adapter'%obs_dim,
         observation_kind=args.observation_kind,observation_dim=obs_dim,
-        network_kind=args.network_kind,action_kind=args.action_kind,critic_activation=args.critic_activation,
+        network_kind=args.network_kind,action_kind=args.action_kind,critic_activation=args.critic_activation,value_scale=args.value_scale,
         clock_kind=args.clock_kind,clock='one known remaining-actions fraction before reference24; no future states' if args.clock_kind=='remaining' else args.clock_kind,
         wam_z='frozen masked mean per scene/hand/known-goal type; 3x768; original current300 retained' if use_wam else None,
         wam_donor_indices=permutation if use_wam else None,

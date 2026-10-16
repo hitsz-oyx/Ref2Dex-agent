@@ -447,3 +447,24 @@ target除以固定100，推理乘100还原为原物理return单位；所有报�
 只在本任务远端GPU0短暂共享，<=600s/新增<128MiB；不改PPO、不改native reward、不重跑仿真。
 若明显缓解饱和并改善留出误差，再实现正确物理bootstrap/GAE的短在线scale1/100对照；
 否则不扩张此变量。当前v3两组50轮行为评估继续，本地与远端未停止的200轮训练继续。
+
+scale100离线已完成，四臂GPU合计12.14s。原物理单位留出MSE835.468/444.969/887.441/427.826；
+Tanh-remaining相对scale1的571.856降低22.2%，最后Tanh饱和率.657→0；
+但终末MSE92.337→171.009变差，不能称全面改善。无clock的Tanh/ELU仍无留出整体改善。
+因此只将“scale+clock避免Tanh饱和”视为PROMISING资格线索，不修改reward，不使用此结果宣称抓取收益。
+
+### Decision Note：本地GPU5有界检验physical value缩放（2026-10-16）
+
+本地0/5/6/7现均空闲，1–4主训继续；重新检查GPU后使用5，始终保留6/7。
+同机fresh Tanh+remaining clock两臂value_scale1/100，控制Torch/PhysX/BC/32TRAIN/128env/
+540D大网络/fullGaussian/native/16步5×4mini/seed245,246,247，固定25episode/636800步。
+每臂先2episode smoke+审计，再fresh25+审计，单臂<=20min、队列<=1h，不占本地200轮评估窗口。
+run_id=shadow-value-scale{1,100}-32obj-20261016-r1。
+实现保证Critic.forward始终返回物理V=value_scale*net(obs)，actual-next-state bootstrap、GAE、
+returns和EV仍原native reward单位；critic优化MSE除value_scale²，日志保留物理value_loss并另记
+normalized_value_loss。scale默认1，旧checkpoint缺字段自动1，resume必须保留scale，eval从packet恢复。
+它改变critic参数化/优化尺度，不是reward scaling，也不是把不同单位的value塞给GAE。
+两条单位协变测试覆盖full-batch和minibatch：reward/value/bootstrap同步×100时GAE/return×100、
+normalized loss及actor/critic更新相符。该测试只证明单位接线，不证明实验效果。
+判定看末10轮真实全chunk与终末EV/物理MSE、TRAIN保持、饱和及执行/冻结合同，不按DEV选端点；
+明显改善才将通过的方案用于新一轮matched WAM特征Probe，否则不扩张盲训。

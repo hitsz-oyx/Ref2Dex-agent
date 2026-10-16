@@ -99,11 +99,13 @@ class Actor(nn.Module):
 
 
 class Critic(nn.Module):
-    def __init__(self,obs_dim=OBS_DIM,network_kind='small',activation='tanh'):
+    def __init__(self,obs_dim=OBS_DIM,network_kind='small',activation='tanh',value_scale=1.):
         super().__init__()
+        if value_scale not in (1.,100.):raise ValueError('Admitted fixed value scale required')
+        self.value_scale=float(value_scale)
         self.net=control_mlp(obs_dim,1,network_kind,activation)
 
-    def forward(self,obs):return self.net(obs).squeeze(-1)
+    def forward(self,obs):return self.net(obs).squeeze(-1)*self.value_scale
 
 
 def advantages(rewards,values,dones,bootstrap,gamma=.99,lam=.95):
@@ -172,13 +174,14 @@ def update(actor,critic,batch,actor_optimizer,critic_optimizer,bc_weight=.1,targ
     for _ in range(epochs):
         value_loss=(critic(obs)-returns).square().mean()
         if not torch.isfinite(value_loss):raise FloatingPointError('Nonfinite critic objective')
-        critic_optimizer.zero_grad(set_to_none=True);value_loss.backward();synchronize_gradients(critic);nn.utils.clip_grad_norm_(critic.parameters(),1.)
+        normalized_value_loss=value_loss/getattr(critic,'value_scale',1.)**2
+        critic_optimizer.zero_grad(set_to_none=True);normalized_value_loss.backward();synchronize_gradients(critic);nn.utils.clip_grad_norm_(critic.parameters(),1.)
         critic_optimizer.step()
     with torch.no_grad():
         error=returns-critic(obs)
         moments=reduce(torch.stack((returns.double().mean(),returns.double().square().mean(),error.double().mean(),error.double().square().mean())))
         target_var=(moments[1]-moments[0].square()).clamp_min(0);error_var=(moments[3]-moments[2].square()).clamp_min(0)
         explained=None if target_var<1e-8 else float(1-error_var/target_var)
-    return dict(actor_steps=steps,joint_kl=kl,bc_regularization=float(reg),value_loss=float(value_loss),value_explained_variance=explained,
+    return dict(actor_steps=steps,joint_kl=kl,bc_regularization=float(reg),value_loss=float(value_loss),normalized_value_loss=float(normalized_value_loss),value_explained_variance=explained,
                 behavior_logprob_error=replay,actor_lr=actor_optimizer.param_groups[0]['lr'],
                 return_mean=float(returns.mean()),advantage_std=float(adv.std(unbiased=False)))

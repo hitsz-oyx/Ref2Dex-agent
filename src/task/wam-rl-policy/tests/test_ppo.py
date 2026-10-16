@@ -3,6 +3,33 @@ import pytest
 from wam_rl_policy.ppo import Actor,Critic,advantages,apply_residual,observation,update
 
 
+@pytest.mark.parametrize('minibatches',[1,2])
+def test_scaled_value_keeps_physical_bootstrap_gae_and_normalized_optimizer_units(minibatches):
+    import copy
+    torch.manual_seed(184)
+    actor=Actor().double();critic=Critic().double();scaled_actor=copy.deepcopy(actor);scaled_critic=copy.deepcopy(critic)
+    scaled_critic.value_scale=100.
+    obs=torch.randn(4,4,327,dtype=torch.float64);obs[:,:,-24:]=0;next_obs=torch.randn(4,327,dtype=torch.float64)
+    with torch.no_grad():
+        dist=actor.distribution(obs);latent=dist.sample()
+        batch=dict(observation=obs,latent=latent,logp=dist.log_prob(latent).sum(-1),mean=dist.loc,std=dist.scale,
+            value=critic(obs),reward=torch.randn(4,4,dtype=torch.float64),done=torch.zeros(4,4,dtype=torch.bool),bootstrap=critic(next_obs))
+        scaled=dict(batch,value=scaled_critic(obs),reward=batch['reward']*100.,bootstrap=scaled_critic(next_obs))
+    adv,target=advantages(batch['reward'],batch['value'],batch['done'],batch['bootstrap'])
+    scaled_adv,scaled_target=advantages(scaled['reward'],scaled['value'],scaled['done'],scaled['bootstrap'])
+    torch.testing.assert_close(scaled_adv,adv*100.,rtol=2e-6,atol=2e-5)
+    torch.testing.assert_close(scaled_target,target*100.,rtol=2e-6,atol=2e-5)
+    results=[]
+    for policy,value,data in [(actor,critic,batch),(scaled_actor,scaled_critic,scaled)]:
+        results.append(update(policy,value,data,torch.optim.Adam(policy.parameters(),lr=1e-5),
+            torch.optim.Adam(value.parameters(),lr=3e-4),epochs=2,minibatches=minibatches,
+            shuffle_generator=torch.Generator().manual_seed(45)))
+    for original,other in [(actor,scaled_actor),(critic,scaled_critic)]:
+        for key,val in original.state_dict().items():torch.testing.assert_close(val,other.state_dict()[key],rtol=1e-5,atol=1e-6)
+    assert results[1]['return_mean']==pytest.approx(results[0]['return_mean']*100.,rel=2e-5)
+    assert results[1]['normalized_value_loss']==pytest.approx(results[0]['normalized_value_loss'],rel=2e-5)
+
+
 def test_shadow_zero_residual_and_clipping_contract():
     torch.manual_seed(1)
     base=torch.linspace(-1,1,48).reshape(2,24)
@@ -154,7 +181,7 @@ def test_minibatch_shuffle_does_not_consume_environment_rng():
     with torch.no_grad():
         dist=actor.distribution(obs);latent=dist.sample()
         batch=dict(observation=obs,latent=latent,logp=dist.log_prob(latent).sum(-1),mean=dist.loc,std=dist.scale,
-            value=critic(obs),reward=torch.randn(4,4),done=torch.zeros(4,4,dtype=torch.bool),bootstrap=torch.zeros(4))
+            value=critic(obs),reward=torch.randn(4,4,dtype=torch.float64),done=torch.zeros(4,4,dtype=torch.bool),bootstrap=torch.zeros(4))
         batch['done'][-1]=True
     environment_rng=torch.get_rng_state().clone();shuffle=torch.Generator().manual_seed(1247);old_shuffle=shuffle.get_state().clone()
     stats=update(actor,critic,batch,torch.optim.Adam(actor.parameters(),lr=1e-4),torch.optim.Adam(critic.parameters(),lr=3e-4),

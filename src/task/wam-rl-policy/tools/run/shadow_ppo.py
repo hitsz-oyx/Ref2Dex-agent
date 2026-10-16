@@ -108,6 +108,7 @@ def main():
     p.add_argument('--ppo-minibatches',type=int,default=1)
     p.add_argument('--clock-kind',choices=('none','zero','remaining'),default='none')
     p.add_argument('--critic-activation',choices=('tanh','elu'),default='tanh')
+    p.add_argument('--value-scale',type=float,choices=(1.,100.),default=1.)
     p.add_argument('--rollout-steps',type=int,default=199)
     p.add_argument('--worker',action='store_true');a=p.parse_args()
     a.output=a.output.resolve();a.checkpoint=a.checkpoint.resolve();a.cache=a.cache.resolve()

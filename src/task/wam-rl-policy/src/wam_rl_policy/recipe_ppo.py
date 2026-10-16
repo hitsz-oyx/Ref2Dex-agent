@@ -45,7 +45,8 @@ def update_minibatches(actor,critic,batch,actor_optimizer,critic_optimizer,bc_we
         for indices in torch.randperm(len(obs),device=obs.device,generator=shuffle_generator).chunk(minibatches):
             value_loss=(critic(obs[indices])-returns[indices]).square().mean()
             if not torch.isfinite(value_loss):raise FloatingPointError('Nonfinite critic objective')
-            critic_optimizer.zero_grad(set_to_none=True);value_loss.backward();synchronize_gradients(critic);nn.utils.clip_grad_norm_(critic.parameters(),1.)
+            normalized_value_loss=value_loss/getattr(critic,'value_scale',1.)**2
+            critic_optimizer.zero_grad(set_to_none=True);normalized_value_loss.backward();synchronize_gradients(critic);nn.utils.clip_grad_norm_(critic.parameters(),1.)
             critic_optimizer.step();value_steps+=1
     with torch.no_grad():
         kl=float(reduce(torch.distributions.kl_divergence(old,actor.distribution(obs)).sum(-1).mean()))
@@ -54,6 +55,6 @@ def update_minibatches(actor,critic,batch,actor_optimizer,critic_optimizer,bc_we
         target_var=(moments[1]-moments[0].square()).clamp_min(0);error_var=(moments[3]-moments[2].square()).clamp_min(0)
         explained=None if target_var<1e-8 else float(1-error_var/target_var)
     return dict(actor_steps=steps,critic_steps=value_steps,rejected_candidates=rejected,joint_kl=kl,bc_regularization=float(reg),
-        value_loss=float(value_loss),value_explained_variance=explained,behavior_logprob_error=replay,
+        value_loss=float(value_loss),normalized_value_loss=float(normalized_value_loss),value_explained_variance=explained,behavior_logprob_error=replay,
         actor_lr=actor_optimizer.param_groups[0]['lr'],return_mean=float(returns.mean()),advantage_std=float(adv.std(unbiased=False)),
         optimizer='equal-size shuffled minibatches; global rollout KL; first-step LR calibration, then rollback/early-stop')

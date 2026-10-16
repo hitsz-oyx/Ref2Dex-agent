@@ -17,7 +17,7 @@ from wam_rl_policy.ppo import Actor, Critic, observation, append_episode_clock
 def inspect(folder, device):
     packet=torch.load(folder/'latest.pt',map_location='cpu',weights_only=False)
     config=packet['config'];dim=config.get('observation_dim',327)
-    model=Critic(dim,config.get('network_kind','small'),config.get('critic_activation','tanh')).to(device)
+    model=Critic(dim,config.get('network_kind','small'),config.get('critic_activation','tanh'),config.get('value_scale',1.)).to(device)
     model.load_state_dict(packet['critic'],strict=True)
     if config.get('observation_kind','native').startswith('wam-'):
         source=folder/'first-wam-input.pt'

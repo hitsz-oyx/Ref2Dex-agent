@@ -31,6 +31,7 @@ def main():
     p.add_argument('--ppo-minibatches',type=int,default=1)
     p.add_argument('--clock-kind',choices=('none','zero','remaining'),default='none')
     p.add_argument('--critic-activation',choices=('tanh','elu'),default='tanh')
+    p.add_argument('--value-scale',type=float,choices=(1.,100.),default=1.)
     p.add_argument('--action-kind',choices=('residual','reference-gaussian'),default='residual')
     p.add_argument('--reward-kind',choices=('native','hold'),default='native');a=p.parse_args()
     out=a.output.resolve();gpus=[int(x) for x in a.gpus.split(',')]
@@ -67,7 +68,7 @@ def main():
             command+=['--network-kind',a.network_kind,'--action-kind',a.action_kind]
             command+=['--reward-kind',a.reward_kind]
             command+=['--ppo-epochs',str(a.ppo_epochs),'--ppo-minibatches',str(a.ppo_minibatches)]
-            command+=['--clock-kind',a.clock_kind,'--critic-activation',a.critic_activation]
+            command+=['--clock-kind',a.clock_kind,'--critic-activation',a.critic_activation,'--value-scale',str(a.value_scale)]
             if a.wam_feature_checkpoint:command+=['--wam-feature-checkpoint',str(a.wam_feature_checkpoint.resolve())]
             if a.resume:command+=['--rl-checkpoint',str((a.resume/('rank%02d'%rank)/'latest.pt').resolve())]
             if a.outside_support_zero:command+=['--outside-support-zero']
