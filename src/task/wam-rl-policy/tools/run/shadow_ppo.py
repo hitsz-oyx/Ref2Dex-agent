@@ -65,7 +65,7 @@ def main():
     p.add_argument('--trace-every',type=int,default=1)
     p.add_argument('--worker',action='store_true');a=p.parse_args()
     a.output=a.output.resolve();a.checkpoint=a.checkpoint.resolve();a.cache=a.cache.resolve()
-    a.code_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=TASK,text=True).strip()
+    a.code_commit=os.environ.get('REF2DEX_CODE_COMMIT') or subprocess.check_output(['git','rev-parse','HEAD'],cwd=TASK,text=True).strip()
     if not 1<=a.envs<=256 or not 1<=a.updates<=200 or a.alpha!=.15 or not 1<=a.world_size<=4:
         raise ValueError('Scale bounds:1..256env/rank,1..200updates,1..4ranks,alpha0.15')
     if a.mode=='evaluate' and a.rl_checkpoint is None:raise ValueError('Evaluate requires RL checkpoint')

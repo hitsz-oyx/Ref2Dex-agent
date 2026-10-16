@@ -36,7 +36,7 @@ def main():
     with socket.socket() as sock:sock.bind(('127.0.0.1',0));port=sock.getsockname()[1]
     children=[];logs=[];start=time.monotonic();stop=[False]
     for sig in (signal.SIGTERM,signal.SIGINT):signal.signal(sig,lambda *_:stop.__setitem__(0,True))
-    process=dict(status='RUNNING',pid=os.getpid(),git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+    process=dict(status='RUNNING',pid=os.getpid(),git_commit=os.environ.get('REF2DEX_CODE_COMMIT') or subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
         gpus=gpus,budget_seconds=a.seconds,global_envs=a.envs*len(gpus),objects=sum(len(json.loads(Path(m).read_text())['objects']) for m in manifests),
         world_size=len(gpus),rendezvous='tcp://127.0.0.1:%d'%port,ranks=[])
     def save():
