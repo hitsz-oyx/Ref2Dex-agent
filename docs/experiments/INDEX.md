@@ -138,6 +138,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261015-current-wrist-mlp](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-current-wrist-mlp.md) | 当前腕部监督 MLP 配对 Probe | 见原卡 | 见原卡 | probes/PROMISING |
 
+## HF-current721-components
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261016-current721-components](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261016-current721-components.md) | 721D 当前观测的块级必要性诊断 | 见原卡 | 见原卡 | probes/PROMISING |
+
 ## HF-dexplore-current-observation
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
@@ -618,6 +624,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261015-shadow-startup-sampling](../../src/task/shadow-finetune/docs/experiments/probes/P-20261015-shadow-startup-sampling.md) | Shadow起步采样：同一全量数据的最小干预 | 见原卡 | 见原卡 | probes/UNCLEAR |
 
+## HF-shared-action-horizon
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261016-shared-action-horizon](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261016-shared-action-horizon.md) | 当前输入与动作监督跨度的四组对照 | 见原卡 | 见原卡 | probes/UNCLEAR |
+
 ## HF-shared-action-interface
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
@@ -773,6 +785,12 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261014-unidexgrasp-local-admission](../../src/task/video-data-preparation/docs/experiments/probes/P-20261014-unidexgrasp-local-admission.md) | UniDexGrasp / ++ 刚体样例接入检查 | PROMISING（刚体几何接入Probe）。20对象320条回放产生TRAIN2560/dev640窗；全部3200窗合同与未来隔离通过，末0.5秒持续接近目标83条；真实GPU模型接线及正式训练准入待验证。 | 保留完整CAD/ShadowHand按需provider和成功/失败物理数据；六卡满额时不另启GPU，释放后先做真实Shared-WAM工程前向/反向，再扩对象；不将距离指标升级为稳定抓持或全库结论。 | probes/PROMISING |
+
+## HF-v2-base-residual-interface
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261016-v2-base-residual-adapter](../../src/task/trajectory-policy/docs/experiments/probes/P-20261016-v2-base-residual-adapter.md) | v2 BC as the nominal policy for trajectory-policy residual control | 见原卡 | 见原卡 | probes/UNCLEAR |
 
 ## HF-v2-remote-robot-adapter
 
