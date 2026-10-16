@@ -16,18 +16,23 @@ def main():
     p.add_argument('--panel',choices=('dev','core_dev','train'),default='dev');p.add_argument('--gpu',type=int,required=True)
     p.add_argument('--bc-kind',choices=('wam','mlp'),required=True);p.add_argument('--rl-checkpoint',type=Path)
     p.add_argument('--force-zero-residual',action='store_true')
+    p.add_argument('--shard-indices',help='Comma-separated indices in the frozen panel, for parallel evaluation')
     p.add_argument('--seconds',type=int,default=7200);p.add_argument('--seed',type=int,default=249)
     a=p.parse_args();out=a.output.resolve()
     if out.exists() or ROOT/'outputs/wam-rl-policy' not in out.parents:raise ValueError('Fresh Task output')
     out.mkdir(parents=True);started=time.monotonic();panel=json.loads(a.panels.read_text())[a.panel]
+    indices=[int(i) for i in a.shard_indices.split(',')] if a.shard_indices else list(range(len(panel)))
+    if len(set(indices))!=len(indices) or any(i<0 or i>=len(panel) for i in indices):raise ValueError('Unique valid panel shard indices required')
     manifest=dict(status='RUNNING',checkpoint=str(a.checkpoint.resolve()),bc_kind=a.bc_kind,seed=a.seed,
-        rl_checkpoint=str(a.rl_checkpoint.resolve()) if a.rl_checkpoint else None,force_zero_residual=a.force_zero_residual,panel=a.panel,shards=panel,
+        rl_checkpoint=str(a.rl_checkpoint.resolve()) if a.rl_checkpoint else None,force_zero_residual=a.force_zero_residual,panel=a.panel,
+        shards=[panel[i] for i in indices],source_shard_indices=indices,
         gpu=a.gpu,max_seconds=a.seconds,results=[],totals={k:0 for k in ('episodes','official_success','final_within5cm','held60_with_lift10cm')})
     def save():
         part=out/'manifest.json.part';part.write_text(json.dumps(manifest,indent=2)+'\n');part.replace(out/'manifest.json')
     save()
     try:
-        for index,path in enumerate(panel):
+        for index in indices:
+            path=panel[index]
             remaining=a.seconds-(time.monotonic()-started)
             if remaining<30:raise TimeoutError('Suite budget')
             objects=json.loads(Path(path).read_text())['objects'];target=out/('shard%02d'%index)

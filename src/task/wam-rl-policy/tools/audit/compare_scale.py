@@ -27,7 +27,9 @@ def main():
     if left['shards']!=right['shards'] or left['seed']!=right['seed']:raise ValueError('Same frozen panel/reset required')
     rows=[];mismatches=[];initial={k:0. for k in ('hand','object','q','dq','hand_root','observation','goal','success','reset')}
     transitions={metric:dict(both=0,bc_only=0,candidate_only=0,neither=0) for metric in ('held60','held60_at_end')}
-    for shard in range(len(left['results'])):
+    if [r['shard'] for r in left['results']]!=[r['shard'] for r in right['results']]:raise ValueError('Same shard indices required')
+    for entry in left['results']:
+        shard=entry['shard']
         folders=[root/('shard%02d'%shard) for root in (a.bc,a.candidate)]
         identities=[json.loads((folder/'environment-objects.json').read_text()) for folder in folders]
         if identities[0]!=identities[1]:raise ValueError('Object mapping differs')
