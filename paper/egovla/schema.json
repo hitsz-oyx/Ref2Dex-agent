@@ -1,0 +1,8 @@
+{
+  "title": "EgoVLA: Learning Vision-Language-Action Models from Egocentric Human Videos",
+  "arxiv_url": "https://arxiv.org/abs/2507.12440",
+  "verification_date": "2026-10-15",
+  "notes": "src/task/3d-data-preparation/docs/research/2026-10-15-unified-training-primary-practices.md",
+  "code_url": "https://github.com/RchalYang/EgoVLA_Release",
+  "local_code": "third_party/egovla-data-audit-20261015"
+}

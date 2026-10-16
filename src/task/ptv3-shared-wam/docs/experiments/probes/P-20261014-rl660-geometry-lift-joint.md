@@ -116,3 +116,18 @@ physical GPU5/7显存11141/11197MiB，后续即时利用率均100%。初估余�
 不是完成承诺；含验证/保存和共享机器负载变化。监控记录startup_observation.json、
 process.json、progress.json和gpu.jsonl。首个固定dev在500步，当前尚无dev趋势或新best；
 总loss与旧12维native目标不可直接作优劣比较。阶段结论仍UNCLEAR。
+
+## 完成回执（2026-10-15 03:00 CST）
+
+`process.json` 最终为 `COMPLETED`、`exit_code=0`，19,000/19,000 updates 完成；输出目录
+`outputs/ptv3-shared-wam/rl660-joint-geometry-lift-20261014-r1/` 的 `step7000.pt`、
+`step16000.pt`、`step19000.pt` 和四个别名均可读，未覆盖旧 run。`engineering_audit.json` 的
+梯度/有限性门通过，训练 JSON 与曲线没有非有限数值；GPU5/7 在结束后已释放。`best.pt` 指向
+step16000，按预定义指标 `forecast_best.pt` 指向 step7000、`control_best.pt` 指向 step19000；
+这三个选择反映不同工程指标，不能合并成单一效果结论。
+
+最终固定 dev（step19000）工程读数：`hand_all24=109.88mm`、`scene_all24=42.18mm`，
+`pred/PD_xyz=56.14mm`（p95 187.80mm），clipping 为 0；这些是单 seed/同一 dev 面板的
+Probe 指标，不是抓取成功、闭环稳定或跨源泛化证据。run 使用既有 RL660 corpus 和旧 v2
+stats，与当前 native3D 多源 admission 无关；后续不自动据此启动混合训练。实验状态保持
+`UNCLEAR`，完整 GT 执行、matched control、多 seed 和独立 holdout 仍是 future evidence。

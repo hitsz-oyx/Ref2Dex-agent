@@ -1,3 +1,19 @@
+## 2026-10-15 DexYCB全被试已补齐，扩充版九源数据本地/远端就绪
+
+按用户要求补齐10被试1000段/72,746帧；官方s1划分，清洗后DexYCB3,096 TRAIN/382 DEV窗，200段TEST独立。九源新配方4,805,826 TRAIN/821,791 DEV、source8采样1%，TRAIN-only归一化重拟合；本地和远端mixed-reader/端点/集合/数值统计一致性验收通过，其他源既有隔离无回流。Viser8769已切新数据。现有远端80k继续使用此前冻结严格配方，本次未切训练。当前资源以最新CAMPAIGN为准（本地保持两卡空闲，远端可全占）；本次只用CPU处理数据。详见[扩产记录](../src/task/3d-data-preparation/docs/research/2026-10-15-dexycb-full-expansion.md)。
+
+## 2026-10-15 九源严格清洗已切入远端四卡训练
+
+用户授权直接隔离模棱两可数据并收紧阈值。全39,528条运动审计完成，九源额外排除2,943 TRAIN/204 DEV窗口，保留4,803,076 TRAIN/821,409 DEV；原始数据和旧checkpoint保留。`pretrain-nine-strict-remote4-80k-20261015-r1` 已从完整step8000恢复并更新至8080，固定代码3709c966、supervisor1892360，远端0/1/2/3/global512；normalizer数值、optimizer及四rank RNG完整保留。约1.465步/秒、四卡82–99%利用率/17.7–36.1GiB，剩余暂估14–16h，无OOM/非有限量。仍为80k/48h预算内同一训练轨迹；DEV面板已改变，前后不作匹配比较。全局6卡上限下远端4卡占用，其他项目任务最多2卡，本地v3不恢复。Viser8769已使用严格recipe，原始隔离片段仍可回看。详见[v3状态](../src/task/ptv3-shared-wam-v3/docs/STATE.md)和[复核记录](../src/task/ptv3-shared-wam-v3/docs/motion-followup-20261015.md)。
+
+## 2026-10-15 14:07 远端四卡九源motion全量训练已启动
+
+用户已授权直接开始。`pretrain-nine-motion-remote4-80k-20261015-r1`使用清洗后4,806,030 TRAIN窗、全新初始化，远端GPU0/1/2/3（supervisor1877848、固定代码6e535bc1），每卡128/global512，80k步/48h/8GB预算。已至step120，四卡利用率98–100%、显存约22–32GiB，loss/gradient有限，step1完整恢复点保存成功；约1.4–1.47步/秒，预计16–18h。当前项目远端占4卡，本地启动时8卡均空闲；6卡全局上限下其他新增项目任务最多再使用2卡。首个训练后DEV在step1000，不形成效果结论。状态和快照见[v3 Task](../src/task/ptv3-shared-wam-v3/docs/STATE.md)。
+
+## 2026-10-15 九源预训练前的UniDex motion清洗
+
+用户要求先筛查清洗。33,056条全量审计后，隔离25条中的114 TRAIN/22 DEV窗口，保留原始数据及可信前缀，其余八源窗集合不变；新九源为4,806,030 TRAIN/821,613 DEV，24-horizon统计已精确重算并独立复核。远端原数据和独立`data-motion-r1/recipe`均CPU验收通过，随后已按用户指令启动上述远端四卡；本地v3保持停止。Viser8769已切换新recipe，整段隔离记录仍可回看。细节和边界疑点见[Task当前状态](../src/task/ptv3-shared-wam-v3/docs/STATE.md)。
+
 # Ref2Dex 当前研究状态
 
 ## 2026-10-16 完整参考下的控制底座：同序列隔离插值也失败
@@ -11,13 +27,212 @@
 代码ce823f98、单GPU5/77秒，已释放。详见
 [实验卡](../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261016-teacher-sequence-generalization.md)。
 
+## 2026-10-15 v3九源统一预训练启动
+
+用户最新要求：本地WAM v3已停止并释放GPU1/3，最后日志step440；保留完整启动step4
+checkpoint，未到1000步DEV，不形成有效性结论。远端现已按最新明确授权启动上述清洗后四卡run。viser完整序列浏览已启动127.0.0.1:8769（转发8769），支持直接排查UniDexGrasp++
+原仿真高速飞离；详见v3 Task STATE。
+
+用户明确第一轮合并九源。新Task `ptv3-shared-wam-v3` 独立拥有训练/采样/归一化入口，
+清洗产物和v2运行源码不修改。TRAIN共4,806,144窗；共同TRAIN统计、九源batch审计和
+双卡每卡128/global256启动4步通过，已保存完整恢复点。`pretrain-nine-80k-20261015-r1`
+从step4恢复，GPU1/3，supervisor1584518，固定代码67f7af78，目标80k步、48h/8GB预算；
+与原GPU4/5/6/7运行合计6卡。已恢复并持续更新至step60，稳态约0.92步/秒、
+预估80k约24小时；GPU利用率接近100%，loss/grad有限。新增远端九源落盘请求并行推进。
+尚未形成模型收益结论。
+详情见 [v3 Task STATE](../src/task/ptv3-shared-wam-v3/docs/STATE.md)。
+
+2026-10-15用户要求三卡全量补采，已用GPU0/1/2重新rollout660条，包含原生当前721D、
+实测contact、完整body state与同次q_PD；supervisor1548597，run dexplore-current-rollout-20261015-r1。
+首48条独立审查通过，全量结束后由CPU auditor1553774逐序列核对再准入。用户临时允许
+合计7卡。原四卡微调因并发src修改已在3340触发guard退出；现已用固定代码fd83aebd
+从step3000恢复为r5（supervisor1544990/GPU4/5/6/7/global512），实际已继续更新。
+当前原生多源模型修改保留，不影响隔离续训；详情见v2 Task STATE与两张实验卡。
+
+用户范围纠正：此前R当前输入Probe只补了可重建的参考误差和几何近邻特征，未补
+DExplore实测contact/body完整观测，不是所请求的原生DExplore当前输入对照。
+该结果不能代表DExplore信息无收益；原问题仍未回答，需要同次执行补采后再比较。
+原四卡WAM微调未因此改变。详情见v2 Task STATE与当前信息实验卡。
+
+## 2026-10-15 native七源版本化清洗已完成
+
+用户已授权实际数据处理。`native3d-clean-mixed-20261015-r1`保留37,591段/2,638几何，
+verified TRAIN427,707、DEV105,952；HO-Cap另8,933个时钟待核实DEV不在默认reader中。
+法线、QA/clock-gap、完整target horizon与单手有效性过滤已执行，HOI4D的一致15Hz子集已显式插值且保留原观测标记；
+H2O TEST220文件归属已对账，不是orphan。35项合同测试、全几何检查、96窗独立端点复算、七源正反混合batch通过。
+所有新增native数据仍`training_allowed=false`，本工作没有启动新的多源训练；既有WAM-v2机器人微调独立运行。
+TRAIN全量统计`native3d-train-moments-20261015-r2`已完成，不读取DEV/TEST payload或DEV-only CAD。
+另建`native3d-clean-encoder-20261015-r1`：按当前观测输入域排除UniDex41 TRAIN/6 DEV，保留427,666 TRAIN/105,946 verified DEV；
+对应24×XYZ hand/scene充分统计同步扣除TRAIN排除项，原完整数据/清洗版保留。全parent窗口点数≤3,072，未触发默认4,096 cap。
+详见[Task清洗记录](../src/task/3d-data-preparation/docs/research/2026-10-15-native-cleaning-results.md)。
+
+## 2026-10-15 10:21 当前信息增益的四臂离线 Probe
+
+按用户授权补当前参考目标/误差及手物表面几何，不新增未来参考。四臂R-only
+Probe已在GPU0启动，四组统一GT τ、step500 R快照、数据抽样和3000更新；主四卡
+WAM微调保持运行。该诊断先区分信息缺失是否值得继续投入，不形成抓取结论。
+详见[实验卡](../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-R-current-information.md)。
+
+首轮3000步四臂完成：合用两输入的dev腕部XYZ p95改善14.5%，平均误差不变，
+判为UNCLEAR。四臂尚在下降，因此在GPU0/1并行进行一次12000步同配方检查；
+保留首轮全部证据，维持主训练四卡、项目最多六卡与离线Probe结论边界。
+
+12000步对照已完成：baseline49.06/168.37、reference52.78/187.03、geometry49.99/
+162.11、both54.42/176.04mm（dev首控腕部XYZ mean/p95）。新增两类输入没有整体
+收益，停止追加、保持UNCLEAR；原始PD独立复算和输入生效检查通过。未测试的接触/
+body动力学不能据此否定。GPU0/1已释放，主四卡训练继续。
+
+## 2026-10-15 10:01 远端WAM-v2完成后，四卡q_PD微调启动
+
+远端80k实际正常完成，step80000完整权重已取回。按用户明确要求，微调无R warmup、
+用q_PD监督，GPU4/5/6/7每卡128/global512、12000更新；owned supervisor1436540，
+run `ptv3-shared-v2-robot-finetune-20261015-r2`，实际代码dccd77ee。四卡工程门发现
+308个TRAIN窗口的实测手点超出parent固定体素输入域；保持原corpus和坐标不变，新增
+显式observed-fixed-grid.v1准入，TRAIN110469/DEV11908窗，完整排除清单/旧新索引保存
+在run中。17项测试、独立审查及真实四卡四步通过，正式训练已开始，暂无学习或抓取结论。
+这是既有RL660微调，不是新增native3D多源混合训练；后者的准入状态仍独立维护。
+详见[v2 Task状态](../src/task/ptv3-shared-wam-v2/docs/STATE.md)与
+[实验卡](../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-ptv3-shared-v2-robot-finetune.md)。
+
+step2220平台检查：固定dev1000→2000总损失5.202→5.262，但动作/GT-anchor仍各降
+约11%；forecast残差回升抵消动作收益。暂不能按整体已到平台停训，原配方继续。
+best按总损失仍选1000，不能单看best不更新判断动作平台；详见主run的plateau快照。
+
+## 2026-10-15 多源 native→Shared-WAM v2 准入审查仍阻断
+
+约 06:00 CST 完成全 source-pair mixed-collate 只读矩阵：对 source4–9 各取一个真实窗口，枚举全部 15 个不同源无序 pair；当前 `ptv3_shared_wam.egodex_data.forecasting_collate` 均可完成 padding，source 顺序、`point_valid`/`object_valid`/`goal_object_delta` 重算和浮点有限性检查均通过。每个 pair 的首窗 local `sample_id` 都是 `[0,3]`，且 `source_profile`、`anchor_world_to_sample`、`training_allowed` 均未进入 batch，进一步确认身份必须使用 `(source_id, sample_id)` 复合键，provenance 必须由 dedicated adapter 明确携带。source4 样本只来自 320-sequence standalone index，source7/8 仍走 direct lower-level path；未覆盖反向顺序、同源 pair、较大 batch、截断或 invalid-mask，因此只属于 wiring smoke，不改变 admission。JSON/Markdown/PNG 已由接口与可视化子代理独立复核一致，见 `tmp/goal-supervision-20261015/mixed-collate-pair-matrix.{json,md,png}`。
+
+约 06:05 CST 完成只读 mixed-collate stress：六源正序、反序（batch=6）及 HOT3D 同源重复（batch=3）均保留 source 顺序，派生字段和浮点有限性通过；真实 HOT3D `[0,99]` 部分无效窗口与 source4/source7 混合后，fixed/padded masks 与 masked targets 全零均保持。额外用 `scene_cap=512` 压测同一 6-object/3072-point 窗口，观察到前 512 点只来自 object 0，而 `object_valid` 仍声明 0–5；这是单样本的 order-biased truncation 风险，不是默认 cap 的全量缺陷。adapter 应保持当前 4096 cap（该样本 3072 点不截断）或在获批设计中加入按对象均衡采样。详见 `tmp/goal-supervision-20261015/mixed-collate-stress.{json,md}`；子代理复核通过，未改变任何准入或训练状态。
+
+约 04:47 CST 新增只读 field-contract audit：[`native-v2-field-contract.md`](/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/tmp/goal-supervision-20261015/native-v2-field-contract.md) 对 source4/5/6/9 各取一个真实 engineering window，在不改动 `ptv3_shared_wam.egodex_data.forecasting_collate` 的前提下逐字段比较 shape、dtype、有限性、mask 和派生值。四源均保留当前 v2 所需模型字段，`point_valid`/`object_valid`/`goal_object_delta` 的 collate 派生值分别与原始长度、对象 mask、goal−start 一致；source4/source5 一对混合窗口也保留 source/sample 顺序，但两源的 local `sample_id=[0,3]` 相同，且 `source_profile`、`anchor_world_to_sample`、`training_allowed` 在该 collate 中全部丢失。该结果把“需要 dedicated adapter、且必须在 collate 前 fail-closed 携带 provenance”从单一 metadata probe 扩展为逐字段合同证据；不改变任何 admission gate、manifest 或训练状态。PNG 为 `native-v2-field-contract.png`，脚本和结果均只在 `tmp/`。
+
+04:23 CST source4 全量 live 文件审计完成：`tmp/goal-supervision-20261015/source4-live-file-audit.json` 对 33,056/33,056 manifest-listed compact NPZ（3,305,600 frames；standalone 320、expansion 32,736；TRAIN/DEV 26,448/6,608）逐条检查路径、身份、完整 payload 数组、连续30Hz、reset 和严格 bool admission，错误为 0；16/16 跨批次语义样本复放通过。仅忽略 watcher 易变 `checked_at` 比较内容指纹，快照稳定。因而 `admission-dry-run` 仅将 source4 `file_consistency` 提升为 PASS；source4 reader 仍 UNVERIFIED，clock/provenance/geometry/QA/training flag 及全源 metadata boundary 仍阻断，整体不准入。审查脚本和图文由子代理复核；未修改 manifest 或启动训练。
+
+04:27 CST source4 唯一几何 blocker 的 provenance probe：raw `decomposed_012.obj` 与 live geometry 对齐；Piano 511 个采样点中 2 个法线为零，均不在 32 个 query 点，但落在同一局部面片，incident face normals 成相反方向并抵消，不能安全选择符号。受影响 16 条 TRAIN 行暂保留隔离建议；没有写入修复法线或改变准入状态。详见 `tmp/goal-supervision-20261015/source4-piano-normal-probe.{json,md,png}`。
+
+04:42 CST live-manifest drift probe 双读 5 秒：去除易变 `checked_at` 后内容 hash 未变；36,351 sequences/2,353 objects、source4 33,056 唯一路径及 `training_allowed=false` 均与既有审计一致，当前无需重复全量 NPZ 审计。详见 `tmp/goal-supervision-20261015/live-manifest-drift.{json,md}`。
+
+04:57 CST 在监督快照后再次进行 5 秒 semantic drift probe：hash、source4 行/唯一路径、总行数/对象数和 `training_allowed=false` 检查仍全部通过；因此不重跑全量文件审计，继续沿用现有准入证据边界。
+
+约 05:02 CST 对 source7 (HO-Cap, 仅 dev) 与 source8 (DexYCB, 仅 train) 做了 direct-only lower-level contract probe：同一 `validate_sequence`/`pose_mesh_sample` 加 `egodex_data.forecasting_collate` 可生成有限 batch，并在各自一个全有效窗口上复算 `point_valid`、`object_valid`、`goal_object_delta`；source7/source8 混合 pair 的 source 顺序保留，但两源的 local `sample_id=[0,3]` 碰撞、三项 provenance 仍被丢弃。脚本还显式确认正常两边 split 的 `PoseMeshWindows` 对两源均按预期拒绝；split 门禁未放宽，manifest `training_allowed` 仍为 false。该 probe 仍只属于 bounded wiring smoke，不构成 reader 或训练准入。详见 `tmp/goal-supervision-20261015/direct-source-v2-contract.{json,md}`。
+
+05:10 CST 监督器触发的 live-index mtime 更新后，重新执行 5 秒 semantic drift probe；hash、source4 对账、总行数/对象数和 `training_allowed=false` 仍全部稳定，因此不重跑全量 NPZ/geometry 审计。
+
+05:25 CST 监督器新快照后再次完成 5 秒 semantic drift probe；语义 hash、36,351/2,353 总量、source4 唯一路径和全局 false flag 仍稳定，继续不重跑全量审计。
+
+05:40 CST 新监督快照后的 5 秒 semantic drift probe 仍为稳定内容；未触发 full-file/geometry 重审计，准入状态不变。
+
+05:55 CST 监督器新快照后的 semantic drift probe 仍稳定：总量、source4 对账和全局 `training_allowed=false` 未变，继续不重跑全量审计。
+
+06:10 CST 监督快照仍显示远端 WAM-v2 stale `RUNNING` 33,520/80,000、SSH 不可达；native live index 仍为 36,351 sequences/2,353 objects、`training_allowed=false`，本地 RL660 已完成 19,000，GPU 空闲，磁盘约 401.5 GB 可用。watcher mtime 更新后重跑 5 秒 semantic drift 双读，去除 `checked_at` 后内容 hash、source4 33,056 行/唯一路径和总量均稳定，未触发全量 NPZ/geometry 重审计；详情见 `tmp/goal-supervision-20261015/live-manifest-drift-0610.{json,md}`。
+
+06:25 CST 自动快照仍为远端 33,520/80,000、SSH 不可达；native 36,351/2,353、`training_allowed=false`，本地 GPU 空闲、磁盘约 401.5 GB。watcher 新 mtime 后的 `live-manifest-drift-0625.{json,md}` 仍为 `STABLE_SEMANTIC_CONTENT`，所有对账检查通过，未触发全量重审计。
+
+06:40 CST 自动快照无变化：远端仍 stale 33,520/80,000，native 36,351/2,353 且全局 `training_allowed=false`，GPU 空闲、磁盘约 401.5 GB；`live-manifest-drift-0640.{json,md}` 语义双读稳定，未触发全量审计。
+
+06:55 CST 自动快照仍无转变：远端 33,520/80,000、SSH 不可达，native 36,351/2,353 且全局 false flag，GPU 空闲、磁盘约 401.5 GB；`live-manifest-drift-0655.{json,md}` 仍为稳定语义内容，未触发全量审计。
+
+07:10 CST 自动快照仍无转变：远端 stale 33,520/80,000、SSH 不可达；native 36,351/2,353、`training_allowed=false`，GPU 空闲、磁盘约 401.5 GB。`live-manifest-drift-0710.{json,md}` 语义双读稳定，未触发全量审计。
+
+07:25 CST 自动快照仍无转变：远端 stale 33,520/80,000、SSH 不可达；native 36,351/2,353、`training_allowed=false`，GPU 空闲、磁盘约 401.5 GB。`live-manifest-drift-0725.{json,md}` 语义双读稳定，未触发全量审计。
+
+07:40 CST 自动快照仍无转变：远端 stale 33,520/80,000、SSH 不可达；native 36,351/2,353、`training_allowed=false`，GPU 空闲、磁盘约 401.5 GB。`live-manifest-drift-0740.{json,md}` 语义双读稳定，未触发全量审计。
+
+07:55 CST 自动快照仍无转变：远端 stale 33,520/80,000、SSH 不可达；native 36,351/2,353、`training_allowed=false`，GPU 空闲、磁盘约 401.5 GB。`live-manifest-drift-0755.{json,md}` 语义双读稳定，未触发全量审计。
+
+08:10 CST 自动快照仍无转变：远端 stale 33,520/80,000、SSH 不可达；native 36,351/2,353、`training_allowed=false`，GPU 空闲、磁盘约 401.5 GB。`live-manifest-drift-0810.{json,md}` 语义双读稳定，未触发全量审计。
+
+约 08:15 CST 完成只读跨源 cleaning ledger：`tmp/goal-supervision-20261015/cleaning-ledger.{json,md,png}` 将 source4–9 的 native contract、admission、provenance、clock、split、target/window 和 source4 全量文件审计逐项对账；source ID 覆盖、总行数、全局/逐源训练关闭、source4 行/路径/语义复放、source9 的 220 个 orphan 交叉核对及 gate↔failed-list 一致性全部为 `true`。该 ledger 明确是 proposal-only：所有 source 仍 `admissible_now=false`，没有执行 quarantine/normal repair/provenance sidecar/clock 转换，没有改 manifest 或 production loader，也没有启动混合训练。子代理复核 JSON/Markdown/PNG 一致；下一步仍只在获批后实现版本化 adapter/quarantine manifest。
+
+只读审计已覆盖 live source4 legacy geometry 与 source5/6/7/8/9 manifest-listed NPZ：五源 direct
+shape/finite/30Hz/mask dtype 检查通过，但行级 provenance/时钟字段、法线质量、HOT3D QA 窗口过滤和
+对象 split policy 尚未满足准入。H2O manifest 仅 524 序列/67,358 帧，目录外多出的 220 个 orphan
+NPZ 已隔离计数；DexYCB 法线约 `2π` 尺度，H2O 有混合法线尺度，HOT3D 有 55,361 个 QA-false
+帧、19 个非单调边和 4,717 个残差超过2ms的帧。当前 `native-contract-audit.json` 的 admission
+verdict 为 `BLOCKED`，所有 provisional manifest 仍 `training_allowed=false`。
+
+03:16 CST 按 live watcher 最新快照重跑了 provenance、native geometry 和九门 admission 审计：live
+manifest 读前后稳定，36,351 sequences 与 2,353 objects 对账 exact，source 读取无错误；native
+audit 后重新生成的 admission 仍为 `BLOCKED`，source4–9 全部 `admissible_now=false`。子代理
+复核确认计数和时间顺序一致，未修改 manifest 或启动训练。
+
+03:25–03:27 CST 监督与重审计没有发现状态转变：远端仍为不可达的旧 33,520/80,000 快照，live
+仍为 36,351/2,353 且 `training_allowed=false`；最新顺序化审计后 source4–9 仍全部不准入。
+
+03:33–03:35 CST 的 target/window 只读审计显示 HOT3D target-valid 为 810,374/999,865 帧；QA-false
+只是其中 55,361 个 target-invalid 帧，另有 134,130 个 QA-true 但 target-invalid。stride=8 的
+HOT3D TRAIN/DEV target horizon 全有效比例为 98.46%/98.13%，仍有 27/4 个含 QA-false 窗口；
+HO-Cap/DexYCB future hand validity 中位数约 0.5。target-slot bookkeeping 通过不等于语义准入，
+adapter 必须同时保留 target-valid、QA 和 hand-valid 门禁。
+
+03:33 CST 的 target/window 只读审计补充了接口边界：HOT3D target-valid 为 810,374/999,865 帧，
+QA-false 只是其中的 55,361 个 target-invalid 帧，另有 134,130 个 QA-true 但 target-invalid；
+其多对象 validity columns 在当前产物中完全相同，属于 frame-level availability 证据而非对象特异
+质量。当前 stride=8 窗口中 HOT3D TRAIN/DEV 的 target horizon 全有效比例为 98.46%/98.13%，
+仍有 27/4 个含 QA-false 窗口；HO-Cap/DexYCB 的 future hand validity 中位数约 0.5。adapter
+必须同时保留 target-valid、QA 和 hand-valid 门禁。
+
+03:24 CST 的 stable-read split/clock probes 进一步确认：当前 group split 无交叉；source5/6/9 若按
+object-disjoint 会分别失去全部 DEV/整源被隔离，因此暂不自动重切。clock 证据只有 source6 有
+`native_timestamp_ns`，source5/7/8/9 仅有 frame-id 与生成的 `time=index/30`，source4 仍待 legacy
+raw reader。详见 [split probe](../tmp/goal-supervision-20261015/object-split-policy-probe.md)
+和 [clock probe](../tmp/goal-supervision-20261015/clock-provenance-probe.md)。
+
+真实 PoseMeshWindows/native collate 到 v2 objective 的 bounded plumbing probe（source5/6/9）和
+48 窗 sampled semantic replay 均通过；旧 `shared_collate` 明确因缺少 `points` 拒绝。probe 使用
+stand-in geometry/fallback stats，只证明 reader/collate 合同，不证明生产 sparse geometry、混合
+adapter 或训练收益。远端 WAM-v2 status 仍 stale 在 step 33,520/80,000、SSH tunnel 不可达；本地
+RL660 geometry-lift 与 native live-index 由独立 supervisor 每15分钟记录，未启动新的混合训练。
+新增的只读 fail-closed adapter 原型以 source-local row→live row 唯一映射并独立重算 target anchor；source5/6/9 的 baseline 均为 `VALIDATED_PROVISIONAL`，而不是准入，缺失/伪造 source/profile/training flag、非有限或有限但错误的 anchor 均在 native collate 前拒绝。sidecar 仅由原型在外部暂存，现有 collate 会丢弃 provenance；所有 manifest 仍为 `training_allowed=false`，source row 也尚无显式 row-level admission 字段。
+最新 read-only admission dry-run 将九类门禁（含 metadata boundary）逐源展开，source4–9 均仍 `admissible_now=false`；成功
+reader smoke 的严格判定与 JSON/Markdown/热图已由子代理复核一致。产物见
+`tmp/goal-supervision-20261015/admission-dry-run.{json,md}` 和 `admission-gates.png`，不修改
+任何 manifest 的 `training_allowed`。
+另一个独立边界 probe（`tmp/goal-supervision-20261015/native-v2-interface-audit.md`）证明旧 native
+collate 会丢弃 `source_profile`/anchor/provenance，且接受缺失或伪造元数据；因此 dedicated adapter
+仍是准入 blocker。live watcher 当前约36,351行并持续更新，而旧
+`shared-interface-audit-r1.json` 为过期快照，不能作为当前 live 的 ENGINEERING_PASS 证据。
+01:55 监督快照：本地 geometry-lift step 16,400、GPU5/7 约100%利用；远端仍 stale 33,520/80,000
+且 SSH 不可达，live index 仍 `training_allowed=false`。
+当前 live provenance 对账为 36,351/36,351 sequence、2,353/2,353 object exact，但 source-level clock/lineage
+元数据未完整聚合，旧 interface audit 已标为 STALE；详见 `tmp/goal-supervision-20261015/live-provenance-audit.md`。
+03:44–03:47 CST 在相邻 stable live snapshots 上重跑 target/window、split、clock、provenance、native contract
+和九门 admission：source4–9 仍全部 `admissible_now=false`，native contract verdict 仍 `BLOCKED`。
+fail-closed 原型的 baseline 只标为 `VALIDATED_PROVISIONAL`，并明确现有 collate 丢弃 provenance；不构成可训练或
+production adapter 已安全的证据。随后独立扫描 sources 5–9 的全部 sequence rows，均没有显式
+`training_allowed` 字段；原型另核对 `sample_id` 与重算 anchor，并拒绝相应篡改案例。
+03:55 CST 自动监督仍显示远端旧快照 33,520/80,000、SSH 不可达；live index 36,351/2,353 且
+`training_allowed=false`，本地 RL660 已完成 19,000，GPU5/7 空闲，磁盘约 402.1 GB 可用。
+随后 fail-closed metadata probe 扩展覆盖 source4–9：source4 使用 standalone 320-sequence compact
+index，5/6/9 用 windowed reader、7/8 用同一底层 canonical direct replay；source4 live 全量 clock/
+provenance 仍未覆盖。admission dry-run 因此将 source4–9 metadata gate 明确标为 FAIL，source4 reader
+仍 UNVERIFIED，整体仍不准入。
+03:02 监督更新：RL660 geometry-lift 已自然完成 19,000 updates、exit code 0，GPU5/7 已释放；该
+engineering Probe 保持 `UNCLEAR`，未触发 native 多源混合训练。
+详见 [Task 状态](../src/task/3d-data-preparation/docs/STATE.md)和
+[清洗/准入研究笔记](../src/task/3d-data-preparation/docs/research/2026-10-15-multisource-cleaning-sharedwam-admission.md)。
+
+## 2026-10-15 RL660 q 三维复核与 v2 远端微调阻塞
+
+三条 dev 序列的 raw `q_ref` 与 nearest-live branch replay 均完成；独立命令/PD
+审计通过，但 q_ref 直接执行手/物体误差很大且 held=0，故保留 q_ref 为几何意图，
+不替换 RL660 的反馈补偿 `q_pd` 监督，`q_real` 只作实际执行状态。v2 Task 新增
+显式 `q_ref_next/q_pd/q_real` adapter，并用本地 v2 checkpoint 完成 4-step
+engineering smoke；远端 v2 80k checkpoint 当前无法读取（22023 refused、直连
+100.64.0.23 timeout），两卡科学微调未冒充启动。GPU4/6 保留给远端权重恢复后，
+GPU5/7 既有 geometry-lift 训练不干扰。实验卡与适配器详见
+`src/task/ptv3-shared-wam(-v2)/docs/experiments/`。
+
+## 2026-10-15 TACO 原生 3D 全量工程链路完成
+
+TACO 三个官方几何包已完整取得；15,231,790,511B 手部 ZIP 的 223/223 个 Range、2,317 个序列/363,198 帧/162 个几何对象已转换，0 个转换失败。单源接口审计为 `ENGINEERING_PASS`（TRAIN 30,642 窗、DEV 7,946 窗），live engineering index 已追加 source_id=5 的 1,826 TRAIN 和 491 DEV 序列。产物与索引仍为 `training_allowed=false`，TACO 原生时钟、目标语义和跨源准入待后续核实；详见 [Task 状态](../src/task/3d-data-preparation/docs/STATE.md)和[架构报告](../src/task/3d-data-preparation/docs/user/架构.md)。
 
 ## 2026-10-14 用户解除400GB限制，原生3D已全量并行扩产
 
 按用户新授权更新CAMPAIGN并替换旧全局磁盘停止watcher；六张项目GPU、外部只读和身份边界不变。
 HOT3D全部849包完成：290段/999865时间步转换，4段无QA时段跳过，130记录无监督GT。
-UniDex排除旧20与官方TEST，2046新mesh分82批在GPU4持续采集，完成后自动审计/追加索引；
-TACO模型与位姿包完成，15.23GB手包8线程断点Range下载，完成后自动逐序列转换。
+UniDex排除旧20与官方TEST，2046新mesh分82批采集与逐批审计已完成并追加索引；
+TACO模型、位姿和15.23GB手包均已完成断点Range下载，2317段已逐序列转换并通过单源接口审计。
 旧Task已有HO-Cap64段72944帧和DexYCB subject10的100段7282帧，本轮只读复用；
 HO-Cap仍全部DEV不进入TRAIN，时钟未核实的来源继续工程状态。
 实时查看：`python3 src/task/3d-data-preparation/tools/audit/status_geometry.py`；
@@ -58,6 +273,20 @@ dev/保存另计；30秒GPU0/2平均利用率96.8%/96.3%，物理显存最大291
 初始合计344.48GB；旧Task GPU5/7微调继续。详见
 [v2实验卡](../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261014-ptv3-shared-v2-pretrain.md)。
 
+## 2026-10-14 残差 PPO 预算/课程探索完成，起步仍未抓稳
+
+同一 corrected update20 checkpoint 配对续训：A旧0/32/48/62课到60，
+B接触0/48/50/52课到60，再单独续到100。40/60/80/100完整frame0评估均held0。
+B60近接触抬高64mm但仍有支撑，B100近接触抬高23mm，不能当抓持成功。
+B60最后20轮接触50/52的new_hold45为45%/60%；到100为30%/45%，并未
+持续改善或迁移到起步。实际接触手点与教师最近姿态仍有29–60mm RMS差距。
+三轮训练独立bootstrap/context审计通过，20项相关合同测试通过。
+补做exact-base拇指±/手指合拢冻结诊断，四份也held0，动作时段/实际命令审计通过。
+目前不能称PPO已收敛；停止这个固定教师课程预算块，下一优先级是实际访问接触
+状态的覆盖与手腕/手指执行配合，不直接把残差方法关闭。详见
+[课程卡](../src/task/trajectory-policy/docs/experiments/probes/P-20261014-wam-residual-curriculum.md)与
+[固定手指卡](../src/task/trajectory-policy/docs/experiments/probes/P-20261014-wam-residual-basin.md)。
+
 ## 2026-10-14 PTv3共享WAM停止预训练，转全660机器人联合微调
 
 ref2_2后7组GT-q重放与独立审计完成，GPU6已释放（约196s/3.62MB）。3条dev的原PD held63/89/74；直接q手点误差约61–86mm，固定阻尼补偿降至15–19mm，但mug仍held0；换回oracle手指PD仍held0，接触附近腕部约32mm误差。原native精确校准门未过，整体UNCLEAR，不切换大规模R_kin/PPO；现有PD训练保留，优先资格化接触阶段腕部跟踪。详见[GT-q重放卡](../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261014-rl660-realized-q-replay.md)。
@@ -95,6 +324,21 @@ all8，守护4007948待peer退出且目标无并发修改后应用补丁，不�
 全TRAIN覆盖对照（68747480）同预算下将B的dev mean/p95从45.80/148.05降至43.02/137.14mm，固定小池续训未改善；独立复算通过。候选固定step1500，startup仍81.28mm，物理执行未验证。已准备原训练自然退出后的有界GT执行交接，最多480秒/1GB，仍不启动新联合训练。
 
 [R-only修复卡](../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261014-rl660-R-control-repair.md)。
+
+## 2026-10-14 残差 PPO 按 ref6 修复基础合同
+
+已复现非逐级 KL 回退和 λ=.95；修复非终止截断的真实末端 V bootstrap、
+教师实测前缀的 H4/previous-command/物理状态重建、任务起始 lift 与初始 held、
+λ=1 和 optimizer/RNG checkpoint。四个 phase 的零残差诊断和逐 DOF 饱和率已接入。
+相关 17 项合同测试通过。r2–r5 的失败轨迹保留，但因实现缺陷，不能用它们关闭
+残差方法。修复提交 b201396b/a2f85d4b；r6 的教师 batch 初始化失败保留，r7
+在 GPU6 完成 fresh 20-update Probe，492s、18832MiB。四 phase 零残差门通过；
+22 次 reset 与 20 个末端 V 独立复算通过，bootstrap 最大误差 1.91e-6。
+训练 held 均值23.5%，主要来自已抓持的 phase62，平均 DOF saturation0.289%；
+frame0 评估仍4/4 held0，物体都留在桌面，局部 UNPROMISING。不能把后段持有
+当成起步抓取进展，不继续加更新。下一决策先查这套 exact pair 的 frame0 小残差
+basin；不据此否定 residual RL，也不直接归因于 WAM。详见
+[残差卡](../src/task/trajectory-policy/docs/experiments/probes/P-20261013-wam-residual-ppo.md)。
 
 ## 2026-10-13 残差 PPO 二百次更新后仍然抛掷
 

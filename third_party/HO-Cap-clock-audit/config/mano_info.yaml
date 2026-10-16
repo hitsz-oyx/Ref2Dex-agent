@@ -1,0 +1,63 @@
+joint_names:
+  - wrist
+  - thumb_mcp
+  - thumb_pip
+  - thumb_dip
+  - thumb_tip
+  - index_mcp
+  - index_pip
+  - index_dip
+  - index_tip
+  - middle_mcp
+  - middle_pip
+  - middle_dip
+  - middle_tip
+  - ring_mcp
+  - ring_pip
+  - ring_dip
+  - ring_tip
+  - little_mcp
+  - little_pip
+  - little_dip
+  - little_tip
+joint_connections:
+  -   - 0
+      - 1
+  -   - 1
+      - 2
+  -   - 2
+      - 3
+  -   - 3
+      - 4
+  -   - 0
+      - 5
+  -   - 5
+      - 6
+  -   - 6
+      - 7
+  -   - 7
+      - 8
+  -   - 0
+      - 9
+  -   - 9
+      - 10
+  -   - 10
+      - 11
+  -   - 11
+      - 12
+  -   - 0
+      - 13
+  -   - 13
+      - 14
+  -   - 14
+      - 15
+  -   - 15
+      - 16
+  -   - 0
+      - 17
+  -   - 17
+      - 18
+  -   - 18
+      - 19
+  -   - 19
+      - 20

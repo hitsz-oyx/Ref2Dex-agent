@@ -1,5 +1,8 @@
 # EgoDex shared forecasting 数据准备
 
+结合近期三域v2训练、RL660微调与UniDex动态provider的新增数据优先级，见
+[新增数据集接入核验](docs/research/2026-10-14-additional-dataset-priorities.md)：补查DexMimicGen、DexVerse等动态机器人来源，比较GigaHands/HOT3D/TACO与大规模视频的接入成本。
+
 最新进程状态、两条数据源审计入口与处理耗时见
 [2026-10-14现场报告](docs/user/ref/ref1_1.md)。本地UniDex批次与远端新EgoDex两批均已完成，
 没有持续生产；远端下载与旧重建仍在推进。报告附23张r5目标轨迹审查图及数值QC，

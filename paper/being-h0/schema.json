@@ -1,0 +1,7 @@
+{
+  "title": "Being-H0: Vision-Language-Action Pretraining from Large-Scale Human Videos",
+  "arxiv_url": "https://arxiv.org/abs/2507.15597",
+  "verification_date": "2026-10-15",
+  "notes": "src/task/3d-data-preparation/docs/research/2026-10-15-unified-training-primary-practices.md",
+  "code_url": "https://github.com/BeingBeyond/Being-H0"
+}

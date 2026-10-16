@@ -1,0 +1,18 @@
+{
+  "repository": "https://github.com/RchalYang/EgoVLA_Release",
+  "code_commit": "09645b9d1729f266f0e532d506a5e57d4a8c09e3",
+  "verification_date": "2026-10-15",
+  "scope": "Selected unmodified preprocessing source files only; no data/model download or execution",
+  "files": [
+    "human_plan/dataset_preprocessing/hot3d/utils.py",
+    "human_plan/dataset_preprocessing/hot3d/hf_dataset/generate_dataset_hands.sh",
+    "human_plan/dataset_preprocessing/hot3d/hf_dataset/generate_hand_parquets.py",
+    "human_plan/dataset_preprocessing/taco/utils.py",
+    "human_plan/dataset_preprocessing/taco/hf_dataset/generate_dataset_hands_30hz.sh",
+    "human_plan/dataset_preprocessing/taco/hf_dataset/generate_hand_parquets.py",
+    "human_plan/dataset_preprocessing/utils/funcs.py",
+    "human_plan/dataset_preprocessing/hoi4d/utils.py",
+    "human_plan/dataset_preprocessing/hoi4d/hf_dataset/generate_dataset_hands.sh",
+    "human_plan/dataset_preprocessing/hoi4d/hf_dataset/generate_hand_parquets.py"
+  ]
+}
