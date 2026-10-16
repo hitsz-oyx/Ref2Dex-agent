@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Shadow BC / PPO 原始轨迹回放</title>
+<style>
+body{margin:0;background:#111720;color:#e9eef5;font:15px system-ui,sans-serif}main{max-width:1400px;margin:auto;padding:24px}h1{font-size:24px;margin:0 0 8px}p{color:#aebdcd;line-height:1.6}select,button{background:#253345;color:#fff;border:1px solid #526479;border-radius:6px;padding:8px;margin-right:10px}button{cursor:pointer}.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:20px 0}input{flex:1;min-width:160px}.views{display:grid;grid-template-columns:1fr 1fr;gap:16px}.panel{background:#182330;border-radius:10px;overflow:hidden}.label{padding:14px 18px;font-size:18px;font-weight:600}.info{padding:12px 18px;line-height:1.8;color:#b9cbdc;min-height:100px}canvas{width:100%;height:430px;display:block;touch-action:none;cursor:grab;background:#101a26}.tag{font-size:13px;font-weight:400;margin-left:10px;color:#aebdcd}.good{color:#76e4ad}small{color:#93a9bd}.legend{margin:14px 0;color:#b9cbdc}.note{border-left:3px solid #697b90;padding-left:12px}@media(max-width:800px){.views{grid-template-columns:1fr}canvas{height:340px}}
+</style>
+<main><h1>Shadow：BC / BC＋PPO 同步回放</h1>
+<p>显示已记录的真实手部11关键点、物体CAD表面点与任务目标。全部48个配对起点均可选择；无需联网，不重新仿真。此视图不是仿真相机录像。</p>
+<div class="controls"><select id="object"></select><select id="case"></select><button id="play">播放</button><button id="reset">回到起点</button><input id="frame" type="range" min="0" max="199" value="0"><span id="time"></span></div>
+<div class="legend">青色：手部关键点与连线　橙色：物体表面　蓝色十字：目标　灰色网格：桌面高度参考（0.60m）。拖动视图旋转，滚轮缩放。</div>
+<div class="views"><div class="panel"><div class="label">BC<span class="tag">冻结9k模型</span></div><canvas id="bc"></canvas><div class="info" id="bcinfo"></div></div><div class="panel"><div class="label">BC＋PPO<span class="tag">20次更新终点 · 确定性执行</span></div><canvas id="ppo"></canvas><div class="info" id="ppoinfo"></div></div></div>
+<p class="note">保持指标：物体到目标≤5cm，且相对起点抬升≥10cm，连续60帧。它是位置代理，不认证接触稳定。片段结束会截断末段保持；两组初态相同，但独立闭环存在数值波动，个别成功片段不能证明RL收益。</p>
+</main>
+<script>
+const P=__PAYLOAD__;
+for(const v of Object.values(P.packets)){let s=atob(v.data),b=new Uint8Array(s.length);for(let i=0;i<s.length;i++)b[i]=s.charCodeAt(i);v.buffer=new Float32Array(b.buffer);delete v.data;}
+const object=document.getElementById('object'),choose=document.getElementById('case'),slider=document.getElementById('frame');
+const unique=[...new Set(P.cases.map(c=>c.object_code))];
+for(const code of unique){let c=P.cases.find(x=>x.object_code===code),o=document.createElement('option');o.value=code;o.textContent=c.object+' · '+c.split.toUpperCase();object.append(o);}
+let current,playing=false,last=0,azimuth=.75,elevation=.4,zoom=1,center=[0,0,0];
+function fill(){choose.replaceChildren();for(let i=0;i<P.cases.length;i++){const c=P.cases[i];if(c.object_code!==object.value)continue;let o=document.createElement('option');o.value=i;o.textContent='seed '+c.seed+' · env '+c.env;choose.append(o);}select();}
+function row(role,frame){let v=P.packets[current.seed+'_'+role],start=(frame*v.shape[1]+current.env)*43;return v.buffer.subarray(start,start+43);}
+function select(){current=P.cases[Number(choose.value)];slider.value=0;let r=row('bc',0);center=[r[0],r[1],r[2]+.12];zoom=1;draw();}
+object.onchange=fill;choose.onchange=select;slider.oninput=draw;
+document.getElementById('play').onclick=()=>{playing=!playing;document.getElementById('play').textContent=playing?'暂停':'播放';last=performance.now();};
+document.getElementById('reset').onclick=()=>{slider.value=0;draw();};
+function cross(a,b){return[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];}
+function transform(p,r){let q=[r[3],r[4],r[5]],t=cross(q,p).map(v=>2*v),u=cross(q,t);return p.map((v,i)=>v+r[6]*t[i]+u[i]+r[i]);}
+function draw(){if(!current)return;const frame=Number(slider.value);document.getElementById('time').textContent=(frame/60).toFixed(2)+' s · '+frame+'/199';
+for(const role of ['bc','ppo']){const canvas=document.getElementById(role),dpr=window.devicePixelRatio||1,w=canvas.clientWidth,h=canvas.clientHeight;canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
+const ca=Math.cos(azimuth),sa=Math.sin(azimuth),ce=Math.cos(elevation),se=Math.sin(elevation),scale=Math.min(w,h)/.7*zoom;
+function project(p){let d=p.map((v,i)=>v-center[i]);return[w/2+scale*(ca*d[0]-sa*d[1]),h/2-scale*(ce*d[2]-se*(sa*d[0]+ca*d[1]))];}
+function line(a,b,color,width=1){a=project(a);b=project(b);ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.stroke();}
+for(let k=-3;k<=3;k++){let v=k*.1;line([center[0]-.3,center[1]+v,.6],[center[0]+.3,center[1]+v,.6],'#2b3b4b');line([center[0]+v,center[1]-.3,.6],[center[0]+v,center[1]+.3,.6],'#2b3b4b');}
+const r=row(role,frame),goal=Array.from(r.subarray(40,43));
+for(let i=0;i<3;i++){let a=goal.slice(),b=goal.slice();a[i]-=.015;b[i]+=.015;line(a,b,'#74a9ff',2);}
+const cloud=P.geometry[current.object_code];ctx.fillStyle='#f4b764';for(const p of cloud){let s=project(transform(p,r));ctx.beginPath();ctx.arc(s[0],s[1],1.5,0,Math.PI*2);ctx.fill();}
+const hand=[];for(let i=0;i<11;i++)hand.push(Array.from(r.subarray(7+i*3,10+i*3)));
+for(let i=1;i<=5;i++){line(hand[0],hand[i],'#63d3cb',2);line(hand[i],hand[i+5],'#63d3cb',2);}
+for(const p of hand){let s=project(p);ctx.fillStyle='#c2fff2';ctx.beginPath();ctx.arc(s[0],s[1],3,0,Math.PI*2);ctx.fill();}
+let m=P.packets[current.seed+'_'+role].metrics[current.env],init=row(role,0),dist=Math.hypot(r[0]-goal[0],r[1]-goal[1],r[2]-goal[2]),lift=r[2]-init[2],active=dist<=.05&&lift>=.1;
+document.getElementById(role+'info').innerHTML='当前目标距离 <b>'+ (dist*100).toFixed(1)+'cm</b>　抬升 <b>'+(lift*100).toFixed(1)+'cm</b><br>当前连续合格 <b class="'+(active?'good':'')+'">'+m.prefix[frame]+'帧</b>　全段最长 '+m.longest_hold_frames+'帧　末段 '+m.endpoint_hold_frames+'帧<br><small>'+current.object+' · '+current.split.toUpperCase()+' · seed '+current.seed+' · env '+current.env+'</small>';
+}}
+let dragging=false,lastPointer;
+for(const canvas of document.querySelectorAll('canvas')){canvas.onpointerdown=e=>{dragging=true;lastPointer=[e.clientX,e.clientY];canvas.setPointerCapture(e.pointerId);};canvas.onpointerup=()=>dragging=false;canvas.onpointermove=e=>{if(!dragging)return;azimuth+=(e.clientX-lastPointer[0])*.008;elevation=Math.max(-1.1,Math.min(1.3,elevation+(e.clientY-lastPointer[1])*.008));lastPointer=[e.clientX,e.clientY];draw();};canvas.onwheel=e=>{e.preventDefault();zoom=Math.max(.25,Math.min(4,zoom*Math.exp(-e.deltaY*.001)));draw();};}
+function animate(now){if(playing&&now-last>=1000/30){slider.value=(Number(slider.value)+2)%200;last=now;draw();}requestAnimationFrame(animate);}
+fill();requestAnimationFrame(animate);window.onresize=draw;
+</script></html>
