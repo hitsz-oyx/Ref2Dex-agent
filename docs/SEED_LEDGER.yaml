@@ -25,6 +25,12 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261016-teacher-sequence-generalization:
+    seed_pool: probe
+    initialization_seed: 180
+    train_draw_seed: 181
+    reuse_reason: same full-teacher student recipe on a smaller preregistered family; not independent replication
+
   P-20261016-shadow-scale-continuous:
     seed_pool: probe
     bc_model_seed: 241
