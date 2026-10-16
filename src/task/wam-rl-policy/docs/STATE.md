@@ -9,8 +9,9 @@ none/v3后期分别33/35个episode全部13段EV近零，训练程序/冻结审�
 不能据此否定WAM，也不能宣称已收敛有效。
 
 本地缩放25轮对照完成，EV .783→.875，TRAIN保持41.8→38.5/128，没有行为提升证据。
-下一步远端四卡做none/v3 × value_scale1/100，共同remaining clock、2632D、大Tanh头、
-同BC/噪声/hold奖励，fresh125轮覆盖旧86/105轮失稳区；各先2轮smoke+审计。
+20:22远端四卡已启动none/v3 × value_scale1/100，共同remaining clock、2632D、大Tanh头、
+同BC/噪声/hold奖励，fresh125轮覆盖旧86/105轮失稳区；四组2轮smoke+审计均PASS，已进入fresh训练。
+代码87d14c7c，本地31项/远端3项测试通过，约5.24GiB/卡、利用率67–80%；训练预计85–95min，评估另20–30min。
 连续8轮全部13段已知EV近零自动保存checkpoint并停止该配方，避免继续空耗；不视为WAM负结果。
 固定终点及三reset评估，不按DEV选checkpoint。详见规模卡最新Decision Note。
 

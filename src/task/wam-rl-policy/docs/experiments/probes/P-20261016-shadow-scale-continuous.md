@@ -527,3 +527,11 @@ critic-health-stop.json与原始curve，标记STOPPED_CRITIC_QUALIFICATION后结
 若无改善仍UNCLEAR，不把EV改善包装为行为收益。两条scale100 WAM臂都通过时，可在同配方内
 评估直接z；v2/shuffled推迟到这一Blocker通过之后，不增加当前无判别性的全网格。
 新gate默认关闭，旧运行/旧checkpoint行为不变；仅本轮显式设8。源版本写入实际manifest。
+
+20:22执行快照：实现87d14c7c，本地31项测试PASS，远端Torch2.0的单位协变/停止条件3项PASS。
+四组2episode原生smoke、独立encoder/BC冻结、动作执行、13段bootstrap/重放审计全部PASS，
+现均进入fresh125（约第2轮），不是从smoke挑checkpoint。四个supervisor PID2112316–2112319。
+实测smoke总92–94s/两轮（含初始化），fresh第1轮含初始化约49s；稳态预计约40–45s/轮，
+训练约85–95min，三固定DEV评估再约20–30min（若资格失败则提前停止）。
+GPU利用率67–80%、约5.24GiB/卡，无OOM/非有限错误；本地全卡空闲，不占6/7。
+本地可用167GiB，仍高于20GiB保留。已有失败和200轮产物未覆盖。
