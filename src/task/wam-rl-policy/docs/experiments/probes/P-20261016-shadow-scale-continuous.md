@@ -124,4 +124,6 @@ warm-cache BC再次得到与cold BC相同的4环境初态，cold/cache本身不�
 下一最小工程probe：只在新输出开`synchronize_warm_step`，把原warm step展开为相同zero
 pre_physics→Torch synchronize→simulate/fetch→post；保存pre-warm完整root/DOF/targets/
 yaw/forces。固定shard01/128env/seed249，同GPU分别BC与PPO，区分reset输入差异和warm
-物理步差异。若仍有问题再检查重复setter/foreign-stream临时索引生命期，不先大改RNG。
+物理步差异。实际首轮只开同步、不额外CPU读pre-warm；保存pre-warm为独立的capture开关，
+避免CPU拷贝隐式同步混淆。若仍有问题再加capture并检查重复setter/foreign-stream临时索引
+生命期，不先大改RNG。

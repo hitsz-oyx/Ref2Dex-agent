@@ -65,6 +65,7 @@ def main():
     p.add_argument('--trace-every',type=int,default=1)
     p.add_argument('--initial-log-std',type=float,default=-2.5)
     p.add_argument('--synchronize-warm-step',action='store_true')
+    p.add_argument('--capture-warm-state',action='store_true')
     p.add_argument('--worker',action='store_true');a=p.parse_args()
     a.output=a.output.resolve();a.checkpoint=a.checkpoint.resolve();a.cache=a.cache.resolve()
     a.code_commit=os.environ.get('REF2DEX_CODE_COMMIT') or subprocess.check_output(['git','rev-parse','HEAD'],cwd=TASK,text=True).strip()
@@ -72,6 +73,7 @@ def main():
         raise ValueError('Scale bounds:1..256env/rank,1..200updates,1..4ranks,alpha0.15')
     if a.mode=='evaluate' and a.rl_checkpoint is None:raise ValueError('Evaluate requires RL checkpoint')
     if a.rl_checkpoint and a.mode not in ('train','evaluate'):raise ValueError('RL checkpoint only for train resume/evaluate')
+    if a.capture_warm_state and not a.synchronize_warm_step:raise ValueError('Warm capture requires explicitly synchronized probe')
     if a.worker:worker(a);return
     if a.output.exists() or ROOT/'outputs/wam-rl-policy' not in a.output.parents:raise ValueError('Fresh Task output')
     occupied=subprocess.check_output(['nvidia-smi','-i',str(a.gpu),'--query-compute-apps=pid','--format=csv,noheader'],text=True).strip()

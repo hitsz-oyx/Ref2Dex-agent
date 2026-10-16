@@ -58,7 +58,7 @@ def run(task,snapshot,env_objects,teacher,args):
         alpha=args.alpha,exploration='tanh latent Normal; independent per-rank CUDA RNG',initial_log_std=args.initial_log_std,
         policy_seed=args.policy_seed,exploration_seed=args.exploration_seed+args.rank,reset_seed=args.seed,envs=args.envs,updates=args.updates,
         rank=args.rank,world_size=args.world_size,global_envs=args.envs*args.world_size,resume_update=offset,
-        synchronize_warm_step=args.synchronize_warm_step,
+        synchronize_warm_step=args.synchronize_warm_step,capture_warm_state=args.capture_warm_state,
         reward='unchanged official goal_cond=False native task reward',gamma=.99,gae_lambda=.95,
         bc_weight=.1,actor_lr=1e-4,critic_lr=3e-4,ppo_epochs=4,target_joint_kl=.02,
         max_seconds=args.seconds,artifact_budget_bytes=2*2**30,
@@ -74,7 +74,7 @@ def run(task,snapshot,env_objects,teacher,args):
             if task.dr_randomizations:raise ValueError('Synchronized warm probe requires native no-domain-randomization config')
             task.pre_physics_step(torch.zeros((args.envs,24),device='cuda'))
             torch.cuda.synchronize()
-            if iteration==offset+1:
+            if args.capture_warm_state and iteration==offset+1:
                 np.savez(out/'warm-before.npz',root_state=task.root_state_tensor.cpu().numpy(),dof=task.dof_state.cpu().numpy(),
                     prev_targets=task.prev_targets.cpu().numpy(),cur_targets=task.cur_targets.cpu().numpy(),
                     z_theta=task.z_theta.cpu().numpy(),force=task.apply_forces.cpu().numpy(),torque=task.apply_torque.cpu().numpy())
