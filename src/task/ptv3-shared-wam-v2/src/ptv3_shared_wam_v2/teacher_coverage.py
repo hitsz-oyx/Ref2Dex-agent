@@ -46,3 +46,20 @@ def phase_sampler(ids, sequence, tick, seed=181):
             batches.append(flat[offsets[seq] + local])
         return np.concatenate(batches)
     return draw
+
+
+def diverse_subset(ids, sequence, count, seed=181):
+    """Equal label count, spread across TRAIN sequences without reading labels."""
+    ids = np.asarray(ids)
+    if not 0 < count <= len(ids):
+        raise ValueError('Valid label budget required')
+    rng = np.random.default_rng(seed)
+    pools = [rng.permutation(ids[sequence[ids] == s]) for s in np.unique(sequence[ids])]
+    chosen = []
+    for depth in range(max(map(len, pools))):
+        for index in rng.permutation(len(pools)):
+            if len(pools[index]) > depth:
+                chosen.append(pools[index][depth])
+                if len(chosen) == count:
+                    return np.sort(chosen)
+    raise AssertionError('Insufficient candidates')
