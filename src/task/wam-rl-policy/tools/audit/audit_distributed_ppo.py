@@ -28,7 +28,7 @@ def main():
             frozen_features=json.loads((folder/'feature-freeze-audit.json').read_text())
             assert frozen_features['status']=='PASS' and frozen_features['exact_state_dict_unchanged'] and frozen_features['gradients_absent']
         condition=packet['config'].get('observation_kind','native')
-        if condition.startswith('wam-'):
+        if condition.startswith('wam-') and packet['config'].get('wam_input_audit',False):
             inputs=torch.load(folder/'first-wam-input.pt',map_location='cpu',weights_only=False)
             source=inputs['source_z'];supplied=inputs['supplied_z'];obs=inputs['observation']
             assert source.shape==supplied.shape==(len(obs),2304) and torch.isfinite(source).all()

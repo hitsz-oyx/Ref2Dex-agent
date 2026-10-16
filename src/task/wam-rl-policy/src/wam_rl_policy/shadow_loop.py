@@ -105,6 +105,7 @@ def run(task,snapshot,env_objects,teacher,args):
         wam_z='frozen masked mean per scene/hand/known-goal type; 3x768; original current300 retained' if use_wam else None,
         wam_donor_indices=permutation if use_wam else None,
         direct_wam_condition=args.observation_kind if use_wam else None,
+        wam_input_audit=use_wam,
         representation=('native current300 + per-type LayerNorm WAM2304 + explicit goal3/reference24' if use_wam else
             ('native clamp current300' if obs_dim==327 else '512D current-only frozen prefix, per-state LayerNorm; explicit goal3/reference24 unchanged')),
         alpha=args.alpha if args.action_kind=='residual' else None,
