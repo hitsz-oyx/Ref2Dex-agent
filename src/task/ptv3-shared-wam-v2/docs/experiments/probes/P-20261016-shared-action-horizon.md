@@ -5,7 +5,7 @@ experiment_id: P-20261016-shared-action-horizon
 date: 2026-10-16
 task: ptv3-shared-wam-v2
 branch: main
-git_commit: 7ff34069
+git_commit: af861865
 claim_id: C1
 hypothesis_family: HF-shared-action-horizon
 probe_index_in_family: 1
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [198, 192, 148]
 decision_changed_if_positive: use current721 plus first-action supervision as the next matched shared route
 decision_changed_if_negative: retain full-chunk supervision for current-input shared training and investigate input bottleneck separately
-status: RUNNING
+status: UNCLEAR
 run_id: shared-action-horizon-20261016-r1
 ---
 
@@ -77,3 +77,44 @@ weight-only robot parent fresh 重跑两条 8拍臂；这比继续污染的 opti
 `action_supervision_steps=8`，并使用稀疏 validation/checkpoint cadence 以满足每臂7GB
 artifact budget；输出目录为 `fresh8-masked` 和 `fresh8-delta0`。原 continuation
 输出保留作资源与错误实现证据，不参与四组比较。
+
+## Final execution and decision note
+
+2026-10-16 08:22 CST，`fresh8-masked` 与 `fresh8-delta0` 均以显式
+`action_supervision_steps=8` 完成 7000 步，manifest 均为 `COMPLETED`。四个可比训练臂的
+step7000 离线结果如下；它们共享同一个 shared7k+weight-only robot parent，forecast
+监督和其余训练字段保持一致：
+
+| arm | current input | action steps | objective | first-control PD XYZ mean / p95 |
+|---|---|---:|---:|---:|
+| masked-8 (`fresh8-masked`) | masked | 8 | 5.1548 | 60.09 / 174.50 mm |
+| delta0-8 (`fresh8-delta0`) | delta0 | 8 | 5.1283 | 56.13 / 164.95 mm |
+| masked-1 (`single-masked1-sparse`) | masked | 1 | 5.1473 | 59.07 / 165.41 mm |
+| delta0-1 (`single-delta01-sparse`) | delta0 | 1 | 5.1454 | 55.14 / 161.31 mm |
+
+固定 native 面板使用同一 seed148、airplane/spheresmall/mug 和执行步长1。五个成功面板的
+independent wiring audit 全部通过，说明失败不是 chunk、PD、当前观测或目标读取的数值
+契约错误；结果仍只是短 Probe，面板指标是 `partial_hold45_only_no_placement`：
+
+| arm/object | shared max held | clipping | 结果 |
+|---|---:|---:|---|
+| masked-8 / airplane,sphere,mug | 0 / 0 / 0 | 41.6% / 8.5% / 19.8% | 完成但无保持 |
+| delta0-8 / airplane | 0 | 13.4% | 完成但无保持 |
+| delta0-8 / mug | 60 | 0% | 短暂保持，无 placement |
+| delta0-8 / sphere | — | — | query 87 越出固定 PTv3 workspace |
+| masked-1 / airplane,sphere,mug | 0 / 0 / 0 | 12.8% / 0% / 4.1% | 完成但无保持 |
+| delta0-1 / airplane | — | — | query 88 越出固定 PTv3 workspace |
+| delta0-1 / sphere | 0 | 22.0% | 完成但无保持 |
+| delta0-1 / mug | 117 | 0% | 短暂保持，无 placement |
+
+因此当前结论标签为 `UNCLEAR`：`delta0` 在离线首控误差上稳定优于 masked，单拍监督在
+这个 parent 上也略优于 8 拍，但没有在固定面板上产生可重复的完整 hold/placement；
+部分闭环 episode 直接离开工作空间，无法把失败归因给动作监督跨度。这个 Probe 不足以
+进入多 seed Validation，也不支持把 current721+单拍监督定为新 base policy。
+
+原 `continuation-masked8-sparse`/`continuation-delta08-sparse` 的实际监督跨度为默认的
+24 拍，已标记 `INVALID_IMPLEMENTATION`，不参与上述比较。完整训练、面板、失败日志和
+结果汇总保存在
+`outputs/ptv3-shared-wam-v2/shared-action-horizon-20261016-r1/results_summary.json`。
+下一步保留这四个 checkpoint 作诊断，先做 v2 BC 到旧 residual executor 的显式 adapter
+与 zero-residual 四控制 smoke；在 adapter 通过固定面板前不启动 PPO。
