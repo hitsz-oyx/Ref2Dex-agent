@@ -31,6 +31,8 @@ allocations:
     train_draw_seed: 197
     shared_shuffle_seed: 199
     DEV_shared_shuffle_seed: 200
+    repeat_model_seeds: [201, 203]
+    repeat_draw_seeds: [202, 204]
     native_reset_seed: 148
     reuse_reason: identical original wrist MLP initialization and sampling for matched shared conditioning; fixed split-local shuffles; not independent validation
 

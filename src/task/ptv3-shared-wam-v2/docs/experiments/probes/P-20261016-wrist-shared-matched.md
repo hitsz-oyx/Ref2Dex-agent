@@ -66,3 +66,36 @@ Decision Note：优先隔离shared条件而非新增模型路线。缓存冻结�
 
 入口：tools/run/probe_wrist_shared.py；模型/采样：src/ptv3_shared_wam_v2/wrist_shared_probe.py。
 输出：outputs/ptv3-shared-wam-v2/wrist-shared-matched-20261016-r1/。
+
+## 首轮结果后的最小重复（执行前）
+
+固定6k首轮已结束：none TRAIN/DEV mean16.69/37.83mm，aligned14.89/42.61mm，
+shuffled14.51/42.50mm；shared提高训练拟合但未获DEV收益。none完全复现既有MLP指标。
+low-lr TRAIN/DEV35.90/40.19mm；high-wd17.30/36.95mm。以上均未选择DEV最好checkpoint。
+
+Decision Note：单seed不足以判断负方向是否稳定，且原先两版混淆很大；复用同份冻结缓存，
+对三主臂再做两个配对重复（model/draw201/202、203/204，shuffle199/200保持同一干预），
+每臂仍6k/global512/原LR-WD，不追加单臂训练或挑种子。最多五卡同时运行，保留两卡空闲，
+每组900s，预计整轮<2分钟；额外<=0.5GiB。只检查方向稳定性，不升级为Validation或否定
+整个WAM。native正向准入门未过，本轮暂不扩大物理仿真。
+
+独立只读review未发现使主三臂归因失效的实现缺陷，CPU重建6窗、future-label干预、
+TRAIN-only统计、分片/合并、初始权重/首draw和实际实参均通过；这不替代科学效用检验。
+
+## 原输入路径共适配的最小分离（执行前）
+
+三个配对repeat的aligned均比none DEV mean差4.45–4.87mm，TRAIN均改善；shuffled并未
+稳定更差。固定seed196 aligned权重推理时，移除shared反而使DEV42.61→58.84mm、
+TRAIN14.89→64.26mm，说明原MLP路径已共适配，不能靠把新增输入置零恢复旧权重。
+该推理遮罩是分布外干预，仅诊断依赖，不替代重训对照。
+
+Decision：下一项最便宜的可判别问题是固定原MLP映射后，shared能否额外修正其误差。
+冻结首轮none6k全部参数/预测，三臂none/aligned/shuffled只训练2304→6无bias线性残差，
+相同TRAIN-only统计、draw197/global512/6k/LR5e-4/WD1e-4；none恒为原基线。残差初始0，
+条件全0在训练结束后也必须精确恢复基线，base参数/梯度逐项检查不变。保持同DEV门，
+正向才进native；负向只排除当前冻结pooling线性校正，不扩大否定范围。
+GPU1/2/3并行，每臂<=900s，预计<1分钟，新增<=50MiB，磁盘底线20GiB。不启动joint/PPO。
+入口tools/run/probe_frozen_wrist_residual.py；输出同run下residual-{none,aligned,shuffled}。
+
+重复调度器记录写入曾发生并发rename冲突；五条已启动训练均正常COMPLETED，原失败
+repeat-driver.json保留。仅补未启动的repeat203-shuffled，无权重或数值记录被覆盖。
