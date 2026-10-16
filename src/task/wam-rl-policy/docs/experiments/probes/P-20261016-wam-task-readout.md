@@ -97,3 +97,21 @@ Decision Note：不扩大该读出训练或直接进入新PPO对照。先利用�
 还是继续改任务读取。纯数组/坐标统计CPU<=2min，新增输出<=5MiB，不新训模型。
 不是追加seed或按留出挑选checkpoint。若预测失配，保留latent先验，不能直接用原预测
 做reward/规划；若预测本身有信息，才进一步检查融合。原有gate和结果不追改。
+
+### 目标语义核验后的Decision Note
+
+冻结forecast在留出对象上，16/32步scene误差72.49/141.00mm，零位移26.52/45.75；
+hand63.68/125.97mm，零位移36.49/56.76。运动>5mm子集方向相同。
+但追溯`goal_point_wam.data._object_goal`及`pose_mesh_data.windows`发现预训练条件是
+真实t+24（30Hz，原生48步）物体终点；`fast_bc.batched_inputs`提供整个任务goal位置、
+保持当前姿态。当前实际轨迹不保证在0.8s达到整个任务终点。因此以上误差只描述部署
+接法的不匹配，不是同条件下预测能力负证据。诊断不能借未来标签修复线上输入。
+
+下一项最低成本：固定已有2048样本中有完整48步未来者（7ticks×128×2=1792），
+冻结V3、同实际H4，比较4种条件：原task-goal；causal-scheduled（当前到task goal位移
+乘min(48/remaining,1)，不指定未来旋转）；zero-displacement；oracle完整t+48点终点。
+后三者新增推理，原task-goal缓存重用。所有方法同一subset、16/32步误差、整对象留出；
+oracle仅诊断，不进入策略、回报拟合、数据统计或可部署结果。若oracle误差较task至少
+降低30%，优先研究短期目标生成/可实现性桥接；若未改善，回到域迁移/时钟/decoder问题。
+scheduled须同时胜zero才能视作可部署目标桥接线索，否则不把缩小运动幅度当改进。
+GPU0<=5min、新产物<=10MiB，纯推理无训练。保持第一轮结论，补充其适用条件。
