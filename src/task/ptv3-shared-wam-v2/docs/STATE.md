@@ -9,8 +9,9 @@ hold45为6/4/6/6条。两候选通过预定门，局部PROMISING；不是完整�
 剩余s3_mug_drink_1 expanded284.35mm（teacher36.17），其余5条expanded25.73–48.87mm。
 两条drink部件诊断完成：s3扩展模型246.96mm，teacher腕/指分别救至33.71/31.42mm，
 不能唯一归给某一部件。逐帧定位reference在156帧要求松手，学生已放回桌面却撤手时
-仍带走物体，162/163帧后误差>200mm。下一步先审计TRAIN的放置—松手—撤离阶段覆盖，
-再决定阶段采样或TRAIN own-state PD收集；VAL不回灌，不先扩大网络/WAM。
+仍带走物体，162/163帧后误差>200mm。TRAIN阶段审核已完成：杯类1750个release状态/49序列，balanced腕部序列等权1.525mm
+（逐帧2.412mm），已有阶段覆盖且教师分布拟合较好。下一步优先TRAIN松手边界
+own-state PD查询，并保留相同步数纯离线续训对照；VAL不回灌，不先扩大网络/WAM。
 本轮9次原生运行/独立审计全部结束，约4.2 GPU分钟/27MiB，0/5/6/7已释放。
 详见[闭环卡](experiments/probes/P-20261016-teacher-coverage-native.md)。
 
