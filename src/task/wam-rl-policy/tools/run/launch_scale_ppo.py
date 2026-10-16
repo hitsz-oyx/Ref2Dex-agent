@@ -51,9 +51,10 @@ def main():
                 '--rendezvous',process['rendezvous'],'--seed',str(a.seed+rank),'--policy-seed',str(a.policy_seed),
                 '--exploration-seed',str(a.exploration_seed),'--trace-every','50']
             if a.resume:command+=['--rl-checkpoint',str((a.resume/('rank%02d'%rank)/'latest.pt').resolve())]
-            env=dict(os.environ,CUDA_VISIBLE_DEVICES=str(gpu),TMPDIR=str(target/'tmp'),TORCH_EXTENSIONS_DIR=str(ROOT/'tmp/shadow-isaac-extensions'),
+            env=dict(os.environ,CUDA_VISIBLE_DEVICES=str(gpu),TMPDIR=str(target/'tmp'),TORCH_EXTENSIONS_DIR=os.environ.get('TORCH_EXTENSIONS_DIR',str(ROOT/'tmp/shadow-isaac-extensions')),
                 MAX_JOBS='2',OMP_NUM_THREADS='2',OPENBLAS_NUM_THREADS='2',PYTHONDONTWRITEBYTECODE='1')
             env['LD_LIBRARY_PATH']=str(Path(sys.executable).resolve().parents[1]/'lib')+':'+env.get('LD_LIBRARY_PATH','')
+            env['PATH']=str(Path(sys.executable).resolve().parent)+os.pathsep+env.get('PATH','')
             log=(target/'worker.log').open('x');logs.append(log)
             child=subprocess.Popen(command,env=env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True);children.append(child)
             process['ranks'].append(dict(rank=rank,gpu=gpu,pid=child.pid,command=command));save()
@@ -65,6 +66,7 @@ def main():
             resource=subprocess.check_output(['nvidia-smi','-i',a.gpus,'--query-gpu=index,utilization.gpu,memory.used','--format=csv,noheader'],text=True)
             with (out/'resources.jsonl').open('a') as stream:stream.write(json.dumps(dict(elapsed_s=elapsed,gpu=resource))+'\n')
             time.sleep(10)
+        if any(c.returncode!=0 for c in children):raise RuntimeError('A rank exited unsuccessfully before final poll')
         process['status']='COMPLETED'
     except BaseException as error:
         process.update(status='FAILED',error=repr(error));raise

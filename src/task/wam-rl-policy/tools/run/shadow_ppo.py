@@ -76,9 +76,10 @@ def main():
     if occupied:raise RuntimeError('Assigned GPU occupied')
     a.output.mkdir(parents=True);(a.output/'tmp').mkdir()
     env=dict(os.environ,CUDA_VISIBLE_DEVICES=str(a.gpu),TMPDIR=str(a.output/'tmp'),
-        TORCH_EXTENSIONS_DIR=str(ROOT/'tmp/shadow-isaac-extensions'),MAX_JOBS='2',OMP_NUM_THREADS='2',
+        TORCH_EXTENSIONS_DIR=os.environ.get('TORCH_EXTENSIONS_DIR',str(ROOT/'tmp/shadow-isaac-extensions')),MAX_JOBS='2',OMP_NUM_THREADS='2',
         OPENBLAS_NUM_THREADS='2',PYTHONDONTWRITEBYTECODE='1')
     env['LD_LIBRARY_PATH']=str(Path(sys.executable).resolve().parents[1]/'lib')+':'+env.get('LD_LIBRARY_PATH','')
+    env['PATH']=str(Path(sys.executable).resolve().parent)+os.pathsep+env.get('PATH','')
     command=[sys.executable,'-u',str(Path(__file__).resolve()),*sys.argv[1:],'--worker']
     stop=[False]
     for sig in (signal.SIGTERM,signal.SIGINT):signal.signal(sig,lambda *_:stop.__setitem__(0,True))
