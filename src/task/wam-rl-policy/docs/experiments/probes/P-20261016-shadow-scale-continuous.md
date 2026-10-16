@@ -409,3 +409,14 @@ clock此处同时提供actor和critic，不将任何行为差异单独归因crit
 若末10轮大部分chunk EV>0且无连续3轮全13段近零，可继续其200episode与固定DEV读出；
 若四臂都失败，保留结果，检查value target尺度/critic warmup，不追加盲目大规模训练。
 两卡通过STOP确认原owned进程结束、nvidia-smi空闲才启动，不能干预其他GPU或外部作业。
+
+在线资格r1在import IsaacGym前失败：新启动脚本漏继承scope/env.sh中的PYTHONPATH，
+尚未创建仿真或执行PPO。保留失败日志；r2显式继承同一已知IsaacGym路径/运行root后fresh重启，
+不修改模型或实验设计，实际run_id后缀使用20261016-r2。
+
+追加固定中期行为读出：在上述资格队列结束、GPU1/3空闲后，对仍完整训练的v3-none/v3-aligned
+各自固定update50.pt做core64DEV×4、reset249的同packet BC强制零偏移/候选评估，使用现有
+evaluate_scale_pair与真实初态审计。两组仍继续200；不根据中期DEV选checkpoint或改训练超参。
+run_id=shadow-wam-feature-{v3-none,v3-aligned}-u50-core-seed249-20261016-r1。
+目的是获得及时的闭环初步读数，若无稳定明显收益仍等固定200及后续修正配方，不追加DEV网格。
+每组配对评估<=1h、含等待队列<=2h；相同64物体/256轨迹，非全388DEV，不作正式结论。
