@@ -244,3 +244,56 @@ bootstrap、最后7步真正terminal零bootstrap、无内部reset/BC重复forwar
 最终保留策略的KL，训练loss/accept/rollback不变。新增强制拒绝测试，14项通过。
 两卡smoke结束用`tools/audit/audit_distributed_ppo.py`审计跨rank权重、真实chunk长度、
 terminal/bootstrap标签、重放误差、冻结性及实际actor更新数后才进入训练。
+
+
+## Decision Note：训练配方资格验证与WAM直接z输入（用户2026-10-16扩张授权）
+
+当前证据：仅16步分段、其余legacy配方不变，200episode实际10400 actor步，对照full199的800步，
+core三reset held202→210/768（full199为202→197）；没有稳定10点收益。
+分段曾将LR降到6.25e-6，说明“多更新”不能代替有效的整套训练配方。
+BC隐藏表示207→233/768，raw归一化210→188；仍不是WAM直接输入，也不能据此关闭WAM。
+用户要求并行扩大网络/优化/奖励/终止/动作自由度，并直接输入WAM z。root选择下面两波，
+不修改MISSION claim，不将旧简化基线的负信号当WAM效用的负证据。
+
+第一波：远端四卡各1个训练臂，固定train[0]的32TRAIN物体、128env、200完整episode，
+5,094,400真实env steps/臂；每16步更新、5epoch×4等大小随机minibatch，critic同预算。
+R0 small(256x256)/residual/native；R1 large(1024x1024x1024x512)/residual/native；
+R2 large/reference-gaussian/native；R3 large/reference-gaussian/hold。
+同BC50k、同actor种子246/探索247/reset245，不新增未登记seed，
+同Tanh激活；raw状态采用同一BC-hidden539D输入。R0→R1检查容量，R1→R2检查动作参数化，
+R2→R3检查逐拍保持塑形。full action以base+零head为初始Gaussian均值，执行完整[-1,1]
+canonical动作，不再永久±.15；显式log_std=-4.3971199849，匹配legacy -2.5经.15缩放的
+一阶初始实际噪声（tanh下并非逐值相同，报告实际RMS）。latent未clip的Normal计算logprob。
+BC reference penalty按实际确定性命令偏移计算，三者同权重.1，不更新BC。
+hold仅加1/tick的低速位置代理：goal<=5cm、lift>=10cm、object speed<=.1m/s；不使用
+连续计数隐状态，不改official success；native reward与bonus分别保存，不以新reward高作为行为改善。
+
+minibatch新路径在整个当前chunk上检查全局KL；首次步过大可quarter-LR校准，已有接受步骤后
+到KL边界则回滚该候选并结束actor更新，避免反复用同旧batch把LR无限缩小。它是新资格配方
+的一部分，不声称仅minibatch不同于legacy。随机shuffle使用独立保存/恢复的generator，
+seed由探索247+1000000+rank派生，不消耗环境reset RNG。各rank仍等有效样本，未增加失败mask。
+所有臂均先2episode工程smoke+freeze/重放/执行/实际chunk审计，通过后fresh200（不从smoke挑选）。
+终点固定64DEV×4、reset249/250/251，同RL packet加载强制BC对照，实际初态审计失败仍保留
+描述性读数且不称严格配对。10个百分点且方向稳定再扩388DEV/训练预算，无信号则继续诊断。
+
+第二波：WAM reference相同、状态/目标/BC动作显式相同，仅z为none/aligned/shuffled，
+三组均2631D且同大头/相同初始参数。z从本拍同一次冻结WAM H4 forward的scene/hand/known-goal
+有效token分别均值汇总（3×768），逐类型LayerNorm；原始current300完整保留，无state128D瓶颈。
+不运行未来readout、不读未来GT、不离线缓存z、不用teacher动作；shuffled donor固定为另一个物体，
+不跨TRAIN/DEV。none仅指不直接给RL z，公共WAM BC reference仍包含WAM，不能称完全无WAM。
+第一轮是便宜的type-summary接入Probe，不是learned query；负结果不能否定更丰富readout。
+z还携带H4与CAD信息；正结果不能单独证明预训练优于等信息原始历史/几何。
+拟先GPU5运行2episode工程检查，远端第一波各队列释放GPU后再运行三臂200episode，
+每臂32TRAIN、64env（实际smoke吞吐决定是否可128env），rollout16、5×4mini、大头、
+完整动作+hold奖励。单臂<=2h，整队列<=4h；smoke若ETA超预算先调整环境数并记录，不能无界延长。
+不抢占本地100轮阶段评估；本地新smoke<=10min，预计100轮尚需约40min以上。
+
+失败终止作为下一项独立Decision：不能直接写task.reset_buf，否则native下一拍reset/splice。
+需要alive/learning_done/valid吸收状态，失败后不再进入actor/critic/adv/KL，逐env bootstrap归零，
+多卡按有效样本sum/count加权。这一实现尚未完成，不把当前固定199步称已具备失败终止。
+先跑上述现成可审计的变量；确定保守跌落/飞离定义再补1GPU资格probe，无接触认证不称接触失败。
+
+资源：使用远端0/1/2/3，本地5只做有界smoke/空隙作业；本地0外部作业保护、6/7留空。
+每臂独立输出，旧checkpoint/轨迹不覆盖，空间保留20GiB，总产物仍限64GiB；任一硬合同失败
+停止本组。23项测试通过（含新动作、大容量、WAM状态保留/类型mask、双rank mini/global等价、
+shuffle不消耗环境RNG），这些只是工程资格，不是抓取正结论。

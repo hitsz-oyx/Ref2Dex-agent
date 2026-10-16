@@ -1,11 +1,12 @@
 import sys
 from pathlib import Path
 import numpy as np
+import torch
 from scipy.spatial.transform import Rotation
 
 TASK=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(TASK.parent/'shadow-finetune/src'))
-from wam_rl_policy.fast_bc import batched_inputs
+from wam_rl_policy.fast_bc import batched_inputs,type_summaries
 from wam_rl_policy.fast_bc import FastController
 from shadow_finetune.data import current_inputs
 from video_data_preparation.unidexgrasp_data import object_poses
@@ -46,3 +47,15 @@ def test_outside_support_zero_is_per_env_persistent_and_rejects_nan(monkeypatch)
     assert (c.act(snapshot(),zeros(2,300),1)==.25).all() and not c.invalid
     invalid=snapshot();invalid['hand'][1,0,0]=np.nan
     with pytest.raises(FloatingPointError):c.act(invalid,zeros(2,300),1)
+
+
+def test_wam_type_summary_masks_padding_and_keeps_semantic_groups():
+    tokens=torch.ones(2,5,768,requires_grad=True)
+    with torch.no_grad():
+        tokens[:,2:4]*=2;tokens[:,4:]*=3;tokens[:,1]=float('nan')
+    valid=torch.tensor([[True,False,True,True,True],[True,False,True,True,True]])
+    z=type_summaries(tokens,valid,2,2)
+    assert z.shape==(2,2304) and not z.requires_grad and torch.isfinite(z).all()
+    assert torch.equal(z[:,:768],torch.ones(2,768))
+    assert torch.equal(z[:,768:1536],torch.ones(2,768)*2)
+    assert torch.equal(z[:,1536:],torch.ones(2,768)*3)

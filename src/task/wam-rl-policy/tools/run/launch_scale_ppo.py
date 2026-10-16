@@ -24,7 +24,12 @@ def main():
     p.add_argument('--initial-log-std',type=float,default=-2.5)
     p.add_argument('--outside-support-zero',action='store_true')
     p.add_argument('--rollout-steps',type=int,default=199)
-    p.add_argument('--observation-kind',choices=('native','normalized','bc-hidden'),default='native');a=p.parse_args()
+    p.add_argument('--observation-kind',choices=('native','normalized','bc-hidden','wam-none','wam-aligned','wam-shuffled'),default='native')
+    p.add_argument('--network-kind',choices=('small','large'),default='small')
+    p.add_argument('--ppo-epochs',type=int,default=4)
+    p.add_argument('--ppo-minibatches',type=int,default=1)
+    p.add_argument('--action-kind',choices=('residual','reference-gaussian'),default='residual')
+    p.add_argument('--reward-kind',choices=('native','hold'),default='native');a=p.parse_args()
     out=a.output.resolve();gpus=[int(x) for x in a.gpus.split(',')]
     if out.exists() or ROOT/'outputs/wam-rl-policy' not in out.parents:raise ValueError('Fresh Task output required')
     if len(gpus)!=len(set(gpus)) or not 1<=len(gpus)<=4:raise ValueError('1..4 unique GPUs required')
@@ -56,6 +61,9 @@ def main():
                 '--exploration-seed',str(a.exploration_seed),'--initial-log-std',str(a.initial_log_std),'--trace-every','50']
             command+=['--observation-kind',a.observation_kind]
             command+=['--rollout-steps',str(a.rollout_steps)]
+            command+=['--network-kind',a.network_kind,'--action-kind',a.action_kind]
+            command+=['--reward-kind',a.reward_kind]
+            command+=['--ppo-epochs',str(a.ppo_epochs),'--ppo-minibatches',str(a.ppo_minibatches)]
             if a.resume:command+=['--rl-checkpoint',str((a.resume/('rank%02d'%rank)/'latest.pt').resolve())]
             if a.outside_support_zero:command+=['--outside-support-zero']
             env=dict(os.environ,CUDA_VISIBLE_DEVICES=str(gpu),TMPDIR=str(target/'tmp'),TORCH_EXTENSIONS_DIR=os.environ.get('TORCH_EXTENSIONS_DIR',str(ROOT/'tmp/shadow-isaac-extensions')),

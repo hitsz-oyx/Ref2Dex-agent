@@ -6,6 +6,18 @@ from shadow_finetune.data import collate
 from video_data_preparation.unidexgrasp_data import object_poses
 
 
+def type_summaries(shared,valid,scene_count,hand_count):
+    """Keep scene/hand/known-goal summaries separate; never include future readouts."""
+    groups=((0,scene_count),(scene_count,scene_count+hand_count),(scene_count+hand_count,shared.shape[1]))
+    if shared.shape[-1]!=768 or any(stop<=start for start,stop in groups):raise ValueError('WAM scene/hand/goal token contract')
+    summaries=[]
+    for start,stop in groups:
+        mask=valid[:,start:stop,None]
+        value=torch.where(mask,shared[:,start:stop],0.).sum(1)/mask.sum(1).clamp_min(1)
+        summaries.append(value)
+    return torch.cat(summaries,-1).detach()
+
+
 def batched_inputs(objects,hands,goals,geometries):
     # objects B,H,7 and hands B,H,11,3; retain original float64 pose arithmetic.
     poses=object_poses(objects);now=poses[:,-1];r=now[:,:3,:3];center=now[:,:3,3]
@@ -47,9 +59,13 @@ class FastController(Controller):
             admitted.append(sample);indices.append(env)
         if self.invalid and not getattr(self,'allow_invalid_zero',False):raise ValueError('BC H4 workspace invalid: '+str(sorted(self.invalid)))
         action=torch.zeros(len(samples),24,device='cuda')
+        if getattr(self,'expose_wam_features',False):self.last_wam_features=torch.zeros(len(samples),2304,device='cuda')
         if not admitted:return action
         batch={k:v.cuda() for k,v in collate(admitted).items()}
-        shared,valid,_=self.model.forecaster.encode(batch)
+        shared,valid,scene=self.model.forecaster.encode(batch)
+        if getattr(self,'expose_wam_features',False):
+            hand_count=batch['start_hand_valid'].flatten(1).shape[1]
+            self.last_wam_features[indices]=type_summaries(shared,valid,scene['tokens'].shape[1],hand_count)
         prediction=self.model.actor(batch['policy_state'],shared,valid)[:,0]
         if not torch.isfinite(prediction).all():raise FloatingPointError('Nonfinite BC')
         action[indices]=prediction.clamp(-1,1)

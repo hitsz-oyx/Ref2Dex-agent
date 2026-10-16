@@ -33,13 +33,17 @@ def synchronize_gradients(module):
         p.grad.copy_(flat[offset:offset+p.numel()].view_as(p));offset+=p.numel()
 
 
-def observation(current, relative_goal, base, features=None):
+def observation(current, relative_goal, base, features=None,wam_features=None):
     if current.shape != (len(current),300) or relative_goal.shape != (len(current),3) or base.shape != (len(current),24):
         raise ValueError('Shadow current300/relative goal3/reference24 required')
     prefix=current.clamp(-5,5)
     if features is not None:
         if features.shape!=(len(current),512):raise ValueError('Frozen current-only 512D feature contract')
         prefix=torch.nn.functional.layer_norm(features.detach(),(512,))
+    if wam_features is not None:
+        if features is not None or wam_features.shape!=(len(current),2304):raise ValueError('Three frozen WAM type summaries required')
+        z=torch.nn.functional.layer_norm(wam_features.detach().reshape(-1,3,768),(768,)).flatten(1)
+        prefix=torch.cat((prefix,z),-1)
     result=torch.cat((prefix,relative_goal/.1,base),-1)
     if not torch.isfinite(result).all():raise FloatingPointError('Nonfinite RL observation')
     return result
@@ -53,22 +57,42 @@ def apply_residual(base, latent, alpha=.15):
     return intended.clamp(-1,1),intended,delta
 
 
+def apply_policy_action(base,latent,kind='residual'):
+    if kind=='residual':return apply_residual(base,latent)
+    if kind!='reference-gaussian' or base.shape!=latent.shape:raise ValueError('Unknown policy action contract')
+    return latent.clamp(-1,1),latent,latent-base
+
+
+def control_mlp(obs_dim,output_dim,kind):
+    if kind not in ('small','large'):raise ValueError('Unknown control capacity')
+    widths=[obs_dim]+([256,256] if kind=='small' else [1024,1024,1024,512])+[output_dim]
+    layers=[]
+    for index,(left,right) in enumerate(zip(widths,widths[1:])):
+        layers.append(nn.Linear(left,right))
+        if index<len(widths)-2:layers.append(nn.Tanh())
+    return nn.Sequential(*layers)
+
+
 class Actor(nn.Module):
-    def __init__(self,initial_log_std=-2.5,obs_dim=OBS_DIM):
+    def __init__(self,initial_log_std=-2.5,obs_dim=OBS_DIM,network_kind='small',action_kind='residual'):
         super().__init__()
         if not -5<=initial_log_std<=-1.2:raise ValueError('Initial latent log_std outside admitted clamp')
-        self.net=nn.Sequential(nn.Linear(obs_dim,256),nn.Tanh(),nn.Linear(256,256),nn.Tanh(),nn.Linear(256,ACTION_DIM))
+        if action_kind not in ('residual','reference-gaussian'):raise ValueError('Unknown policy action kind')
+        self.action_kind=action_kind
+        self.net=control_mlp(obs_dim,ACTION_DIM,network_kind)
         nn.init.zeros_(self.net[-1].weight);nn.init.zeros_(self.net[-1].bias)
         self.log_std=nn.Parameter(torch.full((ACTION_DIM,),float(initial_log_std)))
 
     def distribution(self,obs):
-        return torch.distributions.Normal(self.net(obs),self.log_std.clamp(-5,-1.2).exp())
+        mean=self.net(obs)
+        if self.action_kind=='reference-gaussian':mean=mean+obs[...,-24:]
+        return torch.distributions.Normal(mean,self.log_std.clamp(-5,-1.2).exp())
 
 
 class Critic(nn.Module):
-    def __init__(self,obs_dim=OBS_DIM):
+    def __init__(self,obs_dim=OBS_DIM,network_kind='small'):
         super().__init__()
-        self.net=nn.Sequential(nn.Linear(obs_dim,256),nn.Tanh(),nn.Linear(256,256),nn.Tanh(),nn.Linear(256,1))
+        self.net=control_mlp(obs_dim,1,network_kind)
 
     def forward(self,obs):return self.net(obs).squeeze(-1)
 
@@ -85,7 +109,7 @@ def advantages(rewards,values,dones,bootstrap,gamma=.99,lam=.95):
     return adv,adv+values
 
 
-def update_rollout(actor,critic,storage,actor_optimizer,critic_optimizer,next_observation=None):
+def update_rollout(actor,critic,storage,actor_optimizer,critic_optimizer,next_observation=None,**options):
     """Consume one on-policy chunk; only real terminals have zero bootstrap."""
     batch={key:torch.stack(values) for key,values in storage.items()}
     if next_observation is None:
@@ -94,14 +118,17 @@ def update_rollout(actor,critic,storage,actor_optimizer,critic_optimizer,next_ob
     else:
         if batch['done'][-1].any():raise ValueError('Interior chunk cannot contain episode reset')
         with torch.no_grad():batch['bootstrap']=critic(next_observation).detach()
-    result=update(actor,critic,batch,actor_optimizer,critic_optimizer)
+    result=update(actor,critic,batch,actor_optimizer,critic_optimizer,**options)
     result.update(rollout_steps=len(batch['reward']),bootstrap_mean=float(batch['bootstrap'].mean()),
                   bootstrap_kind='terminal-zero' if next_observation is None else 'actual-next-state-before-update')
     for values in storage.values():values.clear()
     return result
 
 
-def update(actor,critic,batch,actor_optimizer,critic_optimizer,bc_weight=.1,target_kl=.02,epochs=4):
+def update(actor,critic,batch,actor_optimizer,critic_optimizer,bc_weight=.1,target_kl=.02,epochs=4,minibatches=1,shuffle_generator=None):
+    if minibatches>1:
+        from .recipe_ppo import update_minibatches
+        return update_minibatches(actor,critic,batch,actor_optimizer,critic_optimizer,bc_weight,target_kl,epochs,minibatches,shuffle_generator)
     adv,returns=advantages(batch['reward'],batch['value'],batch['done'],batch['bootstrap'])
     obs=batch['observation'].flatten(0,1);latent=batch['latent'].flatten(0,1)
     old_logp=batch['logp'].flatten();old=torch.distributions.Normal(batch['mean'].flatten(0,1),batch['std'].flatten(0,1))
@@ -116,7 +143,7 @@ def update(actor,critic,batch,actor_optimizer,critic_optimizer,bc_weight=.1,targ
         ratio=(logp-old_logp).exp()
         surrogate=-torch.minimum(ratio*adv,ratio.clamp(.8,1.2)*adv).mean()
         # Penalize executed deterministic canonical deviation, not latent units.
-        base=obs[:,-24:];reference=(base+.15*torch.tanh(dist.loc)).clamp(-1,1)
+        base=obs[:,-24:];reference=apply_policy_action(base,dist.loc,actor.action_kind)[0]
         reg=(reference-base).square().mean();loss=surrogate+bc_weight*reg
         if not torch.isfinite(loss):raise FloatingPointError('Nonfinite actor objective')
         actor_optimizer.zero_grad(set_to_none=True);loss.backward();synchronize_gradients(actor);nn.utils.clip_grad_norm_(actor.parameters(),.5)

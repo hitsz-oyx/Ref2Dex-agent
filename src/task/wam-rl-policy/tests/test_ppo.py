@@ -26,10 +26,13 @@ def test_gae_respects_real_terminal_and_final_bootstrap():
     assert torch.equal(adv,ret)
 
 
-@pytest.mark.parametrize('obs_dim',[327,539])
-def test_real_ppo_update_replays_behavior_and_changes_only_optimized_heads(obs_dim):
+@pytest.mark.parametrize('obs_dim,action_kind,network_kind',[(327,'residual','small'),(539,'residual','small'),
+    (2631,'residual','small'),(327,'residual','large'),(327,'reference-gaussian','large')])
+def test_real_ppo_update_replays_behavior_and_changes_only_optimized_heads(obs_dim,action_kind,network_kind):
     torch.manual_seed(2)
-    actor=Actor(obs_dim=obs_dim);critic=Critic(obs_dim=obs_dim)
+    actor=Actor(-4.3971199849 if action_kind=='reference-gaussian' else -2.5,obs_dim=obs_dim,
+                network_kind=network_kind,action_kind=action_kind)
+    critic=Critic(obs_dim=obs_dim,network_kind=network_kind)
     obs=torch.randn(4,3,obs_dim);obs[:,:,-24:]=0
     with torch.no_grad():
         dist=actor.distribution(obs);latent=dist.sample()
@@ -121,3 +124,39 @@ def test_kl_rejection_reports_retained_policy_after_rollback():
     stats=update(actor,critic,batch,torch.optim.Adam(actor.parameters(),lr=1000),torch.optim.Adam(critic.parameters(),lr=3e-4))
     assert stats['actor_steps']==0 and stats['joint_kl']==0
     for key,value in actor.state_dict().items():assert torch.equal(value,before[key])
+
+
+def test_wam_observation_keeps_full_state_goal_and_reference():
+    state=torch.randn(3,300);goal=torch.randn(3,3);base=torch.randn(3,24);z=torch.randn(3,2304,requires_grad=True)
+    ordinary=observation(state,goal,base);with_z=observation(state,goal,base,wam_features=z)
+    assert with_z.shape==(3,2631) and not with_z.requires_grad
+    assert torch.equal(with_z[:,:300],ordinary[:,:300]) and torch.equal(with_z[:,-27:],ordinary[:,-27:])
+    zero=observation(state,goal,base,wam_features=torch.zeros_like(z))
+    assert not zero[:,300:2604].any()
+
+
+def test_reference_gaussian_starts_at_bc_and_can_exceed_residual_limit():
+    from wam_rl_policy.ppo import apply_policy_action
+    obs=torch.randn(3,327);base=torch.ones(3,24)*.2;obs[:,-24:]=base
+    actor=Actor(-4.3971199849,network_kind='large',action_kind='reference-gaussian')
+    assert torch.equal(actor.distribution(obs).loc,base)
+    assert torch.equal(apply_policy_action(base,actor.distribution(obs).loc,'reference-gaussian')[0],base)
+    action,intended,_=apply_policy_action(base,base+.5,'reference-gaussian')
+    torch.testing.assert_close(action-base,torch.full_like(base,.5))
+    assert torch.equal(action,intended)
+    residual=apply_policy_action(base,torch.ones_like(base)*100,'residual')[0]
+    assert (residual-base).max()<.151
+
+
+def test_minibatch_shuffle_does_not_consume_environment_rng():
+    torch.manual_seed(99);actor=Actor();critic=Critic();obs=torch.randn(4,4,327);obs[:,:,-24:]=0
+    with torch.no_grad():
+        dist=actor.distribution(obs);latent=dist.sample()
+        batch=dict(observation=obs,latent=latent,logp=dist.log_prob(latent).sum(-1),mean=dist.loc,std=dist.scale,
+            value=critic(obs),reward=torch.randn(4,4),done=torch.zeros(4,4,dtype=torch.bool),bootstrap=torch.zeros(4))
+        batch['done'][-1]=True
+    environment_rng=torch.get_rng_state().clone();shuffle=torch.Generator().manual_seed(1247);old_shuffle=shuffle.get_state().clone()
+    stats=update(actor,critic,batch,torch.optim.Adam(actor.parameters(),lr=1e-4),torch.optim.Adam(critic.parameters(),lr=3e-4),
+        minibatches=4,epochs=5,shuffle_generator=shuffle)
+    assert torch.equal(environment_rng,torch.get_rng_state()) and not torch.equal(old_shuffle,shuffle.get_state())
+    assert stats['critic_steps']==20 and 0<=stats['actor_steps']<=20 and stats['joint_kl']<=.02

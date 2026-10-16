@@ -8,11 +8,12 @@ import time
 from datetime import timedelta
 import numpy as np
 import torch
-from .ppo import SCHEMA,Actor,Critic,observation,apply_residual,update_rollout
+from .ppo import SCHEMA,Actor,Critic,observation,apply_policy_action,update_rollout
 from shadow_finetune.execution import Controller
 from shadow_finetune.metrics import native_report
 from .bc_mlp import MLPController
 from .fast_bc import FastController
+from .rewards import position_hold_bonus
 
 
 def write(path,value):
@@ -22,7 +23,7 @@ def write(path,value):
 
 def run(task,snapshot,env_objects,teacher,args):
     # Existing bounded launchers may be initializing assets while optional diagnostics are added.
-    for name,default in [('initial_log_std',-2.5),('synchronize_warm_step',False),('capture_warm_state',False),('retain_reset_indices',False),('single_reset_target_setter',False),('force_zero_residual',False),('outside_support_zero',False),('observation_kind','native'),('rollout_steps',199)]:
+    for name,default in [('initial_log_std',-2.5),('synchronize_warm_step',False),('capture_warm_state',False),('retain_reset_indices',False),('single_reset_target_setter',False),('force_zero_residual',False),('outside_support_zero',False),('observation_kind','native'),('rollout_steps',199),('network_kind','small'),('action_kind','residual'),('reward_kind','native'),('ppo_epochs',4),('ppo_minibatches',1)]:
         if not hasattr(args,name):setattr(args,name,default)
     out=args.output;started=time.monotonic()
     if args.world_size>1:
@@ -44,23 +45,41 @@ def run(task,snapshot,env_objects,teacher,args):
         saved_steps=saved.get('config',{}).get('rollout_steps',199)
         if args.mode=='train' and saved_steps!=args.rollout_steps:raise ValueError('Resume must retain PPO rollout length')
         args.rollout_steps=saved_steps
+        for name,default in [('network_kind','small'),('action_kind','residual'),('reward_kind','native'),('ppo_epochs',4),('ppo_minibatches',1)]:
+            value=saved.get('config',{}).get(name,default)
+            if args.mode=='train' and getattr(args,name)!=value:raise ValueError('Resume must retain '+name)
+            setattr(args,name,value)
         if saved.get('config',{}).get('outside_support_policy')=='persistent zero BC reference until episode reset':
             args.outside_support_zero=True;bc.allow_invalid_zero=True
-    if args.observation_kind!='native' and args.bc_kind!='mlp':raise ValueError('Current BC features require the MLP reference')
-    obs_dim=327 if args.observation_kind=='native' else 539
+    use_wam=args.observation_kind.startswith('wam-')
+    if args.observation_kind in ('normalized','bc-hidden') and args.bc_kind!='mlp':raise ValueError('Current BC features require the MLP reference')
+    if use_wam and not isinstance(bc,FastController):raise ValueError('Direct WAM summaries require the native fast WAM reference')
+    bc.expose_wam_features=use_wam
+    obs_dim=2631 if use_wam else (327 if args.observation_kind=='native' else 539)
+    permutation=list(range(len(env_objects)))
+    if args.observation_kind=='wam-shuffled':
+        order=sorted(permutation,key=lambda i:env_objects[i]['object_code'])
+        counts={row['object_code']:sum(other['object_code']==row['object_code'] for other in env_objects) for row in env_objects}
+        shift=max(counts.values());donors=order[shift:]+order[:shift]
+        for index,donor in zip(order,donors):permutation[index]=donor
+        if any(env_objects[i]['object_code']==env_objects[j]['object_code'] for i,j in enumerate(permutation)):raise ValueError('Shuffle must use a different object')
+    donor_indices=torch.as_tensor(permutation,device='cuda')
     torch.manual_seed(args.policy_seed)
-    actor=Actor(args.initial_log_std,obs_dim=obs_dim).cuda();critic=Critic(obs_dim=obs_dim).cuda()
+    actor=Actor(args.initial_log_std,obs_dim=obs_dim,network_kind=args.network_kind,action_kind=args.action_kind).cuda()
+    critic=Critic(obs_dim=obs_dim,network_kind=args.network_kind).cuda()
     if saved:actor.load_state_dict(saved['actor'],strict=True)
     torch.set_rng_state(rng[0]);torch.cuda.set_rng_state(rng[1]);np.random.set_state(rng[2]);random.setstate(rng[3])
     before={k:v.clone() for k,v in bc.model.state_dict().items()}
     actor_optimizer=torch.optim.Adam(actor.parameters(),lr=1e-4)
     critic_optimizer=torch.optim.Adam(critic.parameters(),lr=3e-4)
     generator=torch.Generator(device='cuda');generator.manual_seed(args.exploration_seed+args.rank)
+    optimizer_generator=torch.Generator(device='cuda');optimizer_generator.manual_seed(args.exploration_seed+1000000+args.rank)
     training=args.mode=='train'
     if saved and training:
         critic.load_state_dict(saved['critic'],strict=True)
         actor_optimizer.load_state_dict(saved['actor_optimizer']);critic_optimizer.load_state_dict(saved['critic_optimizer'])
         torch.set_rng_state(saved['torch_rng']);torch.cuda.set_rng_state(saved['cuda_rng']);generator.set_state(saved['exploration_rng'])
+        if 'optimizer_shuffle_rng' in saved:optimizer_generator.set_state(saved['optimizer_shuffle_rng'])
         np.random.set_state(saved['numpy_rng']);random.setstate(saved['python_rng']);offset=int(saved['update'])
         if offset>=args.updates:raise ValueError('Resume target update must exceed checkpoint update')
     if training and any(row['split']!='train' for row in env_objects):raise ValueError('DEV objects cannot enter PPO')
@@ -70,16 +89,23 @@ def run(task,snapshot,env_objects,teacher,args):
         uses_wam=args.bc_kind=='wam',frozen_wam=True if args.bc_kind=='wam' else None,frozen_bc=True,
         trainable='new%dD actor/critic only; frozen BC features; no WAM token adapter'%obs_dim,
         observation_kind=args.observation_kind,observation_dim=obs_dim,
-        representation='native clamp current300' if obs_dim==327 else '512D current-only frozen prefix, per-state LayerNorm; explicit goal3/reference24 unchanged',
-        alpha=args.alpha,exploration='tanh latent Normal; independent per-rank CUDA RNG',initial_log_std=args.initial_log_std,
+        network_kind=args.network_kind,action_kind=args.action_kind,
+        wam_z='frozen masked mean per scene/hand/known-goal type; 3x768; original current300 retained' if use_wam else None,
+        wam_donor_indices=permutation if use_wam else None,
+        direct_wam_condition=args.observation_kind if use_wam else None,
+        representation=('native current300 + per-type LayerNorm WAM2304 + explicit goal3/reference24' if use_wam else
+            ('native clamp current300' if obs_dim==327 else '512D current-only frozen prefix, per-state LayerNorm; explicit goal3/reference24 unchanged')),
+        alpha=args.alpha if args.action_kind=='residual' else None,
+        exploration=('tanh latent Normal residual' if args.action_kind=='residual' else 'direct canonical Normal around BC+learned mean; native clip only')+'; independent per-rank CUDA RNG',initial_log_std=args.initial_log_std,
         policy_seed=args.policy_seed,exploration_seed=args.exploration_seed+args.rank,reset_seed=args.seed,envs=args.envs,updates=args.updates,
+        optimizer_shuffle_seed=args.exploration_seed+1000000+args.rank,optimizer_shuffle_rng='independent saved generator; never consumes simulator/global RNG',
         rank=args.rank,world_size=args.world_size,global_envs=args.envs*args.world_size,resume_update=offset,
         synchronize_warm_step=args.synchronize_warm_step,capture_warm_state=args.capture_warm_state,
         retain_reset_indices=args.retain_reset_indices,single_reset_target_setter=args.single_reset_target_setter,
         force_zero_residual=args.force_zero_residual,
         outside_support_policy='persistent zero BC reference until episode reset' if args.outside_support_zero else 'reject run',
-        reward='unchanged official goal_cond=False native task reward',gamma=.99,gae_lambda=.95,
-        bc_weight=.1,actor_lr=1e-4,critic_lr=3e-4,ppo_epochs=4,target_joint_kl=.02,
+        reward_kind=args.reward_kind,reward='official goal_cond=False native reward'+(' + 1/tick low-speed position hold: goal<=5cm,lift>=10cm,speed<=0.1m/s' if args.reward_kind=='hold' else ''),gamma=.99,gae_lambda=.95,
+        bc_weight=.1,actor_lr=1e-4,critic_lr=3e-4,ppo_epochs=args.ppo_epochs,ppo_minibatches=args.ppo_minibatches,target_joint_kl=.02,
         rollout_steps=args.rollout_steps,interior_bootstrap='actual next-state critic before optimizer update; no simulator reset',
         max_seconds=args.seconds,artifact_budget_bytes=2*2**30,
         controls_per_episode=int(task.max_episode_length)-1,objects=env_objects,
@@ -105,7 +131,8 @@ def run(task,snapshot,env_objects,teacher,args):
             torch.cuda.synchronize();task.post_physics_step()
         else:task.step(torch.zeros((args.envs,24),device='cuda'),-1)
         frames=[snapshot()];commands=[];bases=[];latents=[];intendeds=[];applied=[];forces=[];torques=[];targets=[]
-        rewards=[];storage={k:[] for k in ('observation','latent','mean','std','logp','value','reward','done')}
+        rewards=[];native_rewards=[];hold_bonuses=[];storage={k:[] for k in ('observation','latent','mean','std','logp','value','reward','done')}
+        initial_z=torch.as_tensor(frames[0]['object'][:,2],device='cuda')
         execution_error=dict(canonical_to_world=0.,force=0.,torque=0.,finger_target=0.);fallback_env_ticks=0;ppo_segments=[]
         for tick in range(1,int(task.max_episode_length)):
             if time.monotonic()-started>args.seconds:raise TimeoutError('Shadow PPO wall budget')
@@ -126,14 +153,19 @@ def run(task,snapshot,env_objects,teacher,args):
                 elif args.observation_kind=='normalized':
                     normalized=(task.obs_buf.clamp(-5,5)-bc.model.x_mean)/bc.model.x_scale
                     features=torch.nn.functional.pad(normalized,(0,212))
-                obs=observation(task.obs_buf,relative_goal,base,features)
+                wam_features=None
+                if use_wam:
+                    wam_features=bc.last_wam_features
+                    if args.observation_kind=='wam-none':wam_features=torch.zeros_like(wam_features)
+                    elif args.observation_kind=='wam-shuffled':wam_features=wam_features[donor_indices]
+                obs=observation(task.obs_buf,relative_goal,base,features,wam_features)
             if training and len(storage['reward'])>=args.rollout_steps:
-                ppo_segments.append(update_rollout(actor,critic,storage,actor_optimizer,critic_optimizer,obs))
+                ppo_segments.append(update_rollout(actor,critic,storage,actor_optimizer,critic_optimizer,obs,epochs=args.ppo_epochs,minibatches=args.ppo_minibatches,shuffle_generator=optimizer_generator))
             with torch.no_grad():
                 dist=actor.distribution(obs)
                 latent=(dist.loc+dist.scale*torch.randn(dist.loc.shape,device='cuda',generator=generator)) if training else dist.loc
-                if args.mode=='bc' or args.force_zero_residual:latent=torch.zeros_like(latent)
-                action,intended,delta=apply_residual(base,latent,args.alpha)
+                if args.mode=='bc' or args.force_zero_residual:latent=base if args.action_kind=='reference-gaussian' else torch.zeros_like(latent)
+                action,intended,delta=apply_policy_action(base,latent,args.action_kind)
                 if (args.mode in ('bc','zero') or args.force_zero_residual) and not torch.equal(action,base):raise ValueError('Zero residual changed canonical BC')
                 value=critic(obs);logp=dist.log_prob(latent).sum(-1)
             commands.append(action.cpu().numpy().copy());bases.append(base.cpu().numpy().copy())
@@ -164,9 +196,12 @@ def run(task,snapshot,env_objects,teacher,args):
             for _ in range(task.control_freq_inv):
                 task.gym.simulate(task.sim);task.gym.fetch_results(task.sim,True)
             task.post_physics_step()
-            reward=task.rew_buf.detach().clone();done=task.reset_buf.bool().clone()
+            native_reward=task.rew_buf.detach().clone();done=task.reset_buf.bool().clone()
+            hold_bonus=position_hold_bonus(task.object_pos,task.goal_pos,task.object_linvel,initial_z)
+            reward=native_reward+hold_bonus if args.reward_kind=='hold' else native_reward
             if not torch.isfinite(reward).all():raise FloatingPointError('Nonfinite native reward')
             rewards.append(reward.cpu().numpy())
+            native_rewards.append(native_reward.cpu().numpy());hold_bonuses.append(hold_bonus.cpu().numpy())
             for key,val in dict(observation=obs,latent=latent,mean=dist.loc,std=dist.scale,
                                 logp=logp,value=value,reward=reward,done=done).items():storage[key].append(val.detach())
             frames.append(snapshot())
@@ -178,6 +213,7 @@ def run(task,snapshot,env_objects,teacher,args):
         data={key:np.stack([frame[key] for frame in frames]) for key in frames[0]}
         data.update(action=np.stack(commands),base=np.stack(bases),latent=np.stack(latents),intended=np.stack(intendeds),
             applied=np.stack(applied),force=np.stack(forces),torque=np.stack(torques),target=np.stack(targets),reward=np.stack(rewards),
+            native_reward=np.stack(native_rewards),position_hold_bonus=np.stack(hold_bonuses),
             time=np.arange(1,len(frames)+1)/60.)
         if any(not np.isfinite(v).all() for v in data.values()):raise FloatingPointError('Nonfinite physics trace')
         report=native_report(data,env_objects)
@@ -185,12 +221,13 @@ def run(task,snapshot,env_objects,teacher,args):
             global_env_steps=iteration*(int(task.max_episode_length)-1)*args.envs*args.world_size,
             elapsed_s=time.monotonic()-started,native=report,
             mean_episode_return=float(data['reward'].sum(0).mean()),
+            mean_native_episode_return=float(data['native_reward'].sum(0).mean()),mean_position_hold_bonus=float(data['position_hold_bonus'].sum(0).mean()),
             native_execution_error=execution_error,
             bc_support_fallback_envs=sorted(bc.invalid),bc_support_fallback_env_ticks=fallback_env_ticks,
             applied_residual_rms=float(np.sqrt(np.mean((data['action']-data['base'])**2))),
             clip_fraction=float(np.mean(np.abs(data['intended']-data['action'])>1e-6)))
         if training:
-            ppo_segments.append(update_rollout(actor,critic,storage,actor_optimizer,critic_optimizer))
+            ppo_segments.append(update_rollout(actor,critic,storage,actor_optimizer,critic_optimizer,epochs=args.ppo_epochs,minibatches=args.ppo_minibatches,shuffle_generator=optimizer_generator))
             stats['ppo']=ppo_segments[-1]
             stats['ppo_update_batches']=len(ppo_segments)
             stats['actor_optimizer_steps_this_episode']=sum(segment['actor_steps'] for segment in ppo_segments)
@@ -203,6 +240,7 @@ def run(task,snapshot,env_objects,teacher,args):
                 actor_optimizer=actor_optimizer.state_dict(),critic_optimizer=critic_optimizer.state_dict(),
                 base_checkpoint=str(args.checkpoint.resolve()),config=manifest,torch_rng=torch.get_rng_state(),
                 cuda_rng=torch.cuda.get_rng_state(),exploration_rng=generator.get_state(),
+                optimizer_shuffle_rng=optimizer_generator.get_state(),
                 numpy_rng=np.random.get_state(),python_rng=random.getstate(),
                 resume_scope='episode boundary; simulator must reset (not exact physics continuation)')
             partial=out/'latest.pt.part';torch.save(checkpoint,partial);partial.replace(out/'latest.pt')

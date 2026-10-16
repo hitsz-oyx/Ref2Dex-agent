@@ -36,7 +36,7 @@ def main():
             assert [segment['bootstrap_kind'] for segment in segments]==['actual-next-state-before-update']*(len(chunks)-1)+['terminal-zero']
             assert segments[-1]['bootstrap_mean']==0
             for segment in segments:
-                assert 0<=segment['actor_steps']<=4
+                assert 0<=segment['actor_steps']<=packet['config']['ppo_epochs']*packet['config'].get('ppo_minibatches',1)
                 assert segment['behavior_logprob_error']<=1e-4 and segment['joint_kl']<=.020001
                 max_replay=max(max_replay,segment['behavior_logprob_error']);max_kl=max(max_kl,segment['joint_kl'])
             steps=sum(segment['actor_steps'] for segment in segments)
