@@ -1,6 +1,7 @@
 """Prepare full current-step Shadow labels, then train a resident-GPU BC MLP."""
 import argparse
 import json
+import math
 import os
 from pathlib import Path
 import shutil
@@ -24,6 +25,9 @@ def main():
     p.add_argument('--steps',type=int,default=50000)
     p.add_argument('--batch',type=int,default=2048)
     p.add_argument('--seconds',type=int,default=7200)
+    p.add_argument('--resume',type=Path)
+    p.add_argument('--lr',type=float,default=3e-4)
+    p.add_argument('--schedule',choices=('constant','cosine'),default='constant')
     a=p.parse_args();out=a.output.resolve()
     if out.exists() or ROOT/'outputs/wam-rl-policy' not in out.parents:raise ValueError('Fresh Task output required')
     if shutil.disk_usage(ROOT).free<24*2**30:raise RuntimeError('Disk reserve')
@@ -97,13 +101,23 @@ def main():
             torch.manual_seed(a.seed);model=CurrentMLP().cuda()
             with torch.no_grad():
                 for key,value in stats.items():getattr(model,key).copy_(torch.as_tensor(value,device='cuda'))
-            optimizer=torch.optim.AdamW(model.parameters(),lr=3e-4,weight_decay=1e-5)
+            optimizer=torch.optim.AdamW(model.parameters(),lr=a.lr,weight_decay=1e-5)
             rng=np.random.default_rng(a.seed+1);panel=np.load(a.data/'dev-panel.npy')
+            offset=0
+            if a.resume:
+                saved=torch.load(a.resume,map_location='cpu',weights_only=False)
+                if saved.get('schema')!=SCHEMA or saved['source_cache']!=str(a.data.resolve()):raise ValueError('Same current-label source cache required')
+                for key in stats:
+                    if not torch.equal(getattr(model,key).cpu(),saved['model'][key]):raise ValueError('TRAIN normalizer changed')
+                model.load_state_dict(saved['model'],strict=True);optimizer.load_state_dict(saved['optimizer']);offset=int(saved['step'])
+                torch.set_rng_state(saved['torch_rng']);torch.cuda.set_rng_state(saved['cuda_rng']);rng.bit_generator.state=saved['numpy_rng']
+                if not offset<a.steps:raise ValueError('Resume endpoint must exceed checkpoint step')
             # Match previous startup emphasis while using the entire strict source pool.
             ticks=np.load(a.data/'train-tick.npy');early=np.flatnonzero(ticks<8)
             manifest=dict(schema=SCHEMA,status='RUNNING',git_commit=commit,seed=a.seed,steps=a.steps,batch=a.batch,
                 source_cache=str(a.data.resolve()),data=cache['splits'],stats='TRAIN-only',
-                initialization='fresh random, no teacher checkpoint weights',lr=3e-4,weight_decay=1e-5,
+                initialization='fresh random, no teacher checkpoint weights' if not a.resume else 'resume own self-trained BC',
+                resume=str(a.resume.resolve()) if a.resume else None,resume_step=offset,lr=a.lr,schedule=a.schedule,weight_decay=1e-5,
                 sampler='half startup tick<8; half full TRAIN windows, uniform within pools',
                 loss='TRAIN-standardized current24D L1',params=sum(p.numel() for p in model.parameters()),
                 selection='offline object-balanced DEV current command MAE; endpoints also preserved')
@@ -115,18 +129,22 @@ def main():
                     ids=panel[off:off+2048];errors.append((model(data['dev']['x'][ids])-data['dev']['y'][ids]).abs())
                 error=torch.cat(errors);model.train()
                 return dict(command_mae=float(error.mean()),root_mae=float(error[:,:6].mean()),finger_mae=float(error[:,6:].mean()))
-            for step in range(1,a.steps+1):
+            for step in range(offset+1,a.steps+1):
+                fraction=(step-offset-1)/max(1,a.steps-offset-1)
+                lr=a.lr if a.schedule=='constant' else a.lr*(.1+.9*.5*(1+math.cos(math.pi*fraction)))
+                for group in optimizer.param_groups:group['lr']=lr
                 ids=np.concatenate((rng.choice(early,a.batch//2),rng.integers(len(ticks),size=a.batch-a.batch//2)))
                 x=data['train']['x'][ids];y=data['train']['y'][ids]
                 pred=model(x);loss=((pred-y)/model.y_scale).abs().mean()
                 if not torch.isfinite(loss):raise FloatingPointError('Nonfinite BC loss')
                 optimizer.zero_grad(set_to_none=True);loss.backward();torch.nn.utils.clip_grad_norm_(model.parameters(),1.);optimizer.step()
-                if step==1 or step%1000==0 or step==a.steps:
+                if step==offset+1 or step%1000==0 or step==a.steps:
                     torch.cuda.synchronize();elapsed=time.monotonic()-started
-                    metrics=evaluate();row=dict(step=step,loss=float(loss),dev=metrics,elapsed_s=elapsed,eta_s=elapsed/step*(a.steps-step),
+                    metrics=evaluate();row=dict(step=step,loss=float(loss),lr=lr,dev=metrics,elapsed_s=elapsed,eta_s=elapsed/(step-offset)*(a.steps-step),
                         gpu=subprocess.check_output(['nvidia-smi','-i',str(a.gpu),'--query-gpu=utilization.gpu,memory.used','--format=csv,noheader'],text=True).strip(),
                         peak_cuda_bytes=torch.cuda.max_memory_allocated())
                     curve.append(row);write('curve.json',curve);write('progress.json',row);print(json.dumps(row),flush=True)
+                    if step==offset+1:write('first-draw.json',dict(step=step,ids=ids[:32].tolist(),loss=float(loss)))
                     packet=dict(schema=SCHEMA,step=step,model=model.state_dict(),optimizer=optimizer.state_dict(),config=manifest,
                         source_cache=str(a.data.resolve()),torch_rng=torch.get_rng_state(),cuda_rng=torch.cuda.get_rng_state(),numpy_rng=rng.bit_generator.state)
                     if metrics['command_mae']<best:

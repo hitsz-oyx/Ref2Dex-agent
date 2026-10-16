@@ -160,3 +160,9 @@ latent log_std=-2.5 vs -1.5（标准差2.718倍）。每臂<=2h；各自固定co
 这是Decision Probe，不是正式Validation；补充250/251仅为exploratory reset，未触及保留池。
 初始化深挖先保留现有诊断与限制，最便宜的下一定位是pre-warm完整状态与Gym刷新同步，
 待它能改变后续决策时再做，不能让流程完整性替代有效行为推进。
+
+GPU5完成BC基线后距WAM50轮读出约25min，可用这段明确窗口做廉价BC优化判别：从同一
+MLP50k checkpoint/Adam/全部RNG恢复，分别再训50k步至100k，constant3e-4 vs cosine降至
+3e-5，网络/数据/抽样完全相同。每臂<=600s，串行总预算1200s；固定core_DEV seed249
+比较端点，不按DEV挑endpoint。如果annealing带来明显native保持提升，换用更好reference；
+否则不投入更多BC重复训练。此处不变更全量数据准入，也不新建分支/替换原checkpoint。
