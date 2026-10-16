@@ -95,6 +95,13 @@ stamps PASS，远端GPU0真实310-token/8×15 forward+控制头backward PASS。
 
 ## Limitations / future evidence
 
+与腕部MLP的额外预算差异：两者虽均6000更新，MLP batch512、本轮batch128，抽样曝光
+次数（含重复）为3072000与768000，差4倍；初始化/draw seed与数值精度也不同。五臂内部
+保持匹配，但不能把跨架构差距归因attention/容量。后续须同时对齐标签、horizon与batch。
+用户追问时逐窗复算首拍XYZ标签：`offset+scale*MLP_native_label`与本cache geometry-lift
+前三维在全TRAIN/DEV最大差为2.39e-7/5.97e-8米。因此首拍物理XYZ评价含义相同；
+训练任务仍不同（当前腕部6D vs8×15，Euler原生命令 vs旋转几何/手指/lift）。
+
 1000步资源读出显示单卡GPU利用率约10%–15%，完整tokens的CPU装载/传输占主要时间。
 为避免第五臂等待，允许其与已核验的本实验w128_g0 PID共用GPU2，preflight必须验证
 GPU上只有该PID、同uid、同脚本、同实验输出父目录；不向未知占用卡投任务。
