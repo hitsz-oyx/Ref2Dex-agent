@@ -54,7 +54,8 @@ def run(task,snapshot,env_objects,teacher,args):
         if args.mode=='train' and feature_path!=(str(args.wam_feature_checkpoint) if args.wam_feature_checkpoint else None):raise ValueError('Resume must retain independent WAM feature source')
         args.wam_feature_checkpoint=Path(feature_path) if feature_path else None
         args.initial_log_std=saved.get('config',{}).get('initial_log_std',args.initial_log_std)
-        if saved.get('config',{}).get('outside_support_policy')=='persistent zero BC reference until episode reset':
+        if (saved.get('config',{}).get('outside_support_zero',False) or
+                saved.get('config',{}).get('outside_support_policy')=='persistent zero BC reference until episode reset'):
             args.outside_support_zero=True;bc.allow_invalid_zero=True
     use_wam=args.observation_kind.startswith('wam-')
     if args.observation_kind in ('normalized','bc-hidden') and args.bc_kind!='mlp':raise ValueError('Current BC features require the MLP reference')
@@ -114,7 +115,9 @@ def run(task,snapshot,env_objects,teacher,args):
         synchronize_warm_step=args.synchronize_warm_step,capture_warm_state=args.capture_warm_state,
         retain_reset_indices=args.retain_reset_indices,single_reset_target_setter=args.single_reset_target_setter,
         force_zero_residual=args.force_zero_residual,
-        outside_support_policy='persistent zero BC reference until episode reset' if args.outside_support_zero else 'reject run',
+        outside_support_zero=args.outside_support_zero,
+        outside_support_policy=('persistent zero BC reference until episode reset' if args.outside_support_zero else 'reject run') if args.bc_kind=='wam' else 'current MLP BC has no history-range gate',
+        wam_feature_outside_support_policy=('zero z until episode reset; BC action unchanged' if args.outside_support_zero else 'reject run') if use_wam and feature_bc is not bc else None,
         reward_kind=args.reward_kind,reward='official goal_cond=False native reward'+(' + 1/tick low-speed position hold: goal<=5cm,lift>=10cm,speed<=0.1m/s' if args.reward_kind=='hold' else ''),gamma=.99,gae_lambda=.95,
         bc_weight=.1,actor_lr=1e-4,critic_lr=3e-4,ppo_epochs=args.ppo_epochs,ppo_minibatches=args.ppo_minibatches,target_joint_kl=.02,
         rollout_steps=args.rollout_steps,interior_bootstrap='actual next-state critic before optimizer update; no simulator reset',
