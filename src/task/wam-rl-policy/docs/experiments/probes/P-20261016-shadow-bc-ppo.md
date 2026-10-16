@@ -66,5 +66,20 @@ sticky与末帧5cm、reward、clipping、残差RMS、KL/更新次数。保持增
 ## Limitations / future evidence
 
 单seed两TRAIN对象探索只检查机制；多对象/多seed、token aligned/shuffled/none对照、
-reference dropout/独立动作路径及token训练留待正向信号后。训练checkpoint支持在episode
-边界恢复网络/optimizer/RNG，物理环境须重新reset；snapshot不是完整PhysX checkpoint。
+reference dropout/独立动作路径及token训练留待正向信号后。训练checkpoint保存未来恢复
+所需的网络/optimizer/RNG，当前CLI仅evaluate加载actor，尚未实现train-resume。
+物理环境须重新reset；snapshot不是完整PhysX checkpoint。
+
+## 工程门修订（PPO启动前）
+
+原BC/zero两个独立进程初态各字段完全相同，但完整闭环轨迹不相等，原精确轨迹门FAIL保留。
+独立原shadow-finetune执行器也出现首拍约8.4e-6的command偏差。最小复现固定同一初始
+16env输入、冻结权重、每组8次推理：free/fixed RNG、no_grad/inference_mode均有
+6.1e-6至1.12e-5的重复command差异；固定RNG未消除。每次same-packet BC+0逐值完全相等，
+冻结参数未变。证据在reference-repeatability.json；不把完整轨迹差异当RL提升或接口失效。
+
+Decision Note：完整轨迹逐值门在既有GPU稀疏推理数值波动下不可用。改用相同输入的
+same-packet零残差逐值一致、初态逐值一致，以及逐拍独立解析yaw旋转/force/torque/
+finger-target执行核验。原失败不覆盖、不调宽轨迹tol。推进Stage-0机制Probe，但单次
+BC/PPO结果须结合BC自身回放波动，仅描述、记UNCLEAR，明显正信号也先做重复回放确认。
+固定终点保持指标与训练预算不变；不是科研判定门的事后放宽。

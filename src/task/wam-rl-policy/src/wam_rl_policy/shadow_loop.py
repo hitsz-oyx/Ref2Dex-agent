@@ -55,6 +55,7 @@ def run(task,snapshot,env_objects,teacher,args):
         task.step(torch.zeros((args.envs,24),device='cuda'),-1)
         frames=[snapshot()];commands=[];bases=[];latents=[];intendeds=[];applied=[];forces=[];torques=[];targets=[]
         rewards=[];storage={k:[] for k in ('observation','latent','mean','std','logp','value','reward','done')}
+        execution_error=dict(canonical_to_world=0.,force=0.,torque=0.,finger_target=0.)
         for tick in range(1,int(task.max_episode_length)):
             if time.monotonic()-started>args.seconds:raise TimeoutError('Shadow PPO wall budget')
             if tick>1 and task.reset_buf.any():raise ValueError('Unexpected interior reset; reject unspliced episode')
@@ -72,7 +73,26 @@ def run(task,snapshot,env_objects,teacher,args):
                 value=critic(obs);logp=dist.log_prob(latent).sum(-1)
             commands.append(action.cpu().numpy().copy());bases.append(base.cpu().numpy().copy())
             latents.append(latent.cpu().numpy().copy());intendeds.append(intended.cpu().numpy().copy())
+            # Independent analytic yaw rotation and native finger target contract.
+            theta=task.z_theta if task.repose_z else torch.zeros_like(task.z_theta)
+            c,s=theta.cos(),theta.sin()
+            expected=action.clone()
+            for lo in (0,3):
+                x=action[:,lo:lo+3]
+                expected[:,lo:lo+3]=torch.stack((c*x[:,0]-s*x[:,1],s*x[:,0]+c*x[:,1],x[:,2]),-1)
+            ids=task.actuated_dof_indices
+            lower,upper=task.shadow_hand_dof_lower_limits[ids],task.shadow_hand_dof_upper_limits[ids]
+            target=.5*(action[:,6:]+1)*(upper-lower)+lower
+            target=task.act_moving_average*target+(1-task.act_moving_average)*task.prev_targets[:,ids]
+            target=torch.maximum(torch.minimum(target,upper),lower)
             task.pre_physics_step(action.clone())
+            expected_force=expected[:,:3]*task.dt*task.transition_scale*100000
+            expected_torque=expected[:,3:6]*task.dt*task.orientation_scale*1000
+            checks=dict(canonical_to_world=(task.actions,expected),force=(task.apply_forces[:,1],expected_force),
+                torque=(task.apply_torque[:,1],expected_torque),finger_target=(task.cur_targets[:,ids],target))
+            for key,(actual,wanted) in checks.items():
+                execution_error[key]=max(execution_error[key],float((actual-wanted).abs().max()))
+                torch.testing.assert_close(actual,wanted,rtol=2e-6,atol=1e-4 if key=='force' else 1e-6)
             # These tensors are read before post's observation code mutates action views.
             applied.append(task.actions.cpu().numpy().copy());forces.append(task.apply_forces.cpu().numpy().copy())
             torques.append(task.apply_torque.cpu().numpy().copy());targets.append(task.cur_targets.cpu().numpy().copy())
@@ -99,6 +119,7 @@ def run(task,snapshot,env_objects,teacher,args):
         stats=dict(update=iteration,env_steps=iteration*(int(task.max_episode_length)-1)*args.envs,
             elapsed_s=time.monotonic()-started,native=report,
             mean_episode_return=float(data['reward'].sum(0).mean()),
+            native_execution_error=execution_error,
             applied_residual_rms=float(np.sqrt(np.mean((data['action']-data['base'])**2))),
             clip_fraction=float(np.mean(np.abs(data['intended']-data['action'])>1e-6)))
         if training:
