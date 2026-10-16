@@ -15,12 +15,13 @@ def main():
     p.add_argument('--cache',type=Path,required=True);p.add_argument('--output',type=Path,required=True)
     p.add_argument('--panel',choices=('dev','core_dev','train'),default='dev');p.add_argument('--gpu',type=int,required=True)
     p.add_argument('--bc-kind',choices=('wam','mlp'),required=True);p.add_argument('--rl-checkpoint',type=Path)
+    p.add_argument('--force-zero-residual',action='store_true')
     p.add_argument('--seconds',type=int,default=7200);p.add_argument('--seed',type=int,default=249)
     a=p.parse_args();out=a.output.resolve()
     if out.exists() or ROOT/'outputs/wam-rl-policy' not in out.parents:raise ValueError('Fresh Task output')
     out.mkdir(parents=True);started=time.monotonic();panel=json.loads(a.panels.read_text())[a.panel]
     manifest=dict(status='RUNNING',checkpoint=str(a.checkpoint.resolve()),bc_kind=a.bc_kind,seed=a.seed,
-        rl_checkpoint=str(a.rl_checkpoint.resolve()) if a.rl_checkpoint else None,panel=a.panel,shards=panel,
+        rl_checkpoint=str(a.rl_checkpoint.resolve()) if a.rl_checkpoint else None,force_zero_residual=a.force_zero_residual,panel=a.panel,shards=panel,
         gpu=a.gpu,max_seconds=a.seconds,results=[],totals={k:0 for k in ('episodes','official_success','final_within5cm','held60_with_lift10cm')})
     def save():
         part=out/'manifest.json.part';part.write_text(json.dumps(manifest,indent=2)+'\n');part.replace(out/'manifest.json')
@@ -35,6 +36,7 @@ def main():
                 '--gpu',str(a.gpu),'--envs',str(len(objects)*4),'--seed',str(a.seed),'--seconds',str(min(1800,int(remaining))),
                 '--bc-kind',a.bc_kind,'--experiment-id','P-20261016-shadow-scale-continuous']
             if a.rl_checkpoint:command+=['--rl-checkpoint',str(a.rl_checkpoint.resolve())]
+            if a.force_zero_residual:command+=['--force-zero-residual']
             with (out/('shard%02d-supervisor.log'%index)).open('x') as log:subprocess.run(command,stdout=log,stderr=subprocess.STDOUT,check=True)
             native=json.loads((target/'result.json').read_text())['final']['native']
             for key in manifest['totals']:manifest['totals'][key]+=native[key]

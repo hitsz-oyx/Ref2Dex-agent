@@ -22,7 +22,7 @@ def write(path,value):
 
 def run(task,snapshot,env_objects,teacher,args):
     # Existing bounded launchers may be initializing assets while optional diagnostics are added.
-    for name,default in [('initial_log_std',-2.5),('synchronize_warm_step',False),('capture_warm_state',False),('retain_reset_indices',False),('single_reset_target_setter',False)]:
+    for name,default in [('initial_log_std',-2.5),('synchronize_warm_step',False),('capture_warm_state',False),('retain_reset_indices',False),('single_reset_target_setter',False),('force_zero_residual',False)]:
         if not hasattr(args,name):setattr(args,name,default)
     out=args.output;started=time.monotonic()
     if args.world_size>1:
@@ -63,6 +63,7 @@ def run(task,snapshot,env_objects,teacher,args):
         rank=args.rank,world_size=args.world_size,global_envs=args.envs*args.world_size,resume_update=offset,
         synchronize_warm_step=args.synchronize_warm_step,capture_warm_state=args.capture_warm_state,
         retain_reset_indices=args.retain_reset_indices,single_reset_target_setter=args.single_reset_target_setter,
+        force_zero_residual=args.force_zero_residual,
         reward='unchanged official goal_cond=False native task reward',gamma=.99,gae_lambda=.95,
         bc_weight=.1,actor_lr=1e-4,critic_lr=3e-4,ppo_epochs=4,target_joint_kl=.02,
         max_seconds=args.seconds,artifact_budget_bytes=2*2**30,
@@ -102,9 +103,9 @@ def run(task,snapshot,env_objects,teacher,args):
                 obs=observation(task.obs_buf,relative_goal,base)
                 dist=actor.distribution(obs)
                 latent=(dist.loc+dist.scale*torch.randn(dist.loc.shape,device='cuda',generator=generator)) if training else dist.loc
-                if args.mode=='bc':latent=torch.zeros_like(latent)
+                if args.mode=='bc' or args.force_zero_residual:latent=torch.zeros_like(latent)
                 action,intended,delta=apply_residual(base,latent,args.alpha)
-                if args.mode in ('bc','zero') and not torch.equal(action,base):raise ValueError('Zero residual changed canonical BC')
+                if (args.mode in ('bc','zero') or args.force_zero_residual) and not torch.equal(action,base):raise ValueError('Zero residual changed canonical BC')
                 value=critic(obs);logp=dist.log_prob(latent).sum(-1)
             commands.append(action.cpu().numpy().copy());bases.append(base.cpu().numpy().copy())
             latents.append(latent.cpu().numpy().copy());intendeds.append(intended.cpu().numpy().copy())

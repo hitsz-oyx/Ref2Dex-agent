@@ -97,6 +97,7 @@ def main():
     p.add_argument('--capture-warm-state',action='store_true')
     p.add_argument('--retain-reset-indices',action='store_true')
     p.add_argument('--single-reset-target-setter',action='store_true')
+    p.add_argument('--force-zero-residual',action='store_true')
     p.add_argument('--worker',action='store_true');a=p.parse_args()
     a.output=a.output.resolve();a.checkpoint=a.checkpoint.resolve();a.cache=a.cache.resolve()
     if a.rl_checkpoint:a.rl_checkpoint=a.rl_checkpoint.resolve()
@@ -108,6 +109,7 @@ def main():
     if a.mode=='evaluate' and a.rl_checkpoint is None:raise ValueError('Evaluate requires RL checkpoint')
     if a.rl_checkpoint and a.mode not in ('train','evaluate'):raise ValueError('RL checkpoint only for train resume/evaluate')
     if a.capture_warm_state and not a.synchronize_warm_step:raise ValueError('Warm capture requires explicitly synchronized probe')
+    if a.force_zero_residual and a.mode!='evaluate':raise ValueError('Matched loaded-policy zero control is evaluate-only')
     if a.worker:worker(a);return
     if a.output.exists() or ROOT/'outputs/wam-rl-policy' not in a.output.parents:raise ValueError('Fresh Task output')
     occupied=subprocess.check_output(['nvidia-smi','-i',str(a.gpu),'--query-compute-apps=pid','--format=csv,noheader'],text=True).strip()

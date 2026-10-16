@@ -135,3 +135,11 @@ resolve后用新evaluate-r2目录完成。下一工程判别为两个互相独�
 `single_reset_target_setter`仅移除reset中的中间target setter，保留pre_physics末尾的最终
 setter。均只改自有runtime副本，不改vendor、奖励或物理参数。每个条件同GPU/同shard01
 BC与PPO50各一轮；先检查实际起点，再决定是否用于后续训练/评估，旧结果全部保留。
+
+retained/single-setter独立Probe均未消除起点差异，当前不能归因为任一单因素。
+下一最小控制：BC和PPO采用同一evaluate路径、都加载同一自训练RL checkpoint，仅BC臂
+`force_zero_residual`将latent置0，逐步断言实际canonical action==frozen BC action。
+此控制不改变BC执行语义，统一checkpoint加载/辅助网络构造/初始内存路径；仍须逐值审计
+实际起点后才允许配对解释。若成立用于阶段读出，仍保留初始化问题的根因未明限制。
+同时每个新native worker在慢资产初始化前复制自有wam_rl_policy包到输出runtime-code，
+避免正在初始化的旧入口后加载到新模块；旧worker缺省可选诊断字段以向后兼容。
