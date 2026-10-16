@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [170]
 decision_changed_if_positive: continue nine-source pretraining when sustained full-batch updates and recovery pass and fixed physical DEV errors improve
 decision_changed_if_negative: inspect source semantics and actual input/loss chain before spending the remaining training budget
-status: RUNNING
+status: COMPLETED
 run_id: pretrain-nine-strict-lr3e5-remote4-80k-20261015-r1
 ---
 
@@ -203,3 +203,11 @@ Read-only snapshot49220/80000, both actual LRs3e-5, four GPUs99–100%,33011/336
 Early DEV mean improves4.85% and scene5.70% versus preceding block, with smaller descriptive oscillation. Recent DEV mean remains3.28% below preceding high-LR block but is1.65% above early lower-LR block; hand/scene improve only1.05%/2.91% versus before. Low-LR best41k1.03699393 still fails to beat old31k1.03455000 (0.236% worse). Latest49k1.06541250 recovers from48k1.09741866; a single spike is not persistent divergence. TRAIN continues falling overall but has transient spikes near47–48k. All these metrics are lower-is-better.
 
 Interpretation: limited descriptive mean improvement; no breakthrough of historical best or validation plateau. Adaptive single trajectory, no matched constant-LR arm, small correlated DEV, so neither LR causality nor formal overfitting is established. Current authorized80k run remains unchanged; keep historical31k best as cross-stage comparator rather than treating stage-local best.pt as global best. CPU reductions/plotting only, no new model inference. Artifacts `outputs/ptv3-shared-wam-v3/lr-effect-20261015-2353/{snapshot.json,refresh.json,analyze.py,summary.json,lr_effect.png}`.
+
+## 2026-10-16 09:21 CST completion audit
+
+Current process and progress are both COMPLETED at80000, exit_code0; final checkpoint timestamp2026-10-16 05:57 CST. Four remote GPUs have0MiB allocated, training released. Both actual LRs remained3e-5, original strict frozen recipe unchanged, expanded DexYCB/boundary-fix recipes not deployed. Existing old31k/37k and new41k/80k full checkpoint files were confirmed present (~1.18GB each). No additional training or inference launched.
+
+Final DEV objective1.06463120, macro hand-first8 10.78857mm, hand-all24 34.29536mm, scene-all24 12.95253mm. Low-LR stage best remains41k1.03699393, historical overall best31k1.03455000. Final objective is2.91% worse than historical best. Comparing early lower-LR38–42k versus final76–80k five-evaluation blocks: TRAIN logged-loss mean0.232934→0.132574 (-43.1%), DEV objective1.054580→1.079983 (+2.41%), hand-all24 33.52696→34.28119mm (+2.25%), scene-all24 12.95281→12.92709mm (-0.20%). Fixed panel is still256windows/eight sources with no DexDEV.
+
+Decision readout: extended same-recipe low-LR training is UNPROMISING for further improving this fixed DEV objective; successful engineering completion is separate from research quality. No formal convergence/overfitting or MSE-versus-FM conclusion. Do not extend automatically beyond authorized80k. For subsequent task-specific checks retain31k (objective best),41k (stage best and some better short-horizon/scene metrics), and80k as final comparator; do not assume final weights are strongest. Future evidence remains larger held-out/matched evaluations and downstream robot utility, not added automatically for this status query. Completion snapshot/derived means: `outputs/ptv3-shared-wam-v3/final-status-20261016-r1/{snapshot.json,summary.json}`.
