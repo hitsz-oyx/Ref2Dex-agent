@@ -843,7 +843,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261016-independent-motion-ppo](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261016-independent-motion-ppo.md) | 无BC的PPO与因果运动参考接口资格 | 见原卡 | 见原卡 | probes/UNCLEAR |
+| [P-20261016-independent-motion-ppo](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261016-independent-motion-ppo.md) | 无BC的PPO与因果运动参考接口资格 | 见原卡 | 见原卡 | probes/PROMISING |
 
 ## HF-wam-residual-ppo
 

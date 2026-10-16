@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [245, 246, 247]
 decision_changed_if_positive: extend independently initialized PPO with motion references only if learning and native execution qualify
 decision_changed_if_negative: fix action or observation wiring and exploration before interpreting WAM utility
-status: UNCLEAR
+status: PROMISING
 run_id: independent-motion-{none,geometry,wam}-20261016-r1
 ---
 
@@ -80,3 +80,51 @@ critic崩溃保留checkpoint后停。完成后释放卡，不自动加大预算�
 三臂总墙钟约30/30/50s，峰值采样显存约2.7/2.7/5.2GiB。
 资格仅为工程PASS，没有抓取提升结论。按预先协议进入fresh25轮；补充记录区间内
 参考保持与全episode输入clip率，不改变动作、奖励或参考计算。
+
+## 固定终点结果（25episode）
+
+运行代码 `01f9c80d`，三臂fresh各318400步、总955200步，全部完成；
+输出为 `outputs/wam-rl-policy/independent-motion-{none,geometry,wam}-20261016-r1/`。
+汇总及实际初态审查：`outputs/wam-rl-policy/independent-motion-panel-20261016-r1/training-audit.json`。
+
+| 条件 | 前5轮平均native return | 后5轮平均native return | 后5轮chunk-EV中位数范围 | actor更新次数 | 25轮到达/保持 |
+|---|---:|---:|---:|---:|---:|
+| 无运动参考 | -91.42 | -4.65 | .814–.916 | 1860 | 0/0 |
+| 几何运动参考 | -125.62 | -14.63 | .981–.991 | 2511 | 0/0 |
+| WAM运动参考 | -94.72 | 8.79 | .890–.952 | 2131 | 0/0 |
+
+三臂通过预先定义的**独立动作学习资格**，此范围PROMISING；WAM带来真实任务收益
+仍UNCLEAR，不能把训练回报差当作成功率增益或预训练因果验证。EV在各训练chunk更新后
+计算，只证明回归拟合没有原先的退化，不是留出价值泛化。最终学习率仍1e-4，非LR归零。
+
+最后一轮平均指尖到物体中心距离从共同起点204.24mm降到113.55/126.41/94.58mm，
+显示当前主要学到靠近；这是几何代理，不是实测接触。最终三臂最大抬升都为0。
+WAM第20轮env58（CellPhone）曾高出起点0.2719m，但结束时距目标2.18m、无到达/保持，
+不能称有效抓取；该轮没有完整轨迹，不能确认抛飞的接触因果机制。其余两臂全程无>10cm抬升。
+
+### 关键链路复核
+
+- 三臂九类实际首帧逐值一致；无BC/官方actor加载，原生动作=clip(latent)，base24全零，
+  BC regularization全零。全程执行误差最大1.19e-7；logprob复算通过，WAM参数/梯度冻结通过。
+- 同一世界参考在tick1/2/16逐值不变，年龄与16步刷新节奏一致，短goal位移<=5cm。
+- 最终模型在第一轮保存状态上的参考置零干预：几何/WAM动作RMS变化.0741/.0618；
+  WAM手参考单独置零.0221、物体参考.0570。这证明参考接入动作，但不能证明其有益。
+- WAM初态参考指尖到预测物体表面的均距16/32步为153.52/140.47mm，几何为159.98/159.98mm。
+  这是预测参考内部的协调差异，不是机器人已达到的接触或可实现性认证。
+- 无参考/几何全程没有输入clip；WAM仅第20轮出现，最严重单拍0.563%标量被裁剪，
+  最大参考误差.775m。与异常抬升同时出现，但不足以判定哪项导致哪项。
+- 24项相关单测和owned文件verify通过。训练墙钟211.5/211.5/342.5s，显存最高采样
+  2713/2713/5129MiB；六个smoke/训练run约291MiB，均已完成、GPU释放。
+
+## 结果后的 Decision Note
+
+- 已解决的blocker：独立于BC的策略、原生动作、因果固定参考和PPO学习可以共同运行。
+  现在没有理由再把完善BC设为前置关卡，也不能把后续抓取失败归到已解决的critic崩溃。
+- 保留WAM运动先验方向。单靠增加观测，本轮仍主要学会靠近，未形成受控抬升；当前证据
+  不能区分更长探索、参考使用方式与接触控制难度，不做“数据不够”或“WAM无效”归因。
+- 下一项方法工作：把WAM的手物**相对协调目标**接到有界辅助学习信号，检验是否更容易
+  形成抓取接触；对象到task goal的推进仍按真实native任务计分。采用同目标几何对照，
+  防止把任何额外shaping都误归为WAM。新方案先检查参考坐标、区间内进展定义和异常值，
+  再单立短Probe；不直接奖励WAM预测的物体升高，不依赖虚构的动作反事实。
+- 本轮不自动扩到200轮或更大面板，不以最终回报排名替代行为判断。下一轮只有在真实
+  接触/受控抬升出现正向信号后才扩大。无新的外部授权需求，MISSION/最终claim不变。

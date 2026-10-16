@@ -1,5 +1,10 @@
 # WAM-assisted robot RL
 
+2026-10-16 [独立PPO与运动参考Probe](docs/experiments/probes/P-20261016-independent-motion-ppo.md)：
+`--bc-kind none --action-kind independent-gaussian`可不传BC checkpoint，跳过官方actor加载与BC正则；
+`--observation-kind motion-none/motion-geometry/motion-wam`支持固定时间窗的因果运动参考。
+三臂原生资格已通过，任务到达/保持尚未改善，下一步研究接触学习信号。
+
 2026-10-16 [学习短期终点Probe](docs/experiments/probes/P-20261016-wam-learned-short-goal.md)已完成：
 终点回归未过预设门槛，WAM条件运动预测保留局部改善。下一步先建立独立动作与运动参考接口，
 再检验原生执行收益；不将BC或复现旧策略未来作为最终研究目标。

@@ -2,6 +2,9 @@
 import argparse
 import json
 from pathlib import Path
+import os
+import subprocess
+import sys
 
 import numpy as np
 import torch
@@ -11,10 +14,19 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--runs', type=Path, nargs=3, required=True)
     p.add_argument('--output', type=Path, required=True)
+    p.add_argument('--policy-replay-gpu', type=int)
     a = p.parse_args()
     if a.output.exists():
         raise FileExistsError(a.output)
     result = dict(status='PASS', arms={})
+    if a.policy_replay_gpu is not None:
+        if subprocess.check_output(['nvidia-smi', '-i', str(a.policy_replay_gpu),
+                                    '--query-compute-apps=pid', '--format=csv,noheader'], text=True).strip():
+            raise RuntimeError('Replay GPU occupied')
+        os.environ['CUDA_VISIBLE_DEVICES'] = str(a.policy_replay_gpu)
+        sys.path.insert(0, str(Path(__file__).resolve().parents[2]/'src'))
+        from wam_rl_policy.ppo import Actor, append_episode_clock
+        torch.set_num_threads(2)
     initial = None
     for run in a.runs:
         manifest = json.loads((run/'manifest.json').read_text())
@@ -44,7 +56,7 @@ def main():
         reference_files = sorted(run.glob('motion-input-*.pt'))
         assert len(reference_files) in (13, 15)
         anchor = None
-        clips, maxima = [], []
+        clips, maxima, replay_inputs = [], [], []
         for path in reference_files:
             packet = torch.load(path, map_location='cpu', weights_only=False)
             assert packet['reference_tick'] == 1 + ((packet['tick']-1)//16)*16
@@ -59,13 +71,37 @@ def main():
             if manifest['observation_kind'] == 'motion-none':
                 assert not packet['observation'][:, 303:561].any()
             clips.append(packet['clipped_fraction']); maxima.append(packet['unclipped_max_m'])
+            if a.policy_replay_gpu is not None:
+                replay_inputs.append(append_episode_clock(packet['observation'], packet['tick'], 199, 'remaining'))
         if manifest['observation_kind'] == 'motion-wam':
             assert json.loads((run/'motion-freeze-audit.json').read_text())['status'] == 'PASS'
         medians = [float(np.median([s['value_explained_variance'] or 0 for s in row['ppo_segments']])) for row in curves]
         gate = len(curves) >= 25 and sum(v > .05 for v in medians[-5:]) >= 4
+        hand_target, scene_target = anchor['hand_target_world'], anchor['scene_target_world']
+        observed_hand = torch.as_tensor(current['hand'])
+        reference_geometry = dict(
+            predicted_tip_surface_gap_mm=(torch.cdist(hand_target[:, :, 6:], scene_target).amin(-1).mean((0, 2))*1000).tolist(),
+            hand_displacement_mm=((hand_target-observed_hand[:, None]).norm(dim=-1).mean((0, 2))*1000).tolist(),
+            scope='Reference geometry only; no measured contact or feasibility claim')
+        sensitivity = None
+        if a.policy_replay_gpu is not None:
+            saved = torch.load(run/'latest.pt', map_location='cpu', weights_only=False)
+            model = Actor(manifest['initial_log_std'], obs_dim=587, network_kind=manifest['network_kind'],
+                          action_kind='independent-gaussian').cuda().eval()
+            model.load_state_dict(saved['actor'])
+            x = torch.cat(replay_inputs).cuda()
+            sensitivity = {}
+            with torch.inference_mode():
+                actual = model.distribution(x).loc.clamp(-1, 1)
+                for domain, lo, hi in [('hand', 303, 369), ('scene', 369, 561), ('both', 303, 561)]:
+                    masked = x.clone(); masked[:, lo:hi] = 0
+                    changed = model.distribution(masked).loc.clamp(-1, 1)
+                    sensitivity[domain+'_action_rms'] = float((actual-changed).square().mean().sqrt())
+            # Input intervention is a wiring check, not evidence of better task value.
         result['arms'][manifest['observation_kind']] = dict(run=str(run), execution_max_abs=execution,
             initial_state_max_abs=differences, updates=len(curves), actor_steps=sum(s['actor_steps'] for s in segments),
-            critic_median_ev=medians, learning_qualified=gate,
+            critic_median_ev=medians, learning_qualified=gate, reference_action_sensitivity=sensitivity,
+            first_reference_geometry=reference_geometry,
             all_episode_max_clip_fraction=max(r.get('motion_max_clip_fraction', 0) for r in curves),
             first_reference_max_abs_m=max(maxima), first_reference_max_clip_fraction=max(clips),
             returns=[r['mean_native_episode_return'] for r in curves],
