@@ -161,6 +161,7 @@ def run(task,snapshot,env_objects,teacher,args):
         else:task.step(torch.zeros((args.envs,24),device='cuda'),-1)
         frames=[snapshot()];commands=[];bases=[];latents=[];intendeds=[];applied=[];forces=[];torques=[];targets=[]
         rewards=[];native_rewards=[];hold_bonuses=[];storage={k:[] for k in ('observation','latent','mean','std','logp','value','reward','done')}
+        motion_max_clip=0.;motion_max_error=0.
         initial_z=torch.as_tensor(frames[0]['object'][:,2],device='cuda')
         execution_error=dict(canonical_to_world=0.,force=0.,torque=0.,finger_target=0.);fallback_env_ticks=0;feature_fallback_ticks=0;ppo_segments=[]
         for tick in range(1,int(task.max_episode_length)):
@@ -193,7 +194,9 @@ def run(task,snapshot,env_objects,teacher,args):
                 if motion is not None:
                     reference=motion.observe(snap,tick,task.z_theta if task.repose_z else torch.zeros(args.envs,device='cuda'))
                     obs=torch.cat((obs[:,:-24],reference,obs[:,-24:]),-1)
-                    if iteration==offset+1 and (tick==1 or (tick-1)%16==0):
+                    motion_max_clip=max(motion_max_clip,motion.clipped_fraction)
+                    motion_max_error=max(motion_max_error,motion.unclipped_max_m)
+                    if iteration==offset+1 and (tick in (2,16) or (tick-1)%16==0):
                         motion.audit(out,tick,obs)
                 obs=append_episode_clock(obs,tick,int(task.max_episode_length)-1,args.clock_kind)
                 if use_wam and iteration==offset+1 and tick==1:
@@ -267,6 +270,7 @@ def run(task,snapshot,env_objects,teacher,args):
             bc_support_fallback_envs=sorted(bc.invalid),bc_support_fallback_env_ticks=fallback_env_ticks,
             wam_feature_fallback_envs=sorted(feature_bc.invalid) if use_wam else [],wam_feature_fallback_env_ticks=feature_fallback_ticks,
             applied_residual_rms=float(np.sqrt(np.mean((data['action']-data['base'])**2))),
+            motion_max_clip_fraction=motion_max_clip,motion_max_error_m=motion_max_error,
             clip_fraction=float(np.mean(np.abs(data['intended']-data['action'])>1e-6)))
         if training:
             ppo_segments.append(update_rollout(actor,critic,storage,actor_optimizer,critic_optimizer,epochs=args.ppo_epochs,minibatches=args.ppo_minibatches,shuffle_generator=optimizer_generator,bc_weight=0. if independent else .1))
