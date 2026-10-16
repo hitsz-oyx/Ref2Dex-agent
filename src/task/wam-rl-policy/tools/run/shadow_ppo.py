@@ -98,6 +98,7 @@ def main():
     p.add_argument('--retain-reset-indices',action='store_true')
     p.add_argument('--single-reset-target-setter',action='store_true')
     p.add_argument('--force-zero-residual',action='store_true')
+    p.add_argument('--outside-support-zero',action='store_true')
     p.add_argument('--worker',action='store_true');a=p.parse_args()
     a.output=a.output.resolve();a.checkpoint=a.checkpoint.resolve();a.cache=a.cache.resolve()
     if a.rl_checkpoint:a.rl_checkpoint=a.rl_checkpoint.resolve()

@@ -36,14 +36,21 @@ class FastController(Controller):
         past=[max(len(self.history)-1+offset,0) for offset in (-6,-4,-2,0)]
         objects=np.stack([self.history[i]['object'] for i in past],1);hands=np.stack([self.history[i]['hand'] for i in past],1)
         samples=batched_inputs(objects,hands,snapshot['goal'],self.geometry)
+        admitted=[];indices=[]
         for env,sample in enumerate(samples):
-            if (sample['start_hand'][0]<-2).any() or not np.isfinite(sample['start_hand']).all():self.invalid.add(env)
+            if not np.isfinite(sample['start_hand']).all():raise FloatingPointError('Nonfinite native BC landmarks')
+            if (sample['start_hand'][0]<-2).any():self.invalid.add(env)
+            if env in self.invalid:continue
             sample.update(policy_state=np.clip(snapshot['observation'][env],-5,5),
                 trajectory_target=np.zeros((24,2,11,3),np.float32),trajectory_valid=np.zeros((24,2,11),bool),
                 scene_target=np.zeros((1,24,32,3),np.float32),scene_valid=np.zeros((1,24,32),bool),action_target=np.zeros((8,24),np.float32))
-        if self.invalid:raise ValueError('BC H4 workspace invalid: '+str(sorted(self.invalid)))
-        batch={k:v.cuda() for k,v in collate(samples).items()}
+            admitted.append(sample);indices.append(env)
+        if self.invalid and not getattr(self,'allow_invalid_zero',False):raise ValueError('BC H4 workspace invalid: '+str(sorted(self.invalid)))
+        action=torch.zeros(len(samples),24,device='cuda')
+        if not admitted:return action
+        batch={k:v.cuda() for k,v in collate(admitted).items()}
         shared,valid,_=self.model.forecaster.encode(batch)
         prediction=self.model.actor(batch['policy_state'],shared,valid)[:,0]
         if not torch.isfinite(prediction).all():raise FloatingPointError('Nonfinite BC')
-        return prediction.clamp(-1,1)
+        action[indices]=prediction.clamp(-1,1)
+        return action

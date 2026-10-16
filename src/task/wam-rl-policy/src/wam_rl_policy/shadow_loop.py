@@ -22,7 +22,7 @@ def write(path,value):
 
 def run(task,snapshot,env_objects,teacher,args):
     # Existing bounded launchers may be initializing assets while optional diagnostics are added.
-    for name,default in [('initial_log_std',-2.5),('synchronize_warm_step',False),('capture_warm_state',False),('retain_reset_indices',False),('single_reset_target_setter',False),('force_zero_residual',False)]:
+    for name,default in [('initial_log_std',-2.5),('synchronize_warm_step',False),('capture_warm_state',False),('retain_reset_indices',False),('single_reset_target_setter',False),('force_zero_residual',False),('outside_support_zero',False)]:
         if not hasattr(args,name):setattr(args,name,default)
     out=args.output;started=time.monotonic()
     if args.world_size>1:
@@ -31,6 +31,7 @@ def run(task,snapshot,env_objects,teacher,args):
     rng=(torch.get_rng_state(),torch.cuda.get_rng_state(),np.random.get_state(),random.getstate())
     bc_type=(FastController if args.experiment_id=='P-20261016-shadow-scale-continuous' else Controller) if args.bc_kind=='wam' else MLPController
     bc=bc_type(args.checkpoint,env_objects,teacher,args.cache)
+    bc.allow_invalid_zero=args.outside_support_zero
     bc.model.requires_grad_(False)
     torch.manual_seed(args.policy_seed)
     actor=Actor(args.initial_log_std).cuda();critic=Critic().cuda()
@@ -40,6 +41,8 @@ def run(task,snapshot,env_objects,teacher,args):
         if saved.get('schema')!=SCHEMA or saved['base_checkpoint']!=str(args.checkpoint.resolve()):
             raise ValueError('Matching frozen Shadow BC reference required')
         actor.load_state_dict(saved['actor'],strict=True)
+        if saved.get('config',{}).get('outside_support_policy')=='persistent zero BC reference until episode reset':
+            args.outside_support_zero=True;bc.allow_invalid_zero=True
     torch.set_rng_state(rng[0]);torch.cuda.set_rng_state(rng[1]);np.random.set_state(rng[2]);random.setstate(rng[3])
     before={k:v.clone() for k,v in bc.model.state_dict().items()}
     actor_optimizer=torch.optim.Adam(actor.parameters(),lr=1e-4)
@@ -64,6 +67,7 @@ def run(task,snapshot,env_objects,teacher,args):
         synchronize_warm_step=args.synchronize_warm_step,capture_warm_state=args.capture_warm_state,
         retain_reset_indices=args.retain_reset_indices,single_reset_target_setter=args.single_reset_target_setter,
         force_zero_residual=args.force_zero_residual,
+        outside_support_policy='persistent zero BC reference until episode reset' if args.outside_support_zero else 'reject run',
         reward='unchanged official goal_cond=False native task reward',gamma=.99,gae_lambda=.95,
         bc_weight=.1,actor_lr=1e-4,critic_lr=3e-4,ppo_epochs=4,target_joint_kl=.02,
         max_seconds=args.seconds,artifact_budget_bytes=2*2**30,
@@ -91,14 +95,20 @@ def run(task,snapshot,env_objects,teacher,args):
         else:task.step(torch.zeros((args.envs,24),device='cuda'),-1)
         frames=[snapshot()];commands=[];bases=[];latents=[];intendeds=[];applied=[];forces=[];torques=[];targets=[]
         rewards=[];storage={k:[] for k in ('observation','latent','mean','std','logp','value','reward','done')}
-        execution_error=dict(canonical_to_world=0.,force=0.,torque=0.,finger_target=0.)
+        execution_error=dict(canonical_to_world=0.,force=0.,torque=0.,finger_target=0.);fallback_env_ticks=0
         for tick in range(1,int(task.max_episode_length)):
             if time.monotonic()-started>args.seconds:raise TimeoutError('Shadow PPO wall budget')
             if tick>1 and task.reset_buf.any():raise ValueError('Unexpected interior reset; reject unspliced episode')
             snap=frames[-1]
             with torch.no_grad():
                 base=bc.act(snap,task.obs_buf,tick)
-                if bc.invalid:raise ValueError('BC history outside admitted workspace: '+str(sorted(bc.invalid)))
+                if bc.invalid:
+                    if not args.outside_support_zero:raise ValueError('BC history outside admitted workspace: '+str(sorted(bc.invalid)))
+                    fallback_env_ticks+=len(bc.invalid)
+                    if not (out/'first-bc-support-fallback.npz').exists():
+                        np.savez_compressed(out/'first-bc-support-fallback.npz',**snap)
+                        write(out/'first-bc-support-fallback.json',dict(update=iteration,tick=tick,envs=sorted(bc.invalid),
+                            objects=[env_objects[i] for i in sorted(bc.invalid)]))
                 relative_goal=torch.as_tensor(snap['goal']-snap['object'][:,:3],device='cuda')
                 obs=observation(task.obs_buf,relative_goal,base)
                 dist=actor.distribution(obs)
@@ -157,6 +167,7 @@ def run(task,snapshot,env_objects,teacher,args):
             elapsed_s=time.monotonic()-started,native=report,
             mean_episode_return=float(data['reward'].sum(0).mean()),
             native_execution_error=execution_error,
+            bc_support_fallback_envs=sorted(bc.invalid),bc_support_fallback_env_ticks=fallback_env_ticks,
             applied_residual_rms=float(np.sqrt(np.mean((data['action']-data['base'])**2))),
             clip_fraction=float(np.mean(np.abs(data['intended']-data['action'])>1e-6)))
         if training:

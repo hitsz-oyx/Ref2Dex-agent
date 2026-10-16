@@ -166,3 +166,15 @@ MLP50k checkpoint/Adam/全部RNG恢复，分别再训50k步至100k，constant3e-
 3e-5，网络/数据/抽样完全相同。每臂<=600s，串行总预算1200s；固定core_DEV seed249
 比较端点，不按DEV挑endpoint。如果annealing带来明显native保持提升，换用更好reference；
 否则不投入更多BC重复训练。此处不变更全量数据准入，也不新建分支/替换原checkpoint。
+
+## 本地WAM32轮范围外中断与恢复
+
+旧run `shadow-scale-wam-128obj-4gpu-20261016-r1` 在第32轮采集，rank03 env53触发
+`BC H4 workspace invalid`，整组按保护逻辑退出；没有OOM或PPO非有限报错。四个latest
+checkpoint均为31轮，actor/critic跨rank逐tensor一致，因此只从共同31轮恢复，不重训旧轮。
+原ShadowController已对超范围env返回零BC并保持invalid至reset；Stage0 strict reject对小面板
+够用，但放大在线探索必须定义范围外行为。修复FastController只对有限的out-of-support
+环境采用相同零BC回退，其他env照常推理；非有限物理仍拒绝。残差执行与native reward不变，
+固定199步不截断/拼接轨迹。逐轮记录fallback env/ticks，第一次触发保存原始状态/身份；
+checkpoint中的reference明确为“原frozen BC＋范围外零fallback”，不得隐去此语义。
+该修复不说明方法有负结果；从共同31轮继续至200，原run和失败日志只读保留。

@@ -21,7 +21,8 @@ def main():
     p.add_argument('--bc-kind',choices=('wam','mlp'),default='wam');p.add_argument('--resume',type=Path)
     p.add_argument('--seed',type=int,default=245);p.add_argument('--policy-seed',type=int,default=246)
     p.add_argument('--exploration-seed',type=int,default=247)
-    p.add_argument('--initial-log-std',type=float,default=-2.5);a=p.parse_args()
+    p.add_argument('--initial-log-std',type=float,default=-2.5)
+    p.add_argument('--outside-support-zero',action='store_true');a=p.parse_args()
     out=a.output.resolve();gpus=[int(x) for x in a.gpus.split(',')]
     if out.exists() or ROOT/'outputs/wam-rl-policy' not in out.parents:raise ValueError('Fresh Task output required')
     if len(gpus)!=len(set(gpus)) or not 1<=len(gpus)<=4:raise ValueError('1..4 unique GPUs required')
@@ -52,6 +53,7 @@ def main():
                 '--rendezvous',process['rendezvous'],'--seed',str(a.seed+rank),'--policy-seed',str(a.policy_seed),
                 '--exploration-seed',str(a.exploration_seed),'--initial-log-std',str(a.initial_log_std),'--trace-every','50']
             if a.resume:command+=['--rl-checkpoint',str((a.resume/('rank%02d'%rank)/'latest.pt').resolve())]
+            if a.outside_support_zero:command+=['--outside-support-zero']
             env=dict(os.environ,CUDA_VISIBLE_DEVICES=str(gpu),TMPDIR=str(target/'tmp'),TORCH_EXTENSIONS_DIR=os.environ.get('TORCH_EXTENSIONS_DIR',str(ROOT/'tmp/shadow-isaac-extensions')),
                 MAX_JOBS='2',OMP_NUM_THREADS='2',OPENBLAS_NUM_THREADS='2',PYTHONDONTWRITEBYTECODE='1')
             env['LD_LIBRARY_PATH']=str(Path(sys.executable).resolve().parents[1]/'lib')+':'+env.get('LD_LIBRARY_PATH','')
