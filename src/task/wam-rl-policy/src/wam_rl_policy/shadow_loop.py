@@ -14,6 +14,7 @@ from shadow_finetune.metrics import native_report
 from .bc_mlp import MLPController
 from .fast_bc import FastController
 from .rewards import position_hold_bonus
+from .wam_features import FeatureController
 
 
 def write(path,value):
@@ -23,7 +24,7 @@ def write(path,value):
 
 def run(task,snapshot,env_objects,teacher,args):
     # Existing bounded launchers may be initializing assets while optional diagnostics are added.
-    for name,default in [('initial_log_std',-2.5),('synchronize_warm_step',False),('capture_warm_state',False),('retain_reset_indices',False),('single_reset_target_setter',False),('force_zero_residual',False),('outside_support_zero',False),('observation_kind','native'),('rollout_steps',199),('network_kind','small'),('action_kind','residual'),('reward_kind','native'),('ppo_epochs',4),('ppo_minibatches',1)]:
+    for name,default in [('initial_log_std',-2.5),('synchronize_warm_step',False),('capture_warm_state',False),('retain_reset_indices',False),('single_reset_target_setter',False),('force_zero_residual',False),('outside_support_zero',False),('observation_kind','native'),('rollout_steps',199),('network_kind','small'),('action_kind','residual'),('reward_kind','native'),('ppo_epochs',4),('ppo_minibatches',1),('wam_feature_checkpoint',None)]:
         if not hasattr(args,name):setattr(args,name,default)
     out=args.output;started=time.monotonic()
     if args.world_size>1:
@@ -49,12 +50,19 @@ def run(task,snapshot,env_objects,teacher,args):
             value=saved.get('config',{}).get(name,default)
             if args.mode=='train' and getattr(args,name)!=value:raise ValueError('Resume must retain '+name)
             setattr(args,name,value)
+        feature_path=saved.get('config',{}).get('wam_feature_checkpoint')
+        if args.mode=='train' and feature_path!=(str(args.wam_feature_checkpoint) if args.wam_feature_checkpoint else None):raise ValueError('Resume must retain independent WAM feature source')
+        args.wam_feature_checkpoint=Path(feature_path) if feature_path else None
+        args.initial_log_std=saved.get('config',{}).get('initial_log_std',args.initial_log_std)
         if saved.get('config',{}).get('outside_support_policy')=='persistent zero BC reference until episode reset':
             args.outside_support_zero=True;bc.allow_invalid_zero=True
     use_wam=args.observation_kind.startswith('wam-')
     if args.observation_kind in ('normalized','bc-hidden') and args.bc_kind!='mlp':raise ValueError('Current BC features require the MLP reference')
-    if use_wam and not isinstance(bc,FastController):raise ValueError('Direct WAM summaries require the native fast WAM reference')
-    bc.expose_wam_features=use_wam
+    if args.wam_feature_checkpoint and not use_wam:raise ValueError('Independent WAM source requires an explicit z condition')
+    feature_bc=FeatureController(args.wam_feature_checkpoint,env_objects,args.cache) if args.wam_feature_checkpoint else bc
+    if use_wam and not isinstance(feature_bc,FastController):raise ValueError('Direct WAM summaries require a WAM feature source')
+    feature_bc.expose_wam_features=use_wam
+    feature_bc.allow_invalid_zero=args.outside_support_zero
     obs_dim=2631 if use_wam else (327 if args.observation_kind=='native' else 539)
     permutation=list(range(len(env_objects)))
     if args.observation_kind=='wam-shuffled':
@@ -70,6 +78,7 @@ def run(task,snapshot,env_objects,teacher,args):
     if saved:actor.load_state_dict(saved['actor'],strict=True)
     torch.set_rng_state(rng[0]);torch.cuda.set_rng_state(rng[1]);np.random.set_state(rng[2]);random.setstate(rng[3])
     before={k:v.clone() for k,v in bc.model.state_dict().items()}
+    before_features={k:v.clone() for k,v in feature_bc.model.state_dict().items()} if feature_bc is not bc else None
     actor_optimizer=torch.optim.Adam(actor.parameters(),lr=1e-4)
     critic_optimizer=torch.optim.Adam(critic.parameters(),lr=3e-4)
     generator=torch.Generator(device='cuda');generator.manual_seed(args.exploration_seed+args.rank)
@@ -86,7 +95,9 @@ def run(task,snapshot,env_objects,teacher,args):
     manifest=dict(schema=SCHEMA,status='RUNNING',mode=args.mode,pid=__import__('os').getpid(),
         experiment_id=args.experiment_id,run_id=out.name,git_commit=args.code_commit,bc_kind=args.bc_kind,
         base_checkpoint=str(args.checkpoint.resolve()),rl_checkpoint=str(args.rl_checkpoint) if args.rl_checkpoint else None,
-        uses_wam=args.bc_kind=='wam',frozen_wam=True if args.bc_kind=='wam' else None,frozen_bc=True,
+        uses_wam=args.bc_kind=='wam' or use_wam,frozen_wam=True if args.bc_kind=='wam' or use_wam else None,frozen_bc=True,
+        wam_feature_checkpoint=str(args.wam_feature_checkpoint) if args.wam_feature_checkpoint else None,
+        wam_feature_schema=getattr(feature_bc,'schema',None),wam_feature_step=getattr(feature_bc,'source_step',None),
         trainable='new%dD actor/critic only; frozen BC features; no WAM token adapter'%obs_dim,
         observation_kind=args.observation_kind,observation_dim=obs_dim,
         network_kind=args.network_kind,action_kind=args.action_kind,
@@ -133,13 +144,15 @@ def run(task,snapshot,env_objects,teacher,args):
         frames=[snapshot()];commands=[];bases=[];latents=[];intendeds=[];applied=[];forces=[];torques=[];targets=[]
         rewards=[];native_rewards=[];hold_bonuses=[];storage={k:[] for k in ('observation','latent','mean','std','logp','value','reward','done')}
         initial_z=torch.as_tensor(frames[0]['object'][:,2],device='cuda')
-        execution_error=dict(canonical_to_world=0.,force=0.,torque=0.,finger_target=0.);fallback_env_ticks=0;ppo_segments=[]
+        execution_error=dict(canonical_to_world=0.,force=0.,torque=0.,finger_target=0.);fallback_env_ticks=0;feature_fallback_ticks=0;ppo_segments=[]
         for tick in range(1,int(task.max_episode_length)):
             if time.monotonic()-started>args.seconds:raise TimeoutError('Shadow PPO wall budget')
             if tick>1 and task.reset_buf.any():raise ValueError('Unexpected interior reset; reject unspliced episode')
             snap=frames[-1]
             with torch.no_grad():
                 base=bc.act(snap,task.obs_buf,tick)
+                if use_wam and feature_bc is not bc:
+                    feature_bc.act(snap,task.obs_buf,tick);feature_fallback_ticks+=len(feature_bc.invalid)
                 if bc.invalid:
                     if not args.outside_support_zero:raise ValueError('BC history outside admitted workspace: '+str(sorted(bc.invalid)))
                     fallback_env_ticks+=len(bc.invalid)
@@ -155,7 +168,7 @@ def run(task,snapshot,env_objects,teacher,args):
                     features=torch.nn.functional.pad(normalized,(0,212))
                 wam_features=None
                 if use_wam:
-                    wam_features=bc.last_wam_features
+                    wam_features=feature_bc.last_wam_features
                     if args.observation_kind=='wam-none':wam_features=torch.zeros_like(wam_features)
                     elif args.observation_kind=='wam-shuffled':wam_features=wam_features[donor_indices]
                 obs=observation(task.obs_buf,relative_goal,base,features,wam_features)
@@ -224,6 +237,7 @@ def run(task,snapshot,env_objects,teacher,args):
             mean_native_episode_return=float(data['native_reward'].sum(0).mean()),mean_position_hold_bonus=float(data['position_hold_bonus'].sum(0).mean()),
             native_execution_error=execution_error,
             bc_support_fallback_envs=sorted(bc.invalid),bc_support_fallback_env_ticks=fallback_env_ticks,
+            wam_feature_fallback_envs=sorted(feature_bc.invalid) if use_wam else [],wam_feature_fallback_env_ticks=feature_fallback_ticks,
             applied_residual_rms=float(np.sqrt(np.mean((data['action']-data['base'])**2))),
             clip_fraction=float(np.mean(np.abs(data['intended']-data['action'])>1e-6)))
         if training:
@@ -251,8 +265,14 @@ def run(task,snapshot,env_objects,teacher,args):
     unchanged=all(torch.equal(v,bc.model.state_dict()[k]) for k,v in before.items())
     if not unchanged:raise ValueError('Frozen BC parameters/buffers changed')
     if any(p.grad is not None for p in bc.model.parameters()):raise ValueError('Gradient reached frozen BC')
+    features_unchanged=True
+    if before_features is not None:
+        features_unchanged=all(torch.equal(value,feature_bc.model.state_dict()[key]) for key,value in before_features.items())
+        if not features_unchanged or any(p.grad is not None for p in feature_bc.model.parameters()):raise ValueError('Independent frozen WAM changed')
     write(out/'freeze-audit.json',dict(status='PASS',exact_state_dict_unchanged=unchanged,gradients_absent=True,
         fields=len(before),optimizer_contains_only_new_actor_and_critic=True))
+    if before_features is not None:write(out/'feature-freeze-audit.json',dict(status='PASS',exact_state_dict_unchanged=features_unchanged,
+        gradients_absent=True,fields=len(before_features),checkpoint=str(args.wam_feature_checkpoint)))
     manifest.update(status='COMPLETED',elapsed_s=time.monotonic()-started)
     write(out/'manifest.json',manifest);write(out/'result.json',dict(status='COMPLETED',final=curves[-1],updates=len(curves)))
     if args.world_size>1:torch.distributed.destroy_process_group()

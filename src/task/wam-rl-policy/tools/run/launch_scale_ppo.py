@@ -19,6 +19,7 @@ def main():
     p.add_argument('--gpus',default='1,2,3,4');p.add_argument('--envs',type=int,default=64)
     p.add_argument('--updates',type=int,default=200);p.add_argument('--seconds',type=int,default=43200)
     p.add_argument('--bc-kind',choices=('wam','mlp'),default='wam');p.add_argument('--resume',type=Path)
+    p.add_argument('--wam-feature-checkpoint',type=Path)
     p.add_argument('--seed',type=int,default=245);p.add_argument('--policy-seed',type=int,default=246)
     p.add_argument('--exploration-seed',type=int,default=247)
     p.add_argument('--initial-log-std',type=float,default=-2.5)
@@ -64,6 +65,7 @@ def main():
             command+=['--network-kind',a.network_kind,'--action-kind',a.action_kind]
             command+=['--reward-kind',a.reward_kind]
             command+=['--ppo-epochs',str(a.ppo_epochs),'--ppo-minibatches',str(a.ppo_minibatches)]
+            if a.wam_feature_checkpoint:command+=['--wam-feature-checkpoint',str(a.wam_feature_checkpoint.resolve())]
             if a.resume:command+=['--rl-checkpoint',str((a.resume/('rank%02d'%rank)/'latest.pt').resolve())]
             if a.outside_support_zero:command+=['--outside-support-zero']
             env=dict(os.environ,CUDA_VISIBLE_DEVICES=str(gpu),TMPDIR=str(target/'tmp'),TORCH_EXTENSIONS_DIR=os.environ.get('TORCH_EXTENSIONS_DIR',str(ROOT/'tmp/shadow-isaac-extensions')),

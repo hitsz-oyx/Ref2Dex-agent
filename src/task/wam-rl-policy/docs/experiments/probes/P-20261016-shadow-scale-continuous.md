@@ -297,3 +297,34 @@ z还携带H4与CAD信息；正结果不能单独证明预训练优于等信息�
 每臂独立输出，旧checkpoint/轨迹不覆盖，空间保留20GiB，总产物仍限64GiB；任一硬合同失败
 停止本组。23项测试通过（含新动作、大容量、WAM状态保留/类型mask、双rank mini/global等价、
 shuffle不消耗环境RNG），这些只是工程资格，不是抓取正结论。
+
+
+## Decision Note：加入v3，独立特征源与共同BC（用户2026-10-16追加）
+
+已读v3 Task README/STATE/model/normalizer/checkpoint及80k同面板比较。v3 final80k在既有544抽样
+预测面板相对v2 best，新增五域手/scene宏误差约-35%，旧三域基本保持；不等于Shadow收益。
+原三域物理读数80k优于其31k/41k，因此首个固定下游候选选final80k，41k保留但不在机器人DEV
+按结果搜索端点。v2固定同为final80k；两者训练seed/数据曝光不同，不能单独归因九源数据。
+原权重只读，远端本scope导出model/stats/config/step供推理，不携带/修改原optimizer或checkpoint。
+
+为真正隔离“给RL的z”，更新第二波设计：所有臂统一fresh自训练MLP50k BC，而非共同WAM BC；
+独立FeatureController只载入冻结v2/v3 encoder，使用同H4/已知goal/CAD，独立于BC权重与输出。
+v3-none / v3-aligned / v3-shuffled / v2-aligned四臂对应远端GPU0/1/3/2（具体以queue为准），
+各32TRAIN、64env、200完整episode=2,547,200步，2631D同大头、fullGaussian显式匹配初始噪声、
+hold奖励、rollout16/5epoch×4mini不变。none实际仍计算v3作计算/内存控制，但给RL全零z；
+此时BC也不含WAM，因此是无直接/间接WAM信息的动作对照。aligned/shuffled的采集时z入buffer，
+PPO不重算encoder。第一波配方结果未稳定前，这仍是探索性信息Probe，负结果不关闭WAM路线。
+
+独立特征模型有单独精确freeze/grad审计；feature支持域外只置零z直至本episode reset，
+BC仍执行自己的同拍动作，记录feature fallback env/ticks，不能将其混作BC fallback。
+resume必须保留特征来源；evaluate自动从packet恢复。v3使用自己的TRAIN normalizer，
+不偷换v2 normalizer；当前只encode不用future head，但依然严格加载完整forecaster state。
+没有把v3权重灌入原BC，也没有用官方actor初始化学生。
+
+本地GPU5完整WAM-z/large/fullGaussian/hold/mini两episode工程smoke已通过：26批、109个实际
+actor更新、maxKL.019892、重放3.05e-5、冻结597字段不变，elapsed约213s；物理和token路径均执行，
+不作为抓取结论。按此实测，原第二波2h/臂预算可能不足200episode；当前用户扩张授权与CAMPAIGN
+没有更紧时间边界，root将第二波明确改为每臂<=4h、队列<=6h（含3组固定DEV读出），
+仍4远端卡/64GiB总产物/20GiB磁盘保留、本地保留6/7。smoke测实际吞吐后报告ETA，若4h仍不足，
+保留共同milestone并停止，不无界延长。各GPU先完成本卡第一波配方队列，再2episode新源smoke，
+审计通过后fresh200，终点仍core64DEV×4、249/250/251，不按评估挑端点。

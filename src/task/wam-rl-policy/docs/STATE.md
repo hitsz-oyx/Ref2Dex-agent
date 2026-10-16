@@ -1,5 +1,20 @@
 # 当前状态
 
+## 2026-10-16 扩张配方与直接WAM特征（进行中）
+
+远端四卡分别运行small、large、full-action、full-action+hold四臂，每16步5epoch×4mini，
+各32TRAIN/128env/200episode；先smoke审计再fresh训练。原full199和chunk16对照已完成，
+actor800→10400步仍无稳定大收益（held202→197/210/768），不据此评价WAM有效性。
+本地WAM主训继续；50轮同初态审计PASS，held80→83/256、lift124→148、到达117→139，
+终点101→114；尚无明显持续保持改善。26个BC-only保持病例退步、29个PPO-only进步，不忽略退步。
+
+用户要求WAM z和新v3后：新增独立冻结特征源，公共MLP BC不改，拟四臂v3-none/aligned/shuffled
+及v2-aligned，同2631D(完整raw300+WAM2304+goal3+base24)、同大头/full Gaussian/hold/mini。
+v3首选固定final80k，基于既有物理预测面板；不宣称预测改善已经转化为抓取收益。
+完整组合GPU5两episode原生smoke已通过（26批、109actor步、maxKL.019892、重放3.05e-5、冻结PASS）。
+当前实现还没有自定义失败terminal，不能冒称已补齐终止；下一项需alive/valid/逐env bootstrap
+与全局有效样本加权的独立资格检查。所有阶段仍UNCLEAR。详见规模卡最新Decision Notes。
+
 ## 2026-10-16 用户授权大规模持续推进（进行中）
 
 [规模Probe](experiments/probes/P-20261016-shadow-scale-continuous.md)：本地GPU1–4同步PPO已启动，

@@ -73,6 +73,7 @@ def worker(a):
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--checkpoint',type=Path,required=True)
+    p.add_argument('--wam-feature-checkpoint',type=Path)
     p.add_argument('--cache',type=Path,required=True)
     p.add_argument('--object-manifest',type=Path,required=True)
     p.add_argument('--output',type=Path,required=True)
@@ -109,6 +110,7 @@ def main():
     p.add_argument('--worker',action='store_true');a=p.parse_args()
     a.output=a.output.resolve();a.checkpoint=a.checkpoint.resolve();a.cache=a.cache.resolve()
     if a.rl_checkpoint:a.rl_checkpoint=a.rl_checkpoint.resolve()
+    if a.wam_feature_checkpoint:a.wam_feature_checkpoint=a.wam_feature_checkpoint.resolve()
     identity=ROOT/'outputs/wam-rl-policy/deployed-source.json'
     a.code_commit=(json.loads(identity.read_text())['git_commit'] if identity.exists() else
         os.environ.get('REF2DEX_CODE_COMMIT') or subprocess.check_output(['git','rev-parse','HEAD'],cwd=TASK,text=True).strip())

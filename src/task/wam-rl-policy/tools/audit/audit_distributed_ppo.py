@@ -24,6 +24,9 @@ def main():
         assert packet['update']==args.updates and packet['config']['rollout_steps']==args.rollout_steps
         frozen=json.loads((folder/'freeze-audit.json').read_text())
         assert frozen['status']=='PASS' and frozen['exact_state_dict_unchanged'] and frozen['gradients_absent']
+        if packet['config'].get('wam_feature_checkpoint'):
+            frozen_features=json.loads((folder/'feature-freeze-audit.json').read_text())
+            assert frozen_features['status']=='PASS' and frozen_features['exact_state_dict_unchanged'] and frozen_features['gradients_absent']
         for key in ('actor','critic'):
             assert all(torch.isfinite(value).all() and torch.equal(value,packets[0][key][name]) for name,value in packet[key].items())
         curve=json.loads((folder/'curve.json').read_text())

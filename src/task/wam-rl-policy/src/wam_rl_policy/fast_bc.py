@@ -66,6 +66,7 @@ class FastController(Controller):
         if getattr(self,'expose_wam_features',False):
             hand_count=batch['start_hand_valid'].flatten(1).shape[1]
             self.last_wam_features[indices]=type_summaries(shared,valid,scene['tokens'].shape[1],hand_count)
+        if getattr(self,'features_only',False):return action
         prediction=self.model.actor(batch['policy_state'],shared,valid)[:,0]
         if not torch.isfinite(prediction).all():raise FloatingPointError('Nonfinite BC')
         action[indices]=prediction.clamp(-1,1)
