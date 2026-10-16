@@ -26,6 +26,7 @@ def main():
     p.add_argument("--retargeter", type=Path)
     p.add_argument("--model-version", choices=("v1", "v2"), default="v1")
     p.add_argument('--shared-actor', action='store_true')
+    p.add_argument('--wrist-shared-probe',type=Path)
     a = p.parse_args()
     execution_task = TASK if a.model_version == "v1" else TASK.parent / "ptv3-shared-wam-v2"
     if a.model_version == "v2":
@@ -50,6 +51,8 @@ def main():
         from ptv3_shared_wam_v2.paths import SCHEMA
     if a.shared_actor and (a.model_version != 'v2' or a.retargeter):
         raise ValueError('shared bridge requires v2 without an R override')
+    if a.wrist_shared_probe and not a.shared_actor:
+        raise ValueError('Matched wrist pooling requires explicit shared bridge')
     packet = load_checkpoint(a.checkpoint, allow_shared=True) if a.shared_actor else load_checkpoint(a.checkpoint)
     if packet["stage"] != "robot":
         raise ValueError("jointly fitted robot pair required")
@@ -79,6 +82,7 @@ def main():
     status["native_input"] = selected
     status["retargeter_override"] = str(a.retargeter.resolve()) if a.retargeter else None
     status['shared_actor'] = a.shared_actor
+    status['wrist_shared_probe']=str(a.wrist_shared_probe.resolve()) if a.wrist_shared_probe else None
     atomic_json(a.output / "status.json", status)
     try:
         connection, _ = listener.accept()
@@ -119,7 +123,9 @@ def main():
                 with torch.inference_mode():
                     if a.shared_actor:
                         from ptv3_shared_wam_v2.native_execution import predict_shared_action
-                        chunk, tau = predict_shared_action(model, batch, state,current_obs)
+                        result=predict_shared_action(model,batch,state,current_obs,return_pooled=bool(a.wrist_shared_probe))
+                        chunk,tau=result[:2]
+                        if a.wrist_shared_probe:pooled=result[2]
                     else:
                         prediction = model.forecaster(batch)
                         tau = native_trajectory(prediction['trajectory'], batch['start_hand_valid'])
@@ -131,6 +137,8 @@ def main():
                                       native_tau=tau[0].cpu().tolist(), elapsed_s=time.monotonic() - started)
                 if a.shared_actor:
                     reply['repeat_action_chunk'] = chunk[1].cpu().tolist()
+                if a.wrist_shared_probe:
+                    reply['pooled_shared']=pooled.cpu().tolist()
                 if current_obs is not None:
                     reply['input_current_obs']=current_obs.cpu().tolist()
                 send(connection, reply)

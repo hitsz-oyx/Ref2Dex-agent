@@ -31,6 +31,7 @@ def main():
     p.add_argument('--shared-actor', action='store_true', help='Explicit v2 shared bridge; both student rows use their own measured inputs')
     p.add_argument('--diagnostic-hybrid', action='store_true', help='Oracle wrist/finger component attribution; shared bridge only')
     p.add_argument('--wrist-probe', type=Path, help='Directory containing paired current-wrist fixed6000 checkpoints')
+    p.add_argument('--wrist-shared-probe',type=Path,help='Matched none/aligned wrist MLP run, frozen feature source')
     a = p.parse_args()
     execution_task = TASK if a.model_version == "v1" else TASK.parent / "ptv3-shared-wam-v2"
     if a.model_version == "v2":
@@ -61,6 +62,8 @@ def main():
         raise ValueError('Diagnostic teacher components require the explicit shared bridge and K=1')
     if a.wrist_probe and (not a.shared_actor or a.execution_steps != 1 or a.diagnostic_hybrid):
         raise ValueError('Wrist probe requires shared K1 without teacher component overrides')
+    if a.wrist_shared_probe and (not a.shared_actor or a.execution_steps!=1 or a.diagnostic_hybrid or a.wrist_probe):
+        raise ValueError('Matched wrist probe requires shared K1 without other overrides')
     packet = load_checkpoint(a.checkpoint, allow_shared=True) if a.shared_actor else load_checkpoint(a.checkpoint)
     if packet["stage"] != "robot" or (not engineering and packet["provenance"].get("engineering_only")):
         raise ValueError("robot pair required; engineering weights only admit engineering smoke")
@@ -104,6 +107,8 @@ def main():
     common = ["--model-version", a.model_version, "--checkpoint", str(checkpoint), "--gpu", str(a.gpu), "--controls", str(a.controls)]
     if a.shared_actor:
         common.append('--shared-actor')
+    if a.wrist_shared_probe:
+        common.extend(['--wrist-shared-probe',str(a.wrist_shared_probe.resolve())])
     if a.sequence:
         common.extend(["--sequence", a.sequence])
     if a.retargeter:
@@ -115,6 +120,7 @@ def main():
     status['shared_actor'] = a.shared_actor
     status['diagnostic_hybrid'] = a.diagnostic_hybrid
     status['wrist_probe'] = str(a.wrist_probe.resolve()) if a.wrist_probe else None
+    status['wrist_shared_probe']=str(a.wrist_shared_probe.resolve()) if a.wrist_shared_probe else None
     status["retargeter_override"] = str(a.retargeter.resolve()) if a.retargeter else None
     def write():
         from ptv3_shared_wam.checkpoint import atomic_json

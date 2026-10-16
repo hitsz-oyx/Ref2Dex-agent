@@ -25,6 +25,11 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261016-wrist-shared-grasp:
+    seed_pool: probe
+    native_reset_seed: 148
+    reuse_reason: exact original three-motion native panel and matched wrist MLP seed196 fixed endpoints; not independent validation
+
   P-20261016-wrist-shared-matched:
     seed_pool: probe
     model_seed: 196

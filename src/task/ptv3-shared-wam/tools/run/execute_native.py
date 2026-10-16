@@ -39,6 +39,7 @@ def main():
     p.add_argument('--shared-actor', action='store_true')
     p.add_argument('--diagnostic-hybrid', action='store_true')
     p.add_argument('--wrist-probe', type=Path)
+    p.add_argument('--wrist-shared-probe',type=Path)
     a = p.parse_args()
     execution_task = TASK if a.model_version == "v1" else TASK.parent / "ptv3-shared-wam-v2"
     if a.model_version == "v2":
@@ -88,14 +89,23 @@ def main():
         raise ValueError('Diagnostic teacher components require shared bridge and K=1')
     if a.wrist_probe and (not a.shared_actor or a.execution_steps != 1 or a.diagnostic_hybrid):
         raise ValueError('Wrist probe requires shared K1 without teacher overrides')
+    if a.wrist_shared_probe and (not a.shared_actor or a.execution_steps!=1 or a.diagnostic_hybrid or a.wrist_probe):
+        raise ValueError('Matched wrist probe requires shared K1 without other overrides')
     wrist_probes = None
+    matched_wrist_probes=None
     if a.wrist_probe:
         from ptv3_shared_wam_v2.wrist_probe import load_wrist_probe, predict_wrist, override_wrist
         wrist_probes = [load_wrist_probe(a.wrist_probe/arm/'step06000.pt', arm, 'cuda')
                         for arm in ('state_goal', 'plus_current')]
+    if a.wrist_shared_probe:
+        from ptv3_shared_wam_v2.wrist_shared_execution import load_matched_wrist,predict_matched_wrist,order_server_features
+        from ptv3_shared_wam_v2.wrist_probe import override_wrist
+        matched_wrist_probes=[load_matched_wrist(a.wrist_shared_probe/arm/'final.pt',arm,a.checkpoint,'cuda')
+                              for arm in ('none','aligned')]
+    wrist_override=bool(wrist_probes or matched_wrist_probes)
     packet = load_checkpoint(a.checkpoint, allow_shared=True) if a.shared_actor else load_checkpoint(a.checkpoint)
     shared_current=packet['config'].get('current_observation_input') is not None
-    if shared_current and (not a.shared_actor or a.execution_steps!=1 or a.wrist_probe or a.diagnostic_hybrid):
+    if shared_current and (not a.shared_actor or a.execution_steps!=1 or wrist_override or a.diagnostic_hybrid):
         raise ValueError('Current shared actor requires K1 without component overrides')
     from ptv3_shared_wam.native_inputs import resolve_native_inputs, load_native_arrays
     selected = resolve_native_inputs(packet, a.sequence)
@@ -147,6 +157,8 @@ def main():
         raise ValueError('server/native action representation differs')
     if bool(hello.get('shared_actor')) != a.shared_actor:
         raise ValueError('server/native shared interface differs')
+    if hello.get('wrist_shared_probe')!=(str(a.wrist_shared_probe.resolve()) if a.wrist_shared_probe else None):
+        raise ValueError('Server/native pooled wrist contract differs')
     manifest = dict(schema=SCHEMA, status="RUNNING", controls=a.controls, seed=a.seed,
                     execution_steps=a.execution_steps, checkpoint=str(a.checkpoint),
                     roles=["teacher", "GT_tau_R", "shared_WAM_R"], training_allowed=False,
@@ -162,9 +174,13 @@ def main():
         manifest['roles'] = ['teacher', 'shared_actor_repeat', 'shared_actor']
     manifest['diagnostic_hybrid'] = a.diagnostic_hybrid
     manifest['wrist_probe'] = str(a.wrist_probe.resolve()) if a.wrist_probe else None
+    manifest['wrist_shared_probe']=str(a.wrist_shared_probe.resolve()) if a.wrist_shared_probe else None
     if a.wrist_probe:
         manifest['roles'] = ['teacher', 'state_goal_wrist_shared_fingers', 'current721_wrist_shared_fingers']
         manifest['scope'] = 'Current-only supervised wrist substitution; own shared fingers, no teacher intervention'
+    if a.wrist_shared_probe:
+        manifest['roles']=['teacher','none_wrist_shared_fingers','aligned_wrist_shared_fingers']
+        manifest['scope']='Matched wrist MLP plus/minus live frozen shared; original own-row shared fingers; no teacher intervention'
     if a.diagnostic_hybrid:
         manifest['roles'] = ['teacher', 'teacher_wrist_student_fingers', 'student_wrist_teacher_fingers']
         manifest['scope'] = 'Oracle component attribution only; teacher-assisted rows are not student policy successes'
@@ -226,8 +242,10 @@ def main():
                 logs.update({key: [] for key in ('repeat_hand_history','repeat_object_history','repeat_R_state')})
             if a.diagnostic_hybrid:
                 logs.update({key: [] for key in ('student_intended','teacher_actions','teacher_obs')})
-            if wrist_probes:
+            if wrist_override:
                 logs.update({key: [] for key in ('pre_wrist_intended', 'wrist_features', 'wrist_prediction', 'native_current_obs')})
+            if matched_wrist_probes:
+                logs.update(wrist_shared_features=[],server_pooled_shared=[])
             if shared_current:
                 logs.update(native_current_obs=[],server_current_obs=[])
             def record():
@@ -316,7 +334,7 @@ def main():
                         student_intended = intended.clone()
                         intended = mix_teacher_components(student_intended, teacher_actions)
                         action = intended.clamp(-1,1)
-                    if wrist_probes:
+                    if wrist_override:
                         actor_obs = task.obs_buf.clone()
                         delta0 = task._compute_observations_iter(torch.arange(3, device=task.device), 0)
                         if delta0.shape != (3, 721) or not torch.equal(task.obs_buf, actor_obs):
@@ -335,8 +353,14 @@ def main():
                         states = torch.as_tensor(np.stack((repeat_state, own_state)), device=task.device)
                         goal_xyz = torch.as_tensor(goal[:3, 3], device=task.device)-current['obj'][1:, :3, 3]
                         wrist_features = torch.cat((states, goal_xyz, delta0[1:]), -1)
-                        wrist_prediction = torch.cat([predict_wrist(probe, wrist_features[row:row+1])
-                            for row, probe in enumerate(wrist_probes)])
+                        if matched_wrist_probes:
+                            server_pooled=torch.as_tensor(reply['pooled_shared'],device=task.device,dtype=torch.float32)
+                            wrist_shared_features=order_server_features(reply['pooled_shared'],task.device)
+                            wrist_prediction=torch.cat([predict_matched_wrist(probe,wrist_features[row:row+1],wrist_shared_features[row:row+1])
+                                for row,probe in enumerate(matched_wrist_probes)])
+                        else:
+                            wrist_prediction = torch.cat([predict_wrist(probe, wrist_features[row:row+1])
+                                for row, probe in enumerate(wrist_probes)])
                         pre_wrist_intended = intended.clone()
                         intended = override_wrist(intended, wrist_prediction)
                         action = intended.clamp(-1, 1)
@@ -360,9 +384,11 @@ def main():
                     if a.diagnostic_hybrid:
                         values.update(student_intended=student_intended,teacher_actions=teacher_actions,
                                       teacher_obs=teacher_obs)
-                    if wrist_probes:
+                    if wrist_override:
                         values.update(pre_wrist_intended=pre_wrist_intended, wrist_features=wrist_features,
                                       wrist_prediction=wrist_prediction, native_current_obs=delta0)
+                    if matched_wrist_probes:
+                        values.update(wrist_shared_features=wrist_shared_features,server_pooled_shared=server_pooled)
                     if shared_current:
                         values.update(native_current_obs=current_obs,server_current_obs=server_current)
                     for key, value in values.items():

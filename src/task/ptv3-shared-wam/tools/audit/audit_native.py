@@ -59,10 +59,12 @@ def audit(path):
         check('teacher_components_only',d['intended'],mixed)
         check('teacher_row_command',d['intended'][:,0],d['teacher_actions'][:,0])
         student_intended=d['student_intended'][:,1:]
-    if manifest.get('wrist_probe'):
+    if manifest.get('wrist_probe') or manifest.get('wrist_shared_probe'):
+        expected_roles=(['teacher','none_wrist_shared_fingers','aligned_wrist_shared_fingers'] if manifest.get('wrist_shared_probe') else
+                        ['teacher', 'state_goal_wrist_shared_fingers', 'current721_wrist_shared_fingers'])
         if (not manifest.get('shared_actor') or steps != 1 or manifest.get('diagnostic_hybrid')
                 or manifest.get('no_teacher_intervention') is not True
-                or manifest['roles'] != ['teacher', 'state_goal_wrist_shared_fingers', 'current721_wrist_shared_fingers']):
+                or manifest['roles'] != expected_roles):
             raise ValueError('Current-only wrist probe roles/contract differ')
         if d['native_current_obs'].shape != (controls, 3, 721):
             raise ValueError('Own-row current721 required')
@@ -149,18 +151,26 @@ def audit(path):
         dummy = np.repeat(d['hand'][query_ticks,1][:,None],24,axis=1)
         repeat_state, _ = independent_features(d,query_ticks,np.full(controls,1),dummy)
         check('repeat_own_R_state', d['repeat_R_state'], repeat_state)
-    if manifest.get('wrist_probe'):
+    if manifest.get('wrist_probe') or manifest.get('wrist_shared_probe'):
         independent_state = np.stack((repeat_state, state), 1)
         goal_delta = d['wam_goal'][:, None, :3, 3]-d['obj'][:-1, 1:, :3, 3]
         expected_features = np.concatenate((independent_state, goal_delta, d['native_current_obs'][:, 1:]), -1)
         check('wrist_own_current_features', d['wrist_features'], expected_features)
         import torch
         sys.path.insert(0, str(TASK.parent/'ptv3-shared-wam-v2/src'))
-        from ptv3_shared_wam_v2.wrist_probe import load_wrist_probe, predict_wrist
         torch.set_num_threads(2)
-        for row, arm in enumerate(('state_goal', 'plus_current')):
-            probe = load_wrist_probe(Path(manifest['wrist_probe'])/arm/'step06000.pt', arm, 'cpu')
-            replay = predict_wrist(probe, torch.from_numpy(d['wrist_features'][:, row])).numpy()
+        arms=('none','aligned') if manifest.get('wrist_shared_probe') else ('state_goal','plus_current')
+        if manifest.get('wrist_shared_probe'):
+            check('pooled_shared_own_row_order',d['wrist_shared_features'],d['server_pooled_shared'][:,[1,0]])
+        for row, arm in enumerate(arms):
+            if manifest.get('wrist_shared_probe'):
+                from ptv3_shared_wam_v2.wrist_shared_execution import load_matched_wrist,predict_matched_wrist
+                probe=load_matched_wrist(Path(manifest['wrist_shared_probe'])/arm/'final.pt',arm,manifest['checkpoint'],'cpu')
+                replay=predict_matched_wrist(probe,torch.from_numpy(d['wrist_features'][:,row]),torch.from_numpy(d['wrist_shared_features'][:,row])).numpy()
+            else:
+                from ptv3_shared_wam_v2.wrist_probe import load_wrist_probe, predict_wrist
+                probe = load_wrist_probe(Path(manifest['wrist_probe'])/arm/'step06000.pt', arm, 'cpu')
+                replay = predict_wrist(probe, torch.from_numpy(d['wrist_features'][:, row])).numpy()
             error = float(np.abs(replay-d['wrist_prediction'][:, row]).max())
             errors['wrist_model_replay_'+arm] = error
             # CPU/GPU matmul rounding is separate from exact command mixing/PD audits.
