@@ -126,3 +126,28 @@ GPU6/7并行、仅Shadow4/5继续，剩余四卡空闲。每臂<=900s、<=1GB，
 
 产物：outputs/ptv3-shared-wam-v2/current-wrist-mlp-20261015-r1/{state_goal,plus_current}/。
 脚本：tools/run/probe_current_wrist.py。执行提交由各manifest记录。
+
+## 2026-10-16 721D 分块追踪
+
+为解释 `plus_current` 的增益，先在固定 step6000 MLP 上做均值替换，再做同架构
+3000-step 重训遮罩。全量 DEV 的 40.13 mm 作为基线；固定模型把整块替换为均值后，
+body-current 98.07 mm、body-reference 60.39 mm、contact 41.33 mm、task-object
+42.33 mm、interaction-graph 45.29 mm，而把全部 721D 替换为均值是 108.86 mm。
+这说明贡献主要来自当前/参考运动状态的联合使用，不能把增益归给单独的接触或图特征。
+
+重训遮罩用于排除固定网络对均值位置的依赖：state+goal-only 为 95.98 mm；去掉
+body-velocity 为 40.44 mm、只保留 body-velocity 为 73.36 mm；去掉
+reference-velocity 为 41.94 mm；去掉 body-current/body-reference 分别为
+43.48/45.73 mm；去掉 task-object/interaction-graph 为 39.52/40.18 mm。细粒度
+固定遮罩中，body-velocity 的移除使误差增加 37.56 mm，diff-reference-velocity
+增加 8.63 mm；root/local pose、contact、object 和 IG 的单独变化约 0.2–6.7 mm。
+原始 JSON 结果分别在
+`outputs/ptv3-shared-wam-v2/current721-components-20261016-r1/`、
+`current721-fine-components-20261016-r1/`、`current721-retrain-ablation-20261016-r1/`
+和 `current721-group-retrain-20261016-r1/`。
+
+当前最可信的机制解释是：原 shared actor 的 87D 输入缺少同一执行帧的全身速度、参考
+速度/误差和完整当前闭环状态，而 `q_PD` 是反馈补偿后的目标，不是下一姿态标签；
+因此仅增加一个静态腕部姿态或继续延长原 joint 训练不能修复闭环。721D 的接触、物体
+和交互图有辅助作用，但不是主要瓶颈。该分块证据仍是单 seed 离线诊断，不能把组件
+敏感性直接升级为抓取因果结论。
