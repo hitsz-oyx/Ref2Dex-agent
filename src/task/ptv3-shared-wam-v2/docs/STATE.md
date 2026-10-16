@@ -1,3 +1,13 @@
+## 2026-10-16 远端微调数据核验：预训练副本不足，独立补传已启动
+
+用户要求最近UniDex/Shadow与DExplore/Inspire微调可在远端运行。现用远端九源scope只有运动预训练native数据，不含Shadow原生300D状态/8×24命令cache；现用远端repo也没有DExplore新补采660/current721副本。已定位实际依赖：Shadow full12,456条（TRAIN1,536,897/DEV354,761窗，2.185GiB），DExplore660含current721（0.849GiB），两套DExplore参考/成员数据0.743GiB，以及CAD、原固定面板、controls和实验起点权重。v2预训练80k远端已存在，直接在远端复制入独立包，避免回传。
+
+Decision Note：在用户数据迁移授权内选择独立NAS目录 `/mnt/ugreen_nas/storage/oyx_storage/robot-finetune-portable-20261016-r1/repo`，不改现有训练目录/本地数据。迁移包共6.063GiB/18,007文件（其中2.237GiB为shared7k与旧对照起点权重），代码固定271ebda5；只重定位JSON路径、刷新原controls输入文件stamp，数值归一化/物理样本/窗口/标记不变。无新训练、无全UniDex raw重复传输（raw_episode只保留物理身份追溯，完整raw复审需另接）。
+
+上传supervisor本地PID3511323，六连接64MiB分块/有限重试/最长3h，远端磁盘约47TiB可用、20GiB底线。最初单连接仅约1MB/s；最终ETA等待分块实际吞吐。完成后自动解包、文件闭包检查、原controls/stamp/DEV身份检查，以及Shadow TRAIN/DEV和V2RLRobotWindows严格93680/10376真实CPU批读取；只有reader-audit PASS才标DATA_READY。当前仍为上传中，不宣称远端微调已可运行。脚本与进度 `outputs/ptv3-shared-wam-v2/remote-finetune-data-20261016-r1/`，远端部署状态deployment.json。
+
+运行环境另查：graspenv有现有PTv3训练栈但未登记Isaac Gym；dexplore-4090登记了现存Isaac Gym源码，Torch2.0.1+cu118与graspenv一致，但自身无spconv/flash-attn。已通过添加现有Gym路径使graspenv与Isaac Gym共同导入（exit0），远端scope/env.sh已保存环境设置；尚未运行仿真或GPU微调smoke，数据复制不能替代执行验收。保留所有现有进程/权重；不自动恢复训练。
+
 ## 2026-10-16 仓库复核：训练已结束，监督跨度结论需纠正
 
 本地v2实验现均未占GPU。shared-current追加1k已完成，masked/current XYZ61.73/60.87mm，
