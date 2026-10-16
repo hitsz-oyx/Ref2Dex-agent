@@ -106,3 +106,25 @@ delta0 57.85/170.52；单拍masked56.28/170.82、delta0 53.61/164.65mm。优先�
 完整输出仍在`outputs/ptv3-shared-wam-v2/shared-action-horizon-20261016-r1/`。
 后续residual集成仍需显式adapter及fresh zero-residual检查；现有离线apply_residual(base,0)
 恒等检查不等于完整server集成，本Probe未启动PPO。
+
+## 共同4k固定闭环（执行前）
+
+本轮用户询问下一步，root执行最低成本的共同4k qualification，不增加训练。
+masked8/delta08取原continuation的step4000，masked1/delta01取原single的step4000，
+均早于错误的单拍sparse恢复。入口screen_horizon_prefix.py先检查四组初始actor和
+TRAIN current统计逐tensor相同、同父shared7k、数据准入/DEV身份相同、结构/三LR/
+优化器设置/seed198/global256一致；8拍0→1k沿用原paired运行的初始化记录。
+这验证已记录的关键链路，不将工程matching等同正式随机化Validation。
+
+四臂分别GPU1/4/5/6，同时各跑飞机149/球141/杯172 controls、seed148、K1、
+teacher/自身学生/自身工程重复，使用已通过的e3333e76 current721 native bridge。
+bridge只推理，不调用训练loss，故能加载真实1拍和8拍相同结构的checkpoint。
+每组实际PD/own状态/721时钟独立审计，workspace退出单独记录，不补0或自动重试。
+同一输入下1拍增加teacher-positive held45序列且重复方向一致才考虑短跨度；无行为
+改善则不因离线均值更低改路线。两种输入都失败时保留数据覆盖/执行状态分布疑点，
+不直接转PPO。当前只做三对象小Probe，没有多seed成功率结论。
+
+每臂三组、每组<=600s物理deadline，整轮<=2400s/4GB，磁盘保留20GiB；已有GPU0
+作业不动，GPU2/3/7空闲，预算合规。不覆盖7k/4k权重或原错误汇总。
+产物outputs/ptv3-shared-wam-v2/horizon-prefix4k-screen-20261016-r1/，实际运行代码由
+process.json记录。若matching失败则在启动仿真前停止；执行失败只影响本组并保留日志。
