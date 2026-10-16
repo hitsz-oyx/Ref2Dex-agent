@@ -52,6 +52,7 @@ Class: Decision。服务物理预训练辅助低机器人数据RL；不更改MIS
 - aux为16/32步的物体局部位移xyz、到当前goal距离、最近hand landmark到物体中心距离，
   共10维；后者不是接触真值。回报gamma=.99，episode终点bootstrap0。
   输入/标签尺度只用拟合对象统计；不读取action/base/latent用于监督或输入。
+  原生current300自身含上一拍已执行动作，作为共同历史状态保留，不是待模仿的动作标签。
 - fresh初始化seed246，batch seed247（复用既有PPO seed作匹配，不是独立复现），
   AdamW3e-4、batch128、固定1000步，梯度clip1；return标准化MSE，aux标准化MSE权重.2。
   最终端点比较，不按留出挑checkpoint。所有臂保留相同公共状态编码和回报头宽度。

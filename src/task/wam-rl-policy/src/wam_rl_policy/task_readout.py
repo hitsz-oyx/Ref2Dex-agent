@@ -8,6 +8,23 @@ import torch
 from torch import nn
 
 
+def observed_batch(samples, point_budget, device='cuda'):
+    """Mask ragged CAD after normal filtering; never admit target fields."""
+    keys = ('start_hand', 'start_hand_history', 'start_hand_valid', 'object_valid',
+            'scene_points', 'start_object_points', 'goal_object_delta', 'object_goal_valid')
+    batch = {key: torch.as_tensor(np.stack([s[key] for s in samples]), device=device) for key in keys}
+    batch.update(xyz=torch.zeros(len(samples),point_budget,3,device=device),
+        features=torch.zeros(len(samples),point_budget,18,device=device),
+        point_valid=torch.zeros(len(samples),point_budget,dtype=torch.bool,device=device))
+    for i,sample in enumerate(samples):
+        n=len(sample['xyz'])
+        if n>point_budget:raise ValueError('CAD point budget exceeded')
+        batch['xyz'][i,:n]=torch.as_tensor(sample['xyz'],device=device)
+        batch['features'][i,:n]=torch.as_tensor(sample['features'],device=device)
+        batch['point_valid'][i,:n]=True
+    return batch
+
+
 def object_split(objects):
     if not objects or any(row['split'] != 'train' for row in objects):
         raise ValueError('Only existing TRAIN objects may enter this qualification')

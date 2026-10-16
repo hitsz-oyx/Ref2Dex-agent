@@ -16,7 +16,7 @@ from shadow_finetune import paths
 from wam_rl_policy.wam_features import FeatureController
 from wam_rl_policy.fast_bc import batched_inputs, type_summaries
 from wam_rl_policy.task_readout import (object_split, finite_returns, transition_targets,
-                                        raw_tokens, forecast_from_encoded)
+                                        raw_tokens, forecast_from_encoded, observed_batch)
 from video_data_preparation.unidexgrasp_data import object_poses
 
 
@@ -24,15 +24,6 @@ def write(path, value):
     part = path.with_suffix(path.suffix + '.part')
     part.write_text(json.dumps(value, indent=2, allow_nan=False) + '\n')
     part.replace(path)
-
-
-def observed_batch(samples):
-    # All geometry has the same CAD budget in this source. No action or future
-    # label placeholders are passed to the feature encoder.
-    batch = {key: torch.as_tensor(np.stack([s[key] for s in samples]), device='cuda')
-             for key in samples[0]}
-    batch['point_valid'] = torch.ones(batch['xyz'].shape[:2], dtype=torch.bool, device='cuda')
-    return batch
 
 
 def main():
@@ -72,7 +63,9 @@ def main():
         checkpoint_step=controller.source_step, checkpoint_config=model.config,
         ticks=ticks, input_files=names, heldout_train_objects=held, gamma=.99,
         scope='TRAIN-only readout qualification, no policy improvement claim', gpu=a.gpu,
-        no_action_or_bc_input=True, max_seconds=1200, max_output_gib=4)
+        no_teacher_action_target_or_bc_hidden_input=True,
+        native_observation_includes_previous_executed_action=True,
+        max_seconds=1200, max_output_gib=4)
     write(a.output / 'manifest.json', manifest)
     collected = {k: [] for k in ['state', 'raw', 'raw_valid', 'wam', 'wam_valid', 'mean',
                                 'forecast', 'targets', 'fit', 'object_id', 'tick', 'episode']}
@@ -99,7 +92,7 @@ def main():
                     samples = batched_inputs(data['object'][past, start:end].swapaxes(0, 1),
                         data['hand'][past, start:end].swapaxes(0, 1), data['goal'][tick, start:end],
                         controller.geometry[start:end])
-                    batch = observed_batch(samples)
+                    batch = observed_batch(samples,max(len(g['surface']) for g in controller.geometry))
                     shared, valid, geometry = model.encode(batch)
                     raw, raw_valid = raw_tokens(batch)
                     count = geometry['tokens'].shape[1]

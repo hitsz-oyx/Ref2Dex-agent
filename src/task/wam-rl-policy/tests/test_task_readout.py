@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 import torch
 from wam_rl_policy.task_readout import (finite_returns, object_split, transition_targets,
-                                        TaskReadout, raw_tokens)
+                                        TaskReadout, raw_tokens, observed_batch)
 
 
 def test_returns_are_action_aligned_and_terminal_bootstrap_zero():
@@ -70,3 +70,20 @@ def test_forecast_arm_requires_forecast_and_backpropagates_to_readout():
     (value.square().mean()+physical.square().mean()).backward()
     assert model.attention.in_proj_weight.grad.abs().sum()>0
     assert model.forecast.weight.grad.abs().sum()>0
+
+
+def test_ragged_cad_padding_is_masked_and_targets_never_enter_batch():
+    samples=[]
+    for n in [3,7]:
+        samples.append(dict(xyz=np.ones((n,3),np.float32),features=np.ones((n,18),np.float32),
+            start_hand=np.zeros((2,11,3),np.float32),start_hand_history=np.zeros((2,11,9),np.float32),
+            start_hand_valid=np.ones((2,11),bool),object_valid=np.ones(1,bool),
+            scene_points=np.zeros((1,32,3),np.float32),start_object_points=np.zeros((32,3),np.float32),
+            goal_object_delta=np.zeros((32,3),np.float32),object_goal_valid=np.ones(32,bool),
+            action_target=np.ones((8,24))))
+    batch=observed_batch(samples,9,device='cpu')
+    assert 'action_target' not in batch
+    assert batch['point_valid'].sum(1).tolist()==[3,7]
+    assert batch['xyz'][0,3:].count_nonzero()==0
+    tokens,mask=raw_tokens(batch)
+    assert not mask[0,3:9].any() and tokens[0,3:9].count_nonzero()==0
