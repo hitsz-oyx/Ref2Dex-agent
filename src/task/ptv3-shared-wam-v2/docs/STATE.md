@@ -1,3 +1,17 @@
+## 2026-10-16 新腕部MLP实际抓取评估完成：shared收益因对象而异
+
+用户要求直接核对行为，已运行固定seed1966k的none/aligned腕部MLP，手指共用原
+shared7k控制器，实时own-row shared，不回放离线缓存。GPU1–3三组native完成并全部
+通过独立执行审计：最长保持none/aligned为飞机40/60、球75/56、杯58/23帧，teacher
+63/79/98。两组各两条观察到hold45，不能外推为成功率；none飞机末段37帧仍在保持，
+其40帧阈值读出不能等同完整失败。aligned杯明显落下；腕部均无clipping，手指裁剪增多
+只是伴随现象。shared效用记UNCLEAR，不据单对象或离线误差统一替换原811D控制路径。
+
+7项测试、4帧smoke、CPU命令重放和独立review通过；追加12tick GPU重建WAM/MLP回放，
+腕部XYZ最大差0.069mm，详见[实验卡](experiments/probes/P-20261016-wrist-shared-grasp.md)。
+本轮约78.7s含审计、24MiB输出；GPU1–3已释放。保留新MLP行为基线，下一步若比较
+路线应固定更大行为面板并审查释放/恢复阶段，不能以offline mean替代抓取表现。
+
 ## 2026-10-16 同一腕部MLP±shared：14组有界对照完成
 
 同811D直通、原腕部单拍目标、同优化与抽样下，none/aligned/shuffled三次配对6k的

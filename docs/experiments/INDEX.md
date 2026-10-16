@@ -835,7 +835,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261016-wrist-shared-grasp](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261016-wrist-shared-grasp.md) | 同一腕部MLP±shared的实际抓取评估 | 见原卡 | 见原卡 | probes/RUNNING |
+| [P-20261016-wrist-shared-grasp](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261016-wrist-shared-grasp.md) | 同一腕部MLP±shared的实际抓取评估 | UNCLEAR（shared行为收益）：两组在固定三轨迹上均有两条观察到hold45，shared增加飞机最长保持、减少球/杯保持；none飞机末段仍持物，不能只凭阈值当作完整失败。 | 保留811D直通腕部MLP作为行为基线，不将aligned统一替换到全部对象；若继续比较，扩大预先固定的行为面板，并检查接近/保持/释放阶段，而非用离线均值或单次hold45选最终策略。 | probes/UNCLEAR |
 
 ## HF-wrist-shared-matched
 
