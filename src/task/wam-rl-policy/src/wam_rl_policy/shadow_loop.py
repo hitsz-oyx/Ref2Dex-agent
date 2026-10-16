@@ -5,11 +5,14 @@ import random
 import shutil
 import subprocess
 import time
+from datetime import timedelta
 import numpy as np
 import torch
 from .ppo import SCHEMA,Actor,Critic,observation,apply_residual,update
 from shadow_finetune.execution import Controller
 from shadow_finetune.metrics import native_report
+from .bc_mlp import MLPController
+from .fast_bc import FastController
 
 
 def write(path,value):
@@ -19,11 +22,16 @@ def write(path,value):
 
 def run(task,snapshot,env_objects,teacher,args):
     out=args.output;started=time.monotonic()
+    if args.world_size>1:
+        torch.distributed.init_process_group('nccl',init_method=args.rendezvous,rank=args.rank,world_size=args.world_size,
+            timeout=timedelta(minutes=10))
     rng=(torch.get_rng_state(),torch.cuda.get_rng_state(),np.random.get_state(),random.getstate())
-    bc=Controller(args.checkpoint,env_objects,teacher,args.cache)
+    bc_type=(FastController if args.experiment_id=='P-20261016-shadow-scale-continuous' else Controller) if args.bc_kind=='wam' else MLPController
+    bc=bc_type(args.checkpoint,env_objects,teacher,args.cache)
     bc.model.requires_grad_(False)
-    torch.manual_seed(231)
+    torch.manual_seed(args.policy_seed)
     actor=Actor().cuda();critic=Critic().cuda()
+    saved=None;offset=0
     if args.rl_checkpoint:
         saved=torch.load(args.rl_checkpoint,map_location='cpu',weights_only=False)
         if saved.get('schema')!=SCHEMA or saved['base_checkpoint']!=str(args.checkpoint.resolve()):
@@ -33,15 +41,22 @@ def run(task,snapshot,env_objects,teacher,args):
     before={k:v.clone() for k,v in bc.model.state_dict().items()}
     actor_optimizer=torch.optim.Adam(actor.parameters(),lr=1e-4)
     critic_optimizer=torch.optim.Adam(critic.parameters(),lr=3e-4)
-    generator=torch.Generator(device='cuda');generator.manual_seed(232)
+    generator=torch.Generator(device='cuda');generator.manual_seed(args.exploration_seed+args.rank)
     training=args.mode=='train'
+    if saved and training:
+        critic.load_state_dict(saved['critic'],strict=True)
+        actor_optimizer.load_state_dict(saved['actor_optimizer']);critic_optimizer.load_state_dict(saved['critic_optimizer'])
+        torch.set_rng_state(saved['torch_rng']);torch.cuda.set_rng_state(saved['cuda_rng']);generator.set_state(saved['exploration_rng'])
+        np.random.set_state(saved['numpy_rng']);random.setstate(saved['python_rng']);offset=int(saved['update'])
+        if offset>=args.updates:raise ValueError('Resume target update must exceed checkpoint update')
     if training and any(row['split']!='train' for row in env_objects):raise ValueError('DEV objects cannot enter PPO')
     manifest=dict(schema=SCHEMA,status='RUNNING',mode=args.mode,pid=__import__('os').getpid(),
-        experiment_id='P-20261016-shadow-bc-ppo',run_id=out.name,git_commit=args.code_commit,
+        experiment_id=args.experiment_id,run_id=out.name,git_commit=args.code_commit,bc_kind=args.bc_kind,
         base_checkpoint=str(args.checkpoint.resolve()),rl_checkpoint=str(args.rl_checkpoint) if args.rl_checkpoint else None,
         frozen_wam=True,frozen_bc=True,trainable='new327D actor/critic only; no WAM token adapter in Stage0',
         alpha=args.alpha,exploration='tanh latent Normal; initial log_std=-2.5; independent CUDA RNG232',
-        policy_seed=231,reset_seed=args.seed,envs=args.envs,updates=args.updates,
+        policy_seed=args.policy_seed,exploration_seed=args.exploration_seed+args.rank,reset_seed=args.seed,envs=args.envs,updates=args.updates,
+        rank=args.rank,world_size=args.world_size,global_envs=args.envs*args.world_size,resume_update=offset,
         reward='unchanged official goal_cond=False native task reward',gamma=.99,gae_lambda=.95,
         bc_weight=.1,actor_lr=1e-4,critic_lr=3e-4,ppo_epochs=4,target_joint_kl=.02,
         max_seconds=args.seconds,artifact_budget_bytes=2*2**30,
@@ -50,7 +65,7 @@ def run(task,snapshot,env_objects,teacher,args):
         evaluation_metric='sticky official5cm; terminal5cm;60 consecutive60Hz states within5cm and lift>=10cm (position proxy)')
     write(out/'manifest.json',manifest)
     curves=[]
-    for iteration in range(1,(args.updates if training else 1)+1):
+    for iteration in range(offset+1,(args.updates if training else 1)+1):
         task.reset_buf[:]=1
         task.step(torch.zeros((args.envs,24),device='cuda'),-1)
         frames=[snapshot()];commands=[];bases=[];latents=[];intendeds=[];applied=[];forces=[];torques=[];targets=[]
@@ -117,6 +132,7 @@ def run(task,snapshot,env_objects,teacher,args):
         if any(not np.isfinite(v).all() for v in data.values()):raise FloatingPointError('Nonfinite physics trace')
         report=native_report(data,env_objects)
         stats=dict(update=iteration,env_steps=iteration*(int(task.max_episode_length)-1)*args.envs,
+            global_env_steps=iteration*(int(task.max_episode_length)-1)*args.envs*args.world_size,
             elapsed_s=time.monotonic()-started,native=report,
             mean_episode_return=float(data['reward'].sum(0).mean()),
             native_execution_error=execution_error,
@@ -126,7 +142,7 @@ def run(task,snapshot,env_objects,teacher,args):
             batch={k:torch.stack(v) for k,v in storage.items()};batch['bootstrap']=torch.zeros(args.envs,device='cuda')
             stats['ppo']=update(actor,critic,batch,actor_optimizer,critic_optimizer)
         curves.append(stats);write(out/'curve.json',curves)
-        np.savez_compressed(out/'last-episode.npz',**data)
+        if not training or iteration%args.trace_every==0 or iteration==args.updates:np.savez_compressed(out/'last-episode.npz',**data)
         if iteration==1:np.savez_compressed(out/'first-episode.npz',**data)
         if training:
             checkpoint=dict(schema=SCHEMA,update=iteration,actor=actor.state_dict(),critic=critic.state_dict(),
@@ -136,7 +152,8 @@ def run(task,snapshot,env_objects,teacher,args):
                 numpy_rng=np.random.get_state(),python_rng=random.getstate(),
                 resume_scope='episode boundary; simulator must reset (not exact physics continuation)')
             partial=out/'latest.pt.part';torch.save(checkpoint,partial);partial.replace(out/'latest.pt')
-        write(out/'progress.json',dict(stats,eta_s=(time.monotonic()-started)/iteration*(args.updates-iteration) if training else 0))
+            if iteration in (50,100,200):torch.save(checkpoint,out/('update%d.pt'%iteration))
+        write(out/'progress.json',dict(stats,eta_s=(time.monotonic()-started)/(iteration-offset)*(args.updates-iteration) if training else 0))
         print(json.dumps(stats),flush=True)
         if shutil.disk_usage(out).free<20*2**30:raise RuntimeError('Disk reserve')
     unchanged=all(torch.equal(v,bc.model.state_dict()[k]) for k,v in before.items())
@@ -146,3 +163,4 @@ def run(task,snapshot,env_objects,teacher,args):
         fields=len(before),optimizer_contains_only_new_actor_and_critic=True))
     manifest.update(status='COMPLETED',elapsed_s=time.monotonic()-started)
     write(out/'manifest.json',manifest);write(out/'result.json',dict(status='COMPLETED',final=curves[-1],updates=len(curves)))
+    if args.world_size>1:torch.distributed.destroy_process_group()

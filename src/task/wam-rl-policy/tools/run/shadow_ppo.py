@@ -25,6 +25,11 @@ def worker(a):
         task.gym.destroy_sim(task.sim)
 '''
     text=text[:start]+replacement+text[end:]
+    # Scale runs separately audit the complete linked closure, including symlink targets.
+    if a.experiment_id=='P-20261016-shadow-scale-continuous':
+        manifest=json.loads(a.object_manifest.read_text())
+        if manifest.get('real_asset_closure_bytes',513*2**20)>512*2**20:raise ValueError('Scale shard asset closure unaudited')
+        text=text.replace('> 128*2**20:', '> 512*2**20:')
     dest=a.output/'runtime_replay.py';dest.write_text(text)
     for task in ('wam-rl-policy','shadow-finetune'):
         sys.path.insert(0,str(TASK.parent/task/'src'))
@@ -50,12 +55,21 @@ def main():
     p.add_argument('--updates',type=int,default=20)
     p.add_argument('--seconds',type=int,default=2400)
     p.add_argument('--alpha',type=float,default=.15)
+    p.add_argument('--bc-kind',choices=('wam','mlp'),default='wam')
+    p.add_argument('--experiment-id',default='P-20261016-shadow-bc-ppo')
+    p.add_argument('--policy-seed',type=int,default=231)
+    p.add_argument('--exploration-seed',type=int,default=232)
+    p.add_argument('--rank',type=int,default=0)
+    p.add_argument('--world-size',type=int,default=1)
+    p.add_argument('--rendezvous',default='tcp://127.0.0.1:29541')
+    p.add_argument('--trace-every',type=int,default=1)
     p.add_argument('--worker',action='store_true');a=p.parse_args()
     a.output=a.output.resolve();a.checkpoint=a.checkpoint.resolve();a.cache=a.cache.resolve()
     a.code_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=TASK,text=True).strip()
-    if not 1<=a.envs<=64 or not 1<=a.updates<=100 or a.alpha!=.15:
-        raise ValueError('Stage0 bounds:1..64env,1..100updates,alpha0.15')
-    if (a.mode=='evaluate')!=(a.rl_checkpoint is not None):raise ValueError('Evaluate requires RL checkpoint only')
+    if not 1<=a.envs<=256 or not 1<=a.updates<=200 or a.alpha!=.15 or not 1<=a.world_size<=4:
+        raise ValueError('Scale bounds:1..256env/rank,1..200updates,1..4ranks,alpha0.15')
+    if a.mode=='evaluate' and a.rl_checkpoint is None:raise ValueError('Evaluate requires RL checkpoint')
+    if a.rl_checkpoint and a.mode not in ('train','evaluate'):raise ValueError('RL checkpoint only for train resume/evaluate')
     if a.worker:worker(a);return
     if a.output.exists() or ROOT/'outputs/wam-rl-policy' not in a.output.parents:raise ValueError('Fresh Task output')
     occupied=subprocess.check_output(['nvidia-smi','-i',str(a.gpu),'--query-compute-apps=pid','--format=csv,noheader'],text=True).strip()
