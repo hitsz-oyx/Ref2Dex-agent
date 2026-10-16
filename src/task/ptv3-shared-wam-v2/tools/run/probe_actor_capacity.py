@@ -21,6 +21,7 @@ def main():
     p.add_argument('--cache', type=Path, required=True)
     p.add_argument('--checkpoint', type=Path)
     p.add_argument('--gpu', type=int, default=2)
+    p.add_argument('--share-owned-pid', type=int, help='Explicitly colocate with this same-experiment worker only')
     p.add_argument('--width', type=int, choices=(128, 512), default=128)
     p.add_argument('--direct-goal', action='store_true')
     p.add_argument('--bypass', action='store_true')
@@ -33,8 +34,16 @@ def main():
         raise ValueError('Fresh Task output required')
     if shutil.disk_usage(ROOT).free < (80 if a.stage == 'extract' else 20)*2**30:
         raise RuntimeError('Disk reserve')
-    if subprocess.check_output(['nvidia-smi', '-i', str(a.gpu), '--query-compute-apps=pid', '--format=csv,noheader'], text=True).strip():
-        raise RuntimeError('Assigned GPU occupied')
+    occupied=subprocess.check_output(['nvidia-smi', '-i', str(a.gpu), '--query-compute-apps=pid', '--format=csv,noheader'], text=True).strip()
+    if occupied:
+        if a.share_owned_pid is None or set(occupied.splitlines())!={str(a.share_owned_pid)}:
+            raise RuntimeError('Assigned GPU occupied by an unapproved process')
+        owner=Path('/proc')/str(a.share_owned_pid)
+        command=(owner/'cmdline').read_bytes().split(b'\0')
+        if owner.stat().st_uid!=os.getuid() or not any(b'probe_actor_capacity.py' in v for v in command) or b'train' not in command:
+            raise RuntimeError('Colocation requires our capacity training worker')
+        if b'--output' not in command or Path(command[command.index(b'--output')+1].decode()).parent!=out.parent:
+            raise RuntimeError('Colocation must remain within this experiment')
     scratch = ROOT/'tmp'/out.name
     scratch.mkdir(parents=True, exist_ok=True)
     os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu), OMP_NUM_THREADS='2', OPENBLAS_NUM_THREADS='2',
@@ -159,6 +168,7 @@ def main():
                         if mask.any():result[name][phase]=dict(count=int(mask.sum()),xyz_mean_mm=float(xyz[mask].mean()))
                 model.train();return result
             manifest=dict(status='RUNNING',width=a.width,direct_goal=a.direct_goal,bypass=a.bypass,
+                share_owned_pid=a.share_owned_pid,
                 params=sum(p.numel() for p in model.parameters()),active_params=sum(p.numel() for n,p in model.named_parameters()
                     if not (n.startswith('bypass.') and not a.bypass)),batch=a.batch,updates=a.updates,lr=5e-4,weight_decay=1e-4,
                 model_seed=221,draw_seed=222,git_commit=commit,cache=str(a.cache.resolve()),

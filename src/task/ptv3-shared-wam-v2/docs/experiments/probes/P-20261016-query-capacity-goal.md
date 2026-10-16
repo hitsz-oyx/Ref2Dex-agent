@@ -57,6 +57,11 @@ AdamW LR5e-4/WD1e-4、clip1、BF16 actor，6000步固定终点，不挑选DEV ch
 
 ## Limitations / future evidence
 
+1000步资源读出显示单卡GPU利用率约10%–15%，完整tokens的CPU装载/传输占主要时间。
+为避免第五臂等待，允许其与已核验的本实验w128_g0 PID共用GPU2，preflight必须验证
+GPU上只有该PID、同uid、同脚本、同实验输出父目录；不向未知占用卡投任务。
+不改变batch、draw、模型、数值精度或优化设置；仍仅使用本地GPU1–5，6/7保持空闲。
+
 单seed因素筛选，不是正式Validation；未检验joint WAM更新与其他goal姿态表示。
 绕过支路是直接线性读出，未单独对齐有效参数数；若正向，再做匹配容量验证。
 首轮FP16量化重放仅覆盖首16条DEV的XYZ，不代表全缓存/旋转已获验证；正式归因与native
