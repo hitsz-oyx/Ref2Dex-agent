@@ -831,6 +831,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261009-weak-temporal-value](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-weak-temporal-value.md) | Can outcome/time supervision learn useful GT consequence value? | initial offline screen UNCLEAR; completed matched 1200-step fit. | user ref4_3 authorizes a bounded learned evaluator Probe, replacing | probes/UNCLEAR |
 
+## HF-wrist-shared-matched
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261016-wrist-shared-matched](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261016-wrist-shared-matched.md) | 同一腕部MLP有无shared的匹配对照 | 见原卡 | 见原卡 | probes/RUNNING |
+
 ## HF-y-noise-tolerance
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
