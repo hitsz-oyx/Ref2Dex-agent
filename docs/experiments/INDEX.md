@@ -515,6 +515,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261014-ptv3-shared-v2-pretrain](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261014-ptv3-shared-v2-pretrain.md) | 联合轻量PTv3与大shared的horizon标准化预训练 | PROMISING（远端80k已完成；仅固定三域dev离线预测信号）。完整81次评估、best/final和全部分项已补录于本卡“完整80k指标补录”；抓取/Cm收益尚未验证。 | 保留59k best与80k final及完整指标；既有robot微调继续使用已固定的80k父权重，后续在独立下游评估中比较阶段用途，不由单seed离线loss直接决定抓取/Cm结论。 | probes/PROMISING |
 
+## HF-query-capacity-goal
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261016-query-capacity-goal](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261016-query-capacity-goal.md) | Inspire query控制头容量、直接goal与当前观测瓶颈 | 见原卡 | 见原卡 | probes/UNCLEAR |
+
 ## HF-rawsensor-hand-conditioning
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
@@ -599,6 +605,12 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261005-rolling-oracle-control](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-rolling-oracle-control.md) | Ref14_1: executed Rolling GT-Y Oracle Control | PROMISING on the predeclared 32-anchor gate: baseline 23/32, actual | Execute same-current-state rolling oracle before any new predictor, long-Y, execution forecasting or PPO. | probes/PROMISING |
+
+## HF-shadow-bc-ppo
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261016-shadow-bc-ppo](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261016-shadow-bc-ppo.md) | Shadow冻结BC+小型PPO Stage-0 | 见原卡 | 见原卡 | probes/UNCLEAR |
 
 ## HF-shadow-data-scale
 

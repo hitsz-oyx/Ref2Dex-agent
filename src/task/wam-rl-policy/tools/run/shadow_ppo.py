@@ -1,0 +1,95 @@
+"""Bounded Shadow BC -> Stage-0 PPO, retaining the pinned native collector setup."""
+import argparse
+import importlib.util
+import json
+import os
+from pathlib import Path
+import signal
+import subprocess
+import sys
+import time
+
+TASK=Path(__file__).resolve().parents[2]
+ROOT=Path(os.environ.get('REF2DEX_RUN_ROOT',TASK.parents[2])).resolve()
+
+
+def worker(a):
+    source=TASK.parent/'video-data-preparation/tools/run/replay_unidexgrasp.py'
+    text=source.read_text()
+    start=text.index('    records = []\n    begin = time.monotonic()')
+    end=text.index('\n\ndef supervise(args):',start)
+    replacement='''    from wam_rl_policy.shadow_loop import run
+    try:
+        run(task,snapshot,env_objects,actor,args)
+    finally:
+        task.gym.destroy_sim(task.sim)
+'''
+    text=text[:start]+replacement+text[end:]
+    dest=a.output/'runtime_replay.py';dest.write_text(text)
+    for task in ('wam-rl-policy','shadow-finetune'):
+        sys.path.insert(0,str(TASK.parent/task/'src'))
+    spec=importlib.util.spec_from_file_location('wam_rl_shadow_runtime',dest)
+    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    a.vendor=ROOT/'third_party/UniDexGrasp2'
+    a.subset=ROOT/'outputs/video-data-preparation/unidexgrasp-local-subset-20261014-r1'
+    a.assets=None;a.scale=.08;a.episodes=1;a.gpu_seconds=a.seconds
+    module.worker(a)
+
+
+def main():
+    p=argparse.ArgumentParser(description=__doc__)
+    p.add_argument('--checkpoint',type=Path,required=True)
+    p.add_argument('--cache',type=Path,required=True)
+    p.add_argument('--object-manifest',type=Path,required=True)
+    p.add_argument('--output',type=Path,required=True)
+    p.add_argument('--mode',choices=('bc','zero','train','evaluate'),required=True)
+    p.add_argument('--rl-checkpoint',type=Path)
+    p.add_argument('--gpu',type=int,default=1)
+    p.add_argument('--envs',type=int,default=16)
+    p.add_argument('--seed',type=int,default=216)
+    p.add_argument('--updates',type=int,default=20)
+    p.add_argument('--seconds',type=int,default=2400)
+    p.add_argument('--alpha',type=float,default=.15)
+    p.add_argument('--worker',action='store_true');a=p.parse_args()
+    a.output=a.output.resolve();a.checkpoint=a.checkpoint.resolve();a.cache=a.cache.resolve()
+    a.code_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=TASK,text=True).strip()
+    if not 1<=a.envs<=64 or not 1<=a.updates<=100 or a.alpha!=.15:
+        raise ValueError('Stage0 bounds:1..64env,1..100updates,alpha0.15')
+    if (a.mode=='evaluate')!=(a.rl_checkpoint is not None):raise ValueError('Evaluate requires RL checkpoint only')
+    if a.worker:worker(a);return
+    if a.output.exists() or ROOT/'outputs/wam-rl-policy' not in a.output.parents:raise ValueError('Fresh Task output')
+    occupied=subprocess.check_output(['nvidia-smi','-i',str(a.gpu),'--query-compute-apps=pid','--format=csv,noheader'],text=True).strip()
+    if occupied:raise RuntimeError('Assigned GPU occupied')
+    a.output.mkdir(parents=True);(a.output/'tmp').mkdir()
+    env=dict(os.environ,CUDA_VISIBLE_DEVICES=str(a.gpu),TMPDIR=str(a.output/'tmp'),
+        TORCH_EXTENSIONS_DIR=str(ROOT/'tmp/shadow-isaac-extensions'),MAX_JOBS='2',OMP_NUM_THREADS='2',
+        OPENBLAS_NUM_THREADS='2',PYTHONDONTWRITEBYTECODE='1')
+    env['LD_LIBRARY_PATH']=str(Path(sys.executable).resolve().parents[1]/'lib')+':'+env.get('LD_LIBRARY_PATH','')
+    command=[sys.executable,'-u',str(Path(__file__).resolve()),*sys.argv[1:],'--worker']
+    stop=[False]
+    for sig in (signal.SIGTERM,signal.SIGINT):signal.signal(sig,lambda *_:stop.__setitem__(0,True))
+    start=time.monotonic();reason='CHILD_EXIT'
+    with (a.output/'worker.log').open('x') as log:
+        child=subprocess.Popen(command,env=env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
+        process=dict(status='RUNNING',supervisor_pid=os.getpid(),pid=child.pid,command=command,
+            run_id=a.output.name,git_commit=a.code_commit,budget_seconds=a.seconds,gpu=a.gpu)
+        def save():
+            part=a.output/'process.json.part';part.write_text(json.dumps(process,indent=2)+'\n');part.replace(a.output/'process.json')
+        save()
+        while child.poll() is None:
+            elapsed=time.monotonic()-start
+            if stop[0] or (a.output/'STOP').exists() or elapsed>a.seconds+60:
+                reason='USER_STOP' if stop[0] or (a.output/'STOP').exists() else 'TIME_BUDGET'
+                os.killpg(child.pid,signal.SIGTERM)
+                try:child.wait(timeout=15)
+                except subprocess.TimeoutExpired:os.killpg(child.pid,signal.SIGKILL)
+                break
+            resource=subprocess.check_output(['nvidia-smi','-i',str(a.gpu),'--query-gpu=utilization.gpu,memory.used','--format=csv,noheader'],text=True).strip()
+            with (a.output/'resources.jsonl').open('a') as stream:stream.write(json.dumps(dict(elapsed_s=elapsed,gpu=resource))+'\n')
+            time.sleep(10)
+        code=child.wait();process.update(status='COMPLETED' if code==0 else 'FAILED',exit_code=code,reason=reason,elapsed_s=time.monotonic()-start)
+        save()
+    if code:raise SystemExit(code)
+
+
+if __name__=='__main__':main()

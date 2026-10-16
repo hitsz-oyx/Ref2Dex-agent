@@ -25,6 +25,20 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261016-query-capacity-goal:
+    seed_pool: probe
+    model_seed: 221
+    train_draw_seed: 222
+    reuse_reason: matched frozen-WAM query-head factorial and current bypass; existing fixed DEV panel, not Validation
+
+  P-20261016-shadow-bc-ppo:
+    seed_pool: probe
+    native_evaluation_seed: 216
+    online_reset_seed: 230
+    model_seed: 231
+    exploration_seed: 232
+    reuse_reason: original Shadow native evaluation identities; TRAIN-only online Probe, not Validation
+
   P-20261016-wrist-shared-grasp:
     seed_pool: probe
     native_reset_seed: 148
