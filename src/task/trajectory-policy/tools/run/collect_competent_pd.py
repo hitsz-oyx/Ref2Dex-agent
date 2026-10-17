@@ -194,6 +194,7 @@ def main():
     source = model = None
     producer_code_updates = []
     physical_decision = None
+    physical_experiment_id = None
     if evaluating:
         source_manifest = json.loads((args.source / 'manifest.json').read_text())
         if (source_manifest.get('status') != 'COMPLETED'
@@ -263,12 +264,21 @@ def main():
                 *[args.actor_fit / name for name in ('tau_only.pt', 'joint.pt', 'manifest.json', 'result.json', 'audit.json')]]
         if args.physical_probe_card is not None:
             card = args.physical_probe_card.resolve()
-            expected = TASK / 'docs/experiments/probes/P-20261011-competent-pd-physical.md'
-            if card != expected or 'model_sha256: ' + sha(args.model) not in card.read_text():
-                raise ValueError('exact frozen physical Decision card/model required')
+            probes = (TASK / 'docs/experiments/probes').resolve()
+            try:
+                card.relative_to(probes)
+            except ValueError:
+                raise ValueError('physical Decision card must be under the task probes directory')
+            card_text = card.read_text()
+            if 'model_sha256: ' + sha(args.model) not in card_text:
+                raise ValueError('physical Decision card/model identity mismatch')
             if not json.loads((args.model.parent / 'audit.json').read_text()).get('pass'):
                 raise ValueError('independent fit audit required for physical Decision')
             physical_decision = str(card)
+            for line in card_text.splitlines():
+                if line.startswith('experiment_id:'):
+                    physical_experiment_id = line.split(':', 1)[1].strip()
+                    break
             files.append(card)
         if not fit_result.get('physical_screen_pass') and physical_decision is None:
             raise ValueError('offline precision screen or separately specified physical Decision required')
@@ -284,7 +294,7 @@ def main():
         roles = ['teacher'] * 4 + ['gt_tau_R'] * 4 + ['joint'] * 8 + ['tau_only'] * 8
     out.mkdir(parents=True)
     manifest = dict(schema='ref2dex.competent-pd-rollout.v1', status='RUNNING',
-        task='trajectory-policy', experiment_id=('P-20261011-competent-pd-physical'
+        task='trajectory-policy', experiment_id=(physical_experiment_id or 'P-20261011-competent-pd-physical'
             if physical_decision else 'P-20261011-competent-pd-retargeter'),
         run_id=out.name, git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'],
         cwd=ROOT, text=True).strip(), physical_gpu=args.gpu, seed=args.seed, roles=roles,
