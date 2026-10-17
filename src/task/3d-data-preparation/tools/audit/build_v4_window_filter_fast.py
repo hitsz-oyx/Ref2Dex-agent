@@ -32,7 +32,7 @@ def _main3(dataset, index, policy):
     world_to_anchor = np.linalg.inv(anchor_pose)
     valid_now = np.asarray(sequence['hand_valid'][tick], bool)
     hand_valid = np.asarray(sequence['hand_valid'][tick + 1:tick + 25], bool) & valid_now[None]
-    hand = np.asarray(sequence['hand'][tick + 1:tick + 25], np.float32)
+    hand = np.asarray(sequence['hand'][tick + 1:tick + 25], np.float32).reshape(24, 2, 11, 3)
     hand = hand @ world_to_anchor[:3, :3].T + world_to_anchor[:3, 3]
     points = source.canonical(sequence['objects'][anchor])[0]
     query, _ = resampled_subset(points, policy.interaction_points, name='main3 interaction queries')
