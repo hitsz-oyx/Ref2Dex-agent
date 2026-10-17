@@ -20,6 +20,8 @@ SCHEMA = "ref2dex.measured-state-tau-executor.v1"
 STATE_DIM = 87
 HAND_PLAN_DIM = 33
 ACTION_DIM = 12
+TASK_GOAL_DIM = 12
+CONTACT_CONTEXT_DIM = 10
 ACTIVE_ACTION = (0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 14, 15)
 
 
@@ -104,3 +106,104 @@ class MeasuredStateTauPolicy(nn.Module):
             raise FloatingPointError("nonfinite executor action")
         return output
 
+
+DIRECT_SCHEMA = "ref2dex.direct-tau-executor.v1"
+
+
+def validate_direct_batch(state: torch.Tensor, tau: torch.Tensor,
+                          goal: torch.Tensor,
+                          previous_action: torch.Tensor) -> None:
+    """Validate the direct executor contract, including the task goal."""
+    validate_batch(state, tau, previous_action)
+    batch = state.shape[0]
+    _require("goal", goal, (batch, TASK_GOAL_DIM))
+    if goal.device != state.device:
+        raise ValueError("state, tau, goal and previous_action must share a device")
+
+
+class DirectTauExecutorPolicy(nn.Module):
+    """Closed-loop policy mapping measured state and a future GT-τ plan to action.
+
+    The goal is deliberately a compact 12-D object pose (the task target pose
+    flattened as the first three rows of its homogeneous transform).  The
+    policy emits only active Inspire coordinates; passive coupling is owned by
+    the simulator adapter.
+    """
+
+    schema = DIRECT_SCHEMA
+
+    def __init__(self, horizon: int = 8, width: int = 256):
+        super().__init__()
+        if not isinstance(horizon, int) or horizon < 1:
+            raise ValueError("horizon must be a positive integer")
+        if not isinstance(width, int) or width < 16:
+            raise ValueError("width must be an integer >= 16")
+        self.horizon = horizon
+        self.state_encoder = nn.Sequential(
+            nn.Linear(STATE_DIM + ACTION_DIM + TASK_GOAL_DIM, width), nn.Tanh(),
+        )
+        self.tau_encoder = nn.Sequential(
+            nn.Linear(HAND_PLAN_DIM, width), nn.Tanh(),
+        )
+        self.head = nn.Sequential(
+            nn.Linear(2 * width, width), nn.Tanh(),
+            nn.Linear(width, ACTION_DIM),
+        )
+
+    def forward(self, state: torch.Tensor, tau: torch.Tensor,
+                goal: torch.Tensor, previous_action: torch.Tensor) -> torch.Tensor:
+        validate_direct_batch(state, tau, goal, previous_action)
+        if tau.shape[1] != self.horizon:
+            raise ValueError(
+                f"tau horizon mismatch: model={self.horizon}, batch={tau.shape[1]}"
+            )
+        state_code = self.state_encoder(
+            torch.cat((state, goal, previous_action), dim=-1)
+        )
+        tau_code = self.tau_encoder(tau).mean(dim=1)
+        output = torch.tanh(self.head(torch.cat((state_code, tau_code), dim=-1)))
+        if not torch.isfinite(output).all():
+            raise FloatingPointError("nonfinite direct executor action")
+        return output
+
+
+ORACLE_C_SCHEMA = "ref2dex.direct-tau-executor-oracle-c.v1"
+
+
+class DirectTauExecutorOracleCPolicy(DirectTauExecutorPolicy):
+    """Direct executor augmented with the measured interaction context C.
+
+    C is intentionally an explicit oracle branch for the next diagnostic, not
+    part of the GT-τ baseline: pair/contact gaps, support gap, object velocity,
+    and table-footprint indicators measured at the current query state.
+    """
+
+    schema = ORACLE_C_SCHEMA
+
+    def __init__(self, horizon: int = 8, width: int = 256):
+        super(DirectTauExecutorPolicy, self).__init__()
+        if not isinstance(horizon, int) or horizon < 1:
+            raise ValueError("horizon must be a positive integer")
+        if not isinstance(width, int) or width < 16:
+            raise ValueError("width must be an integer >= 16")
+        self.horizon = horizon
+        self.state_encoder = nn.Sequential(
+            nn.Linear(STATE_DIM + ACTION_DIM + TASK_GOAL_DIM + CONTACT_CONTEXT_DIM, width), nn.Tanh(),
+        )
+        self.tau_encoder = nn.Sequential(nn.Linear(HAND_PLAN_DIM, width), nn.Tanh())
+        self.head = nn.Sequential(nn.Linear(2 * width, width), nn.Tanh(), nn.Linear(width, ACTION_DIM))
+
+    def forward(self, state, tau, goal, previous_action, contact):
+        validate_direct_batch(state, tau, goal, previous_action)
+        batch = state.shape[0]
+        _require("contact", contact, (batch, CONTACT_CONTEXT_DIM))
+        if contact.device != state.device:
+            raise ValueError("contact must share the policy device")
+        if tau.shape[1] != self.horizon:
+            raise ValueError(f"tau horizon mismatch: model={self.horizon}, batch={tau.shape[1]}")
+        state_code = self.state_encoder(torch.cat((state, goal, previous_action, contact), dim=-1))
+        tau_code = self.tau_encoder(tau).mean(dim=1)
+        output = torch.tanh(self.head(torch.cat((state_code, tau_code), dim=-1)))
+        if not torch.isfinite(output).all():
+            raise FloatingPointError("nonfinite oracle-C executor action")
+        return output
