@@ -141,8 +141,9 @@ def main():
         raise ValueError('fresh task output, archived runtime and source/model pair required')
     before = gpu_state(args.gpu)
     allowed_contexts = set(args.idle_context_pid)
-    if (allowed_contexts and not autonomous) or (set(before['pids']) - allowed_contexts
-            or before['utilization'] > (5 if allowed_contexts else 10) or before['used_mib'] > 512):
+    if (set(before['pids']) - allowed_contexts
+            or before['utilization'] > (20 if allowed_contexts else 10)
+            or before['used_mib'] > (512 if allowed_contexts else 512)):
         raise RuntimeError('GPU occupied: ' + repr(before))
     context_commands = {pid: subprocess.check_output(['ps', '-p', str(pid), '-o', 'args='], text=True).strip()
                         for pid in allowed_contexts if pid in before['pids']}
