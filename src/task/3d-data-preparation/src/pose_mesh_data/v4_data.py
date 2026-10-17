@@ -7,7 +7,6 @@ queries, and 128 interaction queries.  It never edits source payloads.
 from __future__ import annotations
 
 from dataclasses import asdict
-import sys
 
 import numpy as np
 import torch
