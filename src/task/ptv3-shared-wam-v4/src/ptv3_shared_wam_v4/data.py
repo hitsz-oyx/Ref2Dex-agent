@@ -2,6 +2,9 @@
 from collections import Counter
 from functools import lru_cache
 from pathlib import Path
+import multiprocessing
+import os
+import tempfile
 import numpy as np
 from torch.utils.data import Dataset, DataLoader
 
@@ -9,6 +12,16 @@ from pose_mesh_data.v4_data import V4Main3Windows, V4NativeWindows, v4_collate
 from pose_mesh_data.native_recipe import source_pools
 from .paths import SOURCE_IDS
 from oakink_wm.multisource import source_draw
+
+
+def _project_ipc_directory():
+    """Use a short socket directory for NAS paths exceeding AF_UNIX limits."""
+    directory = Path('/dev/shm/ptv3-wam-v4')
+    directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+    os.environ['TMPDIR'] = str(directory)
+    tempfile.tempdir = str(directory)
+    multiprocessing.current_process()._config['tempdir'] = str(directory)
+    return directory
 
 
 def excluded_indices(recipe, split, total):
@@ -146,9 +159,8 @@ class Steps:
 def initialize_worker(worker_id):
     import torch
     from torch.utils.data import get_worker_info
-    from ptv3_shared_wam.loading import project_ipc_directory
     torch.set_num_threads(1)
-    project_ipc_directory()
+    _project_ipc_directory()
     dataset = get_worker_info().dataset
     for source in dataset.main.base.sources:
         source.sequence = lru_cache(maxsize=16)(source.sequence)
@@ -156,8 +168,7 @@ def initialize_worker(worker_id):
 
 def loader(dataset, config, rank, first, last, workers=2):
     import torch
-    from ptv3_shared_wam.loading import project_ipc_directory
-    project_ipc_directory()
+    _project_ipc_directory()
     kwargs = dict(dataset=dataset, batch_sampler=Steps(dataset, config['batch_size'], config['seed'], rank, first, last),
                   collate_fn=collate, num_workers=workers, pin_memory=True,
                   generator=torch.Generator().manual_seed(config['seed'] * 1009 + rank))
