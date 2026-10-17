@@ -149,20 +149,14 @@ class InteractionVQVAE(nn.Module):
         self.codebook.weight.copy_(latent[: self.codebook_size])
 
 
-def _metrics(model: InteractionVQVAE, values: np.ndarray, mean: np.ndarray, std: np.ndarray, device: torch.device) -> Dict[str, float]:
-    model.eval()
-    with torch.inference_mode():
-        x = torch.from_numpy(((values - mean) / std).astype(np.float32)).to(device)
-        recon, indices, _ = model(x.reshape(-1, x.shape[-1]))
-        recon = recon.reshape(x.shape).cpu().numpy() * std + mean
-        indices = indices.cpu().numpy()
+def _array_metrics(values: np.ndarray, recon: np.ndarray, indices: np.ndarray, codebook_size: int, mean: np.ndarray) -> Dict[str, float]:
     hand_dim = HANDS * KEYPOINTS * 3
     hand = np.linalg.norm(recon[..., :hand_dim] - values[..., :hand_dim], axis=-1).mean()
     motion = np.linalg.norm(recon[..., hand_dim : hand_dim + 3] - values[..., hand_dim : hand_dim + 3], axis=-1).mean()
     mean_recon = np.broadcast_to(mean, values.shape)
     mean_hand = np.linalg.norm(mean_recon[..., :hand_dim] - values[..., :hand_dim], axis=-1).mean()
     mean_motion = np.linalg.norm(mean_recon[..., hand_dim : hand_dim + 3] - values[..., hand_dim : hand_dim + 3], axis=-1).mean()
-    counts = np.bincount(indices.reshape(-1), minlength=model.codebook_size).astype(np.float64)
+    counts = np.bincount(indices.reshape(-1), minlength=codebook_size).astype(np.float64)
     probabilities = counts / max(1.0, counts.sum())
     used = int((counts > 0).sum())
     perplexity = float(np.exp(-(probabilities[probabilities > 0] * np.log(probabilities[probabilities > 0])).sum()))
@@ -177,6 +171,33 @@ def _metrics(model: InteractionVQVAE, values: np.ndarray, mean: np.ndarray, std:
     }
 
 
+def _metrics(model: InteractionVQVAE, values: np.ndarray, mean: np.ndarray, std: np.ndarray, device: torch.device) -> Dict[str, float]:
+    model.eval()
+    with torch.inference_mode():
+        x = torch.from_numpy(((values - mean) / std).astype(np.float32)).to(device)
+        recon, indices, _ = model(x.reshape(-1, x.shape[-1]))
+        recon = recon.reshape(x.shape).cpu().numpy() * std + mean
+        indices = indices.reshape(x.shape[:-1]).cpu().numpy()
+    return _array_metrics(values, recon, indices, model.codebook_size, mean)
+
+
+def _kmeans(values: np.ndarray, codebook_size: int, steps: int, seed: int, device: torch.device) -> Tuple[np.ndarray, np.ndarray]:
+    flat = torch.from_numpy(values.reshape(-1, values.shape[-1]).astype(np.float32)).to(device)
+    generator = torch.Generator(device=device).manual_seed(seed)
+    initial = torch.randperm(len(flat), generator=generator, device=device)[:codebook_size]
+    centers = flat[initial].clone()
+    for _ in range(steps):
+        distances = torch.cdist(flat, centers)
+        indices = distances.argmin(-1)
+        sums = torch.zeros_like(centers)
+        sums.index_add_(0, indices, flat)
+        counts = torch.bincount(indices, minlength=codebook_size).to(flat.dtype).unsqueeze(-1)
+        centers = torch.where(counts > 0, sums / counts.clamp_min(1), centers)
+    distances = torch.cdist(flat, centers)
+    indices = distances.argmin(-1)
+    return centers.cpu().numpy(), indices.cpu().numpy()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input-root", type=Path, required=True)
@@ -186,7 +207,7 @@ def main() -> None:
     parser.add_argument("--steps", type=int, default=2000)
     parser.add_argument("--batch-size", type=int, default=256)
     parser.add_argument("--codebook-size", type=int, default=128)
-    parser.add_argument("--mode", choices=("vq", "ae"), default="vq")
+    parser.add_argument("--mode", choices=("vq", "ae", "kmeans"), default="vq")
     parser.add_argument("--seed", type=int, default=271)
     parser.add_argument("--device", default="cuda:0")
     args = parser.parse_args()
@@ -212,6 +233,30 @@ def main() -> None:
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-5)
     rng = np.random.default_rng(args.seed)
     flat_train = ((train - mean) / std).reshape(-1, input_dim).astype(np.float32)
+    if args.mode == "kmeans":
+        centers, train_indices = _kmeans(flat_train, args.codebook_size, args.steps, args.seed, device)
+        dev_flat = ((dev - mean) / std).reshape(-1, input_dim).astype(np.float32)
+        dev_tensor = torch.from_numpy(dev_flat).to(device)
+        center_tensor = torch.from_numpy(centers).to(device)
+        dev_indices = torch.cdist(dev_tensor, center_tensor).argmin(-1).cpu().numpy()
+        train_recon = centers[train_indices].reshape(train.shape) * std + mean
+        dev_recon = centers[dev_indices].reshape(dev.shape) * std + mean
+        train_metrics = _array_metrics(train, train_recon, train_indices.reshape(train.shape[:-1]), args.codebook_size, mean)
+        dev_metrics = _array_metrics(dev, dev_recon, dev_indices.reshape(dev.shape[:-1]), args.codebook_size, mean)
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        if args.output.exists():
+            raise FileExistsError(args.output)
+        args.output.mkdir()
+        np.savez(args.output / "kmeans.npz", centers=centers, mean=mean, std=std,
+                 input_dim=input_dim, chunk_frames=chunk, horizon=HORIZON, seed=args.seed)
+        summary = {"status": "COMPLETED", "protocol": "main3-directory-sequences-reconstructed-bilateral-object-frame-v1",
+                   "train": train_metrics, "dev": dev_metrics, "steps": args.steps, "batch_size": args.batch_size,
+                   "codebook_size": args.codebook_size, "mode": args.mode, "input_dim": input_dim, "chunk_frames": chunk,
+                   "feature_contract": "object-frame 2x11 hand points + relative object translation/rotation + near/contact proxy",
+                   "device": str(device)}
+        (args.output / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
+        print(json.dumps(summary, indent=2))
+        return
     init_batch = torch.from_numpy(flat_train[: max(args.codebook_size, args.batch_size)]).to(device)
     if model.use_vq:
         model.initialize_codebook(init_batch)
