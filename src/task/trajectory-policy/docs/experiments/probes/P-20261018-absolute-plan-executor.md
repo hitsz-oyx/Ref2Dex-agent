@@ -3,7 +3,7 @@ schema: ref2dex.probe.v2
 experiment_id: P-20261018-absolute-plan-executor
 task: trajectory-policy
 branch: main
-git_commit: pending
+git_commit: d066138a
 date: 2026-10-18
 classification: Decision
 status: UNCLEAR
