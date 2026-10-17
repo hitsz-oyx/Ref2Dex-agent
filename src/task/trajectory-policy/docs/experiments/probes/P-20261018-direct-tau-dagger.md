@@ -3,10 +3,10 @@ schema: ref2dex.probe.v2
 experiment_id: P-20261018-direct-tau-dagger
 task: trajectory-policy
 branch: main
-git_commit: pending
+git_commit: 40d5d4b5
 date: 2026-10-18
 classification: Decision
-status: RUNNING
+status: UNPROMISING
 hypothesis: Querying the official teacher on learner-visited unseen states and fine-tuning the repaired direct tau executor with the teacher's current-q PD target can repair the remaining closed-loop failure.
 question: Does a DAgger-style learner-state correction improve direct tau execution on the same unseen s1_airplane_lift sequence?
 decision_changed_if_positive: retain the reference tau plus live-state teacher-PD DAgger route as the next executor candidate before PPO.
@@ -47,4 +47,44 @@ batches; no PPO or C input is used.
 
 ## Results
 
-To be filled after the roll-in, DAgger fit, and independent frozen execution.
+The autonomous roll-in completed 431 controls for eight direct environments and
+recorded 3448 learner-state teacher queries. The queried teacher action and its
+current-q PD target reconstruct with maximum absolute error 0.0. Independent
+recomputation of all logged reference tau values also has maximum absolute error
+0.0. The first roll-in attempt reached the end of physics but failed while saving
+the query packet because it sliced an already direct-only axis twice; it is kept as
+an aborted producer and is not included in the result below. The corrected run is
+`outputs/trajectory-policy/direct-tau-dagger-rollin-20261018-r2/`.
+
+The base r3 policy's action L1 on the held-out query environments was 0.41245.
+After warm-start DAgger correction it was 0.11906. The original sequence
+validation L1 after correction was 0.06503, slightly worse than the r3 base
+validation L1 0.04030. These are offline diagnostics only.
+
+The frozen DAgger policy was then evaluated without teacher intervention on the
+same unseen corrected `s1_airplane_lift` sequence. The direct arm achieved
+`0/8 hold45`, `0/8 success`, median held frames 0, clipping rate 0, and endpoint
+position error 0.8311 m. The teacher calibration achieved `8/8 hold45` and
+`7/8 success`, with clipping rate 0. The direct arm therefore fails the physical
+gate and this Probe is `UNPROMISING`.
+
+Artifacts:
+
+- roll-in and query labels: `outputs/trajectory-policy/direct-tau-dagger-rollin-20261018-r2/`
+- warm-start fit: `outputs/trajectory-policy/direct-tau-dagger-fit-20261018-r1/`
+- frozen execution: `outputs/trajectory-policy/direct-tau-dagger-execution-20261018-r1/`
+
+The run records the teacher's live-state PD target correctly, so this negative
+result is not caused by the earlier tau-coordinate bug or by using teacher C.
+It does show that one-round current-state PD DAgger, with the present direct-action
+executor and reference tau input, did not recover unseen physical grasping.
+
+## Limits and next action
+
+This is one roll-in seed, one held-out physical sequence, and one warm-start fit.
+The query tau is the independent source reference plan; the teacher was queried
+for current-state action/PD only, so this is PD DAgger rather than a full teacher
+future-trajectory DAgger. The result does not refute tau as a high-level plan, but
+it does not justify PPO yet. Before another training budget, inspect the direct
+action/PD target contract and whether the executor needs a richer interaction or
+phase input; retain this run as the current DAgger negative Probe.
