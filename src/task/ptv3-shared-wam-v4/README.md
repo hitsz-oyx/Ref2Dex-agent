@@ -32,4 +32,5 @@ relation modules afresh; v3 optimizer state and RNG are not resumed.
 This is an architecture/probe implementation. It does not claim robot benefit
 until a matched `tau-only` versus `tau+C` executor experiment is run. It reuses
 the v3 nine-source reader, while using a new schema
-`ref2dex.ptv3-shared-wam.v4` so v3 checkpoints cannot be loaded accidentally.
+`ref2dex.ptv3-shared-wam.v4`; v3 weights enter only through the explicit
+model-only warm-start path above, never through an accidental full resume.
