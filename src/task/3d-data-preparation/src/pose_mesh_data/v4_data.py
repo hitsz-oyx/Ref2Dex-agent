@@ -140,6 +140,7 @@ class V4Main3Windows(Dataset):
         self.base = MixedWindows(root, split)
         self.goals = GoalWindows(self.base, "object_points", point_count)
         self.policy = policy
+        self._canonical_normals = {}
 
     def __len__(self):
         return len(self.base)
@@ -155,11 +156,17 @@ class V4Main3Windows(Dataset):
                                  sequence["centers"])
         target_slot = int(np.flatnonzero(selected == anchor)[0])
         name = sequence["objects"][anchor]
-        canonical = source.canonical(name)
-        if len(canonical) == 4:
-            points, normals, _, _ = canonical
-        else:
-            points, normals = canonical[:2]
+        cache_key = (source_id, name)
+        cached = self._canonical_normals.get(cache_key)
+        if cached is None:
+            canonical = source.canonical(name)
+            if len(canonical) == 4:
+                points, normals, _, _ = canonical
+            else:
+                points, normals = canonical[:2]
+            cached = (np.asarray(points, dtype=np.float32), _normalise(normals))
+            self._canonical_normals[cache_key] = cached
+        points, normals = cached
         if not np.allclose(points, sample["points"][target_slot], atol=1e-6, rtol=1e-5):
             raise ValueError("main3 canonical identity differs from sampled object points")
         return normals
