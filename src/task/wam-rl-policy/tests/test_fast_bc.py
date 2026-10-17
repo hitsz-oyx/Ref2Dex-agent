@@ -44,6 +44,10 @@ def test_outside_support_zero_is_per_env_persistent_and_rejects_nan(monkeypatch)
     action=c.act(snapshot(True),zeros(2,300),1)
     assert (action[0]==.25).all() and (action[1]==0).all() and c.invalid=={1}
     assert (c.act(snapshot(),zeros(2,300),2)[1]==0).all()
+    assert [len(history) for history in c.histories] == [2, 2]
+    c.mark_reset_envs([1])
+    c.act(snapshot(),zeros(2,300),3)
+    assert [len(history) for history in c.histories] == [3, 1]
     assert (c.act(snapshot(),zeros(2,300),1)==.25).all() and not c.invalid
     invalid=snapshot();invalid['hand'][1,0,0]=np.nan
     with pytest.raises(FloatingPointError):c.act(invalid,zeros(2,300),1)

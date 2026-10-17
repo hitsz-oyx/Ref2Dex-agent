@@ -41,12 +41,55 @@ def batched_inputs(objects,hands,goals,geometries):
 
 
 class FastController(Controller):
+    def _ensure_histories(self, count):
+        """Create one short history per simulator environment.
+
+        The old implementation kept one batch-level history.  That lets a
+        single terminated environment overwrite the temporal context of every
+        other environment in the batch.  Keeping the histories separately
+        also makes the reset boundary explicit for callers that run a vector
+        environment.
+        """
+        if not hasattr(self, 'histories') or len(self.histories) != count:
+            self.histories = [[] for _ in range(count)]
+
+    def reset_envs(self, env_ids):
+        """Drop temporal context for the listed environments before next act."""
+        if not hasattr(self, 'histories'):
+            return
+        for env_id in env_ids:
+            env_id = int(env_id)
+            if 0 <= env_id < len(self.histories):
+                self.histories[env_id] = []
+                self.invalid.discard(env_id)
+
+    def mark_reset_envs(self, env_ids):
+        """Schedule a reset after the terminal observation has been encoded."""
+        pending = getattr(self, '_pending_reset_envs', set())
+        pending.update(int(env_id) for env_id in env_ids)
+        self._pending_reset_envs = pending
+
     def act(self,snapshot,observation,tick):
-        if tick==1:self.history=[];self.invalid=set()
-        self.history.append(snapshot)
-        if len(self.history)>7:self.history.pop(0)
-        past=[max(len(self.history)-1+offset,0) for offset in (-6,-4,-2,0)]
-        objects=np.stack([self.history[i]['object'] for i in past],1);hands=np.stack([self.history[i]['hand'] for i in past],1)
+        count = len(snapshot['object'])
+        self._ensure_histories(count)
+        if tick == 1:
+            self.histories = [[] for _ in range(count)]
+            self.invalid = set()
+        pending = getattr(self, '_pending_reset_envs', set())
+        if pending:
+            self.reset_envs(pending)
+            self._pending_reset_envs = set()
+        for env_id in range(count):
+            self.histories[env_id].append({key: value[env_id:env_id+1]
+                                           for key, value in snapshot.items()})
+            self.histories[env_id] = self.histories[env_id][-7:]
+        offsets = (-6, -4, -2, 0)
+        past = [[max(len(history)-1+offset, 0) for offset in offsets]
+                for history in self.histories]
+        objects=np.stack([np.stack([self.histories[e][i]['object'][0] for i in past[e]], 0)
+                          for e in range(count)], 0)
+        hands=np.stack([np.stack([self.histories[e][i]['hand'][0] for i in past[e]], 0)
+                        for e in range(count)], 0)
         samples=batched_inputs(objects,hands,snapshot['goal'],self.geometry)
         admitted=[];indices=[]
         for env,sample in enumerate(samples):

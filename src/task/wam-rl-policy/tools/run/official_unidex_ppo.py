@@ -86,14 +86,6 @@ def run_official(task, snapshot, objects, args):
             self._resets = False
 
         def _augment(self, native, tick):
-            # A reset in any native environment invalidates the shared history.  The
-            # official task can reset individual envs, so restarting the short history
-            # for the whole batch is the safe bounded contract for this probe.
-            if self._resets:
-                self.controller.history = []
-                self.controller.invalid = set()
-                tick = 1
-                self._resets = False
             self.controller.act(self.snapshot_fn(), native, int(tick))
             z = torch.nn.functional.layer_norm(
                 self.controller.last_wam_features.reshape(-1, 3, 768), (768,)).flatten(1)
@@ -105,13 +97,20 @@ def run_official(task, snapshot, objects, args):
 
         def reset(self):
             native = self.base.reset()
-            self._resets = False
+            self.controller.reset_envs(range(self.num_envs))
+            self.controller.invalid = set()
             return self._augment(native, 1)
 
         def step(self, actions, id=0):
             native, rewards, dones, infos = self.base.step(actions, id)
-            self._resets = bool(dones.any().item())
-            return self._augment(native, int(id) + 2), rewards, dones, infos
+            result = self._augment(native, int(id) + 2)
+            done_ids = torch.nonzero(dones, as_tuple=False).flatten().tolist()
+            if done_ids:
+                # Keep the terminal frame available for this observation, then
+                # clear only those environments before their next post-reset
+                # snapshot is encoded.
+                self.controller.mark_reset_envs(done_ids)
+            return result, rewards, dones, infos
 
         def get_state(self):
             return self.base.get_state()
@@ -289,10 +288,10 @@ def worker(args):
                 "if not self.use_pc and self.num_obs == 300:\n            observations = observations[:,:300]\n")
             source = source.replace("            value = self.critic(observations)\n\n        return actions.detach()",
                 "            value = self.critic(observations)\n            if hasattr(self, 'wam_value_adapter'):\n                value = value + self.wam_value_adapter(observations[:, 300:])\n\n        return actions.detach()")
-            source = source.replace("        return actions_mean.detach()\n        \n    def evaluate",
-                "        if hasattr(self, 'wam_actor_adapter'):\n            wam_residual = self.wam_actor_adapter(observations[:, 300:])\n            if self.wam_adapter_bounded:\n                wam_residual = self.wam_adapter_gain * torch.tanh(wam_residual)\n            actions_mean = actions_mean + wam_residual\n        return actions_mean.detach()\n        \n    def evaluate")
             source = source.replace("            value = self.critic(observations)\n\n        return actions_log_prob",
                 "            value = self.critic(observations)\n            if hasattr(self, 'wam_value_adapter'):\n                value = value + self.wam_value_adapter(observations[:, 300:])\n\n        return actions_log_prob")
+            if source.count("wam_residual = self.wam_actor_adapter(observations[:, 300:])") != 3:
+                raise ValueError('WAM adapter must have exactly one residual path in act, act_inference, evaluate')
             algorithm_changes = True
     model.write_text(source)
     write(args.output/'compatibility.json', dict(upstream_commit=UPSTREAM,
