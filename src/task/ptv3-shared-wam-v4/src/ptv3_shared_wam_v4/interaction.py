@@ -35,7 +35,10 @@ def interaction_target(batch, contact_threshold_m=0.012, contact_temperature_m=0
     object_valid = batch["object_valid"].bool()
     point_valid = batch.get("scene_valid")
     if point_valid is None:
-        point_valid = torch.ones(object_future.shape[:-1], dtype=torch.bool, device=points.device)
+        # The fallback must be created before object_future exists.  Its shape
+        # follows the audited scene target contract: B,O,T,P.
+        point_valid = torch.ones(batch["scene_target"].shape[:-1],
+                                dtype=torch.bool, device=points.device)
     point_valid = point_valid.bool() & object_valid[:, :, None, None]
     points = torch.where(object_valid[:, :, None, None, None], points[:, :, None], torch.zeros_like(points[:, :, None]))
     scene_delta = torch.where(point_valid[..., None], batch["scene_target"].float(),
