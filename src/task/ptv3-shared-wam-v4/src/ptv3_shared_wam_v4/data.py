@@ -8,7 +8,7 @@ from torch.utils.data import Dataset, DataLoader
 from pose_mesh_data.v4_data import V4Main3Windows, V4NativeWindows, v4_collate
 from pose_mesh_data.native_recipe import source_pools
 from .paths import SOURCE_IDS
-from .quality_admission import excluded_indices
+from ptv3_shared_wam_v3.quality_admission import excluded_indices
 from oakink_wm.multisource import source_draw
 
 
