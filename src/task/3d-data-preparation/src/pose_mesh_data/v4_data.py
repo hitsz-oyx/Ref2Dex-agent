@@ -7,9 +7,7 @@ queries, and 128 interaction queries.  It never edits source payloads.
 from __future__ import annotations
 
 from dataclasses import asdict
-from pathlib import Path
 import sys
-import importlib.util
 
 import numpy as np
 import torch
@@ -20,14 +18,9 @@ from .v4_windows import v4_pose_mesh_sample
 
 
 def _goal_windows_class():
-    """Load GoalWindows without importing the package's optional model."""
-    path = Path(__file__).resolve().parents[2].parent / 'goal-point-wam' / 'src' / 'goal_point_wam' / 'data.py'
-    spec = importlib.util.spec_from_file_location('_ref2dex_goal_data', path)
-    if spec is None or spec.loader is None:
-        raise ImportError(f'goal-point-wam data module not found: {path}')
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module.GoalWindows
+    """Return an importable class so spawn workers can pickle the dataset."""
+    from goal_point_wam.data import GoalWindows
+    return GoalWindows
 
 
 def _transform(points, pose):
