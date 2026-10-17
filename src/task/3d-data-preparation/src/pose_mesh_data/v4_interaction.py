@@ -115,12 +115,12 @@ def _scaffold(hand: np.ndarray, valid: np.ndarray, origin: np.ndarray, policy: V
             points.append(line)
             parts.extend([part] * n)
     if not points:
-        return {}
+        return np.empty((0, 3), np.int64), np.empty((0, PART_DIM), np.float32)
     voxels = _voxel(np.concatenate([p if p.ndim == 2 else p[None] for p in points]), origin, policy.voxel_m)
     unique, inverse = np.unique(voxels, axis=0, return_inverse=True)
     counts = np.zeros((len(unique), PART_DIM), np.float32)
     np.add.at(counts, (inverse, np.asarray(parts, np.int64)), 1.)
-    return {tuple(cell): counts[index] for index, cell in enumerate(unique)}
+    return unique, counts
 
 
 def interaction_field(hand_future: np.ndarray, hand_valid: np.ndarray,
@@ -149,9 +149,9 @@ def interaction_field(hand_future: np.ndarray, hand_valid: np.ndarray,
         raise ValueError("finite xyz voxel origin required")
     target = np.zeros((len(hand_future), policy.interaction_points, C_DIM), np.float32)
     valid = np.ones((len(hand_future), policy.interaction_points), bool)
-    offsets = [(x, y, z) for x in range(-policy.dilation, policy.dilation + 1)
-               for y in range(-policy.dilation, policy.dilation + 1)
-               for z in range(-policy.dilation, policy.dilation + 1)]
+    offsets = np.asarray([(x, y, z) for x in range(-policy.dilation, policy.dilation + 1)
+                          for y in range(-policy.dilation, policy.dilation + 1)
+                          for z in range(-policy.dilation, policy.dilation + 1)], dtype=np.int64)
     for time, (hand, hvalid, obj) in enumerate(zip(hand_future, hand_valid, object_future)):
         # Most approach/idle frames are far from the object.  An axis-aligned
         # conservative bound skips scaffold rasterization while preserving the
@@ -161,16 +161,21 @@ def interaction_field(hand_future: np.ndarray, hand_valid: np.ndarray,
             margin = policy.voxel_m * (policy.dilation + 1)
             if np.any(visible.max(0) + margin < obj.min(0)) or np.any(visible.min(0) - margin > obj.max(0)):
                 continue
-        cells = _scaffold(hand, hvalid, origin, policy)
-        for query, point in enumerate(obj):
-            base = tuple(_voxel(point[None], origin, policy.voxel_m)[0])
-            counts = np.zeros(PART_DIM, np.float32)
-            for offset in offsets:
-                counts += cells.get(tuple(base[i] + offset[i] for i in range(3)), 0.)
-            total = counts.sum()
-            if total > 0:
-                target[time, query, 0] = 1.
-                target[time, query, 1:] = counts / total
+        cells, cell_counts = _scaffold(hand, hvalid, origin, policy)
+        query_voxels = _voxel(obj, origin, policy.voxel_m)[:, None, :] + offsets[None, :, :]
+        # Merge scaffold and all query-neighbour voxels once, then gather the
+        # scaffold counts by inverse ID.  This preserves exact integer voxel
+        # occupancy while avoiding Q*27 Python dictionary lookups per frame.
+        merged, inverse = np.unique(
+            np.concatenate((cells, query_voxels.reshape(-1, 3)), axis=0),
+            axis=0, return_inverse=True)
+        lookup = np.zeros((len(merged), PART_DIM), np.float32)
+        lookup[inverse[:len(cells)]] = cell_counts
+        counts = lookup[inverse[len(cells):]].reshape(len(obj), len(offsets), PART_DIM).sum(1)
+        total = counts.sum(-1)
+        contact = total > 0
+        target[time, contact, 0] = 1.
+        target[time, contact, 1:] = counts[contact] / total[contact, None]
     return target, valid
 
 
