@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import asdict
 from pathlib import Path
 import sys
+import importlib.util
 
 import numpy as np
 import torch
@@ -16,6 +17,17 @@ from torch.utils.data import Dataset
 
 from .v4_interaction import V4SamplingPolicy, fixed_subset, resampled_subset
 from .v4_windows import v4_pose_mesh_sample
+
+
+def _goal_windows_class():
+    """Load GoalWindows without importing the package's optional model."""
+    path = Path(__file__).resolve().parents[2].parent / 'goal-point-wam' / 'src' / 'goal_point_wam' / 'data.py'
+    spec = importlib.util.spec_from_file_location('_ref2dex_goal_data', path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f'goal-point-wam data module not found: {path}')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.GoalWindows
 
 
 def _transform(points, pose):
@@ -122,7 +134,8 @@ class V4NativeWindows(Dataset):
             self.base._sequence(window.provenance.row),
             [self.base.geometry[k] for k in row['objects']],
             window.provenance.tick, window.provenance.target_slot,
-            window.provenance.source_id, [window.provenance.row, window.provenance.tick],
+            window.provenance.source_id,
+            [window.provenance.source_id, window.provenance.row, window.provenance.tick],
             window.provenance.profile, self.policy)
         sample["provenance"] = asdict(window.provenance)
         return sample
@@ -131,7 +144,7 @@ class V4NativeWindows(Dataset):
 class V4Main3Windows(Dataset):
     def __init__(self, root, split, *, point_count=32, policy=V4SamplingPolicy()):
         from oakink_wm.multisource import MixedWindows
-        from goal_point_wam.data import GoalWindows
+        GoalWindows = _goal_windows_class()
         self.base = MixedWindows(root, split)
         self.goals = GoalWindows(self.base, "object_points", point_count)
         self.policy = policy
@@ -144,7 +157,7 @@ class V4Main3Windows(Dataset):
         source = self.base.sources[source_id]
         local_index = int(index - self.base.offsets[source_id])
         sequence_id, anchor, tick, _ = map(int, source.rows[local_index])
-        sequence = source.sequence(sequence_id)
+        sequence = source.sequence(source.sequences[sequence_id])
         from oakink_wm.data import local_objects
         selected = local_objects(sequence["poses"][tick], sequence["pose_valid"][tick], anchor,
                                  sequence["centers"])
