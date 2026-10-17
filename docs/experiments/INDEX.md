@@ -766,6 +766,12 @@
 | [P-20261011-goal-conditioned-residual-offset](../../src/task/trajectory-policy/docs/experiments/probes/P-20261011-goal-conditioned-residual-offset.md) | Fixed thumb preload offset on the residual student | 见原卡 | 见原卡 | probes/UNPROMISING |
 | [P-20261011-regrind-executor-gt-generated](../../src/task/trajectory-policy/docs/experiments/probes/P-20261011-regrind-executor-gt-generated.md) | Same-executor GT/generated tau physical comparison | 见原卡 | 见原卡 | probes/UNPROMISING |
 
+## HF-trajectory-policy-executor-transition
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261017-gt-tau-executor](../../src/task/trajectory-policy/docs/experiments/probes/P-20261017-gt-tau-executor.md) | GT-tau closed-loop executor qualification | 见原卡 | 见原卡 | probes/PLANNED |
+
 ## HF-trajectory-policy-history-to-tau
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
