@@ -62,7 +62,7 @@
   "interaction_weight": 1.0,
   "motion_tau_m": 0.002,
   "motion_floor": 0.1,
-  "max_seconds": 172800,
+  "max_seconds": 604800,
   "artifact_budget_bytes": 8000000000,
   "data_profile": "nine-source-clean.v1",
   "warmup_updates": 500,
