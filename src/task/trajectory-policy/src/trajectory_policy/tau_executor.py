@@ -19,6 +19,7 @@ from torch import nn
 SCHEMA = "ref2dex.measured-state-tau-executor.v1"
 STATE_DIM = 87
 HAND_PLAN_DIM = 33
+REFERENCE_ANCHOR_DIM = 33
 ACTION_DIM = 12
 TASK_GOAL_DIM = 12
 CONTACT_CONTEXT_DIM = 10
@@ -260,4 +261,60 @@ class TemporalTauExecutorPolicy(nn.Module):
         output = torch.tanh(self.head(torch.cat((state_code, tau_code), dim=-1)))
         if not torch.isfinite(output).all():
             raise FloatingPointError("nonfinite temporal executor action")
+        return output
+
+
+ABSOLUTE_PLAN_SCHEMA = "ref2dex.direct-tau-executor.absolute-plan-v3"
+
+
+class AbsolutePlanTauExecutorPolicy(nn.Module):
+    """Direct executor with an absolute reference-hand anchor.
+
+    ``anchor`` is the reference hand at the current tick expressed in the
+    reference object frame.  ``tau`` remains the ordered future displacement
+    plan.  The two inputs distinguish where the reference currently is from
+    how it will move next, which is required once the learner leaves the
+    teacher manifold.
+    """
+
+    schema = ABSOLUTE_PLAN_SCHEMA
+
+    def __init__(self, horizon: int = 8, width: int = 256):
+        super().__init__()
+        if not isinstance(horizon, int) or horizon < 1:
+            raise ValueError("horizon must be a positive integer")
+        if not isinstance(width, int) or width < 16:
+            raise ValueError("width must be an integer >= 16")
+        self.horizon = horizon
+        self.state_encoder = nn.Sequential(
+            nn.Linear(STATE_DIM + ACTION_DIM + REFERENCE_ANCHOR_DIM, width), nn.Tanh(),
+        )
+        self.tau_input = nn.Sequential(nn.Linear(HAND_PLAN_DIM, width), nn.Tanh())
+        self.position = nn.Parameter(torch.zeros(1, horizon, width))
+        nn.init.normal_(self.position, mean=0., std=.02)
+        self.tau_encoder = nn.Sequential(nn.Linear(horizon * width, width), nn.Tanh())
+        self.head = nn.Sequential(
+            nn.Linear(2 * width, width), nn.Tanh(), nn.Linear(width, ACTION_DIM),
+        )
+
+    def forward(self, state: torch.Tensor, tau: torch.Tensor,
+                anchor: torch.Tensor, previous_action: torch.Tensor) -> torch.Tensor:
+        if state.ndim != 2 or tau.ndim != 3 or anchor.ndim != 2 or previous_action.ndim != 2:
+            raise ValueError("state, tau, anchor and previous_action must be batched")
+        batch, horizon = state.shape[0], tau.shape[1]
+        _require("state", state, (batch, STATE_DIM))
+        _require("tau", tau, (batch, horizon, HAND_PLAN_DIM))
+        _require("anchor", anchor, (batch, REFERENCE_ANCHOR_DIM))
+        _require("previous_action", previous_action, (batch, ACTION_DIM))
+        if horizon != self.horizon:
+            raise ValueError(f"tau horizon mismatch: model={self.horizon}, batch={horizon}")
+        if (state.device != tau.device or state.device != anchor.device
+                or state.device != previous_action.device):
+            raise ValueError("all executor inputs must share a device")
+        state_code = self.state_encoder(torch.cat((state, anchor, previous_action), dim=-1))
+        encoded = self.tau_input(tau) + self.position
+        tau_code = self.tau_encoder(encoded.reshape(batch, -1))
+        output = torch.tanh(self.head(torch.cat((state_code, tau_code), dim=-1)))
+        if not torch.isfinite(output).all():
+            raise FloatingPointError("nonfinite absolute-plan executor action")
         return output
