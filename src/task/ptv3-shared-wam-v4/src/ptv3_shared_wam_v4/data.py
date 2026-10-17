@@ -162,6 +162,9 @@ def loader(dataset, config, rank, first, last, workers=2):
                   collate_fn=collate, num_workers=workers, pin_memory=True,
                   generator=torch.Generator().manual_seed(config['seed'] * 1009 + rank))
     if workers:
-        kwargs.update(multiprocessing_context='spawn', persistent_workers=True, prefetch_factor=2,
+        # The nine-source dataset carries large index/geometry objects.  Forking
+        # keeps those read-only objects shared through copy-on-write; spawning
+        # serializes them to every worker and can time out before batch one.
+        kwargs.update(multiprocessing_context='fork', persistent_workers=True, prefetch_factor=2,
                       worker_init_fn=initialize_worker, timeout=180)
     return DataLoader(**kwargs)
