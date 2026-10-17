@@ -3,7 +3,7 @@ schema: ref2dex.probe.v2
 experiment_id: P-20261017-direct-tau-executor
 task: trajectory-policy
 branch: main
-git_commit: 5fa96251
+git_commit: e8ea6019
 date: 2026-10-17
 classification: Decision
 status: UNPROMISING
