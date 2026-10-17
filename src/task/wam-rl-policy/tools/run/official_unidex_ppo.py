@@ -351,7 +351,9 @@ def main():
     args.output.mkdir(parents=True); (args.output/'tmp').mkdir()
     environment = dict(os.environ, CUDA_VISIBLE_DEVICES=str(args.gpu), TMPDIR=str(args.output/'tmp'),
         OMP_NUM_THREADS='2', OPENBLAS_NUM_THREADS='2', PYTHONDONTWRITEBYTECODE='1',
-        TORCH_EXTENSIONS_DIR=str(ROOT/'tmp/official-unidex-isaac-extensions'), MAX_JOBS='2')
+        # Keep JIT extensions private to this run.  The shared repository tmp
+        # can be owned by another remote UID after a successful Isaac Gym job.
+        TORCH_EXTENSIONS_DIR=str(args.output/'torch_extensions'), MAX_JOBS='2')
     process = dict(status='STARTING', gpu=args.gpu, supervisor_pid=os.getpid(), upstream_commit=UPSTREAM,
         code_commit=os.environ.get('REF2DEX_CODE_COMMIT') or subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         mode=args.mode, model=str(args.model) if args.model else None, BC_loaded=bool(args.model),
