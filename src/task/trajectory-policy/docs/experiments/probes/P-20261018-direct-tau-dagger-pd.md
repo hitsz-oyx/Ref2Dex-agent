@@ -3,10 +3,10 @@ schema: ref2dex.probe.v2
 experiment_id: P-20261018-direct-tau-dagger-pd
 task: trajectory-policy
 branch: main
-git_commit: pending
+git_commit: 357e4a6d
 date: 2026-10-18
 classification: Decision
-status: PROMISING
+status: UNPROMISING
 hypothesis: The previous DAgger negative was partly caused by optimizing raw active action instead of live-state PD targets; a PD-space loss should improve teacher correction without changing the tau/state contract.
 question: Does warm-start DAgger with normalized wrist/finger PD Huber loss materially reduce learner-state teacher-PD error, and is the improvement sufficient to justify one frozen physical replay?
 decision_changed_if_positive: run one frozen physical replay of the PD-loss checkpoint; only continue to recovery-basin collection if the physical gate improves.
@@ -55,3 +55,22 @@ Artifacts:
 The offline gate passed, so run one frozen execution with no teacher intervention
 on the same unseen corrected `s1_airplane_lift` panel. This is a Probe, not a new
 DAgger round or a validation claim.
+
+The frozen PD-loss checkpoint still achieved `0/8 hold45` and `0/8 success`, with
+median held frames 0 and clipping rate 0. The teacher calibration in this launch
+achieved `8/8 hold45` and `4/8 success`. The direct endpoint position error was
+0.0402 m, but the object was never stably grasped, so endpoint error is not a
+success proxy. The physical arm therefore fails the gate and the combined Probe
+is `UNPROMISING`; the offline fit remains `PROMISING` only as a label-space
+diagnostic.
+
+Artifacts:
+
+- frozen PD-loss execution: `outputs/trajectory-policy/direct-tau-dagger-pd-execution-20261018-r1/`
+
+The result narrows the diagnosis. Raw-action loss was genuinely misaligned with
+PD space, and catastrophic rows dominate the autonomous roll-in, but fixing the
+loss alone does not recover the task. Do not spend PPO budget or interpret this
+as a tau-plan refutation. The next unresolved intervention is recovery-basin
+collection with bounded teacher intervention (for example beta 0.1--0.25), with
+phase/divergence masks retained for analysis.
