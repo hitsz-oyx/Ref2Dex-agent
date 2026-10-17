@@ -82,6 +82,10 @@ sticky与末帧5cm、reward、clipping、残差RMS、KL/更新次数。保持增
 暂记PROMISING进入复核；下降>=2/16记UNPROMISING；其余UNCLEAR，不报总体成功率。
 训练回报提升不能替代闭环确定性评估或接触稳定认证。
 
+后续官方 initialized PPO 对照显示，已有 native policy 在官方网络和 reward 配方下可
+保持抓取，而新增 WAM 通路会迅速破坏该能力；这不改变本卡小面板 frozen-BC residual
+PPO 的 `UNCLEAR` 状态，也不能把本卡的少量行为变化解释成官方 PPO 或 WAM 的收益。
+
 ## 资源 / Decision Note
 
 用户授权两线并行。Stage-0沿现有接口实施可逆最小改动，无新branch；0.15永久残差仅

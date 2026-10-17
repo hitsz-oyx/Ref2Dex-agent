@@ -477,6 +477,10 @@ aligned-v3 PPO held85/end83、lift136、到达126、终点111。
 因此v3较none多9/256=3.516个百分点，较BC多16/256=6.25点；尚未达到预设10点且只有
 单训练seed/单reset，当前UNCLEAR，有小幅正向读数，不作为v3胜v2或正式WAM有效性结论。
 两臂继续固定200轮及原249/250/251，不因这个端点读数挑checkpoint/增加DEV搜索。
+
+官方 initialized PPO 复核进一步限定了本卡结论范围：本卡只检验小型 Shadow continuous
+scale 配方的 critic/拟合和闭环读出，不能用来判断官方 PPO baseline，也不能据此预期把
+WAM 输入直接接入官方大网络后仍保持抓取。
 结果与直接比较已同步本地相应u50目录和
 `outputs/wam-rl-policy/shadow-wam-feature-v3-aligned-vs-none-u50-audit-20261016-r1/comparison.json`。
 

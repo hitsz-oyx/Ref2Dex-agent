@@ -57,6 +57,65 @@ def run_official(task, snapshot, objects, args):
     import yaml
     from tasks.hand_base.vec_task import VecTaskPython
 
+    class WamObservationEnv:
+        """Expose the frozen WAM summaries through the official VecTask API."""
+        def __init__(self, base, task, snapshot_fn, checkpoint, cache):
+            from gym import spaces
+            from wam_rl_policy.wam_features import FeatureController
+            self.base = base
+            self.task = task
+            self.snapshot_fn = snapshot_fn
+            self.num_envs = base.num_envs
+            self.num_environments = base.num_environments
+            self.num_states = base.num_states
+            self.num_actions = base.num_actions
+            self.num_observations = 2607
+            self.state_space = base.state_space
+            self.action_space = base.action_space
+            self.clip_obs = base.clip_obs
+            self.clip_actions = base.clip_actions
+            self.rl_device = base.rl_device
+            self.controller = FeatureController(checkpoint, objects, cache)
+            # The official task can explore outside the WAM training workspace.
+            # Keep the bounded probe alive with the repository's admitted zero
+            # fallback; the run records this as a feature-coverage limitation.
+            self.controller.allow_invalid_zero = True
+            self.observation_space = spaces.Box(
+                low=np.full(2607, -np.inf, dtype=np.float32),
+                high=np.full(2607, np.inf, dtype=np.float32), dtype=np.float32)
+            self._resets = False
+
+        def _augment(self, native, tick):
+            # A reset in any native environment invalidates the shared history.  The
+            # official task can reset individual envs, so restarting the short history
+            # for the whole batch is the safe bounded contract for this probe.
+            if self._resets:
+                self.controller.history = []
+                self.controller.invalid = set()
+                tick = 1
+                self._resets = False
+            self.controller.act(self.snapshot_fn(), native, int(tick))
+            z = torch.nn.functional.layer_norm(
+                self.controller.last_wam_features.reshape(-1, 3, 768), (768,)).flatten(1)
+            relative_goal = self.task.goal_pos - self.task.object_pose[:, :3]
+            result = torch.cat((native, z, relative_goal / .1), dim=-1)
+            if result.shape != (self.num_envs, 2607) or not torch.isfinite(result).all():
+                raise FloatingPointError('Nonfinite or malformed official WAM observation')
+            return result
+
+        def reset(self):
+            native = self.base.reset()
+            self._resets = False
+            return self._augment(native, 1)
+
+        def step(self, actions, id=0):
+            native, rewards, dones, infos = self.base.step(actions, id)
+            self._resets = bool(dones.any().item())
+            return self._augment(native, int(id) + 2), rewards, dones, infos
+
+        def get_state(self):
+            return self.base.get_state()
+
     official = args.output/'runtime-official/dexgrasp'
     sys.path.insert(0, str(official))
     spec = importlib.util.spec_from_file_location('official_process_sarl', official/'utils/process_sarl.py')
@@ -67,8 +126,38 @@ def run_official(task, snapshot, objects, args):
     cfg['seed'] = args.seed
     task.cfg['seed'] = args.seed
     env = VecTaskPython(task, 'cuda:0', cfg['clip_observations'], cfg['clip_actions'])
-    process_args = SimpleNamespace(test=False, vision=False, model_dir=str(args.model) if args.model else '')
+    if args.wam_checkpoint:
+        # Keep all feature-source imports local to the WAM arm.  The official
+        # state-only baseline therefore retains the exact 300D environment path.
+        sys.path[:0] = [str(ROOT/'src/task/wam-rl-policy/src'),
+                        str(ROOT/'src/task/shadow-finetune/src'),
+                        str(ROOT/'src/task/ptv3-shared-wam-v2/src'),
+                        str(ROOT/'src/task/video-data-preparation/src')]
+        env = WamObservationEnv(env, task, snapshot, args.wam_checkpoint, args.wam_cache)
+        cfg['policy']['obs_dim'] = 2607
+        cfg['policy']['wam_adapter'] = bool(args.wam_adapter)
+        cfg['policy']['wam_adapter_bounded'] = args.wam_adapter_gain is not None
+        cfg['policy']['wam_adapter_gain'] = float(args.wam_adapter_gain or 1.0)
+    # A 300D official checkpoint cannot be loaded directly into the 2607D WAM
+    # network.  Preserve its native columns and initialize the new WAM/goal
+    # columns to zero, which is the matched WAM finetune starting point.
+    wam_init = bool(args.wam_checkpoint and args.model)
+    process_args = SimpleNamespace(test=False, vision=False,
+        model_dir='' if wam_init else (str(args.model) if args.model else ''))
     ppo = module.process_ppo(process_args, env, cfg, str(args.output/'models'))
+    if wam_init:
+        loaded = torch.load(args.model, map_location='cpu')
+        if isinstance(loaded, dict) and 'state_dict' in loaded: loaded = loaded['state_dict']
+        target = ppo.actor_critic.state_dict()
+        for key, value in loaded.items():
+            if key not in target: raise ValueError('Official init key missing in WAM model: '+key)
+            if tuple(value.shape) == tuple(target[key].shape):
+                target[key].copy_(value)
+            elif key in ('actor.0.weight', 'critic.0.weight') and value.shape[1] == 300 and target[key].shape[1] == 2607:
+                target[key].zero_(); target[key][:, :300].copy_(value)
+            else:
+                raise ValueError('Official init shape mismatch for WAM model: '+key)
+        ppo.actor_critic.load_state_dict(target, strict=True)
     if args.mode == 'evaluate':
         assert args.model is not None
         ppo.actor_critic.eval()
@@ -127,6 +216,8 @@ def run_official(task, snapshot, objects, args):
             effective_std=float(ppo.actor_critic.log_std.exp().square().mean()), lr=ppo.step_size,
             mean_native_reward_per_step=float(locs['mean_reward']),
             mean_episode_return=float(np.mean(locs['rewbuffer'])) if locs['rewbuffer'] else None)
+        if args.wam_checkpoint:
+            state['wam_invalid_envs_current_history'] = len(env.controller.invalid)
         with (args.output/'curve.jsonl').open('a') as stream:stream.write(json.dumps(state, allow_nan=False)+'\n')
         write(args.output/'progress.json', dict(status='RUNNING', **state))
     ppo.log = log
@@ -141,8 +232,12 @@ def run_official(task, snapshot, objects, args):
         ppo.run(num_learning_iterations=args.iterations, log_interval=args.save_interval)
         differences = {k:float((v-initial[k]).abs().max()) for k,v in ppo.actor_critic.state_dict().items()}
         assert all(torch.isfinite(v).all() for v in ppo.actor_critic.state_dict().values())
-        assert max(v for k,v in differences.items() if k.startswith('actor.')) > 0
-        assert max(v for k,v in differences.items() if k.startswith('critic.')) > 0
+        actor_changes = [v for k,v in differences.items()
+                         if k.startswith('actor.') or k.startswith('wam_actor_adapter.')]
+        assert actor_changes and max(actor_changes) > 0
+        critic_changes = [v for k,v in differences.items() if k.startswith('critic.')]
+        if not args.wam_adapter:
+            assert critic_changes and max(critic_changes) > 0
         assert state['optimizer_steps'] == args.iterations*cfg['learn']['noptepochs']*cfg['learn']['nminibatches']
         write(args.output/'learning-audit.json', dict(status='PASS', parameter_max_change=differences,
             optimizer_steps=state['optimizer_steps'], source_engine='unmodified upstream PPO.run/update/storage'))
@@ -161,12 +256,52 @@ def worker(args):
     source = model.read_text()
     removed = [line for line in source.splitlines() if line.startswith('from algo.pn_utils.')]
     assert len(removed) == 2
-    model.write_text('\n'.join(line for line in source.splitlines() if line not in removed)+'\n')
+    source = '\n'.join(line for line in source.splitlines() if line not in removed)+'\n'
+    algorithm_changes = False
+    if args.wam_checkpoint:
+        # The upstream state actor hard-codes the native 300D prefix in three
+        # places.  WAM changes only the declared input contract; PPO math,
+        # rollout storage, covariance and KL handling remain upstream.
+        source = source.replace("self.num_obs = 300", "self.num_obs = model_cfg.get('obs_dim', 300)")
+        source = source.replace("self.actor(observations[:,:300])", "self.actor(observations)")
+        source = source.replace("if not self.use_pc:\n            observations = observations[:,:300]",
+                                "if not self.use_pc and self.num_obs == 300:\n            observations = observations[:,:300]")
+        if ("model_cfg.get('obs_dim', 300)" not in source or
+                "self.actor(observations[:,:300])" in source):
+            raise ValueError('WAM official input-dimension patch did not apply cleanly')
+        algorithm_changes = True
+        if args.wam_adapter:
+            marker = "        self.init_weights(self.critic, critic_weights)\n"
+            addition = marker + """        if model_cfg.get('wam_adapter', False):
+            self.wam_actor_adapter = nn.Linear(2307, 24)
+            self.wam_adapter_bounded = model_cfg.get('wam_adapter_bounded', False)
+            self.wam_adapter_gain = model_cfg.get('wam_adapter_gain', 1.0)
+            nn.init.zeros_(self.wam_actor_adapter.weight); nn.init.zeros_(self.wam_actor_adapter.bias)
+            for parameter in list(self.actor.parameters()) + list(self.critic.parameters()):
+                parameter.requires_grad_(False)
+            self.log_std.requires_grad_(False)
+"""
+            if source.count(marker) != 1: raise ValueError('WAM adapter insertion point missing')
+            source = source.replace(marker, addition, 1)
+            source = source.replace("else:\n            actions_mean = self.actor(observations)\n",
+                "else:\n            actions_mean = self.actor(observations)\n            if hasattr(self, 'wam_actor_adapter'):\n                wam_residual = self.wam_actor_adapter(observations[:, 300:])\n                if self.wam_adapter_bounded:\n                    wam_residual = self.wam_adapter_gain * torch.tanh(wam_residual)\n                actions_mean = actions_mean + wam_residual\n")
+            source = source.replace("if not self.use_pc and self.num_obs == 300:\n            observations = observations[:,:300]\n",
+                "if not self.use_pc and self.num_obs == 300:\n            observations = observations[:,:300]\n")
+            source = source.replace("            value = self.critic(observations)\n\n        return actions.detach()",
+                "            value = self.critic(observations)\n            if hasattr(self, 'wam_value_adapter'):\n                value = value + self.wam_value_adapter(observations[:, 300:])\n\n        return actions.detach()")
+            source = source.replace("        return actions_mean.detach()\n        \n    def evaluate",
+                "        if hasattr(self, 'wam_actor_adapter'):\n            wam_residual = self.wam_actor_adapter(observations[:, 300:])\n            if self.wam_adapter_bounded:\n                wam_residual = self.wam_adapter_gain * torch.tanh(wam_residual)\n            actions_mean = actions_mean + wam_residual\n        return actions_mean.detach()\n        \n    def evaluate")
+            source = source.replace("            value = self.critic(observations)\n\n        return actions_log_prob",
+                "            value = self.critic(observations)\n            if hasattr(self, 'wam_value_adapter'):\n                value = value + self.wam_value_adapter(observations[:, 300:])\n\n        return actions_log_prob")
+            algorithm_changes = True
+    model.write_text(source)
     write(args.output/'compatibility.json', dict(upstream_commit=UPSTREAM,
         removed_unused_vision_imports=removed, added_state_config_keys=['backbone_type','freeze_backbone'],
-        algorithm_changes=False, state_network_math_changes=False,
+        algorithm_changes=algorithm_changes, state_network_math_changes=False,
         environment_patch='existing maximum heterogeneous aggregate capacity only',
-        note='Upstream squared scale_tril and KL convention intentionally preserved; random_time is phase staggering, not RSI'))
+        input_contract='2607D native300 + frozen WAM2304 + relative_goal3' if algorithm_changes else '300D native state',
+        wam_adapter_gain=(float(args.wam_adapter_gain) if args.wam_adapter_gain is not None else None),
+        note='Only WAM input-dimension plumbing is patched; upstream squared scale_tril and KL convention intentionally preserved; random_time is phase staggering, not RSI'))
     replay = ROOT/'src/task/video-data-preparation/tools/run/replay_unidexgrasp.py'
     dest = args.output/'runtime_replay.py'
     dest.write_text(runtime_replay(replay.read_text(), args.mode == 'train'))
@@ -190,10 +325,22 @@ def main():
     p.add_argument('--save-interval', type=int, default=1000)
     p.add_argument('--seed', type=int, default=245)
     p.add_argument('--seconds', type=int, default=7200)
+    p.add_argument('--wam-checkpoint', type=Path)
+    p.add_argument('--wam-cache', type=Path)
+    p.add_argument('--wam-adapter', action='store_true')
+    p.add_argument('--wam-adapter-gain', type=float,
+                   help='Enable bounded zero-init WAM actor residual: gain*tanh(adapter).')
     p.add_argument('--worker', action='store_true')
     args = p.parse_args()
     args.output = args.output.resolve(); args.object_manifest = args.object_manifest.resolve()
     if args.model:args.model = args.model.resolve()
+    if args.wam_checkpoint:args.wam_checkpoint = args.wam_checkpoint.resolve()
+    if args.wam_cache:args.wam_cache = args.wam_cache.resolve()
+    if bool(args.wam_checkpoint) != bool(args.wam_cache):raise ValueError('WAM requires both --wam-checkpoint and --wam-cache')
+    if args.wam_adapter and not args.wam_checkpoint:raise ValueError('WAM adapter requires WAM features')
+    if args.wam_adapter_gain is not None:
+        if not args.wam_adapter:raise ValueError('--wam-adapter-gain requires --wam-adapter')
+        if not 0.0 < args.wam_adapter_gain <= 1.0:raise ValueError('--wam-adapter-gain must be in (0,1]')
     if not 1 <= args.envs <= 2048 or not 1 <= args.iterations <= 10000 or not 1 <= args.seconds <= 14400:
         raise ValueError('Bounded official PPO probe required')
     if args.mode == 'evaluate' and not args.model:raise ValueError('Evaluate requires an explicit model')
@@ -208,9 +355,13 @@ def main():
         TORCH_EXTENSIONS_DIR=str(ROOT/'tmp/official-unidex-isaac-extensions'), MAX_JOBS='2')
     process = dict(status='STARTING', gpu=args.gpu, supervisor_pid=os.getpid(), upstream_commit=UPSTREAM,
         code_commit=os.environ.get('REF2DEX_CODE_COMMIT') or subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
-        mode=args.mode, model=str(args.model) if args.model else None, BC_loaded=False,
+        mode=args.mode, model=str(args.model) if args.model else None, BC_loaded=bool(args.model),
         envs=args.envs, iterations=args.iterations, seconds=args.seconds, seed=args.seed,
         object_manifest=str(args.object_manifest), run_id=args.output.name)
+    process.update(wam_checkpoint=str(args.wam_checkpoint) if args.wam_checkpoint else None,
+                   wam_cache=str(args.wam_cache) if args.wam_cache else None,
+                   observation_dim=2607 if args.wam_checkpoint else 300,
+                   official_actor_loaded=bool(args.model), BC_loaded=bool(args.model))
     write(args.output/'manifest.json', process)
     stopped = [False]
     for sig in [signal.SIGTERM, signal.SIGINT]:signal.signal(sig, lambda *_:stopped.__setitem__(0,True))

@@ -1,3 +1,64 @@
+# 2026-10-16 官方 UniDexGrasp PPO 远端复现与 WAM 接线
+
+按用户要求使用远端 GPU 跑 pinned upstream PPO（commit `6c9e710b`）。fresh state-only
+训练 1024 env、10000 iterations、81920000 environment steps，PPO audit 通过，但 TRAIN
+和 core-dev 固定评估均为 `0/128` native success。官方发布模型在同 TRAIN 面板为
+`65/128`，所以环境/评估和 checkpoint 加载链路可用；当前不能把失败归因于自写 PPO，
+后续先核对官方 reward/episode 配方和训练面板条件。
+
+冻结 WAM-v2 step80000 已接入同一官方 PPO，2607D observation smoke（64 env、32 iter）
+完成 640 optimizer steps、audit 通过；固定评估为 `0/128`，仅作接线工程证据。详见
+[官方 PPO 实验卡](../src/task/wam-rl-policy/docs/experiments/probes/P-20261016-official-unidex-ppo.md)
+和本地证据目录 `outputs/wam-rl-policy/official-unidex-remote-evidence-20261016-r1/`。
+
+## 2026-10-17 官方初始化 baseline 与 WAM-v3 对照
+
+复核官方 `run_train_ppo_state.sh` 确认 `--model_dir=example_model/state_based_model.pt`
+是默认 baseline 配方；此前 fresh 0/128 不应代表官方 baseline。**下面的 initialized PPO
+均为官方 actor warm-start 诊断，不是 Objective A 的从零自训证据。** initialized PPO
+1024 env、
+10000 iterations 完成 81920000 env steps，固定 TRAIN `103/128 success, 85 held60,
+105 lifted`，core DEV `98/128, 72 held60, 108 lifted`。WAM-v3 2607D 包装器的官方模型
+正对照仍为 `65/128`，说明接线初始保持行为；WAM-v3 1000 iterations/64 env 为
+`19/128 success, 0 held60, 35 lifted`，同 iteration official model 为 `83/128,
+58 held60, 93 lifted`。WAM-v3 10000/64 正在运行，匹配优化 iteration 但不匹配官方
+environment-step 预算；1024-env 试跑因约52小时 ETA停止，不作为科学负结果。
+
+WAM-v3 64-env run 在7200秒边界到4734/10000，model_4000固定 TRAIN 为
+`10/128 success, 6 held60, 17 lifted`，同iteration官方 initialized 为
+`103/128, 84 held60, 108 lifted`。这使“直接拼接WAM summary并整网更新”在当前配方下
+暂记UNPROMISING；它不否定WAM表征本身，若继续应改成冻结native路径的zero-init adapter
+或低学习率对照。旧小规模WAM PPO卡中的“学习资格/PROMISING”只说明输入和独立策略能学，
+不等同于官方initialized state baseline上的任务收益。
+
+冻结 native 路径的 zero-init WAM actor adapter 也完成 1000 iterations/64 env，
+learning-audit=PASS 且仅 adapter 参数更新。published checkpoint 加零初始化 adapter 的
+TRAIN 正对照保持 `65/128 success, 39 held60, 71 lifted`；直接评估训练目录的
+`model-initial.pt` 也复现 `65/128, 39, 71`；adapter model_1000 固定评估
+仅 `1/128, 0, 5`。因此当前两种 WAM 接法在官方 initialized PPO 上都记为
+`UNPROMISING`（单 seed/短预算 Probe），下一步不应继续堆同配方长训；若要继续，应先
+单独验证 reward/优势尺度、动作噪声和 adapter 的行为约束，再设计新的低风险干预。
+
+随后完成的 WAM-v3 zero-init actor adapter 256-env 判别 probe（1000 iterations、2,048,000
+env steps、audit=PASS）固定 TRAIN 仅 `2/128 success, 0 held60, 6 lifted`；相比 64-env
+adapter 的 `1/128, 0, 5` 没有恢复。并行环境数不是当前退化的主要解释，已停止继续扩大
+这条 adapter 配方。
+
+新增的有界 zero-init adapter（显式 `gain=0.05`，执行残差为 `0.05*tanh(adapter)`）完成
+256-env/1000 iterations、2,048,000 env steps，audit=PASS，固定 TRAIN 为
+`65/128 success, 37 held60, 70 lifted`。同预算 native-only 官方对照为
+`73/128, 61 held60, 80 lifted`。有界残差消除了无界 adapter 的灾难性退化，但相对 native
+PPO 没有改善；当前只保留为低风险 WAM 接入候选，不作收益结论。
+
+在官方并行规模下又完成 gain=0.05 的 1024-env/300-iteration matched Probe（2,457,600
+env steps）。TRAIN 的 WAM/native 为 `58/128, 30 held, 63 lifted` 对 `56/128, 33 held,
+59 lifted`；core-dev 为 `45/128, 23 held, 51 lifted` 对 `69/128, 45 held, 75 lifted`。
+TRAIN 的小幅 success 差异未泛化到 DEV，因此有界 adapter 路线停止追加，当前仍为
+`UNPROMISING`，不能称为 WAM 改善。
+同一 checkpoint 在 TRAIN 上换用 seed250 重评估时，WAM/native 分别为
+`50/128, 38 held, 53 lifted` 与 `69/128, 50 held, 76 lifted`，进一步排除了 seed249
+小幅 success 优势的偶然性。
+
 ## 2026-10-15 DexYCB全被试已补齐，扩充版九源数据本地/远端就绪
 
 按用户要求补齐10被试1000段/72,746帧；官方s1划分，清洗后DexYCB3,096 TRAIN/382 DEV窗，200段TEST独立。九源新配方4,805,826 TRAIN/821,791 DEV、source8采样1%，TRAIN-only归一化重拟合；本地和远端mixed-reader/端点/集合/数值统计一致性验收通过，其他源既有隔离无回流。Viser8769已切新数据。现有远端80k继续使用此前冻结严格配方，本次未切训练。当前资源以最新CAMPAIGN为准（本地保持两卡空闲，远端可全占）；本次只用CPU处理数据。详见[扩产记录](../src/task/3d-data-preparation/docs/research/2026-10-15-dexycb-full-expansion.md)。
