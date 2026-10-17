@@ -150,6 +150,14 @@ def interaction_field(hand_future: np.ndarray, hand_valid: np.ndarray,
                for y in range(-policy.dilation, policy.dilation + 1)
                for z in range(-policy.dilation, policy.dilation + 1)]
     for time, (hand, hvalid, obj) in enumerate(zip(hand_future, hand_valid, object_future)):
+        # Most approach/idle frames are far from the object.  An axis-aligned
+        # conservative bound skips scaffold rasterization while preserving the
+        # exact voxel result whenever contact is possible.
+        visible = hand[hvalid]
+        if len(visible):
+            margin = policy.voxel_m * (policy.dilation + 1)
+            if np.any(visible.max(0) + margin < obj.min(0)) or np.any(visible.min(0) - margin > obj.max(0)):
+                continue
         cells = _scaffold(hand, hvalid, origin, policy)
         for query, point in enumerate(obj):
             base = tuple(_voxel(point[None], origin, policy.voxel_m)[0])
