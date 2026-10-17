@@ -1,8 +1,18 @@
 {
   "schema": "ref2dex.ptv3-shared-wam.v4",
-  "interaction_encoding": "object-centric-contact-approach.v1",
-  "interaction_dim": 8,
-  "interaction_scales": [1.0, 0.05, 0.05, 0.05, 0.05, 0.5, 0.5, 0.5],
+  "interaction_encoding": "object-centric-hand-surface-field.v2",
+  "interaction_dim": 9,
+  "interaction_scales": [
+    1.0,
+    0.05,
+    0.05,
+    0.05,
+    1.0,
+    1.0,
+    1.0,
+    0.5,
+    0.5
+  ],
   "goal_encoding": "current-point-horizon-delta.v1",
   "task_conditioning": "shared-scene-hand-goal.v1",
   "seed": 170,
@@ -19,7 +29,11 @@
   "history": 4,
   "horizon": 24,
   "voxel_m": 0.01,
-  "voxel_origin_m": [-2.0, -2.0, -2.0],
+  "voxel_origin_m": [
+    -2.0,
+    -2.0,
+    -2.0
+  ],
   "position_scale_m": 0.05,
   "velocity_scale_mps": 0.5,
   "acceleration_scale_mps2": 5.0,
@@ -48,10 +62,57 @@
   "interaction_weight": 1.0,
   "motion_tau_m": 0.002,
   "motion_floor": 0.1,
-  "contact_threshold_m": 0.012,
-  "contact_temperature_m": 0.003,
   "max_seconds": 172800,
   "artifact_budget_bytes": 8000000000,
   "data_profile": "nine-source-clean.v1",
-  "warmup_updates": 500
+  "warmup_updates": 500,
+  "ptv3": {
+    "enc_channels": [
+      32,
+      64,
+      96,
+      128,
+      256
+    ],
+    "enc_depths": [
+      2,
+      2,
+      2,
+      4,
+      2
+    ],
+    "enc_heads": [
+      4,
+      4,
+      6,
+      8,
+      16
+    ],
+    "dec_channels": [
+      128,
+      64,
+      96,
+      128
+    ],
+    "dec_depths": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "dec_heads": [
+      8,
+      4,
+      6,
+      8
+    ],
+    "drop_path": 0.1
+  },
+  "interaction_anchor_steps": [
+    8,
+    16,
+    24
+  ],
+  "contact_sigma_m": 0.01,
+  "interaction_consistency_weight": 0.05
 }

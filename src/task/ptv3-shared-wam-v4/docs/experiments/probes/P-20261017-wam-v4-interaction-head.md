@@ -27,11 +27,16 @@ G_task -> local 24-step goal -> WAM -> (tau, C) -> executor
 ```
 
 The v3 shared encoder and hand/scene heads remain fixed. The new C head reads
-the object-pooled scene latent and predicts eight object-centric channels:
-contact likelihood, proximity, approach vector and relative velocity. Labels
-are derived from the existing current-anchor hand/object future labels, with
-object and point masks preserved. No future label is passed through the
-geometry encoder.
+current hand/object relation features and predicts `B,O,3,11,9`: contact
+confidence, approximate object-surface position, approximate normal, normal
+approach velocity and tangential slip speed at WAM steps 8/16/24. Labels are
+derived from the existing current-anchor hand/object future labels. This probe
+uses the existing 32 object query points and radial-normal approximation;
+dense CAD surface/normals are a later data upgrade.
+
+The v4 trainer supports a model-only v3 warm-start. All compatible v3
+parameters transfer, while the structured C relation modules are initialized
+fresh; optimizer state is intentionally not reused.
 
 The cheapest qualification is a CPU/GPU forward and backward smoke, followed
 by a matched executor comparison using the same WAM checkpoint and seed:

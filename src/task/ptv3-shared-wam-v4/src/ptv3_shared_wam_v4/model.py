@@ -4,7 +4,7 @@ from torch import nn
 from torch.utils.checkpoint import checkpoint
 from .paths import SCHEMA, HORIZON, INTERACTION_ENCODING
 from .normalization import HorizonNormalizer
-from .interaction import C_DIM, interaction_scales
+from .interaction import C_ANCHORS, C_DIM, interaction_scales
 from ptv3_shared_wam.model import clean
 from ptv3_shared_wam.contracts import GOAL_ENCODING, TASK_CONDITIONING
 
@@ -37,7 +37,9 @@ class SharedWAMV4(nn.Module):
         if config.get("interaction_encoding", INTERACTION_ENCODING) != INTERACTION_ENCODING:
             raise ValueError("unsupported interaction C encoding")
         if int(config.get("interaction_dim", C_DIM)) != C_DIM:
-            raise ValueError("interaction_dim must be eight for the v1 C contract")
+            raise ValueError("interaction_dim must be nine for the structured C contract")
+        if tuple(config.get("interaction_anchor_steps", (8, 16, 24))) != (8, 16, 24):
+            raise ValueError("structured C requires anchors at steps 8, 16 and 24")
         self.config = config
         point_width, width, head = config["point_width"], config["shared_width"], config["head_width"]
         self.explicit_hand = config.get("explicit_hand", True)
@@ -68,7 +70,17 @@ class SharedWAMV4(nn.Module):
         self.scene_readout = nn.MultiheadAttention(head, config["head_heads"], dropout=0., batch_first=True)
         self.scene_norm = nn.LayerNorm(head)
         self.scene_future = TemporalHead(head, head, 3)
-        self.interaction_future = TemporalHead(head, head, C_DIM)
+        # The new relational modules are separate from the v3 trunk. Common v3
+        # parameters can therefore be warm-started while C is initialized fresh.
+        self.interaction_hand_project = nn.Linear(width, head)
+        self.interaction_object_project = nn.Linear(head, head)
+        self.interaction_relation = mlp(3, head)
+        self.interaction_anchor = nn.Embedding(C_ANCHORS, head)
+        self.interaction_head = nn.Sequential(
+            nn.LayerNorm(head), nn.Linear(head, head), nn.GELU(), nn.Linear(head, C_DIM)
+        )
+        nn.init.normal_(self.interaction_head[-1].weight, std=.01)
+        nn.init.zeros_(self.interaction_head[-1].bias)
         self.register_buffer("interaction_scale", interaction_scales(config))
         self.normalizer = HorizonNormalizer(stats, config.get("horizon_normalization", True))
 
@@ -117,22 +129,35 @@ class SharedWAMV4(nn.Module):
         scene_z = scene_z.reshape(len(points), HORIZON, *points.shape[1:3], 3).transpose(1, 2)
         point_mask = point_valid.bool()
         pooled = (object_latent * point_mask[..., None]).sum(2) / point_mask.sum(2).clamp_min(1)[..., None]
-        interaction_z = self.interaction_future(pooled).transpose(1, 2)
-        interaction = interaction_z * self.interaction_scale.view(1, 1, 1, -1)
+        hand_shared = shared[:, offset:offset + 22].reshape(len(shared), 2, 11, -1)
+        hand_relation = self.interaction_hand_project(hand_shared)
+        object_relation = self.interaction_object_project(pooled)
+        object_center = (points * point_mask[..., None]).sum(2) / point_mask.sum(2).clamp_min(1)[..., None]
+        relative = object_center[:, :, None, None] - batch["start_hand"][:, None]
+        relation = (hand_relation[:, None] + object_relation[:, :, None, None]
+                    + self.interaction_relation(relative / self.position_scale))
+        hand_mask_for_c = batch["start_hand_valid"].bool()
+        relation = relation * hand_mask_for_c[:, None, :, :, None].to(relation.dtype)
+        relation = relation.sum(2) / hand_mask_for_c[:, None].sum(2).clamp_min(1)[..., None]
+        relation = relation[:, :, None] + self.interaction_anchor.weight[None, None, :, None]
+        interaction_z = self.interaction_head(relation)
+        interaction_normalized = interaction_z.clone()
+        interaction_normalized[..., 0] = interaction_z[..., 0].sigmoid()
+        interaction = interaction_normalized * self.interaction_scale.view(1, 1, 1, 1, -1)
         hand_mask = batch["start_hand_valid"][:, None, ..., None]
         scene_mask = point_valid[:, :, None, :, None]
-        c_mask = object_valid[:, :, None, None]
+        c_mask = object_valid[:, :, None, None].expand(-1, -1, C_ANCHORS, 11)
         prediction = dict(
             trajectory=torch.where(hand_mask, self.normalizer.denormalize("hand", hand_z), 0.),
             scene=torch.where(scene_mask, self.normalizer.denormalize("scene", scene_z), 0.),
-            interaction=torch.where(c_mask, interaction, 0.),
+            interaction=torch.where(c_mask[..., None], interaction, 0.),
             trajectory_normalized=torch.where(hand_mask, hand_z, 0.),
             scene_normalized=torch.where(scene_mask, scene_z, 0.),
-            interaction_normalized=torch.where(c_mask, interaction_z, 0.),
-            interaction_valid=c_mask.squeeze(-1),
+            interaction_normalized=torch.where(c_mask[..., None], interaction_normalized, 0.),
+            interaction_valid=c_mask,
         )
         if return_shared:
-            prediction.update(shared_tokens=shared, shared_valid=shared_valid, interaction_tokens=pooled)
+            prediction.update(shared_tokens=shared, shared_valid=shared_valid, interaction_tokens=relation)
         return prediction
 
     def parameter_groups(self, geometry_lr, shared_lr):
@@ -145,4 +170,4 @@ class SharedWAMV4(nn.Module):
         return dict(total=sum(p.numel() for p in self.parameters()),
                     geometry=sum(p.numel() for p in self.geometry.parameters()),
                     shared=sum(p.numel() for p in self.interaction.parameters()),
-                    interaction_head=sum(p.numel() for p in self.interaction_future.parameters()))
+                    interaction_head=sum(p.numel() for p in self.interaction_head.parameters()))

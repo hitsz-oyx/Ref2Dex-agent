@@ -8,19 +8,26 @@ planning chain is:
 G_task -> local 24-step goal/scheduler -> WAM -> (tau, C) -> executor
 ```
 
-The new `C` output is object-centric and embodiment-light, with shape `B,O,24,8`:
+The new `C` output is a structured object-centric field with shape
+`B,O,3,11,9` (three anchors at steps 8/16/24, eleven canonical hand points,
+nine channels):
 
-1. soft contact likelihood;
-2. hand/object proximity in metres;
-3. object-centre minus hand-centre approach vector (metres, 3);
-4. relative velocity (metres/second, 3).
+1. soft contact confidence;
+2. approximate object-surface position in metres (3);
+3. approximate surface normal (3);
+4. normal approach velocity in metres/second;
+5. tangential slip speed in metres/second.
 
 `C` is derived from the existing hand and object future labels by
-`interaction_target`; no new corpus is silently introduced. The prediction is
-returned in physical units (`interaction`) and fixed-scale units
-(`interaction_normalized`). Invalid object slots are masked to zero. A future
-Ref adapter can later produce `C_ref` and fuse it before the robot executor; Ref
-is intentionally not in this WAM core.
+`interaction_target`. The first probe uses the existing 32 object query points
+and radial normals as an explicit approximation; it is not dense-surface
+supervision. The prediction is returned in physical units (`interaction`) and
+fixed-scale units (`interaction_normalized`). Invalid object/keypoint slots are
+masked to zero. A later dense-surface data view can keep the same head contract.
+
+The training entry point accepts `--init-v3 <checkpoint>` for a model-only
+warm-start. It transfers all compatible v3 weights and initializes the new C
+relation modules afresh; v3 optimizer state and RNG are not resumed.
 
 This is an architecture/probe implementation. It does not claim robot benefit
 until a matched `tau-only` versus `tau+C` executor experiment is run. It reuses

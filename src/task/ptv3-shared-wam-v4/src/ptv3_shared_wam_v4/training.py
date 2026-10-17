@@ -14,6 +14,7 @@ from .paths import ROOT, TASK, SCHEMA
 from .model import SharedWAMV4
 from .data import NineWindows, collate, loader
 from .checkpoint import (atomic_json, save_checkpoint, load_checkpoint, restore_optimizer,
+    initialize_from_v3,
     checkpoint_alias, prune_recovery_checkpoints, directory_bytes, git_commit)
 from .objectives import forecast_loss, forecast_metrics
 from ptv3_shared_wam_v2.training import gradient_audit
@@ -53,12 +54,16 @@ def main():
     p.add_argument('--output',type=Path,required=True)
     p.add_argument('--artifact-root',type=Path,required=True)
     p.add_argument('--resume',type=Path)
+    p.add_argument('--init-v3',type=Path,
+        help='model-only v3 checkpoint warm-start; new structured C modules are initialized fresh')
     p.add_argument('--resume-reviewed-subset',action='store_true')
     p.add_argument('--resume-learning-rate-drop',action='store_true')
     p.add_argument('--stop-after',type=int)
     p.add_argument('--loader-workers',type=int,default=2)
     p.add_argument('--experiment-card',type=Path,default=TASK/'docs/experiments/probes/P-20261017-wam-v4-interaction-head.md')
     a=p.parse_args()
+    if a.resume and a.init_v3:
+        raise ValueError('choose either a full v4 resume or a model-only v3 warm-start')
     if a.resume_learning_rate_drop and (not a.resume or a.resume_reviewed_subset):
         raise ValueError('LR-only transition requires resume and cannot change the dataset')
     out,artifacts=a.output.resolve(),a.artifact_root.resolve()
@@ -89,14 +94,22 @@ def main():
     train=NineWindows(recipe['main3_root'],recipe['native_root'],'train',recipe)
     dev=NineWindows(recipe['main3_root'],recipe['native_root'],'dev',recipe)
     panel=dev.panel(config['validation_samples']//len(dev.counts),config['validation_seed'])
-    model=SharedWAMV4(stats,config).to(device)
+    model=SharedWAMV4(stats,config)
+    warm_start=None
+    if a.init_v3:
+        warm_start=initialize_from_v3(a.init_v3,model,config,stats)
+    model=model.to(device)
     optimizer=torch.optim.AdamW(model.parameter_groups(config['geometry_lr'],config['shared_lr']),
         weight_decay=config['weight_decay'],fused=True)
     first=0; previous_elapsed=0.; parent=None
     provenance=dict(task=TASK.name,git_commit=git_commit(),code_root=str(ROOT),
         experiment_id=experiment['experiment_id'],run_id=out.name,branch=experiment['branch'],
-        world_size=world,recipe=str(a.recipe.resolve()),initialization='all weights from scratch',
+        world_size=world,recipe=str(a.recipe.resolve()),initialization=(
+            'common v3 model weights; structured C head fresh'
+            if warm_start else 'all weights from scratch'),
         scope='offline nine-source pretraining Probe; robot benefit untested')
+    if warm_start:
+        provenance['v3_warm_start']=warm_start
     if a.resume:
         parent=load_checkpoint(a.resume)
         if a.resume_learning_rate_drop:

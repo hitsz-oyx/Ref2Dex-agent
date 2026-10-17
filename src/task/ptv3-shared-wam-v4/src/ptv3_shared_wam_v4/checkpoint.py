@@ -1,8 +1,43 @@
-"""v3 identity: immutable complete model, normalizer, optimizer and per-rank RNG."""
+"""v4 identity: immutable complete model, normalizer, optimizer and per-rank RNG."""
 from pathlib import Path
 import torch
 from .paths import SCHEMA
 from ptv3_shared_wam.checkpoint import atomic_json, directory_bytes, checkpoint_alias, prune_recovery_checkpoints
+
+
+def initialize_from_v3(path, model, config, stats):
+    """Copy compatible v3 model weights and freshly initialize v4 C modules.
+
+    This is deliberately a model-only transfer: the v3 optimizer, step counter
+    and rank RNG are not resumed because the structured C objective changes the
+    parameter groups and loss surface.
+    """
+    state = torch.load(Path(path), map_location="cpu", weights_only=False)
+    if state.get("schema") != "ref2dex.ptv3-shared-wam.v3" or state.get("stage") != "pretrain":
+        raise ValueError("v3 pretraining checkpoint required for warm-start")
+    old_config, old_stats = state.get("config", {}), state.get("stats", {})
+    shared_fields = ("goal_encoding", "task_conditioning", "point_width", "shared_width",
+                     "shared_heads", "shared_layers", "head_width", "head_heads",
+                     "object_points", "history", "horizon", "position_scale_m",
+                     "velocity_scale_mps", "acceleration_scale_mps2", "hand_in_ptv3",
+                     "explicit_hand", "horizon_normalization", "checkpoint_interaction")
+    for key in shared_fields:
+        if old_config.get(key) != config.get(key):
+            raise ValueError(f"v3/v4 shared architecture mismatch: {key}")
+    for key in ("schema", "split", "units", "fps", "history", "horizon", "hand", "scene"):
+        if old_stats.get(key) != stats.get(key):
+            raise ValueError(f"v3/v4 normalization/statistics mismatch: {key}")
+    source = state["model"]
+    target = model.state_dict()
+    compatible = {key: value for key, value in source.items()
+                  if key in target and tuple(value.shape) == tuple(target[key].shape)}
+    minimum = min(100, max(16, len(target) // 2))
+    if len(compatible) < minimum:
+        raise ValueError(f"v3 warm-start transferred too few parameters: {len(compatible)}")
+    model.load_state_dict(compatible, strict=False)
+    return dict(parent=str(Path(path).resolve()), parent_step=int(state["step"]),
+                transferred=len(compatible), target_parameters=len(target),
+                new_parameters=sorted(set(target) - set(compatible)))
 
 
 def save_checkpoint(path, model, optimizer, config, stats, step, provenance, rank_rng):
@@ -20,7 +55,7 @@ def save_checkpoint(path, model, optimizer, config, stats, step, provenance, ran
 def load_checkpoint(path):
     state = torch.load(path, map_location="cpu", weights_only=False)
     if state.get("schema") != SCHEMA or state.get("stage") != "pretrain":
-        raise ValueError("v3 full pretraining checkpoint required; v1 incompatible")
+        raise ValueError("v4 full pretraining checkpoint required")
     return state
 
 

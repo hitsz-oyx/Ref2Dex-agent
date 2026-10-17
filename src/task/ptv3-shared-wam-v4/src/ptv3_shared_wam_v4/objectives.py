@@ -7,8 +7,7 @@ from .interaction import interaction_target
 
 def _interaction_loss(prediction, batch, config):
     target, valid = interaction_target(batch,
-        contact_threshold_m=config.get("contact_threshold_m", .012),
-        contact_temperature_m=config.get("contact_temperature_m", .003),
+        sigma_m=config.get("contact_sigma_m", .010),
         fps=config.get("fps", 30.0))
     scale = prediction["interaction_normalized"].new_tensor(config.get(
         "interaction_scales", (1., .05, .05, .05, .05, .5, .5, .5)))
@@ -20,6 +19,23 @@ def _interaction_loss(prediction, batch, config):
     return torch.where(mask, error, torch.zeros_like(error)).sum() / denom, denom.detach()
 
 
+def _interaction_consistency_loss(prediction, batch, config):
+    """Penalize confident C predictions that disagree with predicted geometry."""
+    hand = batch["start_hand"].float()[:, None] + prediction["trajectory"].float()
+    objects = batch["scene_points"].float()[:, :, None] + prediction["scene"].float()
+    steps = (8, 16, 24)
+    ids = [step - 1 for step in steps]
+    hand = hand[:, ids]                                      # B,A,2,11,3
+    objects = objects[:, :, ids]                             # B,O,A,P,3
+    pair = objects[:, :, :, None, None, :, :] - hand[:, None, :, :, :, None, :]
+    distance = pair.square().sum(-1).sqrt().amin(-1).amin(3)  # B,O,A,11
+    confidence = prediction["interaction"][..., 0]
+    valid = batch["object_valid"].bool()[:, :, None, None]
+    valid = valid & batch["start_hand_valid"].bool().any(1)[:, None, None, :]
+    hinge = torch.relu(distance - float(config.get("contact_sigma_m", .010))) * confidence
+    return torch.where(valid, hinge, torch.zeros_like(hinge)).sum() / valid.float().sum().clamp_min(1.)
+
+
 def forecast_loss(prediction, batch, config, normalizer, distributed=False):
     total, terms = base_loss(prediction, batch, config, normalizer)
     c_loss, local_count = _interaction_loss(prediction, batch, config)
@@ -28,18 +44,21 @@ def forecast_loss(prediction, batch, config, normalizer, distributed=False):
         dist.all_reduce(count)
         c_loss = c_loss * (dist.get_world_size() * local_count / count.clamp_min(1.))
     terms = dict(terms, interaction=c_loss)
-    return total + config.get("interaction_weight", 1.0) * c_loss, terms
+    consistency = _interaction_consistency_loss(prediction, batch, config)
+    terms["interaction_consistency"] = consistency
+    total = total + config.get("interaction_weight", 1.0) * c_loss
+    total = total + config.get("interaction_consistency_weight", .05) * consistency
+    return total, terms
 
 
 def metrics(prediction, batch, config):
     result = dict(base_metrics(prediction, batch, config))
     target, valid = interaction_target(batch,
-        contact_threshold_m=config.get("contact_threshold_m", .012),
-        contact_temperature_m=config.get("contact_temperature_m", .003),
+        sigma_m=config.get("contact_sigma_m", .010),
         fps=config.get("fps", 30.0))
     error = (prediction["interaction"] - target).abs()
     mask = valid[..., None].expand_as(error)
-    result["interaction/mae"] = dict(sum=float(torch.where(mask, error, torch.zeros_like(error)).sum()),
+    result["interaction/mae"] = dict(sum_mm=float(torch.where(mask, error, torch.zeros_like(error)).sum()),
         count=int(mask.sum()))
     return result
 
