@@ -5,7 +5,7 @@ experiment_id: P-20261017-wam-v4-interaction-head
 date: 2026-10-17
 task: ptv3-shared-wam-v4
 branch: main
-git_commit: UNCOMMITTED
+git_commit: 1e44f904
 claim_id: C1
 hypothesis_family: HF-wam-interaction-head
 probe_index_in_family: 1
@@ -13,8 +13,8 @@ seed_pool: probe
 seeds: [170]
 decision_changed_if_positive: keep the dynamic graph interface and run a matched tau-only versus tau-plus-C executor probe
 decision_changed_if_negative: remove or redesign C before any long pretraining budget
-status: ENGINEERING
-run_id: not-run
+status: READY
+run_id: v4-window-filter-train-20261018-r4
 ---
 
 # WAM-v4 target-object interaction field
@@ -38,3 +38,10 @@ transfer and the graph relation modules initialize fresh. The cheapest
 qualification is a forward/backward smoke and a masked-label audit. Only after
 those pass should a matched `state + tau` versus `state + tau + C` executor
 probe decide whether sustained pretraining is justified.
+
+The local contract suite passes (`63 passed`). A real main3/native mixed batch
+also passed forward, finite loss, and backward on the remote environment. The
+NAS filter artifact is
+`data/v4-window-filter-train-20261018-r4.json`; it uses conservative bounding-
+box contact candidates for thinning only, while exact C labels remain the
+voxel-scaffold training path.
