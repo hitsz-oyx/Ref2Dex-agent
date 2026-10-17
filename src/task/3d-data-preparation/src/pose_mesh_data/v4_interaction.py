@@ -98,14 +98,13 @@ def _voxel(points: np.ndarray, origin: np.ndarray, voxel_m: float) -> np.ndarray
 
 def _scaffold(hand: np.ndarray, valid: np.ndarray, origin: np.ndarray, policy: V4SamplingPolicy):
     """Rasterize 2x11 hand points, returning voxel -> per-part counts."""
-    cells = {}
+    points, parts = [], []
     for side in range(hand.shape[0]):
         for key, ok in enumerate(valid[side]):
             if ok:
-                cell = tuple(_voxel(hand[side, key:key + 1], origin, policy.voxel_m)[0])
                 part = 0 if key == 0 else (1 if key in (1, 6) else key - 1 if key <= 5 else key - 5)
-                counts = cells.setdefault(cell, np.zeros(PART_DIM, np.float32))
-                counts[part] += 1
+                points.append(hand[side, key])
+                parts.append(part)
         for a, b, part in SCAFFOLD_SEGMENTS:
             if not (valid[side, a] and valid[side, b]):
                 continue
@@ -113,11 +112,15 @@ def _scaffold(hand: np.ndarray, valid: np.ndarray, origin: np.ndarray, policy: V
             length = float(np.linalg.norm(end - start))
             n = max(2, int(np.ceil(length / policy.voxel_m)) + 1)
             line = start[None] + np.linspace(0, 1, n)[:, None] * (end - start)[None]
-            for point in line:
-                cell = tuple(_voxel(point[None], origin, policy.voxel_m)[0])
-                counts = cells.setdefault(cell, np.zeros(PART_DIM, np.float32))
-                counts[part] += 1
-    return cells
+            points.append(line)
+            parts.extend([part] * n)
+    if not points:
+        return {}
+    voxels = _voxel(np.concatenate([p if p.ndim == 2 else p[None] for p in points]), origin, policy.voxel_m)
+    unique, inverse = np.unique(voxels, axis=0, return_inverse=True)
+    counts = np.zeros((len(unique), PART_DIM), np.float32)
+    np.add.at(counts, (inverse, np.asarray(parts, np.int64)), 1.)
+    return {tuple(cell): counts[index] for index, cell in enumerate(unique)}
 
 
 def interaction_field(hand_future: np.ndarray, hand_valid: np.ndarray,
