@@ -23,8 +23,13 @@ class NineWindows(Dataset):
         self.blocked = np.zeros(len(self.main) + len(self.native), bool)
         excluded = excluded_indices(recipe, split, len(self.blocked))
         self.blocked[excluded] = True
-        if recipe and recipe.get('window_filter_manifest'):
-            path = Path(recipe['window_filter_manifest'])
+        filter_path = None
+        if recipe:
+            filter_path = recipe.get('window_filter_manifests', {}).get(split)
+            if filter_path is None:
+                filter_path = recipe.get('window_filter_manifest')
+        if filter_path:
+            path = Path(filter_path)
             manifest = __import__('json').loads(path.read_text())
             if (manifest.get('schema') != 'ref2dex.wam-v4-window-filter.v1'
                     or manifest.get('split') != split
