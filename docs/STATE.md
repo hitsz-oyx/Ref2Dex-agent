@@ -25,11 +25,11 @@
 environment-step 预算；1024-env 试跑因约52小时 ETA停止，不作为科学负结果。
 
 WAM-v3 64-env run 在7200秒边界到4734/10000，model_4000固定 TRAIN 为
-`10/128 success, 6 held60, 17 lifted`，同iteration官方 initialized 为
-`103/128, 84 held60, 108 lifted`。这使“直接拼接WAM summary并整网更新”在当前配方下
-暂记UNPROMISING；它不否定WAM表征本身，若继续应改成冻结native路径的zero-init adapter
-或低学习率对照。旧小规模WAM PPO卡中的“学习资格/PROMISING”只说明输入和独立策略能学，
-不等同于官方initialized state baseline上的任务收益。
+`10/128 success, 6 held60, 17 lifted`。此前记录的同iteration official initialized
+`103/128, 84 held60, 108 lifted` 缺少可独立核验的对应评估产物，现从匹配对照中剔除。
+直接拼接WAM summary并整网更新仍暂记UNPROMISING；它不否定WAM表征本身，若继续应改成冻结
+native路径的zero-init adapter或低学习率对照。旧小规模WAM PPO卡中的“学习资格/PROMISING”
+只说明输入和独立策略能学，不等同于官方initialized state baseline上的任务收益。
 
 冻结 native 路径的 zero-init WAM actor adapter 也完成 1000 iterations/64 env，
 learning-audit=PASS 且仅 adapter 参数更新。published checkpoint 加零初始化 adapter 的
@@ -58,6 +58,17 @@ TRAIN 的小幅 success 差异未泛化到 DEV，因此有界 adapter 路线停�
 同一 checkpoint 在 TRAIN 上换用 seed250 重评估时，WAM/native 分别为
 `50/128, 38 held, 53 lifted` 与 `69/128, 50 held, 76 lifted`，进一步排除了 seed249
 小幅 success 优势的偶然性。
+
+## 2026-10-17 WAM runtime 修正 Probe
+
+修正 adapter 的重复 residual 和批次级 history 清空后，64-env/32-iteration smoke 完成
+640 optimizer steps、audit=PASS；旧有界 adapter checkpoint 在修正 runtime 上为
+`58/128 success, 40 held, 63 lifted`，旧记录为 `65/128, 37, 70`，差异不能单独归因于
+某一个修复。修正 `gain=0.05` adapter 完成 64-env/1000 iterations、512,000 env steps，
+末值 EV=0.918、history invalid=0；固定 TRAIN 为 `67/128, 43, 70`。同 runtime published
+control 为 `65/128, 39, 71`，本轮只记 `UNCLEAR`，不宣称 WAM 收益。r1--r5 是 Isaac Gym、
+gym/ninja 或 JIT cache 环境准备失败，未进入科学结果统计。详见
+[runtime correction Probe](../src/task/wam-rl-policy/docs/experiments/probes/P-20261017-wam-runtime-correction.md)。
 
 ## 2026-10-15 DexYCB全被试已补齐，扩充版九源数据本地/远端就绪
 

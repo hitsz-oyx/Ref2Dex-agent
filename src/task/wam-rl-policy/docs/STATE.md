@@ -1,5 +1,19 @@
 # 当前状态
 
+## 2026-10-17 WAM runtime 修正 Probe：旧退化被实现问题混淆，修复后仍仅 UNCLEAR
+
+[runtime correction Probe](experiments/probes/P-20261017-wam-runtime-correction.md) 修正了
+adapter 在 `act_inference` 重复加 residual 以及批次级 history 清空。64-env/32-iteration
+smoke 完成 640 optimizer steps、冻结/有限性审计 PASS；旧有界 adapter checkpoint 在修正
+runtime 上为 `58/128 success, 40 held, 63 lifted`，旧记录为 `65/128, 37, 70`，差异不能
+单独归因于某一个修复。
+
+修正 `gain=0.05` adapter 完成 64-env/1000 iterations、512,000 env steps、20,000 optimizer
+steps，末值 EV=0.918、history invalid=0。固定 TRAIN 为 `67/128 success, 43 held, 70 lifted`；
+同 runtime published control 为 `65/128, 39, 71`。单 seed/单 TRAIN 面板只记 `UNCLEAR`，不
+宣称 WAM 收益；下一步不追加同配方长训，应采用相同可训练模块的 matched native、独立 DEV
+和多 seed Validation。r1--r5 仅为远端环境准备失败，未进入结果统计。
+
 ## 2026-10-16：共同抓取起点上的协调奖励未改善保持，停止加码该接法
 
 [协调奖励Probe](experiments/probes/P-20261016-wam-coordination-bonus.md)已完成：共同自训

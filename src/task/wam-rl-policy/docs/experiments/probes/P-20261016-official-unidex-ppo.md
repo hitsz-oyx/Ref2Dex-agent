@@ -104,6 +104,11 @@ environment steps、200000 Adam steps，`learning-audit=PASS`。训练终点的 
 WAM 运行使用的是当前工作树部署文件，远端 manifest 中继承的 `code_commit=11664741` 只对应
 官方 baseline 提交，不能作为 WAM 改动的独立代码身份。
 
+环境记录边界：本卡记录了 simulator environment 数、GPU、资产和运行预算，但没有逐 run
+固化 conda 环境、Torch/CUDA 版本、Isaac Gym 与 gym 的 Python 路径、`LD_LIBRARY_PATH`
+或 JIT extension cache。因而这些旧 run 的软件环境不能仅凭本卡完全复现；本次 runtime
+修正 Probe 才补上了显式软件环境合同，并把环境准备失败与科学结果分开统计。
+
 当前判断：`UNCLEAR`。官方上游 PPO 在当前资产面板上也未从零学会，而已有模型可成功，
 因此此前“必然是自写 PPO 数学实现错误”的解释被削弱；仍需最小化核对官方训练所需的
 奖励尺度/episode 机制、随机初始化与论文训练配方，再决定是否进入长预算 WAM 对照。

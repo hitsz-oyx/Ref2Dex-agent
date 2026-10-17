@@ -176,3 +176,23 @@ Objective A；fresh 从零训练仍是 `0/128`，两者不能混称官方 baseli
 `gain=0.05`、64-env、1000-iteration 的短训练；若审计失败、出现非有限值，或连续八个
 完整物体段的 critic EV 近零，立即停止。只有在修复后结果与训练动作语义一致时，才继续
 比较 WAM 与 native 的边际收益。
+
+### 修订 Probe 结果
+
+修复后的 smoke 完成 640 optimizer steps，冻结审计通过，末值 critic EV=0.871；旧有界
+adapter checkpoint 在修正 runtime 上为 `58/128 success, 40 held, 63 lifted`，旧记录为
+`65/128, 37, 70`。这说明 runtime 修正改变了行为面板，但因为 residual 路径和 history
+同时变化，不能把差异拆成某一个 bug 的因果贡献。
+
+修正后的 `gain=0.05` adapter 训练完成 1000 iterations、512,000 environment steps，
+`learning-audit=PASS`，末值 EV=0.918，history invalid=0。`model_1000.pt` 在同 seed249、
+128-env TRAIN 上为 `67/128 success, 43 held, 70 lifted`；修正 published control 为
+`65/128, 39, 71`。相对差值 `+2/+4/-1` 只属于单 seed、单 TRAIN 面板的弱正向读数，
+当前 Probe 记 `UNCLEAR`。可以收紧的结论是：旧 adapter 的灾难性退化不能继续直接归因于
+WAM 表征；还不能说修复后的 adapter 已带来可验证任务增益。
+
+此外，远端运行环境已补充为可复现合同：Torch 2.0.1/cu118 的 `graspenv` 加
+`dexplore-4090` 的 gym site-packages，Isaac Gym Python 路径和 `LD_LIBRARY_PATH` 显式
+记录，JIT extension 改为每个 run 私有目录。此前 r1--r5 的失败均为环境准备失败，不进入
+科学结果汇总。完整协议和产物路径见
+[`P-20261017-wam-runtime-correction`](../../experiments/probes/P-20261017-wam-runtime-correction.md)。
