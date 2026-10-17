@@ -8,8 +8,30 @@ from torch.utils.data import Dataset, DataLoader
 from pose_mesh_data.v4_data import V4Main3Windows, V4NativeWindows, v4_collate
 from pose_mesh_data.native_recipe import source_pools
 from .paths import SOURCE_IDS
-from ptv3_shared_wam_v3.quality_admission import excluded_indices
 from oakink_wm.multisource import source_draw
+
+
+def excluded_indices(recipe, split, total):
+    """Read the optional frozen v3 quality exclusion index."""
+    d = recipe.get('quality_admission') if recipe else None
+    if not d:
+        return np.empty(0, np.int64)
+    if (d.get('schema') != 'ref2dex.strict-motion-window-admission.v1'
+            or d['base_native_index_stamp'] != recipe['native_index_stamp']
+            or d['base_main3_identity'] != recipe['main3_identity']):
+        raise ValueError('quality admission base identity mismatch')
+    path = Path(d['index_path']); stamp = path.stat()
+    if [stamp.st_size, stamp.st_mtime_ns] != d['index_stamp']:
+        raise ValueError('quality exclusion index changed')
+    with np.load(path, allow_pickle=False) as values:
+        indices = values[split].copy()
+    if (indices.ndim != 1 or indices.dtype.kind not in 'iu'
+            or (len(indices) and (indices[0] < 0 or indices[-1] >= total
+                                  or (np.diff(indices) <= 0).any()))):
+        raise ValueError('sorted unique in-range quality exclusions required')
+    if len(indices) != d['excluded_windows'][split]:
+        raise ValueError('quality exclusion count mismatch')
+    return indices
 
 
 class NineWindows(Dataset):
