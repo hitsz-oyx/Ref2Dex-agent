@@ -63,7 +63,7 @@ class NineWindows(Dataset):
                     (filtered[0] < 0 or filtered[-1] >= len(self.blocked) or (np.diff(filtered) <= 0).any()))):
                 raise ValueError('sorted unique v4 window filter required')
             self.blocked[filtered] = True
-        if len(excluded):
+        if self.blocked.any():
             for sid, source in enumerate(self.main.base.sources):
                 offset = self.main.base.offsets[sid]
                 mask = self.blocked[offset:offset + len(source)]
