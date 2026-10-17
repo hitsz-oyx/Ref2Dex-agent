@@ -17,25 +17,24 @@ status: ENGINEERING
 run_id: not-run
 ---
 
-# WAM-v4 dynamic interaction graph
+# WAM-v4 target-object interaction field
 
 This is an architecture probe, not a robot-benefit result. It keeps the v3
-shared encoder and hand/scene heads and adds a dynamic object-centric graph:
+shared encoder and hand/scene heads and adds a target-object interaction field:
 
 ```text
-G_task -> WAM -> (tau_hand[24], tau_scene[24], C_HO[24]) -> executor
+G_task -> WAM -> (tau_hand[24], tau_scene[24], C[24,128,7]) -> executor
 ```
 
-`C_HO` has shape `B,O,T,2,11,P,9` (`T=24`, `P=32` in the current data
-contract). Each edge contains contact confidence, object-relative surface
-position, radial normal, normal approach velocity and tangential slip speed.
-The hand-point and object-point axes stay explicit; the graph is not reduced to
-a global mean-pooled WAM feature. Labels use the existing 32 query points and
-radial-normal approximation, so this probe does not claim dense-surface
-supervision.
+`C` has shape `B,O,24,128,7`: contact confidence and six semantic hand-part
+probabilities. The 128 object queries carry position and unit normal as inputs;
+they are not regression targets. Labels use a deterministic 1cm voxelized
+semantic hand scaffold. All nine sources use the same 512-surface/32-flow/128-
+interaction contract; older native geometry is cyclically repeated into the
+fixed surface view without fabricating normals.
 
 The trainer supports a model-only v3 warm start. Compatible trunk parameters
 transfer and the graph relation modules initialize fresh. The cheapest
 qualification is a forward/backward smoke and a masked-label audit. Only after
-those pass should a matched `state + tau` versus `state + tau + C_HO` executor
+those pass should a matched `state + tau` versus `state + tau + C` executor
 probe decide whether sustained pretraining is justified.

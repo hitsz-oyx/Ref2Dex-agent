@@ -1,17 +1,15 @@
 {
   "schema": "ref2dex.ptv3-shared-wam.v4",
-  "interaction_encoding": "dynamic-object-interaction-graph.v3",
-  "interaction_dim": 9,
+  "interaction_encoding": "object-centric-interaction-field.v4",
+  "interaction_dim": 7,
   "interaction_scales": [
     1.0,
-    0.05,
-    0.05,
-    0.05,
     1.0,
     1.0,
     1.0,
-    0.5,
-    0.5
+    1.0,
+    1.0,
+    1.0
   ],
   "goal_encoding": "current-point-horizon-delta.v1",
   "task_conditioning": "shared-scene-hand-goal.v1",
@@ -24,7 +22,9 @@
   "head_heads": 8,
   "patch_size": 128,
   "scene_tokens": 256,
+  "surface_points": 512,
   "object_points": 32,
+  "interaction_points": 128,
   "fps": 30,
   "history": 4,
   "horizon": 24,
@@ -110,8 +110,6 @@
   },
   "interaction_horizon": 24,
   "interaction_edge_width": 64,
-  "interaction_background_weight": 0.05,
   "contact_metric_threshold": 0.25,
-  "contact_sigma_m": 0.01,
-  "interaction_consistency_weight": 0.05
+  "interaction_positive_only": true
 }

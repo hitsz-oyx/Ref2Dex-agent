@@ -1,17 +1,16 @@
-import json
-from pathlib import Path
-import sys
 import numpy as np
 import torch
+from pathlib import Path
 from torch import nn
 
 TASK = Path(__file__).resolve().parents[1]
+import sys
 sys.path.insert(0, str(TASK / "src"))
-from ptv3_shared_wam_v4.interaction import C_ANCHORS, C_DIM, C_NAMES, interaction_target
+from ptv3_shared_wam_v4.interaction import C_DIM, C_HORIZON, C_NAMES, interaction_target
 from ptv3_shared_wam_v4.model import SharedWAMV4
 from ptv3_shared_wam_v4.objectives import forecast_loss
 from ptv3_shared_wam_v4.checkpoint import initialize_from_v3
-from ptv3_shared_wam_v4.paths import SCHEMA, STATS_SCHEMA
+from ptv3_shared_wam_v4.paths import SCHEMA, STATS_SCHEMA, INTERACTION_ENCODING
 
 
 class Geometry(nn.Module):
@@ -22,18 +21,16 @@ class Geometry(nn.Module):
     def forward(self, batch, hand, valid):
         tokens = self.project(hand.mean(1, keepdim=True).expand(-1, 4, -1))
         return dict(tokens=tokens, xyz=torch.zeros(len(hand), 4, 3, device=hand.device),
-                    mask=torch.ones(len(hand), 4, dtype=torch.bool, device=hand.device),
-                    hand=hand)
+                    mask=torch.ones(len(hand), 4, dtype=torch.bool, device=hand.device), hand=hand)
 
 
 def config():
-    return dict(schema=SCHEMA, interaction_encoding="dynamic-object-interaction-graph.v3",
-        interaction_dim=9, interaction_horizon=24, interaction_edge_width=8, goal_encoding="current-point-horizon-delta.v1",
-        task_conditioning="shared-scene-hand-goal.v1", horizon=24, point_width=8, shared_width=16,
-        shared_heads=4, shared_layers=2, head_width=8, head_heads=2,
-        position_scale_m=.05, velocity_scale_mps=.5, acceleration_scale_mps2=5.,
-        checkpoint_interaction=False, interaction_scales=[1., .05, .05, .05, 1., 1., 1., .5, .5],
-        contact_sigma_m=.01, interaction_consistency_weight=.05)
+    return dict(schema=SCHEMA, interaction_encoding=INTERACTION_ENCODING, interaction_dim=7,
+        interaction_horizon=24, interaction_points=128, surface_points=512, interaction_edge_width=8,
+        goal_encoding="current-point-horizon-delta.v1", task_conditioning="shared-scene-hand-goal.v1",
+        horizon=24, point_width=8, shared_width=16, shared_heads=4, shared_layers=2, head_width=8, head_heads=2,
+        position_scale_m=.05, velocity_scale_mps=.5, acceleration_scale_mps2=5., checkpoint_interaction=False,
+        interaction_scales=[1.] * 7, motion_tau_m=.002, motion_floor=.1, hand_weight=1., scene_weight=1.)
 
 
 def stats():
@@ -48,17 +45,22 @@ def batch():
     return dict(start_hand=torch.randn(2, 2, 11, 3) * .02,
         start_hand_history=torch.randn(2, 2, 11, 9) * .01,
         start_hand_valid=torch.ones(2, 2, 11, dtype=torch.bool),
-        xyz=torch.rand(2, 8, 3), features=torch.zeros(2, 8, 18),
-        point_valid=torch.ones(2, 8, dtype=torch.bool),
-        scene_points=torch.randn(2, 2, 4, 3) * .02,
-        object_valid=torch.tensor([[True, True], [True, False]]),
-        start_object_points=torch.rand(2, 3, 3) * .02,
-        goal_object_delta=torch.rand(2, 3, 3) * .05,
-        object_goal_valid=torch.ones(2, 3, dtype=torch.bool),
+        xyz=torch.rand(2, 512, 3), features=torch.zeros(2, 512, 18),
+        point_valid=torch.ones(2, 512, dtype=torch.bool),
+        scene_points=torch.randn(2, 1, 32, 3) * .02,
+        object_valid=torch.tensor([[True], [False]]),
+        interaction_points=torch.randn(2, 1, 128, 3) * .02,
+        interaction_normals=torch.nn.functional.normalize(torch.randn(2, 1, 128, 3), dim=-1),
+        interaction_target=torch.zeros(2, 1, 24, 128, 7),
+        interaction_valid=torch.cat((torch.ones(1, 1, 24, 128, dtype=torch.bool),
+                                     torch.zeros(1, 1, 24, 128, dtype=torch.bool))),
+        start_object_points=torch.rand(2, 32, 3) * .02,
+        goal_object_delta=torch.rand(2, 32, 3) * .05,
+        object_goal_valid=torch.ones(2, 32, dtype=torch.bool),
         trajectory_target=torch.randn(2, 24, 2, 11, 3) * .01,
         trajectory_valid=torch.ones(2, 24, 2, 11, dtype=torch.bool),
-        scene_target=torch.randn(2, 2, 24, 4, 3) * .002,
-        scene_valid=torch.ones(2, 2, 24, 4, dtype=torch.bool))
+        scene_target=torch.randn(2, 1, 24, 32, 3) * .002,
+        scene_valid=torch.ones(2, 1, 24, 32, dtype=torch.bool))
 
 
 def model():
@@ -67,21 +69,18 @@ def model():
 
 
 def test_c_contract_and_target_are_masked():
-    b = batch()
-    target, valid = interaction_target(b)
-    assert target.shape == (2, 2, C_ANCHORS, 2, 11, 4, C_DIM)
-    assert C_NAMES[0] == "contact_confidence" and valid.shape == (2, 2, C_ANCHORS, 2, 11, 4)
-    assert not valid[1, 1].any() and not target[1, 1].any()
-    assert torch.isfinite(target).all()
+    target, valid = interaction_target(batch())
+    assert target.shape == (2, 1, C_HORIZON, 128, C_DIM)
+    assert C_NAMES[0] == "contact_confidence" and valid.shape == target.shape[:-1]
+    assert not valid[1].any() and not target[1].any()
 
 
 def test_v4_emits_tau_scene_and_interaction_and_goal_reaches_c():
-    m = model(); b = batch()
-    first = m(b)
+    m = model(); b = batch(); first = m(b)
     assert first["trajectory"].shape == (2, 24, 2, 11, 3)
-    assert first["scene"].shape == (2, 2, 24, 4, 3)
-    assert first["interaction"].shape == (2, 2, C_ANCHORS, 2, 11, 4, C_DIM)
-    assert not first["interaction"][1, 1].any()
+    assert first["scene"].shape == (2, 1, 24, 32, 3)
+    assert first["interaction"].shape == (2, 1, 24, 128, C_DIM)
+    assert not first["interaction"][1].any()
     b["goal_object_delta"] = b["goal_object_delta"] + .2
     second = m(b)
     assert not torch.allclose(first["trajectory"], second["trajectory"])
@@ -90,27 +89,24 @@ def test_v4_emits_tau_scene_and_interaction_and_goal_reaches_c():
 
 def test_interaction_loss_backpropagates_to_new_head():
     c = config(); m = SharedWAMV4(stats(), c, Geometry(c["point_width"]))
-    b = batch(); p = m(b)
-    total, terms = forecast_loss(p, b, {**c, "hand_weight": 1., "scene_weight": 1.,
-        "motion_tau_m": .002, "motion_floor": .1}, m.normalizer)
+    b = batch(); b["interaction_target"][0, 0, :, :4, 0] = 1.
+    b["interaction_target"][0, 0, :, :4, 1] = 1.
+    p = m(b)
+    total, terms = forecast_loss(p, b, c, m.normalizer)
     assert torch.isfinite(total) and torch.isfinite(terms["interaction"])
-    grad = torch.autograd.grad(terms["interaction"], list(m.interaction_head.parameters()),
-                               allow_unused=True)
+    grad = torch.autograd.grad(terms["interaction"], list(m.interaction_head.parameters()), allow_unused=True)
     assert any(g is not None and torch.isfinite(g).all() and g.abs().sum() > 0 for g in grad)
 
 
 def test_v3_model_only_warm_start_leaves_structured_head_fresh(tmp_path):
     c = config(); m = SharedWAMV4(stats(), c, Geometry(c["point_width"]))
     target = m.state_dict()
-    new_prefixes = ("interaction_hand_project", "interaction_object_project",
-                    "interaction_relation", "interaction_time", "interaction_head")
-    old_model = {k: v.clone() for k, v in target.items()
-                 if not k.startswith(new_prefixes) and k != "interaction_scale"}
+    new_prefixes = ("interaction_query", "interaction_hand_project", "interaction_object_project",
+                    "interaction_context_project", "interaction_time", "interaction_head")
+    old_model = {k: v.clone() for k, v in target.items() if not k.startswith(new_prefixes) and k != "interaction_scale"}
     packet = dict(schema="ref2dex.ptv3-shared-wam.v3", stage="pretrain", step=80000,
                   config=c, stats=stats(), model=old_model)
-    path = tmp_path / "v3.pt"
-    torch.save(packet, path)
+    path = tmp_path / "v3.pt"; torch.save(packet, path)
     report = initialize_from_v3(path, m, c, stats())
-    assert report["parent_step"] == 80000
-    assert report["transferred"] == len(old_model)
+    assert report["parent_step"] == 80000 and report["transferred"] == len(old_model)
     assert "interaction_head.0.weight" in report["new_parameters"]
