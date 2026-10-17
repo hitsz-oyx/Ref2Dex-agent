@@ -3,7 +3,7 @@ schema: ref2dex.probe.v2
 experiment_id: P-20261017-gt-tau-new-sequence
 task: trajectory-policy
 branch: main
-git_commit: c1024d5862ecf120daa3e9940cddc696ffc2a7aa
+git_commit: 396ad87c9bc7a6f2c7488338e42d8961c27a445e
 status: RUNNING
 classification: Decision
 hypothesis: The frozen retargeter R driven by oracle future hand plan GT tau can still stably grasp and hold an unseen sequence.
@@ -12,7 +12,7 @@ decision: A pass permits moving to a learned executor on this sequence; a fail b
 sequence: s1_airplane_fly_1
 sequence_path: /home2/wyy/oyx_ws/Ref2Dex/data/processed_data/inspire_rl_partial_filtered_20260905/s1_airplane_fly_1/interaction_hand_inspire.pt
 model_sha256: 414411a0c16d92a9e43c3b7a40615f8995ec4ea3b66bcaca3dc1a0fcae10181f
-protocol: 8 official teacher, 8 source-PD control, 8 GT-tau-R oracle episodes; 542 controls at 30 Hz; frozen official DExplore simulator and checkpoint.
+protocol: 8 official teacher, 8 source-PD control, 8 GT-tau-R oracle episodes; controls equal to motion frames minus one at 30 Hz; frozen official DExplore simulator and checkpoint.
 pass_gate: GT-tau-R hold45 >= 6/8, success >= 6/8, clipping_rate < 1%, median_held >= 0.8 * source-PD median_held.
 resource: local GPU 0, pinned runtime /home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train; coexist with pre-existing <=0.4 GiB processes.
 outputs: outputs/trajectory-policy/gt-tau-new-sequence-20261017-r1/
