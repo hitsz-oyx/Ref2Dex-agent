@@ -207,3 +207,57 @@ class DirectTauExecutorOracleCPolicy(DirectTauExecutorPolicy):
         if not torch.isfinite(output).all():
             raise FloatingPointError("nonfinite oracle-C executor action")
         return output
+
+
+TEMPORAL_SCHEMA = "ref2dex.direct-tau-executor.temporal-v2"
+
+
+class TemporalTauExecutorPolicy(nn.Module):
+    """Direct executor with an order-sensitive reference-plan encoder.
+
+    This r3 contract intentionally has no task-goal input.  The current probe
+    asks whether a measured state can execute a reference plan; goal
+    conditioning is deferred until there are multiple goal-bearing sequences.
+    """
+
+    schema = TEMPORAL_SCHEMA
+
+    def __init__(self, horizon: int = 8, width: int = 256):
+        super().__init__()
+        if not isinstance(horizon, int) or horizon < 1:
+            raise ValueError("horizon must be a positive integer")
+        if not isinstance(width, int) or width < 16:
+            raise ValueError("width must be an integer >= 16")
+        self.horizon = horizon
+        self.state_encoder = nn.Sequential(
+            nn.Linear(STATE_DIM + ACTION_DIM, width), nn.Tanh(),
+        )
+        self.tau_input = nn.Sequential(nn.Linear(HAND_PLAN_DIM, width), nn.Tanh())
+        self.position = nn.Parameter(torch.zeros(1, horizon, width))
+        nn.init.normal_(self.position, mean=0., std=.02)
+        # Flatten after adding a learned position code.  This is deliberately
+        # a temporal MLP rather than GRU: the archived DExplore runtime has an
+        # incompatible cuDNN shared library, while this encoder remains fully
+        # GPU-compatible and order-sensitive.
+        self.tau_encoder = nn.Sequential(
+            nn.Linear(horizon * width, width), nn.Tanh(),
+        )
+        self.head = nn.Sequential(
+            nn.Linear(2 * width, width), nn.Tanh(),
+            nn.Linear(width, ACTION_DIM),
+        )
+
+    def forward(self, state: torch.Tensor, tau: torch.Tensor,
+                previous_action: torch.Tensor) -> torch.Tensor:
+        validate_batch(state, tau, previous_action)
+        if tau.shape[1] != self.horizon:
+            raise ValueError(
+                f"tau horizon mismatch: model={self.horizon}, batch={tau.shape[1]}"
+            )
+        state_code = self.state_encoder(torch.cat((state, previous_action), dim=-1))
+        encoded = self.tau_input(tau) + self.position
+        tau_code = self.tau_encoder(encoded.reshape(len(encoded), -1))
+        output = torch.tanh(self.head(torch.cat((state_code, tau_code), dim=-1)))
+        if not torch.isfinite(output).all():
+            raise FloatingPointError("nonfinite temporal executor action")
+        return output

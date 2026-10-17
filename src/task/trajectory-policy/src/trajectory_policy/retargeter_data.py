@@ -28,6 +28,29 @@ def features(q, dq, hand, obj, velocity, future_hand):
     return state, tau.reshape(*tau.shape[:-2], 33).astype(np.float32)
 
 
+def reference_tau(reference_hand, reference_obj, future_reference_hand):
+    """Encode an independent reference plan in its own query object frame.
+
+    Both the current and future hand points come from the reference rollout.
+    A live student state must never be used to form this displacement; live
+    state belongs in ``features`` as feedback.  This keeps the plan contract
+    invariant when the student deviates from the reference.
+    """
+    hand = np.asarray(reference_hand)
+    obj = np.asarray(reference_obj)
+    future = np.asarray(future_reference_hand)
+    if (hand.shape[-2:] != (11, 3) or obj.shape[-2:] != (4, 4)
+            or future.shape[-2:] != (11, 3)
+            or future.shape[:-3] != hand.shape[:-2]):
+        raise ValueError("reference hand/object plan shape mismatch")
+    rotation = obj[..., :3, :3]
+    tau = np.einsum("...tpj,...jk->...tpk", future - hand[..., None, :, :], rotation)
+    result = tau.reshape(*tau.shape[:-2], 33).astype(np.float32)
+    if not np.isfinite(result).all():
+        raise ValueError("reference tau contains nonfinite values")
+    return result
+
+
 def build_windows(data, indices, horizon=24, prefix=8):
     if not np.array_equal(data['action'], data['applied']):
         raise ValueError('labels must equal actually applied commands')
