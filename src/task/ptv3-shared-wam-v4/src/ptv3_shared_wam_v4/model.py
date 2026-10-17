@@ -4,7 +4,7 @@ from torch import nn
 from torch.utils.checkpoint import checkpoint
 from .paths import SCHEMA, HORIZON, INTERACTION_ENCODING
 from .normalization import HorizonNormalizer
-from .interaction import C_ANCHORS, C_DIM, interaction_scales
+from .interaction import C_HORIZON, C_DIM, interaction_scales
 from ptv3_shared_wam.model import clean
 from ptv3_shared_wam.contracts import GOAL_ENCODING, TASK_CONDITIONING
 
@@ -35,11 +35,11 @@ class SharedWAMV4(nn.Module):
                 or config.get("task_conditioning") != TASK_CONDITIONING):
             raise ValueError("independent v4 shared-goal future24 config required")
         if config.get("interaction_encoding", INTERACTION_ENCODING) != INTERACTION_ENCODING:
-            raise ValueError("unsupported interaction C encoding")
+            raise ValueError("unsupported dynamic interaction graph encoding")
         if int(config.get("interaction_dim", C_DIM)) != C_DIM:
             raise ValueError("interaction_dim must be nine for the structured C contract")
-        if tuple(config.get("interaction_anchor_steps", (8, 16, 24))) != (8, 16, 24):
-            raise ValueError("structured C requires anchors at steps 8, 16 and 24")
+        if int(config.get("interaction_horizon", C_HORIZON)) != C_HORIZON:
+            raise ValueError("dynamic interaction graph must cover the 24-step horizon")
         self.config = config
         point_width, width, head = config["point_width"], config["shared_width"], config["head_width"]
         self.explicit_hand = config.get("explicit_hand", True)
@@ -72,12 +72,15 @@ class SharedWAMV4(nn.Module):
         self.scene_future = TemporalHead(head, head, 3)
         # The new relational modules are separate from the v3 trunk. Common v3
         # parameters can therefore be warm-started while C is initialized fresh.
-        self.interaction_hand_project = nn.Linear(width, head)
-        self.interaction_object_project = nn.Linear(head, head)
-        self.interaction_relation = mlp(3, head)
-        self.interaction_anchor = nn.Embedding(C_ANCHORS, head)
+        edge_width = int(config.get("interaction_edge_width", 64))
+        self.interaction_edge_width = edge_width
+        self.interaction_hand_project = nn.Linear(width, edge_width)
+        self.interaction_object_project = nn.Linear(head, edge_width)
+        self.interaction_relation = mlp(3, edge_width)
+        self.interaction_time = nn.Embedding(C_HORIZON, edge_width)
         self.interaction_head = nn.Sequential(
-            nn.LayerNorm(head), nn.Linear(head, head), nn.GELU(), nn.Linear(head, C_DIM)
+            nn.LayerNorm(edge_width), nn.Linear(edge_width, edge_width), nn.GELU(),
+            nn.Linear(edge_width, C_DIM)
         )
         nn.init.normal_(self.interaction_head[-1].weight, std=.01)
         nn.init.zeros_(self.interaction_head[-1].bias)
@@ -89,7 +92,10 @@ class SharedWAMV4(nn.Module):
         x = torch.cat((clean(batch["start_hand"], valid), clean(batch["start_hand_history"], valid)), -1)
         identity = self.hand_id.weight[:, None] + self.keypoint_id.weight[None]
         hand = self.hand_encoder(x / self.hand_scale) + identity[None]
-        return torch.where(valid[..., None], hand, 0.).flatten(1, 2), valid.flatten(1)
+        # Geometry and the shared transformer both consume one token per
+        # canonical point.  Keep the 2x11 token axis; flattening it here made
+        # the PTv3 hand feature contract inconsistent with JointGeometry.
+        return torch.where(valid[..., None], hand, 0.).reshape(len(hand), 22, -1), valid.flatten(1)
 
     def encode(self, batch):
         hand, hand_valid = self.encode_hand(batch)
@@ -129,35 +135,46 @@ class SharedWAMV4(nn.Module):
         scene_z = scene_z.reshape(len(points), HORIZON, *points.shape[1:3], 3).transpose(1, 2)
         point_mask = point_valid.bool()
         pooled = (object_latent * point_mask[..., None]).sum(2) / point_mask.sum(2).clamp_min(1)[..., None]
+        # A factorized edge head keeps the graph structured: hand keypoints and
+        # object patches remain separate until the relation MLP.  It avoids the
+        # lossy global mean pooling used by the old v4 C head.
         hand_shared = shared[:, offset:offset + 22].reshape(len(shared), 2, 11, -1)
         hand_relation = self.interaction_hand_project(hand_shared)
-        object_relation = self.interaction_object_project(pooled)
-        object_center = (points * point_mask[..., None]).sum(2) / point_mask.sum(2).clamp_min(1)[..., None]
-        relative = object_center[:, :, None, None] - batch["start_hand"][:, None]
-        relation = (hand_relation[:, None] + object_relation[:, :, None, None]
-                    + self.interaction_relation(relative / self.position_scale))
-        hand_mask_for_c = batch["start_hand_valid"].bool()
-        relation = relation * hand_mask_for_c[:, None, :, :, None].to(relation.dtype)
-        relation = relation.sum(2) / hand_mask_for_c[:, None].sum(2).clamp_min(1)[..., None]
-        relation = relation[:, :, None] + self.interaction_anchor.weight[None, None, :, None]
-        interaction_z = self.interaction_head(relation)
-        interaction_normalized = interaction_z.clone()
-        interaction_normalized[..., 0] = interaction_z[..., 0].sigmoid()
-        interaction = interaction_normalized * self.interaction_scale.view(1, 1, 1, 1, -1)
+        object_relation = self.interaction_object_project(object_latent)
+        hand_future = batch["start_hand"][:, None] + self.normalizer.denormalize("hand", hand_z)
+        object_future = points[:, :, None] + self.normalizer.denormalize("scene", scene_z)
+        relative = object_future[:, :, :, None, None, :, :] - hand_future[:, None, :, :, :, None, :]
+        relation = (object_relation[:, :, None, None, None, :, :]
+                    + hand_relation[:, None, None, :, :, None, :]
+                    + self.interaction_relation(relative / self.position_scale)
+                    + self.interaction_time.weight[None, None, :, None, None, None, :])
+        interaction_logits = self.interaction_head(relation)
+        interaction_normalized = torch.cat((interaction_logits[..., :1].sigmoid(),
+                                            interaction_logits[..., 1:]), dim=-1)
+        interaction = interaction_normalized * self.interaction_scale.view(1, 1, 1, 1, 1, 1, -1)
         hand_mask = batch["start_hand_valid"][:, None, ..., None]
         scene_mask = point_valid[:, :, None, :, None]
-        c_mask = object_valid[:, :, None, None].expand(-1, -1, C_ANCHORS, 11)
+        graph_valid = batch.get("scene_valid")
+        if graph_valid is None:
+            graph_valid = point_valid[:, :, None].expand(-1, -1, HORIZON, -1)
+        graph_valid = (graph_valid.bool()[:, :, :, None, None, :] &
+                       batch["trajectory_valid"].bool()[:, None, :, :, :, None])
+        graph_valid = graph_valid & batch["start_hand_valid"].bool()[:, None, None, :, :, None]
+        graph_valid = graph_valid & object_valid[:, :, None, None, None, None]
+        c_mask = graph_valid
         prediction = dict(
             trajectory=torch.where(hand_mask, self.normalizer.denormalize("hand", hand_z), 0.),
             scene=torch.where(scene_mask, self.normalizer.denormalize("scene", scene_z), 0.),
             interaction=torch.where(c_mask[..., None], interaction, 0.),
+            interaction_logits=torch.where(c_mask[..., None], interaction_logits, 0.),
             trajectory_normalized=torch.where(hand_mask, hand_z, 0.),
             scene_normalized=torch.where(scene_mask, scene_z, 0.),
             interaction_normalized=torch.where(c_mask[..., None], interaction_normalized, 0.),
             interaction_valid=c_mask,
         )
         if return_shared:
-            prediction.update(shared_tokens=shared, shared_valid=shared_valid, interaction_tokens=relation)
+            prediction.update(shared_tokens=shared, shared_valid=shared_valid,
+                              interaction_tokens=relation)
         return prediction
 
     def parameter_groups(self, geometry_lr, shared_lr):

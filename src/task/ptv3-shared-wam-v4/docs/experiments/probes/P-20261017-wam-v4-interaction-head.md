@@ -11,35 +11,31 @@ hypothesis_family: HF-wam-interaction-head
 probe_index_in_family: 1
 seed_pool: probe
 seeds: [170]
-decision_changed_if_positive: keep the C interface and run a matched tau-only versus tau-plus-C executor probe
+decision_changed_if_positive: keep the dynamic graph interface and run a matched tau-only versus tau-plus-C executor probe
 decision_changed_if_negative: remove or redesign C before any long pretraining budget
 status: ENGINEERING
 run_id: not-run
 ---
 
-# WAM-v4 interaction head architecture
+# WAM-v4 dynamic interaction graph
 
-This is a Decision probe design, not a robot-benefit result. It implements the
-new interface from the current architecture discussion:
+This is an architecture probe, not a robot-benefit result. It keeps the v3
+shared encoder and hand/scene heads and adds a dynamic object-centric graph:
 
 ```text
-G_task -> local 24-step goal -> WAM -> (tau, C) -> executor
+G_task -> WAM -> (tau_hand[24], tau_scene[24], C_HO[24]) -> executor
 ```
 
-The v3 shared encoder and hand/scene heads remain fixed. The new C head reads
-current hand/object relation features and predicts `B,O,3,11,9`: contact
-confidence, approximate object-surface position, approximate normal, normal
-approach velocity and tangential slip speed at WAM steps 8/16/24. Labels are
-derived from the existing current-anchor hand/object future labels. This probe
-uses the existing 32 object query points and radial-normal approximation;
-dense CAD surface/normals are a later data upgrade.
+`C_HO` has shape `B,O,T,2,11,P,9` (`T=24`, `P=32` in the current data
+contract). Each edge contains contact confidence, object-relative surface
+position, radial normal, normal approach velocity and tangential slip speed.
+The hand-point and object-point axes stay explicit; the graph is not reduced to
+a global mean-pooled WAM feature. Labels use the existing 32 query points and
+radial-normal approximation, so this probe does not claim dense-surface
+supervision.
 
-The v4 trainer supports a model-only v3 warm-start. All compatible v3
-parameters transfer, while the structured C relation modules are initialized
-fresh; optimizer state is intentionally not reused.
-
-The cheapest qualification is a CPU/GPU forward and backward smoke, followed
-by a matched executor comparison using the same WAM checkpoint and seed:
-`state + tau` versus `state + tau + C`. This result would decide whether C is
-worth a sustained pretraining or executor budget. It does not yet justify
-claiming improved grasping or Cm.
+The trainer supports a model-only v3 warm start. Compatible trunk parameters
+transfer and the graph relation modules initialize fresh. The cheapest
+qualification is a forward/backward smoke and a masked-label audit. Only after
+those pass should a matched `state + tau` versus `state + tau + C_HO` executor
+probe decide whether sustained pretraining is justified.

@@ -1,6 +1,6 @@
 {
   "schema": "ref2dex.ptv3-shared-wam.v4",
-  "interaction_encoding": "object-centric-hand-surface-field.v2",
+  "interaction_encoding": "dynamic-object-interaction-graph.v3",
   "interaction_dim": 9,
   "interaction_scales": [
     1.0,
@@ -108,11 +108,10 @@
     ],
     "drop_path": 0.1
   },
-  "interaction_anchor_steps": [
-    8,
-    16,
-    24
-  ],
+  "interaction_horizon": 24,
+  "interaction_edge_width": 64,
+  "interaction_background_weight": 0.05,
+  "contact_metric_threshold": 0.25,
   "contact_sigma_m": 0.01,
   "interaction_consistency_weight": 0.05
 }

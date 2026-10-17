@@ -23,12 +23,12 @@ class Geometry(nn.Module):
         tokens = self.project(hand.mean(1, keepdim=True).expand(-1, 4, -1))
         return dict(tokens=tokens, xyz=torch.zeros(len(hand), 4, 3, device=hand.device),
                     mask=torch.ones(len(hand), 4, dtype=torch.bool, device=hand.device),
-                    hand=self.project(hand))
+                    hand=hand)
 
 
 def config():
-    return dict(schema=SCHEMA, interaction_encoding="object-centric-hand-surface-field.v2",
-        interaction_dim=9, interaction_anchor_steps=[8, 16, 24], goal_encoding="current-point-horizon-delta.v1",
+    return dict(schema=SCHEMA, interaction_encoding="dynamic-object-interaction-graph.v3",
+        interaction_dim=9, interaction_horizon=24, interaction_edge_width=8, goal_encoding="current-point-horizon-delta.v1",
         task_conditioning="shared-scene-hand-goal.v1", horizon=24, point_width=8, shared_width=16,
         shared_heads=4, shared_layers=2, head_width=8, head_heads=2,
         position_scale_m=.05, velocity_scale_mps=.5, acceleration_scale_mps2=5.,
@@ -69,8 +69,8 @@ def model():
 def test_c_contract_and_target_are_masked():
     b = batch()
     target, valid = interaction_target(b)
-    assert target.shape == (2, 2, C_ANCHORS, 11, C_DIM)
-    assert C_NAMES[0] == "contact_confidence" and valid.shape == (2, 2, C_ANCHORS, 11)
+    assert target.shape == (2, 2, C_ANCHORS, 2, 11, 4, C_DIM)
+    assert C_NAMES[0] == "contact_confidence" and valid.shape == (2, 2, C_ANCHORS, 2, 11, 4)
     assert not valid[1, 1].any() and not target[1, 1].any()
     assert torch.isfinite(target).all()
 
@@ -80,7 +80,7 @@ def test_v4_emits_tau_scene_and_interaction_and_goal_reaches_c():
     first = m(b)
     assert first["trajectory"].shape == (2, 24, 2, 11, 3)
     assert first["scene"].shape == (2, 2, 24, 4, 3)
-    assert first["interaction"].shape == (2, 2, C_ANCHORS, 11, C_DIM)
+    assert first["interaction"].shape == (2, 2, C_ANCHORS, 2, 11, 4, C_DIM)
     assert not first["interaction"][1, 1].any()
     b["goal_object_delta"] = b["goal_object_delta"] + .2
     second = m(b)
@@ -103,7 +103,7 @@ def test_v3_model_only_warm_start_leaves_structured_head_fresh(tmp_path):
     c = config(); m = SharedWAMV4(stats(), c, Geometry(c["point_width"]))
     target = m.state_dict()
     new_prefixes = ("interaction_hand_project", "interaction_object_project",
-                    "interaction_relation", "interaction_anchor", "interaction_head")
+                    "interaction_relation", "interaction_time", "interaction_head")
     old_model = {k: v.clone() for k, v in target.items()
                  if not k.startswith(new_prefixes) and k != "interaction_scale"}
     packet = dict(schema="ref2dex.ptv3-shared-wam.v3", stage="pretrain", step=80000,

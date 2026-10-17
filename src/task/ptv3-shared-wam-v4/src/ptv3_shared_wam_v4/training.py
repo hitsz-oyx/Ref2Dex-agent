@@ -203,14 +203,16 @@ def main():
                     atomic_json(out/'checkpoint_files.json',files)
                 if world>1:dist.barrier()
             if step==1 or step%config['log_interval']==0 or step==target:
-                values=torch.stack([loss.detach(),terms['hand'].detach(),terms['scene'].detach()])
+                values=torch.stack([loss.detach(), terms['hand'].detach(), terms['scene'].detach(),
+                                    terms['interaction'].detach(), terms['interaction_consistency'].detach()])
                 if world>1:
                     dist.all_reduce(values);values/=world
                 torch.cuda.synchronize()
                 elapsed=time.monotonic()-started
                 rate=(step-logged_step)/(time.monotonic()-logged)
                 if rank==0:
-                    record=dict(status='RUNNING',step=step,learning_rates=rates,loss=float(values[0]),terms={k:float(values[i+1]) for i,k in enumerate(('hand','scene'))},
+                    record=dict(status='RUNNING',step=step,learning_rates=rates,loss=float(values[0]),
+                        terms={k:float(values[i+1]) for i,k in enumerate(('hand','scene','interaction','interaction_consistency'))},
                         grad_norm=float(norm),elapsed_s=elapsed,updates_per_s=rate,
                         eta_seconds=(config['updates']-step)/rate,local_samples_per_s=rate*config['batch_size'],
                         global_batch=world*config['batch_size'],world_size=world,

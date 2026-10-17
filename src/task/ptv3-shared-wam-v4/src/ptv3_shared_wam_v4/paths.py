@@ -16,4 +16,4 @@ SCHEMA = "ref2dex.ptv3-shared-wam.v4"
 STATS_SCHEMA = "ref2dex.nine-source-horizon-stats.v1"
 SOURCE_IDS = (0, 1, 2, 4, 5, 6, 8, 9, 10)
 HORIZON = 24
-INTERACTION_ENCODING = "object-centric-hand-surface-field.v2"
+INTERACTION_ENCODING = "dynamic-object-interaction-graph.v3"
