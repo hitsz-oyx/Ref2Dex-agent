@@ -3,7 +3,7 @@ schema: ref2dex.probe.v2
 experiment_id: P-20261017-gt-tau-new-sequence
 task: trajectory-policy
 branch: main
-git_commit: 335bf2aae09f0bf5d582d704ec26c91e63b45553
+git_commit: 886f481b
 status: UNPROMISING
 classification: Decision
 hypothesis: The frozen retargeter R driven by oracle future hand plan GT tau can still stably grasp and hold an unseen sequence.
