@@ -68,6 +68,8 @@ def main():
     p.add_argument('--native-root', type=Path, required=True)
     p.add_argument('--split', choices=('train', 'dev'), required=True)
     p.add_argument('--output', type=Path, required=True)
+    p.add_argument('--start-index', type=int, default=0)
+    p.add_argument('--stop-index', type=int)
     p.add_argument('--static-keep-ratio', type=float, default=.10)
     p.add_argument('--approach-keep-ratio', type=float, default=.35)
     a = p.parse_args()
@@ -77,17 +79,21 @@ def main():
     native = CleanPoseMeshWindows(str(a.native_root), a.split, engineering=True, cache_size=8)
     counts, blocked = {}, []
     total = len(main3) + len(native)
-    for i in range(total):
+    start = max(0, a.start_index)
+    stop = total if a.stop_index is None else min(total, a.stop_index)
+    if not 0 <= start <= stop <= total:
+        raise ValueError('bounded global index range required')
+    for i in range(start, stop):
         kind, identity = (_main3(main3, i, policy) if i < len(main3)
                           else _native(native, i - len(main3), policy))
         counts[kind] = counts.get(kind, 0) + 1
         if not retain_window(kind, identity, policy):
             blocked.append(i)
-        if (i + 1) % 10000 == 0:
+        if (i - start + 1) % 10000 == 0:
             print(f'processed={i + 1}/{total} blocked={len(blocked)}', flush=True)
     result = dict(schema='ref2dex.wam-v4-window-filter.v1', split=a.split,
-                  policy=policy.__dict__, total_windows=total,
-                  kept_windows=total - len(blocked), blocked_windows=len(blocked), counts=counts,
+                  policy=policy.__dict__, total_windows=total, scan_start=start, scan_stop=stop,
+                  kept_windows=(stop - start) - len(blocked), blocked_windows=len(blocked), counts=counts,
                   blocked_indices=blocked,
                   source_roots=[str(a.main3_root.resolve()), str(native.root)])
     a.output.parent.mkdir(parents=True, exist_ok=True)
