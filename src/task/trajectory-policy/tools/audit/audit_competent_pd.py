@@ -61,7 +61,7 @@ def main():
 
     def check_native(data, manifest, label):
         controls, n = data['action'].shape[:2]
-        if controls != 542 or any(len(data[k]) != 543 for k in ('q', 'dq', 'hand', 'obj', 'velocity')):
+        if controls != manifest['controls'] or any(len(data[k]) != controls + 1 for k in ('q', 'dq', 'hand', 'obj', 'velocity')):
             raise ValueError('control/terminal-state boundary mismatch')
         if any(not np.isfinite(v).all() for v in data.values()):
             raise ValueError('nonfinite source record')
@@ -160,9 +160,10 @@ def main():
             if len(paths) != 1:
                 raise ValueError('one actual-PD model required')
             model = load_model(torch.load(paths[0], map_location=device, weights_only=False), device)
-            for tick in range(542):
+            controls = manifest['controls']
+            for tick in range(controls):
                 ids = np.arange(16, 24)
-                future = np.moveaxis(source['hand'][np.minimum(tick + np.arange(1, 25), 542)][:, 24:32], 0, 1)
+                future = np.moveaxis(source['hand'][np.minimum(tick + np.arange(1, 25), controls)][:, 24:32], 0, 1)
                 s, tau = independent_features(execution, np.full(8, tick), ids, future)
                 for name, value in [('state', s), ('tau', tau)]:
                     error = np.max(np.abs(value - execution[name + '_features'][tick]))
@@ -180,33 +181,37 @@ def main():
                     float(np.max(np.abs(requested - execution['requested_pd'][tick, ids]))))
             if any(errors[k] > 2e-5 for k in ('state_features', 'tau_features', 'execution_prediction', 'execution_requested_pd')):
                 raise ValueError('actual R features / output / requested PD mismatch')
-            import matplotlib
-            matplotlib.use('Agg')
-            import matplotlib.pyplot as plt
-            fig, axes = plt.subplots(3, 1, figsize=(9, 7), sharex=True)
-            times = np.arange(543) / 30
-            height = execution['obj'][..., 2, 3] - execution['obj'][0, :, 2, 3]
-            near = execution['surface_gap'] <= .01
-            supported = execution['table_footprint'] & (np.abs(execution['support_gap']) <= .02)
-            held = near & ~supported & (height >= .03)
-            for role in ('teacher', 'source_pd', 'gt_tau_R'):
-                ids = [i for i, value in enumerate(manifest['roles']) if value == role]
-                for ax, value in zip(axes, (height, execution['surface_gap'], held.astype(float))):
-                    ax.plot(times, value[:, ids].mean(1), label=role)
-                axes[0].fill_between(times, height[:, ids].min(1), height[:, ids].max(1), alpha=.12)
-            axes[0].set_ylabel('Object rise (m)')
-            axes[1].set_ylabel('Surface gap (m)')
-            axes[2].set_ylabel('Held fraction')
-            axes[2].set_xlabel('Time (s)')
-            axes[0].axhline(.03, color='gray', linestyle=':', linewidth=1)
-            axes[1].axhline(.01, color='gray', linestyle=':', linewidth=1)
-            axes[2].set_ylim(-.02, 1.02)
-            for ax in axes:
-                ax.grid(alpha=.2)
-            axes[0].legend()
-            fig.tight_layout()
-            fig.savefig(folder / 'behavior.png', dpi=150)
-            plt.close(fig)
+            try:
+                import matplotlib
+                matplotlib.use('Agg')
+                import matplotlib.pyplot as plt
+            except ModuleNotFoundError:
+                checks['behavior_plot'] = 'skipped: matplotlib unavailable in pinned runtime'
+            else:
+                fig, axes = plt.subplots(3, 1, figsize=(9, 7), sharex=True)
+                times = np.arange(controls + 1) / 30
+                height = execution['obj'][..., 2, 3] - execution['obj'][0, :, 2, 3]
+                near = execution['surface_gap'] <= .01
+                supported = execution['table_footprint'] & (np.abs(execution['support_gap']) <= .02)
+                held = near & ~supported & (height >= .03)
+                for role in ('teacher', 'source_pd', 'gt_tau_R'):
+                    ids = [i for i, value in enumerate(manifest['roles']) if value == role]
+                    for ax, value in zip(axes, (height, execution['surface_gap'], held.astype(float))):
+                        ax.plot(times, value[:, ids].mean(1), label=role)
+                    axes[0].fill_between(times, height[:, ids].min(1), height[:, ids].max(1), alpha=.12)
+                axes[0].set_ylabel('Object rise (m)')
+                axes[1].set_ylabel('Surface gap (m)')
+                axes[2].set_ylabel('Held fraction')
+                axes[2].set_xlabel('Time (s)')
+                axes[0].axhline(.03, color='gray', linestyle=':', linewidth=1)
+                axes[1].axhline(.01, color='gray', linestyle=':', linewidth=1)
+                axes[2].set_ylim(-.02, 1.02)
+                for ax in axes:
+                    ax.grid(alpha=.2)
+                axes[0].legend()
+                fig.tight_layout()
+                fig.savefig(folder / 'behavior.png', dpi=150)
+                plt.close(fig)
     report = dict(**{'pass': True}, checks=checks, max_errors=errors,
         audit_source_sha256=sha(__file__),
         git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
