@@ -203,7 +203,6 @@ def v4_collate(samples):
                        ("sample_id", torch.long)):
         out[key] = torch.as_tensor(np.stack([s[key] for s in samples]), dtype=dtype)
     out["goal_object_delta"] = out["goal_object_points"] - out["start_object_points"]
-    out["provenance"] = [s.get("provenance", {}) for s in samples]
     return out
 
 
