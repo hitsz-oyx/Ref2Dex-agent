@@ -185,6 +185,9 @@ def main():
     motions = list(motion_root.glob('*/interaction_hand_inspire.pt'))
     if len(motions) != 1:
         raise ValueError('exactly one frozen airplane reference required')
+    controls = int(torch.load(motions[0], map_location='cpu').shape[0] - 1)
+    if controls < 45:
+        raise ValueError('reference motion is too short for the 45-frame hold gate')
     train_cfg = native_root / 'data/cfg/train/rlg/inspire.yaml'
     files = [Path(__file__), cfg_path, Path(cfg['cfg_env']), train_cfg, OFFICIAL,
              TASK / 'src/trajectory_policy/pd_retargeter.py',
@@ -299,7 +302,7 @@ def main():
             if physical_decision else 'P-20261011-competent-pd-retargeter'),
         run_id=out.name, git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'],
         cwd=ROOT, text=True).strip(), physical_gpu=args.gpu, seed=args.seed, roles=roles,
-        controls=542, dt=1 / 30, checkpoint=str(OFFICIAL), checkpoint_sha256=OFFICIAL_SHA,
+        controls=controls, dt=1 / 30, checkpoint=str(OFFICIAL), checkpoint_sha256=OFFICIAL_SHA,
         training_allowed=not evaluating, source_origin='official DExplore demonstration',
         input_sha256=hashes, gpu_before=before,
         preexisting_idle_contexts=context_commands, idle_context_max_mib=512,
@@ -418,7 +421,7 @@ def main():
                 actor_execution = ActorExecution(args.actor_fit, task.device, args.actor_period,
                     exploration_m=.001 if args.pw_mode == 'collect' else 0., swap_arms=args.pw_swap_arms)
             work_started = time.monotonic()
-            for tick in range(542):
+            for tick in range(controls):
                 with torch.no_grad():
                     raw = obs['obs']
                     padded = raw.repeat((64 + n - 1) // n, 1)[:64]
@@ -438,7 +441,7 @@ def main():
                             target = torch.as_tensor(source['pd_targets'][tick, donor], device=task.device)
                             first, native_command[8:16], _ = command(target, current['q'][8:16], offset, scale)
                             intended[8:16], requested_pd[8:16] = first, target
-                        index = np.minimum(tick + np.arange(1, 25), 542)
+                        index = np.minimum(tick + np.arange(1, 25), controls)
                         future = np.moveaxis(source['hand'][index][:, donor], 0, 1)
                         if autonomous:
                             future = np.concatenate((future, actor_execution.future(tick, logs, goal_np)))
@@ -479,27 +482,27 @@ def main():
                         clipped=(intended - native_command).abs().amax(-1) > 1e-6).items():
                         logs[key].append(value.cpu().numpy().copy())
                     current = record()
-                    if tick < 541 and done.any():
+                    if tick < controls - 1 and done.any():
                         raise ValueError('early termination/reset invalidates windows')
-                if tick == 0 or (tick + 1) % 128 == 0:
-                    state = gpu_state(args.gpu)
-                    foreign = set(state['pids']) - {os.getpid()}
-                    if (foreign - allowed_contexts or
-                            any(state['process_mib'][pid] > 512 for pid in foreign)):
-                        # Preserve incomplete measurements without labeling them
-                        # a completed physical experiment or a training source.
-                        partial = {key: np.stack(value) for key, value in logs.items() if value}
-                        partial['goal'] = goal_np
-                        if autonomous:
-                            partial.update({key: np.stack(value) for key, value in actor_execution.records.items()})
-                        np.savez_compressed(out / 'partial.npz', **partial)
-                        manifest['partial_controls'] = tick + 1
-                        raise RuntimeError('foreign GPU process: ' + repr(state))
-                    monitor = dict(control=tick + 1, elapsed_s=time.monotonic() - started,
-                        eta_s=(time.monotonic() - work_started) / (tick + 1) * (541 - tick), gpu=state)
-                    print(json.dumps(monitor), flush=True)
-                    with (out / 'monitor.jsonl').open('a') as stream:
-                        stream.write(json.dumps(monitor) + '\n')
+                    if tick == 0 or (tick + 1) % 128 == 0:
+                        state = gpu_state(args.gpu)
+                        foreign = set(state['pids']) - {os.getpid()}
+                        if (foreign - allowed_contexts or
+                                any(state['process_mib'][pid] > 512 for pid in foreign)):
+                            # Preserve incomplete measurements without labeling them
+                            # a completed physical experiment or a training source.
+                            partial = {key: np.stack(value) for key, value in logs.items() if value}
+                            partial['goal'] = goal_np
+                            if autonomous:
+                                partial.update({key: np.stack(value) for key, value in actor_execution.records.items()})
+                            np.savez_compressed(out / 'partial.npz', **partial)
+                            manifest['partial_controls'] = tick + 1
+                            raise RuntimeError('foreign GPU process: ' + repr(state))
+                        monitor = dict(control=tick + 1, elapsed_s=time.monotonic() - started,
+                            eta_s=(time.monotonic() - work_started) / (tick + 1) * (controls - 1 - tick), gpu=state)
+                        print(json.dumps(monitor), flush=True)
+                        with (out / 'monitor.jsonl').open('a') as stream:
+                            stream.write(json.dumps(monitor) + '\n')
             packed = {key: np.stack(value) for key, value in logs.items() if value}
             if autonomous:
                 packed.update({key: np.stack(value) for key, value in actor_execution.records.items()})
