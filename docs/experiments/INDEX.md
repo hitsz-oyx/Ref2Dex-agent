@@ -412,7 +412,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261016-official-unidex-ppo](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261016-official-unidex-ppo.md) | 先接通官方UniDexGrasp++状态PPO | 尚未完成；不能把入口接通或短smoke当作抓取能力复现。 | 按用户要求先用远端官方PPO训练，底座通过后再接WAM。 | probes/UNCLEAR |
+| [P-20261016-official-unidex-ppo](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261016-official-unidex-ppo.md) | 先接通官方UniDexGrasp++状态PPO | 已完成官方源码、fresh 与官方 checkpoint warm-start 两条路径，以及 WAM-v3 | 按用户要求先用远端官方PPO训练，底座通过后再接WAM。 | probes/UNCLEAR |
 
 ## HF-official-video-data
 
@@ -845,6 +845,12 @@
 | [P-20261010-video-point-dynamics](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-video-point-dynamics.md) | Video point prediction without dense future hand labels | 见原卡 | distinguish premature clip-start track death from intrinsically poor | probes/UNPROMISING |
 | [P-20261011-video-motion-token](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-video-motion-token.md) | Metric-3D history motion-token Probe | 见原卡 | 见原卡 | probes/UNPROMISING |
 
+## HF-wam-interaction-head
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261017-wam-v4-interaction-head](../../src/task/ptv3-shared-wam-v4/docs/experiments/probes/P-20261017-wam-v4-interaction-head.md) | WAM-v4 interaction head architecture | 见原卡 | 见原卡 | probes/ENGINEERING |
+
 ## HF-wam-motion-execution
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
@@ -859,6 +865,12 @@
 | [P-20261013-wam-residual-ppo](../../src/task/trajectory-policy/docs/experiments/probes/P-20261013-wam-residual-ppo.md) | Residual PPO on the frozen context pair | 见原卡 | 见原卡 | probes/UNPROMISING |
 | [P-20261014-wam-residual-basin](../../src/task/trajectory-policy/docs/experiments/probes/P-20261014-wam-residual-basin.md) | Frozen finger authority screen after the corrected PPO budget/course probe | 见原卡 | 见原卡 | probes/UNCLEAR |
 | [P-20261014-wam-residual-curriculum](../../src/task/trajectory-policy/docs/experiments/probes/P-20261014-wam-residual-curriculum.md) | More updates versus contact-focused residual curriculum | 见原卡 | 见原卡 | probes/UNCLEAR |
+
+## HF-wam-runtime-correction
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261017-wam-runtime-correction](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261017-wam-runtime-correction.md) | 修正 WAM adapter 的执行一致性与逐环境 history | 已完成，阶段判断为 `UNCLEAR`。该 Probe 只判断两个已定位的 runtime 问题是否足以改变旧 adapter 负结果 | 见原卡 | probes/UNCLEAR |
 
 ## HF-wam-short-goal
 
