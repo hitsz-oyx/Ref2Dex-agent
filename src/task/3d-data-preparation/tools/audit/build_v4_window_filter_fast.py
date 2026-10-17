@@ -30,8 +30,8 @@ def _main3(dataset, index, policy):
     sequence = source.sequence(source.sequences[seq_id])
     anchor_pose = sequence['poses'][tick, anchor]
     world_to_anchor = np.linalg.inv(anchor_pose)
-    valid_now = np.asarray(sequence['hand_valid'][tick], bool)
-    hand_valid = np.asarray(sequence['hand_valid'][tick + 1:tick + 25], bool) & valid_now[None]
+    valid_now = np.repeat(np.asarray(sequence['hand_valid'][tick], bool), 11)
+    hand_valid = np.repeat(np.asarray(sequence['hand_valid'][tick + 1:tick + 25], bool), 11, axis=-1) & valid_now[None]
     hand = np.asarray(sequence['hand'][tick + 1:tick + 25], np.float32).reshape(24, 2, 11, 3)
     hand = hand @ world_to_anchor[:3, :3].T + world_to_anchor[:3, 3]
     points = source.canonical(sequence['objects'][anchor])[0]
