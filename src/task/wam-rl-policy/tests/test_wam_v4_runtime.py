@@ -147,6 +147,17 @@ def test_v4_runtime_loads_checkpoint_and_exposes_tau_c_and_summary(tmp_path):
     assert pred['interaction'].shape == (1, 1, 24, 128, 7)
     summary = runtime.summary(batch)
     assert summary.shape == (1, 2304)
+    # The fake forward has no interaction_prediction_valid; add it to test the
+    # explicit executor-facing accessor without a real model.
+    pred['interaction_prediction_valid'] = torch.ones(1, 1, 24, 128, dtype=torch.bool)
+    interaction, valid = runtime.interaction_for_executor(pred)
+    assert interaction.shape == (1, 24, 128, 7) and valid.shape == (1, 24, 128)
+    # v4 tau -> existing student clock/frame is part of the runtime contract.
+    const = torch.zeros(1, 24, 2, 11, 3)
+    const[0, :, 0, :, 0] = (torch.arange(1, 25) * .12 / 30)[:, None]
+    tau = runtime.tau_for_student({'trajectory': const}, np.eye(4), frame='world')
+    assert tau.shape == (8, 11, 3)
+    np.testing.assert_allclose(tau[-1, :, 0], .12 * 8 / 60, atol=1e-6)
 
 
 def test_v4_runtime_rejects_non_v4_checkpoint(tmp_path):

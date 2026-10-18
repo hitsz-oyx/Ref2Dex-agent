@@ -279,3 +279,26 @@ class V4Runtime:
     @torch.inference_mode()
     def predict_with_summary(self, batch):
         return self.predict(batch)
+
+    @torch.inference_mode()
+    def tau_for_student(self, prediction, object_pose, *, hand_slot="right",
+                        student_horizon=8, frame="world"):
+        """Explicitly bridge v4 tau to the existing 60 Hz student contract."""
+        from .tau_contract import v4_trajectory_to_student
+        trajectory = prediction["trajectory"]
+        if trajectory.ndim != 5 or trajectory.shape[0] != 1:
+            raise ValueError("one v4 sample trajectory required")
+        rotation = None
+        if frame == "world":
+            rotation = np.asarray(object_pose, dtype=np.float64)[:3, :3]
+        return v4_trajectory_to_student(
+            trajectory[0].detach().cpu().numpy(), object_rotation=rotation,
+            hand_slot=hand_slot, student_horizon=student_horizon, frame=frame)
+
+    @torch.inference_mode()
+    def interaction_for_executor(self, prediction):
+        """Return ``C[24,128,7]`` and its current-observation validity mask."""
+        if "interaction" not in prediction or "interaction_prediction_valid" not in prediction:
+            raise ValueError("full v4 forward output required")
+        return (prediction["interaction"][0].detach().cpu().numpy(),
+                prediction["interaction_prediction_valid"][0].detach().cpu().numpy())
