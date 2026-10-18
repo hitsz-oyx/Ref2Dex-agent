@@ -123,3 +123,19 @@ GPU6均值39.6%、GPU7均值42.7%；包含monica的共享任务，仅描述性�
 限制：单次短测、不同共享GPU，尚无六卡整体提速测量；非成功率实验。
 六卡主训练r2仍用其固定40b35d51源码，未热替换、未重启、未损失进度；
 此优化已提交供后续有checkpoint的续训使用。GPU6/7诊断进程全部退出并释放显存。
+
+## 优化版续训r3与越界故障修复
+
+用户要求从当前checkpoint切换优化版。检查发现r2已于第101轮后rank4异常退出：
+valid point outside fixed PTv3 workspace，grid_min=[-6,171,169]。
+完整checkpoint仅iteration1；第2–101轮未保存，无法恢复，不宣称无损切换。
+模型/optimizer/step_size加载r2/rank-0/official-iteration-1.pt，重新初始化native环境，
+新run official-scheduled-mixed-20261018-r3，追加9999轮，总目标10000。
+继续GPU0–5各160环境/96对象/相同seed和资产；GPU6/7不分配。48小时预算。
+采用已测试scheduler优化；每20轮保存，约500份×56MiB，约28GiB，有20GiB停止线。
+
+越界保护：用相同float32原点/voxel/grid[0,65535]对WAM当前有效点预检；
+只将越界环境标记done并置native reset_buf，终态tau=0/valid=0不用于下一次动作，
+其余环境正常推理。未放宽WAM边界或裁剪输入，workspace_failures逐rank记录。
+新增显式失败终止条件；reward公式/PPO更新不变。这是相对原环境的终止规则差异，
+后续成功率比较必须保持该规则一致，并报告越界次数。

@@ -1,3 +1,11 @@
+## 2026-10-18 优化版续训与WAM越界保护
+
+r2在第101轮后因rank4手点超出WAM固定空间而失败；最新完整checkpoint仅第1轮，
+未保存的100轮不可恢复。用户要求切换优化版，r3从该checkpoint模型/optimizer续训9999轮，
+目标累计10000，960环境/96 TRAIN物体/GPU0–5。每20轮保存，48小时上限。
+新增越界环境显式终止并单独reset，记录workspace_failures；不裁剪或伪造预测。
+详见[官方PPO卡](../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261018-official-scheduled-mixed-ppo.md)。
+
 ## 2026-10-18 用户确认565维输入，继续官方10000轮预算
 
 六卡各160环境（总960）、96 TRAIN物体，保留最终位置误差+WAM tau条件，

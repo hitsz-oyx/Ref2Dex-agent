@@ -282,6 +282,21 @@ class V4Runtime:
                                     self.geometry, goal_delta=goal_delta, goal_world=goal_world)
         return {key: value.to(self.device) for key, value in collate_v4(samples).items()}
 
+    def workspace_valid(self, samples):
+        """Preflight the same float32 PTv3 bounds before packing environments."""
+        origin = torch.tensor(self.config['voxel_origin_m'], dtype=torch.float32)
+        result = []
+        for sample in samples:
+            scene_mask = sample['point_valid'] & (sample['features'][:, 14] < .5)
+            points = [sample['xyz'][scene_mask]]
+            if self.config.get('hand_in_ptv3', True):
+                points.append(sample['start_hand'][sample['start_hand_valid']])
+            values = torch.as_tensor(np.concatenate(points), dtype=torch.float32)
+            grid = torch.floor((values-origin)/self.config['voxel_m'])
+            result.append(bool(len(values) and torch.isfinite(values).all() and
+                               (grid >= 0).all() and (grid <= 65535).all()))
+        return np.asarray(result, dtype=bool)
+
     @torch.inference_mode()
     def predict(self, batch):
         return self.model(batch, return_shared=True)

@@ -70,6 +70,7 @@ class ScheduledOfficialEnv:
         self.inputs=None;self.reset_count=0;self.steps=0
         self.initial_z=np.zeros(self.num_envs);self.streak=np.zeros(self.num_envs,int);self.longest=np.zeros(self.num_envs,int)
         self.completed_episodes=0;self.successful_episodes=0;self.held_episodes=0
+        self.workspace_failures=0;self.workspace_invalid=np.zeros(self.num_envs,bool)
 
     def augment(self,native,reset_ids):
         state=self.snapshot()
@@ -84,6 +85,7 @@ class ScheduledOfficialEnv:
         near=np.linalg.norm(state['pose'][:,:3,3]-state['goal'],axis=-1)<=.05
         self.streak=np.where(near & (lift>=.1),self.streak+1,0);self.longest=np.maximum(self.longest,self.streak)
         result=self.inputs.observation(native.detach().cpu().numpy(),state['pose'],state['hand'],self.ticks/60)
+        self.workspace_invalid=result['workspace_invalid']
         self.ticks+=1
         return torch.as_tensor(result['observation'],device=self.runtime.device)
 
@@ -101,6 +103,12 @@ class ScheduledOfficialEnv:
         native,reward,done,info=self.base.step(actions.clone(),id)
         reset_ids=np.flatnonzero(self.pending)
         result=self.augment(native,reset_ids)
+        # Out-of-domain WAM input is an explicit terminal failure, never a
+        # clipped point or a fabricated trajectory used for another action.
+        invalid=torch.as_tensor(self.workspace_invalid,device=done.device)
+        done=done.clone();done[invalid]=1
+        self.task.reset_buf[invalid]=1
+        self.workspace_failures+=int(self.workspace_invalid.sum())
         self.reset_count+=len(reset_ids);self.steps+=1
         self.pending=done.detach().cpu().numpy().astype(bool).copy()
         self.completed_episodes+=int(self.pending.sum())
@@ -164,6 +172,7 @@ def run(task,snapshot,sim_step,actor,runtime,args):
             env_steps=iteration*args.envs*cfg['learn']['nsteps']*args.world_size,
             elapsed_s=time.monotonic()-started,collection_s=locs['collection_time'],learning_s=locs['learn_time'],lr=ppo.step_size,reward_mean=float(metrics[0]),
             value_loss=float(metrics[1]),surrogate_loss=float(metrics[2]),reset_count=env.reset_count,
+            workspace_failures=env.workspace_failures,
             effective_std=float(ppo.actor_critic.log_std.exp().square().mean()),
             peak_mib=torch.cuda.max_memory_allocated()/2**20)
         counts=reduce(torch.tensor([env.completed_episodes,env.successful_episodes,env.held_episodes],device=runtime.device,dtype=torch.float64),'sum')

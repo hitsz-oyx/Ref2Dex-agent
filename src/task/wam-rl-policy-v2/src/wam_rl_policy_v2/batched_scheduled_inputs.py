@@ -42,11 +42,18 @@ class BatchedScheduledInputs:
         ready=[i for i,h in enumerate(self.histories) if len(h)==7]
         tau=np.zeros((n,8,11,3),np.float32)
         valid=np.zeros(n,np.float32)
+        workspace_invalid=np.zeros(n,bool)
         if ready:
             rows=[list(self.histories[i])[::2] for i in ready]
             samples=v4_online_samples(np.array([[r[1] for r in h] for h in rows]),
                 np.array([[r[2] for r in h] for h in rows]),[self.runtime.geometry[i] for i in ready],
                 goal_delta=np.stack([decisions[i]['goal_delta'] for i in ready]))
+            if hasattr(self.runtime, 'workspace_valid'):
+                keep=self.runtime.workspace_valid(samples)
+                workspace_invalid[np.asarray(ready)[~keep]]=True
+                samples=[sample for sample,ok in zip(samples,keep) if ok]
+                ready=[i for i,ok in zip(ready,keep) if ok]
+        if ready:
             batch={k:v.to(self.runtime.device) for k,v in collate_v4(samples).items()}
             precision=torch.autocast('cuda',dtype=torch.bfloat16) if self.runtime.device.type=='cuda' else nullcontext()
             with torch.inference_mode(), precision:
@@ -55,4 +62,4 @@ class BatchedScheduledInputs:
                 tau[i]=v4_trajectory_to_student(trajectory[row],object_rotation=poses[i,:3,:3])
                 valid[i]=1
         return dict(observation=np.concatenate((current,tau.reshape(n,-1),valid[:,None]),axis=1).astype(np.float32),
-                    tau=tau,history_valid=valid,scheduler=decisions)
+                    tau=tau,history_valid=valid,scheduler=decisions,workspace_invalid=workspace_invalid)
