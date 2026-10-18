@@ -202,8 +202,10 @@ class OrderedGoalScheduler:
         readiness_external = execution_ready is not None
         dt = 0. if self.last_time is None else now-self.last_time
         interaction = self.interaction.update(actual, hand_points, now)
-        if execution_ready is None:
-            execution_ready = interaction['execution_ready']
+        # Weak proximity/motion proxies shape the requested goal; they cannot
+        # veto independently observed geometric path progress. Only explicit
+        # caller readiness/failure signals act as hard progress gates.
+        hard_lost_control = lost_control
         lost_control = bool(lost_control or interaction['lost_control'])
         if self.start_time is None:
             self.start_time = self.last_progress_time = now
@@ -216,8 +218,9 @@ class OrderedGoalScheduler:
         # Ordered crossing witnesses prevent missing milestones at lower sample
         # rates. Their interpolation fractions must also occur in order.
         arrival_witness = None
+        milestone_witnesses = []
         if (self.terminal_reason is None and not self.complete and self.initial_acquired
-                and execution_ready is not False and not lost_control):
+                and execution_ready is not False and not hard_lost_control):
             previous_fraction = -1.
             for _ in range(8):
                 pending = int(self.milestones[min(self.pointer+1, len(self.milestones)-1)])
@@ -237,10 +240,12 @@ class OrderedGoalScheduler:
                         self.complete = True
                         self.last_progress_time = now
                         arrival_witness = 'final_pose_settled'
+                        milestone_witnesses.append(dict(index=pending, fraction=1., kind=arrival_witness))
                     break
                 self.pointer += 1
                 self.last_progress_time = now
                 arrival_witness = witness
+                milestone_witnesses.append(dict(index=pending, fraction=fraction, kind=witness))
                 previous_fraction = fraction
         else:
             self.settle_since = None
@@ -330,4 +335,5 @@ class OrderedGoalScheduler:
             confirmed_progress=float(self.arc[self.milestones[self.pointer]]/denominator) if self.arc[-1]>1e-12 else float(self.complete),
             reference_error_m=tracking_error, goal_position_m=position, goal_rotation_rad=rotation,
             goal_point_m=point_error, complete=self.complete, timed_out=self.terminal_reason is not None,
-            interaction=interaction, arrival_witness=arrival_witness, lookahead_m=self.last_lead)
+            interaction=interaction, arrival_witness=arrival_witness, lookahead_m=self.last_lead,
+            inferred_readiness=interaction['execution_ready'], milestone_witnesses=milestone_witnesses)

@@ -14,7 +14,7 @@ seeds: [0]
 decision_changed_if_positive: retain causal hand-object evidence and continuous progress tracking for manual goal review
 decision_changed_if_negative: fix progress regressions or interaction proxies before any WAM integration
 status: RUNNING
-run_id: interaction-goal-scheduler-20261018-r1
+run_id: interaction-goal-scheduler-20261018-r2
 ---
 
 # 手物历史条件的goal调度与3D审阅
@@ -54,7 +54,7 @@ Class: Blocker / engineering Probe。用户指出原几何调度与展示均粗�
 持续未准备、丢失控制和被拒绝的参考进度都保留，不以“所有案例完成”作为通过条件。
 回放中观测不受输出goal影响，因此不能评估控制器是否能实现goal或主动恢复。
 
-16项单测通过，包括6项新增回归。接触代理的真实假阳性/假阴性仍需用户视觉审阅。
+17项单测通过，包括7项新增回归。接触代理的真实假阳性/假阴性仍需用户视觉审阅。
 预算CPU几何<=180秒、单run<=100MiB、空盘>=20GiB；不调用WAM，不占GPU。
 实际运行Python/依赖/代码提交与设备写入manifest。
 
@@ -71,3 +71,15 @@ Class: Blocker / engineering Probe。用户指出原几何调度与展示均粗�
 有界观测插值只是短时局部路径假设，低频下未观测到的绕行无法认证。
 原固定里程碑容差/速度上限仍是研究变量；准备和释放等任务意图并不能从物体轨迹唯一确定。
 仅验证接口和几何反馈，不声称抓取成功、可达性或WAM收益，不做新的WAM训练安排。
+
+## 首轮反馈与修正
+
+r1在代码c5efed58完成19片段/4967帧，21.68秒。原始输出保留。所有12个真实记录
+的确认进度均为0，尽管部分后段已有随动证据：把弱距离/随动代理当成readiness硬门，
+阻断了起始手尚未接近时已经实测经过的参考运动，之后无法找回原里程碑。
+这不是“需要放宽距离阈值才能得高分”，而是几何进度和交互证据的语义混淆。
+
+r2明确分开：只有显式外部readiness/failure才作硬门；弱proxy只影响goal跨度/模式，
+不抹掉独立实测的有序路径证据。新增反例在旧版失败、修正后通过。
+r1的10Hz分支还误用了延迟半速时序，r2改为原速度10Hz，同步修正记录；
+不将r1/r2当作科学单变量对照。当前仍不能把“经过参考”解释为“操控成功”。

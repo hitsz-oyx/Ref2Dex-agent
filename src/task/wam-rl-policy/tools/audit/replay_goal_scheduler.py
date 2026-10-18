@@ -85,6 +85,8 @@ def replay(name, reference, ref_time, points, observed, live_time, *,
         summary=dict(frames=len(rows), complete=rows[-1]['complete'], timed_out=rows[-1]['timed_out'],
             confirmed_progress=rows[-1]['confirmed_progress'], modes=dict(Counter(r['mode'] for r in rows)),
             interaction_states=dict(Counter(r['interaction']['state'] for r in rows)),
+            final_interaction_state=rows[-1]['interaction']['state'],
+            lost_coupling_frames=sum(r['interaction']['state']=='LOST' for r in rows),
             relative_goal_step_p95_mm=float(np.percentile([r['relative_goal_step_m'] for r in rows], 95)*1000),
             legacy_relative_goal_step_p95_mm=None if baseline is None else float(np.percentile([r['legacy_relative_goal_step_m'] for r in rows], 95)*1000),
             clock_goal_point_p95_mm=float(np.percentile([r['clock_goal_point_m'] for r in rows], 95)*1000),
@@ -170,7 +172,7 @@ def native_cases(source, cache, count, with_interaction=False, baseline_class=No
         dt = float(np.median(np.diff(clock)))
         variants = ('nominal', 'delayed_half_speed', '10_hz') if with_interaction else ('nominal', 'delayed_half_speed')
         for variant in variants:
-            speed, delay = (1., 0.) if variant == 'nominal' else (.5, .6)
+            speed, delay = (.5, .6) if variant == 'delayed_half_speed' else (1., 0.)
             live_time = np.arange(0, delay+(len(ref)-1)*dt/speed+.4, dt)
             indices = np.clip(np.floor(np.maximum(live_time-delay, 0)*speed/dt+1e-6).astype(int), 0, len(ref)-1)
             if variant == '10_hz':

@@ -94,3 +94,13 @@ def test_moving_object_beside_a_stationary_hand_is_not_motion_coupling():
         pose[0, 3] = i*.0003
         row = scheduler.update(pose, i/60, hand_points=fixed_hand)
     assert not row['interaction']['coupled']
+
+
+def test_weak_hand_proxy_does_not_erase_observed_ordered_path_progress():
+    scheduler, ref = make()
+    for i, index in enumerate(range(0, 201, 5)):
+        pose = ref[index]
+        row = scheduler.update(pose, i/60, hand_points=hand(pose, False))
+    assert row['interaction']['state'] == 'APPROACH'
+    assert not row['interaction']['coupled']
+    assert row['confirmed_progress'] > .1
