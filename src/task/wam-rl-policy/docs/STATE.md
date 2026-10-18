@@ -24,6 +24,17 @@ canonical action/prefix一致，τ和末次状态保存；仅证明接线，不�
 
 设计与后续范围见[整合协议](research/2026-10-18-unidex-scheduled-executor.md)。
 
+## 2026-10-18 Active shuffled-τ 对照：状态匹配的 τ 内容是必要的
+
+在等 175,384 参数的零填充对照之后，补了 active shuffled-τ 对照：同 403 维架构、同
+BC/DAgger 数据与 schedule、同 model seed，但训练时把 τ 行打乱。微调后 BC L1 .01657、
+DAgger L1 .00504；部署时用固定 donor τ（421 tick0 的 plan）且不调用 oracle，在 seed421
+上 max lift .113 m、min/final goal distance .08916 m、0 个 in-goal 帧。作为对照，
+state-matched τ 臂在同 seed 为 .219 m、62 个连续 in-goal 帧、最后距离 .01722 m。
+因此“多出来的输入/参数”不能解释 τ 的收益，state-matched plan 内容本身是必要的。
+目前只有一个 model seed 和一个 donor；多 seed/多个 donor 置换仍是 future evidence。
+产物 `outputs/wam-rl-policy/P-20261018-unidex-active-shuffled-tau-r1/`，代码 `2305b708`。
+
 ## 2026-10-18 GT-τ后期数据微调未过保持资格，停止这一配方
 
 [GT-τ实验卡](experiments/probes/P-20261018-unidex-live-oracle-tau.md)的有界后续已完成：

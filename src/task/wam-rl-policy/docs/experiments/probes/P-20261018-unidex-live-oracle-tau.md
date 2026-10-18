@@ -5,7 +5,7 @@
 `stage`: Probe  
 `classification`: Decision  
 `code_branch`: `main`  
-`git_commit`: `f731196c`  
+`git_commit`: `2305b708`  
 `run_id`: `unidex-serial-replay-r1`, `unidex-teacher-rollouts-r1`, `unidex-partial-obs-200tick-32seed-r1`  
 `runtime`: `/home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train` (Python 3.8, Torch 2.0.1+cu118), Isaac Gym at `/home2/wyy/isaac-gym`, local RTX 3090 GPU 0.
 
@@ -377,6 +377,23 @@ contains `archive-audit.json`, `action-errors.json`, and
 `teacher-endpoint-audit.json`. The latter is reproduced by
 `audit_oracle_tau_results.py --teacher-hold`.31 related contract tests plus
 the endpoint-frame regression and all four actual native rollouts passed.
+
+### Active shuffled-tau control (one seed)
+
+The capacity control matched parameter count but not active plan content.  A
+second control trains the identical 403-D architecture with the tau channel
+row-shuffled during BC and DAgger (same successful rows, same 10x DAgger
+packet, same schedule and model seed).  After fine-tuning, BC L1 is .01657 and
+DAgger L1 is .00504.  Deploying it on seed 421 with a fixed donor tau (the
+seed-421 tick-0 plan) and no oracle queries gives max lift .113 m,
+minimum/final goal distance .08916 m, and 0 in-goal frames.  The state-matched
+tau arm on the same seed gives .219 m, 62 consecutive in-goal frames, last
+distance .01722 m.  A model trained on a shuffled plan therefore does not
+reproduce the result even though input width and allocated parameters match;
+this isolates the state-matched plan content more strongly than zero padding.
+One model seed and one donor remain; multiple seeds and donor permutations are
+future evidence.  Artifacts:
+`outputs/wam-rl-policy/P-20261018-unidex-active-shuffled-tau-r1/`.
 
 ### Holding/recovery Decision: one additional adaptation initial state
 
