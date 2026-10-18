@@ -23,6 +23,15 @@ for the sampled action when computing probability ratios.
 
     def __init__(self, packet, initial_std=.05):
         super().__init__()
+        from .bc_mlp import CurrentMLP,SCHEDULED_SCHEMA,SCHEDULED_DIM
+        self.current_model = packet.get('schema') == SCHEDULED_SCHEMA
+        if self.current_model:
+            if not np.isfinite(initial_std) or initial_std <= 0:
+                raise ValueError('positive finite exploration std required')
+            self.actor=CurrentMLP(SCHEDULED_DIM)
+            self.actor.load_state_dict(packet['model'],strict=True)
+            self.log_std=nn.Parameter(torch.full((24,),float(np.log(initial_std))))
+            return
         if packet['variant'] != 'p2_tau' or packet['input_dim'] != 403:
             raise ValueError('requires p2_tau BC: 139 state + 264 world tau')
         if not np.isfinite(initial_std) or initial_std <= 0:
@@ -43,6 +52,9 @@ for the sampled action when computing probability ratios.
         self.log_std = nn.Parameter(torch.full((24,), float(np.log(initial_std))))
 
     def forward(self, observation):
+        if self.current_model:
+            if not torch.isfinite(observation).all():raise ValueError('finite BC input required')
+            return self.actor(observation)
         if observation.shape[-1] != 403 or not torch.isfinite(observation).all():
             raise ValueError('finite raw 403D observation required')
         return self.actor((observation-self.input_mean)/self.input_std)

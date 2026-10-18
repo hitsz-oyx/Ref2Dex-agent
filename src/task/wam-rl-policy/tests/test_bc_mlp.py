@@ -23,3 +23,22 @@ def test_current_controller_exposes_hidden_without_changing_bc_command():
     x=torch.randn(5,300)*4
     torch.testing.assert_close(controller.act({},x,1),model(x).clamp(-1,1),rtol=0,atol=0)
     assert controller.last_features.shape==(5,512) and not controller.last_features.requires_grad
+
+
+def test_scheduled_expansion_preserves_trained_bc_and_learns_conditions():
+    from wam_rl_policy.bc_mlp import SCHEMA,SCHEDULED_DIM
+    torch.manual_seed(19)
+    parent=CurrentMLP()
+    with torch.no_grad():
+        parent.net[-1].weight.normal_(std=.02)
+        parent.x_mean.normal_();parent.x_scale.uniform_(.1,2)
+        parent.y_mean.normal_();parent.y_scale.uniform_(.1,.5)
+    child=CurrentMLP(SCHEDULED_DIM)
+    child.initialize_current(dict(schema=SCHEMA,model=parent.state_dict()))
+    current=torch.randn(8,300)*8
+    condition=torch.randn(8,265)
+    inputs=torch.cat((current,condition),-1)
+    torch.testing.assert_close(child(inputs),parent(current),atol=2e-6,rtol=2e-6)
+    torch.testing.assert_close(child(torch.cat((current,condition*0),-1)),parent(current),atol=2e-6,rtol=2e-6)
+    child(inputs).square().mean().backward()
+    assert child.net[0].weight.grad[:,300:].abs().sum()>0

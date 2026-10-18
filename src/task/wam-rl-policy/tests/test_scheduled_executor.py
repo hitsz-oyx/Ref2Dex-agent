@@ -63,3 +63,15 @@ def test_live_scheduler_plan_reaches_bc_input_and_reset():
     bridge.observation(objects, hands, times, np.eye(4), np.zeros(139))
     with pytest.raises(ValueError, match='seven consecutive'):
         bridge.observation(objects, hands, times*2, np.eye(4), np.zeros(139))
+
+
+def test_full_current_bc_ppo_initialization_preserves_mean():
+    from wam_rl_policy.bc_mlp import CurrentMLP,SCHEDULED_SCHEMA,SCHEDULED_DIM
+    model=CurrentMLP(SCHEDULED_DIM)
+    with torch.no_grad():model.net[-1].weight.normal_(std=.02)
+    actor=BCWarmStartActor(dict(schema=SCHEDULED_SCHEMA,model=model.state_dict()))
+    obs=torch.randn(4,SCHEDULED_DIM)
+    torch.testing.assert_close(actor(obs),model(obs),rtol=0,atol=0)
+    action=actor.distribution(obs).sample()
+    before=actor.distribution(obs).log_prob(action).sum(-1).detach()
+    assert torch.equal(before,actor.distribution(obs).log_prob(action).sum(-1))

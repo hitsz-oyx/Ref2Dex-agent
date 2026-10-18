@@ -17,7 +17,7 @@ sys.path.insert(0,str(TASK/'src'))
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('stage',choices=('prepare','train'))
+    p.add_argument('stage',choices=('prepare','prepare-scheduled','train'))
     p.add_argument('--data',type=Path,required=True)
     p.add_argument('--output',type=Path,required=True)
     p.add_argument('--gpu',type=int,default=5)
@@ -28,22 +28,35 @@ def main():
     p.add_argument('--resume',type=Path)
     p.add_argument('--lr',type=float,default=3e-4)
     p.add_argument('--schedule',choices=('constant','cosine'),default='constant')
+    p.add_argument('--sequence-cache',type=Path)
+    p.add_argument('--wam-checkpoint',type=Path)
+    p.add_argument('--wam-dense-manifest',type=Path)
+    p.add_argument('--wam-batch',type=int,default=32)
+    p.add_argument('--workers',type=int,default=2)
+    p.add_argument('--max-records',type=int,default=0)
+    p.add_argument('--resume-cache',action='store_true')
+    p.add_argument('--allow-shared-gpu',action='store_true',help='Only for verified project-owned GPU jobs')
+    p.add_argument('--init-current',type=Path)
     a=p.parse_args();out=a.output.resolve()
-    if out.exists() or ROOT/'outputs/wam-rl-policy' not in out.parents:raise ValueError('Fresh Task output required')
+    if a.resume and a.init_current:raise ValueError('Choose resume or initialization')
+    if a.stage=='prepare-scheduled' and (not all((a.sequence_cache,a.wam_checkpoint,a.wam_dense_manifest)) or a.wam_batch<1):
+        raise ValueError('Source, WAM, dense manifest and positive batch required')
+    if (out.exists() and not (a.stage=='prepare-scheduled' and a.resume_cache)) or ROOT/'outputs/wam-rl-policy' not in out.parents:raise ValueError('Fresh Task output required')
     if shutil.disk_usage(ROOT).free<24*2**30:raise RuntimeError('Disk reserve')
     scratch=ROOT/'tmp'/out.name;scratch.mkdir(parents=True,exist_ok=True)
     os.environ.update(TMPDIR=str(scratch),OMP_NUM_THREADS='2',OPENBLAS_NUM_THREADS='2')
-    if a.stage=='train':
+    if a.stage in ('train','prepare-scheduled'):
         occupied=subprocess.check_output(['nvidia-smi','-i',str(a.gpu),'--query-compute-apps=pid','--format=csv,noheader'],text=True).strip()
-        if occupied:raise RuntimeError('Assigned GPU occupied')
+        if occupied and not a.allow_shared_gpu:raise RuntimeError('Assigned GPU occupied')
         os.environ['CUDA_VISIBLE_DEVICES']=str(a.gpu)
     import numpy as np
-    out.mkdir(parents=True);started=time.monotonic()
-    commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=TASK,text=True).strip()
+    out.mkdir(parents=True,exist_ok=a.stage=='prepare-scheduled' and a.resume_cache);started=time.monotonic()
+    commit=os.environ.get('REF2DEX_CODE_COMMIT') or subprocess.check_output(['git','rev-parse','HEAD'],cwd=TASK,text=True).strip()
     def write(name,value):
         part=out/(name+'.part');part.write_text(json.dumps(value,indent=2,allow_nan=False)+'\n');part.replace(out/name)
-    process=dict(status='RUNNING',pid=os.getpid(),stage=a.stage,gpu=a.gpu if a.stage=='train' else None,
-        git_commit=commit,max_seconds=a.seconds)
+    process=dict(status='RUNNING',pid=os.getpid(),stage=a.stage,gpu=a.gpu if a.stage!='prepare' else None,
+        git_commit=commit,max_seconds=a.seconds,python=sys.executable,
+        conda_env=os.environ.get('CONDA_DEFAULT_ENV'),shared_gpu=a.allow_shared_gpu)
     write('process.json',process)
     signal.signal(signal.SIGALRM,lambda *_: (_ for _ in ()).throw(TimeoutError('Bounded current BC')))
     signal.alarm(a.seconds)
@@ -90,23 +103,34 @@ def main():
                             r=groups[int(rng.integers(len(groups)))];pool.append(int(rng.integers(r['lo'],r['hi'])))
                     np.save(out/'dev-panel.npy',np.asarray(pool,np.int64))
             manifest['status']='COMPLETED';write('manifest.json',manifest)
+        elif a.stage=='prepare-scheduled':
+            from wam_rl_policy.scheduled_current_cache import prepare
+            prepare(a,out,write)
         else:
             import torch
-            from wam_rl_policy.bc_mlp import SCHEMA,CurrentMLP
+            from wam_rl_policy.bc_mlp import SCHEMA,SCHEDULED_SCHEMA,CurrentMLP
             torch.set_num_threads(2);torch.backends.cuda.matmul.allow_tf32=True
             cache=json.loads((a.data/'manifest.json').read_text());assert cache['status']=='COMPLETED'
             stats=dict(np.load(a.data/'stats.npz'));data={}
             for split in ('train','dev'):
                 data[split]={k:torch.as_tensor(np.load(a.data/(split+'-'+k+'.npy')),device='cuda') for k in ('x','y')}
-            torch.manual_seed(a.seed);model=CurrentMLP().cuda()
+            input_dim=data['train']['x'].shape[1]
+            schema=SCHEMA if input_dim==300 else SCHEDULED_SCHEMA
+            torch.manual_seed(a.seed);model=CurrentMLP(input_dim).cuda()
             with torch.no_grad():
                 for key,value in stats.items():getattr(model,key).copy_(torch.as_tensor(value,device='cuda'))
+            if a.init_current:
+                parent=torch.load(a.init_current,map_location='cpu',weights_only=False)
+                if parent['source_cache']!=cache.get('base_cache'):raise ValueError('Full BC parent cache differs')
+                model.initialize_current(parent)
+                for key,value in stats.items():
+                    if not torch.equal(getattr(model,key).cpu(),torch.as_tensor(value)):raise ValueError('Parent normalizer differs')
             optimizer=torch.optim.AdamW(model.parameters(),lr=a.lr,weight_decay=1e-5)
             rng=np.random.default_rng(a.seed+1);panel=np.load(a.data/'dev-panel.npy')
             offset=0
             if a.resume:
                 saved=torch.load(a.resume,map_location='cpu',weights_only=False)
-                if saved.get('schema')!=SCHEMA or saved['source_cache']!=str(a.data.resolve()):raise ValueError('Same current-label source cache required')
+                if saved.get('schema')!=schema or saved['source_cache']!=str(a.data.resolve()):raise ValueError('Same current-label source cache required')
                 for key in stats:
                     if not torch.equal(getattr(model,key).cpu(),saved['model'][key]):raise ValueError('TRAIN normalizer changed')
                 model.load_state_dict(saved['model'],strict=True);optimizer.load_state_dict(saved['optimizer']);offset=int(saved['step'])
@@ -114,9 +138,10 @@ def main():
                 if not offset<a.steps:raise ValueError('Resume endpoint must exceed checkpoint step')
             # Match previous startup emphasis while using the entire strict source pool.
             ticks=np.load(a.data/'train-tick.npy');early=np.flatnonzero(ticks<8)
-            manifest=dict(schema=SCHEMA,status='RUNNING',git_commit=commit,seed=a.seed,steps=a.steps,batch=a.batch,
+            manifest=dict(schema=schema,status='RUNNING',git_commit=commit,seed=a.seed,steps=a.steps,batch=a.batch,
                 source_cache=str(a.data.resolve()),data=cache['splits'],stats='TRAIN-only',
-                initialization='fresh random, no teacher checkpoint weights' if not a.resume else 'resume own self-trained BC',
+                input_dim=input_dim,init_current=str(a.init_current) if a.init_current else None,
+                initialization='expanded full-data BC' if a.init_current else ('resume own BC' if a.resume else 'fresh random'),
                 resume=str(a.resume.resolve()) if a.resume else None,resume_step=offset,lr=a.lr,schedule=a.schedule,weight_decay=1e-5,
                 sampler='half startup tick<8; half full TRAIN windows, uniform within pools',
                 loss='TRAIN-standardized current24D L1',params=sum(p.numel() for p in model.parameters()),
@@ -129,6 +154,11 @@ def main():
                     ids=panel[off:off+2048];errors.append((model(data['dev']['x'][ids])-data['dev']['y'][ids]).abs())
                 error=torch.cat(errors);model.train()
                 return dict(command_mae=float(error.mean()),root_mae=float(error[:,:6].mean()),finger_mae=float(error[:,6:].mean()))
+            if a.resume or a.init_current:
+                baseline=evaluate();best=baseline['command_mae'];write('initial-dev.json',baseline)
+                initial=dict(schema=schema,step=offset,model=model.state_dict(),optimizer=optimizer.state_dict(),config=manifest,
+                    source_cache=str(a.data.resolve()),torch_rng=torch.get_rng_state(),cuda_rng=torch.cuda.get_rng_state(),numpy_rng=rng.bit_generator.state)
+                torch.save(initial,out/'best.pt')
             for step in range(offset+1,a.steps+1):
                 fraction=(step-offset-1)/max(1,a.steps-offset-1)
                 lr=a.lr if a.schedule=='constant' else a.lr*(.1+.9*.5*(1+math.cos(math.pi*fraction)))
@@ -145,7 +175,7 @@ def main():
                         peak_cuda_bytes=torch.cuda.max_memory_allocated())
                     curve.append(row);write('curve.json',curve);write('progress.json',row);print(json.dumps(row),flush=True)
                     if step==offset+1:write('first-draw.json',dict(step=step,ids=ids[:32].tolist(),loss=float(loss)))
-                    packet=dict(schema=SCHEMA,step=step,model=model.state_dict(),optimizer=optimizer.state_dict(),config=manifest,
+                    packet=dict(schema=schema,step=step,model=model.state_dict(),optimizer=optimizer.state_dict(),config=manifest,
                         source_cache=str(a.data.resolve()),torch_rng=torch.get_rng_state(),cuda_rng=torch.cuda.get_rng_state(),numpy_rng=rng.bit_generator.state)
                     if metrics['command_mae']<best:
                         best=metrics['command_mae'];torch.save(packet,out/'best.pt.part');(out/'best.pt.part').replace(out/'best.pt')
