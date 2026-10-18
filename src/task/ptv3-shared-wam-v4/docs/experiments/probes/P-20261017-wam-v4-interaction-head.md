@@ -5,7 +5,7 @@ experiment_id: P-20261017-wam-v4-interaction-head
 date: 2026-10-17
 task: ptv3-shared-wam-v4
 branch: main
-git_commit: 7b6d28a5
+git_commit: b65872f8
 claim_id: C1
 hypothesis_family: HF-wam-interaction-head
 probe_index_in_family: 1
@@ -14,7 +14,7 @@ seeds: [170]
 decision_changed_if_positive: keep the dynamic graph interface and run a matched tau-only versus tau-plus-C executor probe
 decision_changed_if_negative: remove or redesign C before any long pretraining budget
 status: RUNNING
-run_id: pretrain-nine-v4-auditnorm-warm80k-20261018-r1
+run_id: pretrain-nine-v4-fastinput-warm80k-20261018-r1
 ---
 
 # WAM-v4 target-object interaction field
@@ -295,3 +295,120 @@ generation is a strong bottleneck candidate. GPU forward/backward and NCCL
 wall-time shares have not yet been measured. Periodic DEV is rank0-only
 (every1000 updates) while other ranks wait; the current early ETA has not
 passed its first periodic validation and excludes that recurring overhead.
+
+### Exact-label input efficiency comparison (2026-10-18)
+
+Engineering qualification under the same experiment; no new architecture, data
+selection, loss or scientific claim. Hypotheses: occupied-cell integer lookup
+reduces repeated voxel sorting; workers4 may increase supply versus workers2;
+removing duplicate native tensor construction and caching fixed DEV may reduce
+remaining preparation. The decision is which verified implementation/worker
+count to use for the unchanged80k continuation. Cheapest check first: exact
+synthetic/real-reader comparisons before real GPU throughput.
+
+Implementation `b65872f8` adds collision-free int64 keys with pre-encoding bounds
+checks and exact original fallback on unsafe extents. Voxel origin, scaffold,
+1cm/dilation policy and neighbour-sum arithmetic are unchanged. Clean reader
+checks/provenance wrap direct v4 construction, canonical native selections are
+prepared once, and fixed DEV has a256MiB CPU cache cap at the same microbatch8.
+Optional CUDA events profile stages at normal log synchronization boundaries;
+forward/loss includes collectives and stage/input-wait times are not additive
+resource shares. TRAIN/DEV filter file digests are bound in new checkpoint
+provenance; legacy parents lacking them are explicitly only bound at transition,
+without claiming historical filter integrity.
+
+Focused suites:53 passed locally and53 on remote Python3.8.20/graspenv,
+Torch2.0.1+cu118. Tests include int64 extrema/overflow fallback, empty scaffold,
+negative/shifted coordinates, dilation0/1/2 full targets/masks, native full
+horizon and payload/index drift checks, cached DEV equality and boundedness.
+The user-described external efficiency ZIP was not present locally; this is an
+independent implementation of the supplied specification, not a claim that the
+external263-case prototype was executed.
+
+Remote bounded real-reader check uses deterministic72 source-balanced TRAIN
+windows plus128 weighted TRAIN draws (200 total), repeats2, same16-sequence
+cache policy. Every returned field, including C target/mask and native
+provenance, matches the original implementation bitwise. Reference median
+8.79249s; lookup-only3.83199s; full optimized3.92080s (~2.24x input construction).
+The native addition is within noise here; no separate measured speed benefit
+is claimed. These are CPU input measurements, not whole-training speedups.
+
+Remote output root `tmp/efficiency-probe-20261018-r1/` under the existing NAS
+artifact root; code `training-code-efficiency-20261018-r1`. Full-model four-rank
+GPU comparison supervisor2620289/torchrun2620312 uses the immutable audited
+step3000 checkpoint, global512,50 updates per case/10 warmup, original/optimized
+inputs and workers2/4. All cases restore the same model/optimizer/per-rank RNG
+and verify sample order. Benchmark updates write no checkpoints. Four RTX4090,
+502GiB machine RAM and abundant free NAS space; max1200s, own process group only.
+
+The prior corrected run was administratively stopped at logged3260; its
+step3000 complete checkpoint, historical best and all logs remain. Unsaved
+updates3001--3260 will be recomputed on the new continuation, rather than
+pretending that a live in-memory state was preserved. This is not a reset to v3
+or a change of the audited training objective.
+
+Four-rank real-model benchmark completed with exit0 in404.56s. Each case
+measures40 updates after10 warmup updates, global512, checkpoint step3000:
+
+| Input | Workers/rank | Updates/s | Speed relative to original2 |
+| --- | ---: | ---: | ---: |
+| Original query/native path | 2 | .346243 | 1.00 |
+| Original query/native path | 4 | .654890 | 1.89 |
+| Exact lookup/direct native | 2 | .803132 | 2.32 |
+| Exact lookup/direct native | 4 | 1.572836 | 4.54 |
+
+Sample-order digests match on all ranks. The two optimized cases' complete
+50-update per-rank loss sequences are bitwise identical to original-input
+workers4. The first freshly constructed DDP case (original workers2) has small
+numerical drift (maximum absolute loss difference.001738) from all subsequent
+cases; its cause was not isolated and exact GPU trajectory equivalence to that
+first case is not claimed. This does not affect the real-reader bitwise target
+comparison or the identical later original/optimized loss sequences.
+
+Mean CUDA/event/CPU stages in seconds for rank0, original2 -> optimized4:
+input wait2.25359 -> .02255; H2D.00175 -> .00166; forward+loss.19992 -> .17894;
+backward.40392 -> .40366; optimizer.02889 -> .02892. Across all ranks the optimized
+input wait is.00059--.02805s. Original rank1's forward+loss took2.02186s,
+consistent with collective waiting for slower data ranks, rather than interpreting
+that CUDA duration as pure model compute. Timing covers steady updates, not
+periodic validation/checkpoint or startup.
+
+Real-model DEV at the same microbatch8 reports exactly equal objective and all
+metrics with streaming/cached CPU inputs: objective2.5833346971694704. Streaming
+6.04524s; cached1.71182s; cache preparation4.76752s once,44,060,416 bytes (~42MiB).
+Microbatch16/32 was not substituted: the unchanged8 already removes repeated C
+generation without introducing a numerical/configuration transition.
+
+Small evidence copies: local `outputs/ptv3-shared-wam-v4/efficiency-evidence-20261018-r1/`
+contains `cpu.json`, `gpu.json`, process metadata and benchmark log. Select
+workers4 with prefetch2 and persistent workers; leave all training configuration,
+recipe/statistics, model/loss and validation panel unchanged. Remaining77k
+updates extrapolate to13.60h at benchmark speed; this is provisional until
+sustained training and periodic evaluations/checkpoints are observed.
+
+Full training entrypoint smoke `interface-fastinput-resume-20261018-r1`
+(supervisor2621912) completed3000->3004 with exit0: exact CPU/CUDA RNG and
+optimizer step3000 restored on all four ranks, gradient audit/DEV/checkpoint
+writes passed, final loss1.877037 and finite gradient1.686120. Historical best
+step3000/score2.570000832077475 remained best after the worse step3004 DEV.
+New checkpoint provenance binds TRAIN filter
+`57f1a5ceabebcaec1b43abad09248d5c744162f169a08ed24f984985e0fdcdc8` and DEV
+`2ea724a34d4090e85217deefbf4669553cf76fdb9f006ecc921e84fe05569a26`.
+Four-update smoke throughput is not used for ETA: final DEV took1.433s and
+checkpoint work10.726s, dominating that short interval.
+
+The production continuation `pretrain-nine-v4-fastinput-warm80k-20261018-r1`
+launched from the resulting step3004 complete checkpoint with supervisor2622903,
+GPUs0/1/2/3, workers4 per rank, global512, microbatch8 DEV cache and first100
+updates instrumented. Same recipe/config/statistics/objective, full
+optimizer/RNG resume (no model-only reinitialization), target80000 and original
+7-day/8GB/20GiB guards. Previous runs/checkpoints/logs are retained.
+Repository-wide verify still fails only on the six pre-existing trajectory-policy
+v2 card schema/seed issues documented above; the experiment index and focused
+WAM card checks pass.
+
+Production continuation verified at step3100, loss1.861955, finite gradient1.755117,
+recent1.57165 updates/s and provisional remaining13.59h (before recurring
+validation/checkpoint overhead). Physical GPU memory about8.0--8.1GiB/rank.
+All ranks restored optimizer step3004 and exact CPU/CUDA RNG; inherited filter
+bindings match on this second resume. Best step3000 remains owned and retained.

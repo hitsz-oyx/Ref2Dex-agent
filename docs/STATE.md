@@ -1,3 +1,18 @@
+## 2026-10-18 WAM-v4 精确输入加速与原状态续训
+
+代码`b65872f8`保持数据、标签、目标和global512不变，C查询改为无碰撞int64查表，
+native直接构造v4并缓存固定几何，DEV microbatch8输入缓存约42MiB；补齐分阶段计时与
+TRAIN/DEV filter摘要的后续恢复检查。53项本地/远端测试通过，九源200个真实窗口全部字段逐值一致。
+真实四卡同step3000/相同RNG及采样的短跑：原输入workers2=.346、workers4=.655，
+优化输入workers2=.803、workers4=1.573步/秒，最佳约4.54倍；DEV 6.05->1.71秒且指标完全一致。
+
+旧修正版run停在logged3260，保留step3000完整状态/历史best/日志；未保存的约260步会重算。
+完整入口3000->3004恢复smoke通过，四rank RNG/optimizer恢复准确且较差DEV未覆盖best3000。
+新`pretrain-nine-v4-fastinput-warm80k-20261018-r1`从该step3004续训，supervisor2622903，
+远端四卡/每rank workers4，已至step3100、loss1.86196、梯度有限；近期1.572步/秒，
+暂估剩余约13--14小时（含周期验证/存盘需继续校准）；未重新从v3初始化。
+见[实验卡](../src/task/ptv3-shared-wam-v4/docs/experiments/probes/P-20261017-wam-v4-interaction-head.md)。
+
 ## 2026-10-18 WAM-v4 审计修复与新版80k
 
 用户28361da审计指出的hand/object DDP局部分母、DEV按microbatch平均、未来mask进入forward、

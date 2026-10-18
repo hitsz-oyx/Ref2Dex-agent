@@ -1,3 +1,12 @@
+## 2026-10-18 WAM-v4 输入加速保持标签语义
+
+`b65872f8`仅替换C体素查询查表：占据单元编码为int64键、越界排除、溢出回退原算法；
+不改scaffold、voxel origin、1cm/dilation、邻域累加次序或缺测mask。native复用clean reader
+的payload/index/完整future检查与provenance，直接构造v4，并预备每个对象的固定几何。
+九源200个真实TRAIN窗口全部字段（含C、mask与provenance）与原路径逐值一致。
+相关WAM/data测试本地及远端各53通过。整步四卡优化及workers2/4对照见WAM-v4实验卡；
+原数据文件、筛选集合、recipe和统计不变，无需重新生成数据。
+
 ## 2026-10-18 dense overlay 内容绑定已完成
 
 按用户28361da审计，新增manifest v2：逐NPZ SHA-256、recipe中的manifest摘要、checkpoint
