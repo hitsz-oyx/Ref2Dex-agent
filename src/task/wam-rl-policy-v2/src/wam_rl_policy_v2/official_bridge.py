@@ -13,6 +13,7 @@ from .batched_scheduled_inputs import BatchedScheduledInputs
 from .goal_scheduler import OrderedGoalScheduler
 from .scheduled_ppo_loop import parameter_sync_error
 from .control_contracts import scheduled_conditioning_contract
+from .checkpoint_retention import prune_checkpoints
 
 
 def normalize_advantages(values):
@@ -185,16 +186,23 @@ def run(task,snapshot,sim_step,actor,runtime,args):
             if state['model_sync_error']!=0:raise RuntimeError('Rank parameters diverged')
         with (args.output/'curve.jsonl').open('a') as f:f.write(json.dumps(state)+'\n')
         print(json.dumps(state),flush=True)
+        if state['iteration'] % 500 == 0:save(None)
         if timeline is not None:timeline.step()
     ppo.log=log
     def save(path):
         if args.rank==0:
             iteration=state['iteration'];dest=args.output/('official-iteration-%d.pt'%iteration)
             if dest.exists():return
+            partial=dest.with_suffix('.pt.partial')
             torch.save(dict(schema='ref2dex.scheduled-official-ppo.v1',model=ppo.actor_critic.state_dict(),
                 optimizer=ppo.optimizer.state_dict(),iteration=iteration,step_size=ppo.step_size,
                 config=cfg,conditioning=scheduled_conditioning_contract(),bc_source=str(args.policy),
-                resume_semantics='model/optimizer; fresh native episodes'),dest)
+                resume_semantics='model/optimizer; fresh native episodes'),partial)
+            partial.replace(dest)
+            removed=prune_checkpoints(args.output,final_iteration=completed+args.ppo_updates)
+            if removed:
+                with (args.output/'checkpoint-retention.jsonl').open('a') as f:
+                    f.write(json.dumps(dict(saved=dest.name,removed=removed))+'\n')
     ppo.save=save
     timeline=None
     if os.environ.get('REF2DEX_PROFILE_CUDA')=='1':

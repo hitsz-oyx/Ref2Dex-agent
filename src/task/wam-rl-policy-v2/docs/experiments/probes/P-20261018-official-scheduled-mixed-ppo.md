@@ -247,3 +247,14 @@ process.json、gpu-window.jsonl、rank-*/curve.jsonl。
 结论：256环境可运行且短测吞吐更高，仍有CPU/同步限制；主训练保持原规模，
 后续若采用256需按交互量重新核算预算并评估更大minibatch对学习的影响。
 测试worker已退出，GPU6/7回到各347MiB已有占用。
+
+### 用户授权256环境六卡续训与checkpoint保留
+
+旧r3主动STOP，日志最后581轮，最新完整checkpoint562轮（CPU加载模型/optimizer通过）；
+19轮未保存不能恢复。仅清理旧r3的非保留checkpoint，保留最近3个；旧版没有500整点文件。
+新run_id=official-scheduled-mixed-20261018-r4，从562续训9438轮至累计10000轮，
+GPU0–5每卡256环境，共1536环境，仍96 TRAIN物体。graspenv，两个优化开关all，
+官方8步/5epochs/4minibatches保留，批次增大；48小时上限，剩余磁盘20GiB停止。
+保存采用临时文件后原子rename，保留最近3个、每500累计轮整点和最终文件；
+额外在log后的500整点保存，避免官方按局部it保存的偏移。清理仅当前run的标准命名文件。
+主路线继续训练，性能规模调整依据上述Probe，不能由吞吐推断成功率改进。
