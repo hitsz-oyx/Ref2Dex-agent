@@ -88,3 +88,24 @@ def test_pipeline_partial_reset_and_workspace_failure(monkeypatch):
         for v in values[1:]:
             np.testing.assert_allclose(np.asarray(v['observation']),values[0]['observation'],atol=2e-6,rtol=1e-6)
             np.testing.assert_array_equal(v['workspace_invalid'],values[0]['workspace_invalid'])
+
+
+def test_fast_geometry_preserves_coupling_loss_and_partial_reset():
+    rng=np.random.RandomState(43);points=rng.randn(512,3)*.01;n=3
+    start=np.repeat(np.eye(4)[None],n,0);goal=start.copy();goal[:,0,3]=.2
+    single=[OrderedGoalScheduler([a,b],[0,2],points[:32],interaction_points=points) for a,b in zip(start,goal)]
+    batched=copy.deepcopy(single);seen=set()
+    for tick in range(45):
+        poses=start.copy();poses[:,0,3]=tick*.0002
+        hands=np.zeros((n,11,3));hands[:,6:]=points[:5];hands+=poses[:,None,:3,3]
+        if tick>=20:hands+=.1
+        if tick==30:single[1].reset();batched[1].reset()
+        times=np.full(n,tick/60)
+        old=[s.update(p,t,hand_points=h) for s,p,t,h in zip(single,poses,times,hands)]
+        new=update_schedulers(batched,poses,times,hands,fast_geometry=True)
+        for a,b in zip(old,new):
+            seen.add(a['interaction']['state'])
+            assert a['interaction']==b['interaction']
+            assert a['mode']==b['mode'] and a['reason']==b['reason']
+            np.testing.assert_allclose(a['goal_delta'],b['goal_delta'],rtol=0,atol=1e-8)
+    assert {'COUPLED','LOST'} <= seen
