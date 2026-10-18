@@ -1,5 +1,15 @@
 # 当前状态
 
+## 2026-10-18 调度器加入手物历史并修复进度问题，真实3D审阅已就绪
+
+[后续工程Probe](experiments/probes/P-20261018-interaction-goal-scheduler.md)修复持续慢速
+误超时、低频跨过里程碑与确认时goal整段跳变，新增手物相对运动代理；弱proxy只影响
+goal，不抹掉独立实测路径证据。17项单测通过，固定5ed8ae42的19片段/4811帧独立复算
+通过；Clock10Hz仍未确认一个中间位姿，保留失败。4片段虽几何到达但末段proxy为LOST，
+不能称操控成功。原速度4物体相对goal跳变p95约15mm→5mm，只是工程平滑性。
+Firefox57帧及播放/鼠标拖动/时间轴检查通过，新3D显示手骨架、CAD、goal和判定依据。
+入口`outputs/wam-rl-policy/interaction-goal-scheduler-20261018-r2/review.html`；WAM未改。
+
 ## 2026-10-18 独立goal调度器完成几何回放，尚未接WAM或策略
 
 按用户最新范围，只实现有序SE(3)进度、状态相关前视、有界恢复与显式超时；不修改WAM。

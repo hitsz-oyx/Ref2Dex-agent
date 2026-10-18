@@ -1,5 +1,11 @@
 # WAM-assisted robot RL
 
+2026-10-18 [手物历史条件的调度与3D审阅](docs/experiments/probes/P-20261018-interaction-goal-scheduler.md)：
+修复慢速误超时、低频错过里程碑及goal整段跳变，新增因果hand11/物体随动代理。
+弱proxy只影响短目标，不作为几何进度硬门；显式外部准备/失败信号仍可暂停确认。
+17项单测、19片段独立复算及Firefox真实交互检查通过；Clock10Hz边界仍保留失败。
+新展示构建入口`tools/audit/build_goal_scheduler_viewer.py`，没有修改WAM。
+
 2026-10-18 [独立goal调度器](docs/experiments/probes/P-20261018-goal-scheduler.md)：
 `OrderedGoalScheduler(reference_poses, reference_times_s, object_points)`逐环境保存有序进度，
 `update(object_pose, time_s, execution_ready=None, lost_control=False)`返回短目标SE(3)、

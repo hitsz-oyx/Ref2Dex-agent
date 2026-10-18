@@ -63,7 +63,9 @@ def main():
     if output.exists():
         raise FileExistsError(output)
     output.write_text('window.GOAL_REPLAY='+json.dumps(payload, separators=(',', ':'), allow_nan=False).replace('<','\\u003c')+';\n')
-    (args.run/'review-3d.html').write_text((TASK/'tools/audit/goal_scheduler_3d_viewer.html').read_text())
+    template = (TASK/'tools/audit/goal_scheduler_3d_viewer.html').read_text()
+    (args.run/'review-3d.html').write_text(template)
+    (args.run/'review.html').write_text(template)
     report = dict(cases=len(packed), source='replay.json', display_rounding_decimals=6,
         hand_layout='palm, five bases, five tips; measured landmarks, no invented joint mesh',
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
