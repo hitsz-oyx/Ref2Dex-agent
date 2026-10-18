@@ -266,19 +266,66 @@ collected afterwards as a held-out teacher panel; 10/32 are successful
 (453, 463, 466, 468, 471, 472, 474, 478, 480, 482).  None of them is in the
 student's BC or DAgger data.
 
-Seed 453 (teacher lift 0.197 m, success first at tick 186) is the first
-held-out closed-loop check with the fixed network and DAgger recipe:
+All six retained student runs completed. The original aggregates used the
+upstream latched success flag. A follow-up recomputation from
+`norm(obs[:,204:207])`, the pinned task's yaw-rotated goal displacement, gives:
 
-| arm | final success | success frames (first) | max lift | final object x/y |
-|---|---|---|---|---|
-| tau+DAgger | 1 | 19 (131) | 0.181 m | (-0.031, 0.028) |
-| state-only+DAgger (tau packet) | 0 | 0 | 0.180 m | (-0.088, -0.058) |
-| teacher | 1 | 13 (186) | 0.197 m | (-0.010, -0.001) |
+| seed | arm | max lift | realtime in-goal frames / longest run | last recorded distance |
+|---|---|---:|---:|---:|
+| 453 | tau+DAgger | .181 m | 14 / 14 | .05547 m |
+| 453 | state-only, same tau packet | .180 m | 0 / 0 | .10773 m |
+| 471 | tau+DAgger | .215 m | 4 / 4 | .05263 m |
+| 471 | state-only, same tau packet | .203 m | 0 / 0 | .05586 m |
+| 482 | tau+DAgger | .183 m | 13 / 13 | .28588 m |
+| 482 | state-only, same tau packet | .000 m | 0 / 0 | .27996 m |
 
-The state-only control lifts just as high but ends 6--8 cm off the goal in
-x/y, outside the 5 cm success tolerance; the tau arm stays inside it and
-holds through the end.  This is one held-out seed; seeds 471 and 482 are
-running to estimate whether the effect is seed-specific.
+GT-tau reaches the5cm goal region in3/3 selected held-out initial states;
+state-only reaches it in0/3. None of the tau runs remains inside at its last
+recorded state. The earlier claim of three successful final holds is withdrawn;
+the old19/17/44 frame counts were cumulative flags, not14/4/13 realtime frames.
+Leaving the goal region is not by itself evidence of losing physical contact.
+These three seeds were selected from teacher-successful initializations, so
+3/3 is not an unconditional task success rate.
+
+All450 archived held-out oracle query results have replay error0 and valid
+fork flags; all six action/prefix arrays match exactly. The fixed seed421
+positive control independently retains62 consecutive realtime in-goal frames,
+last distance.01722m. These archives record states before each action and lack
+the state after the final action; conclusions use **last recorded state**,
+not an invented terminal measurement. Reproduce with
+`tools/audit/audit_oracle_tau_results.py`; report:
+`outputs/wam-rl-policy/oracle-tau-followup-20261018-r1/archive-audit.json`.
+
+### Follow-up Decision: allocated-capacity state-only control
+
+Continue the pending DSH session `ff7519bd-c05d-4676-b921-1c8f6d55a9ae`
+(2026-10-18). It had already prepared `--pad-to403` but had not run the
+capacity control. The new run ID is `oracle-tau-capacity-20261018-r1` and
+work version is `oracle-tau-capacity-control.v1`.
+
+Distinguish whether increasing the allocated input layer can reproduce the
+tau-arm behavior without trajectory information. Train p2 plus264 zero
+channels, matching the tau model's403->256->256->24 architecture, model
+seed0, successful BC rows1910/3000 updates, then the identical seed421
+tau-arm DAgger packet150rows x10/2000 updates at3e-4. BC uses the existing
+default1e-3. Neither held-out seed nor its labels enters fitting. Both training
+and deployment use the same padding helper and checkpoint-declared padding.
+
+Evaluate only421/453/471/482, one fresh single-environment150-tick process
+each, student actions only, no oracle calls. A padded state-only model matching
+the GT-tau reach/hold would weaken the prior attribution and prioritize an
+active shuffled-tau control. If it fails, retain the GT-tau reach result while
+keeping cross-initial-state holding unresolved. Zero padding matches allocated
+parameter count and initialization fan-in; it is not an active shuffled-input
+control and cannot establish information-only causality.
+
+This is cheaper than repeating three oracle episodes (~70min): existing tau
+archives already provide the reference. Limit to one model seed, four episodes,
+600s total/2GiB new output and20GiB free-space guard. Use local GPU0 only,
+leave6/7 unallocated by this task, preserve the remote WAM run. Runtime remains
+`dexplore_v120_train` (Python3.8.10, Torch2.0.1+cu118, NumPy1.23.5); protocol,
+commands, code commit and GPU samples are written into the new run directory.
+No WAM-predicted tau substitution is claimed by this follow-up.
 
 ## 2026-10-18 audit caveat: action prefix and success frames
 

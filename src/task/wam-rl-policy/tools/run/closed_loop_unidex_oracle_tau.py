@@ -26,6 +26,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'src'))
 from probe_unidex_oracle_tau import DEFAULT_OBJECT, load_replay_helpers, write_json
 from wam_rl_policy.action_contract import canonical_action, step_with_isolated_action
 from wam_rl_policy.hold_metrics import summarize_realtime_hold
+from wam_rl_policy.student_inputs import student_features
 
 P2_SLICES = ((0, 44), (66, 131), (161, 191))
 
@@ -208,8 +209,10 @@ def main():
                 with np.load(query_dir / 'tau.npz') as query:
                     tau_np = query['tau'].reshape(-1).astype(np.float32)
                     teacher_action_np = query['teacher_actions'][0].astype(np.float32)
-                if args.variant == 'p2_tau':
-                    features = np.concatenate([features, tau_np])
+            features = student_features(features, args.variant, tau=tau_np,
+                                        pad_to=checkpoint.get('pad_to', 0))
+            if features.shape != (checkpoint['input_dim'],):
+                raise ValueError('student checkpoint input dimension mismatch')
             x = torch.tensor(features, dtype=torch.float32, device='cuda:0')
             action = model(((x - mean) / std).reshape(1, -1)).clamp(-1, 1)
             canonical = canonical_action(action)

@@ -9,11 +9,15 @@ initialization so the input normalization stays identical to deployment.
 import argparse
 import json
 from pathlib import Path
+import sys
 import time
 
 import numpy as np
 import torch
 import torch.nn.functional as F
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'src'))
+from wam_rl_policy.student_inputs import student_features
 
 
 def write_json(path, value):
@@ -43,6 +47,8 @@ def main():
     p.add_argument('--dagger-data', type=Path)
     p.add_argument('--dagger-weight', type=int, default=10)
     p.add_argument('--lr', type=float, default=1e-3)
+    p.add_argument('--pad-to', type=int, default=0,
+                   help='zero-pad a state-only input to this dimension for a capacity control')
     args = p.parse_args()
     if args.output == Path('/tmp') or Path('/tmp') in args.output.parents:
         raise ValueError('checkpoint must remain in the project workspace')
@@ -60,10 +66,8 @@ def main():
         seeds = [int(s) for s in np.unique(data['seed'])]
 
     def features(packet):
-        value = packet['p2']
-        if args.variant == 'p2_tau':
-            value = np.concatenate([value, packet['tau'].reshape(len(value), -1)], axis=1)
-        return value.astype(np.float32)
+        return student_features(packet['p2'], args.variant,
+                                tau=packet.get('tau'), pad_to=args.pad_to)
 
     x_bc = features(data)
     y_bc = data['action'].astype(np.float32)
@@ -126,6 +130,7 @@ def main():
     torch.save(dict(state_dict=model.state_dict(), mean=mean, std=std,
                     variant=args.variant, hidden=int(model[0].out_features), seed=args.seed,
                     input_dim=int(x.shape[1]), rows=int(len(x)), seeds=seeds,
+                    pad_to=args.pad_to,
                     init=str(args.init) if args.init else None,
                     dagger_data=str(args.dagger_data) if args.dagger_data else None),
                args.output / 'model.pt')
@@ -134,6 +139,7 @@ def main():
         variant=args.variant, rows=int(len(x)), bc_rows=int(len(x_bc)),
         dagger_rows=dagger_rows, dagger_weight=args.dagger_weight,
         seeds=seeds, input_dim=int(x.shape[1]), steps=args.steps, lr=args.lr,
+        pad_to=args.pad_to,
         seed=args.seed, train_l1=train_l1,
         bc_l1_before=before_bc, bc_l1_after=after_bc,
         dagger_l1_before=before_dagger, dagger_l1_after=after_dagger,
