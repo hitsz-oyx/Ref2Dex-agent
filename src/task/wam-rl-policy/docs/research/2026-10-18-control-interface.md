@@ -71,3 +71,9 @@ WAM预测C仍作为诊断/后续可选条件返回，当前565维actor不消费C
 不在本次实现内：通用Inspire executor、phase-conditioned WAM、接触力证书、
 任意参考轨迹的可达性保证、完整任务阶段状态机。接口已留出任务意图与外部反馈位置，
 但这些能力必须分别实现和验证。
+
+实际接口smoke已通过：WAM step12000 + 全量BC step50000，12条连续归档TRAIN测量，
+前6拍valid=False、随后6拍True；迁移后actor均值最大差2.384e-7，PPO log-prob回放误差0，
+模拟原地修改sink不能改写canonical日志。耗时12.30s，峰值417MiB。
+产物 `outputs/wam-rl-policy/full-scheduled-current-bc-20261018-local-r1/control-interface-smoke/`。
+另有25项相关接口/调度/动作/τ/分片测试通过。这些不是native物理成功证据。

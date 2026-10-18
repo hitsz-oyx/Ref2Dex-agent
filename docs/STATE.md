@@ -1,3 +1,16 @@
+## 2026-10-18 全量BC调度条件缓存五卡并行，正式Shadow控制接口落地
+
+复用已有全量UniDex筛选池（TRAIN1567/DEV388对象）和自训练BC step50000，冻结WAM
+step12000。条件缓存优化后单卡约322行/s；现已在本地GPU2/3/4/5/6按记录互斥分片续跑，
+GPU1/7不分配本任务，GPU0已有任务不动。全量完成后自动启动BC续训，不能把缓存生成等同于策略训练完成。
+当前状态与ETA见`outputs/wam-rl-policy/full-scheduled-current-bc-20261018-local-r1/cache-fast/parallel.json`。
+
+正式接口分离TaskIntent、实测episode/tick/手点mask、外部readiness、空间path goal、
+世界系60Hz tau以及raw PPO action/canonical action；拒绝缺测、布局不匹配和过期执行。
+25项合同测试及真实WAM/BC的12拍归档接口smoke通过，PPO概率回放误差0。
+phase暂不进入WAM/actor，空间waypoint不保证0.8s可达；565维native物理闭环和PPO训练仍待完成。
+见[接口审计处置](../src/task/wam-rl-policy/docs/research/2026-10-18-control-interface.md)。
+
 ## 2026-10-18 GT-τ有界后续失败；WAM-v4在更大DEV上主要改善C
 
 复用421的150行与453晚期60行微调2000步后，482的GT-τ/state-only各200步均未抬过
