@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Train a closed-loop student BC policy and save deployable parameters.
+"""Train or fine-tune a closed-loop student BC policy.
 
 The student consumes either the partial observation alone (``p2``) or the
-partial observation plus the oracle 8-step 11-point plan (``p2_tau``).  Both
-arms use the same architecture, data, and schedule.  The checkpoint stores the
-input normalization because the closed-loop runner must reproduce it exactly.
+partial observation plus the oracle 8-step 11-point plan (``p2_tau``).  A
+DAgger packet can be mixed in, and an existing checkpoint can be used as the
+initialization so the input normalization stays identical to deployment.
 """
 import argparse
 import json
@@ -22,6 +22,13 @@ def write_json(path, value):
                                default=lambda o: o.item() if hasattr(o, 'item') else str(o)))
 
 
+def build_model(input_dim, hidden):
+    return torch.nn.Sequential(
+        torch.nn.Linear(input_dim, hidden), torch.nn.ELU(),
+        torch.nn.Linear(hidden, hidden), torch.nn.ELU(),
+        torch.nn.Linear(hidden, 24))
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument('--data', type=Path, required=True)
@@ -32,6 +39,10 @@ def main():
     p.add_argument('--steps', type=int, default=3000)
     p.add_argument('--seed', type=int, default=0)
     p.add_argument('--gpu', type=int, default=0)
+    p.add_argument('--init', type=Path)
+    p.add_argument('--dagger-data', type=Path)
+    p.add_argument('--dagger-weight', type=int, default=10)
+    p.add_argument('--lr', type=float, default=1e-3)
     args = p.parse_args()
     if args.output == Path('/tmp') or Path('/tmp') in args.output.parents:
         raise ValueError('checkpoint must remain in the project workspace')
@@ -47,22 +58,57 @@ def main():
         data = {key: value[keep] for key, value in data.items()}
     else:
         seeds = [int(s) for s in np.unique(data['seed'])]
-    x = data['p2']
-    if args.variant == 'p2_tau':
-        x = np.concatenate([x, data['tau'].reshape(len(x), -1)], axis=1)
-    y = data['action'].astype(np.float32)
-    mean = x.mean(axis=0)
-    std = x.std(axis=0)
-    std = np.where(std < 1e-6, 1.0, std)
+
+    def features(packet):
+        value = packet['p2']
+        if args.variant == 'p2_tau':
+            value = np.concatenate([value, packet['tau'].reshape(len(value), -1)], axis=1)
+        return value.astype(np.float32)
+
+    x_bc = features(data)
+    y_bc = data['action'].astype(np.float32)
+    x = x_bc
+    y = y_bc
+    dagger_rows = 0
+    x_dagger = None
+    y_dagger = None
+    if args.dagger_data:
+        with np.load(args.dagger_data / 'dagger_data.npz', allow_pickle=False) as source:
+            packet = {key: source[key] for key in source.files}
+        x_dagger = features(packet)
+        y_dagger = packet['action'].astype(np.float32)
+        if x_dagger.shape[1] != x_bc.shape[1]:
+            raise ValueError('DAgger packet feature dimension mismatch')
+        x = np.concatenate([x_bc] + [x_dagger] * args.dagger_weight, axis=0)
+        y = np.concatenate([y_bc] + [y_dagger] * args.dagger_weight, axis=0)
+        dagger_rows = int(len(x_dagger) * args.dagger_weight)
     device = f'cuda:{args.gpu}'
     torch.manual_seed(args.seed)
-    model = torch.nn.Sequential(
-        torch.nn.Linear(x.shape[1], args.hidden), torch.nn.ELU(),
-        torch.nn.Linear(args.hidden, args.hidden), torch.nn.ELU(),
-        torch.nn.Linear(args.hidden, 24)).to(device)
+    if args.init:
+        checkpoint = torch.load(args.init, map_location=device, weights_only=False)
+        if checkpoint['variant'] != args.variant or checkpoint['input_dim'] != x.shape[1]:
+            raise ValueError('init checkpoint contract mismatch')
+        mean = checkpoint['mean']
+        std = checkpoint['std']
+        model = build_model(int(x.shape[1]), int(checkpoint['hidden'])).to(device)
+        model.load_state_dict(checkpoint['state_dict'])
+    else:
+        mean = x_bc.mean(axis=0)
+        std = np.where(x_bc.std(axis=0) < 1e-6, 1.0, x_bc.std(axis=0))
+        model = build_model(int(x.shape[1]), args.hidden).to(device)
     xt = torch.tensor((x - mean) / std, dtype=torch.float32, device=device)
     yt = torch.tensor(y, dtype=torch.float32, device=device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-4)
+    bc_t = torch.tensor((x_bc - mean) / std, dtype=torch.float32, device=device)
+    bc_y = torch.tensor(y_bc, dtype=torch.float32, device=device)
+    dagger_t = (torch.tensor((x_dagger - mean) / std, dtype=torch.float32, device=device)
+                if x_dagger is not None else None)
+    dagger_y = (torch.tensor(y_dagger, dtype=torch.float32, device=device)
+                if y_dagger is not None else None)
+    with torch.no_grad():
+        before_bc = float((model(bc_t) - bc_y).abs().mean().item())
+        before_dagger = (float((model(dagger_t) - dagger_y).abs().mean().item())
+                         if dagger_t is not None else None)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=1e-4)
     started = time.monotonic()
     for _ in range(args.steps):
         optimizer.zero_grad()
@@ -73,22 +119,34 @@ def main():
         prediction = model(xt)
         train_l1 = float((prediction - yt).abs().mean().item())
         per_dim = (prediction - yt).abs().mean(dim=0).cpu().numpy()
-        baseline = float((yt - yt.mean(dim=0, keepdim=True)).abs().mean().item())
+        after_bc = float((model(bc_t) - bc_y).abs().mean().item())
+        after_dagger = (float((model(dagger_t) - dagger_y).abs().mean().item())
+                        if dagger_t is not None else None)
     args.output.mkdir(parents=True, exist_ok=True)
     torch.save(dict(state_dict=model.state_dict(), mean=mean, std=std,
-                    variant=args.variant, hidden=args.hidden, seed=args.seed,
-                    input_dim=int(x.shape[1]), rows=int(len(x)), seeds=seeds),
+                    variant=args.variant, hidden=int(model[0].out_features), seed=args.seed,
+                    input_dim=int(x.shape[1]), rows=int(len(x)), seeds=seeds,
+                    init=str(args.init) if args.init else None,
+                    dagger_data=str(args.dagger_data) if args.dagger_data else None),
                args.output / 'model.pt')
     write_json(args.output / 'metrics.json', dict(
         schema='ref2dex.unidex-closed-loop-student.v1',
-        variant=args.variant, rows=int(len(x)), seeds=seeds,
-        input_dim=int(x.shape[1]), hidden=args.hidden, steps=args.steps,
-        seed=args.seed, train_l1=train_l1, mean_baseline_l1=baseline,
+        variant=args.variant, rows=int(len(x)), bc_rows=int(len(x_bc)),
+        dagger_rows=dagger_rows, dagger_weight=args.dagger_weight,
+        seeds=seeds, input_dim=int(x.shape[1]), steps=args.steps, lr=args.lr,
+        seed=args.seed, train_l1=train_l1,
+        bc_l1_before=before_bc, bc_l1_after=after_bc,
+        dagger_l1_before=before_dagger, dagger_l1_after=after_dagger,
         per_dim_l1=per_dim.tolist(),
         xyz_l1=float(per_dim[0:3].mean()), rot_l1=float(per_dim[3:6].mean()),
         fingers_l1=float(per_dim[6:24].mean()),
+        init=str(args.init) if args.init else None,
+        dagger_data=str(args.dagger_data) if args.dagger_data else None,
         elapsed_s=time.monotonic() - started))
-    print(json.dumps(dict(variant=args.variant, rows=int(len(x)), train_l1=train_l1,
+    print(json.dumps(dict(variant=args.variant, rows=int(len(x)),
+                          dagger_rows=dagger_rows, train_l1=train_l1,
+                          bc_before=before_bc, bc_after=after_bc,
+                          dagger_before=before_dagger, dagger_after=after_dagger,
                           xyz_l1=float(per_dim[0:3].mean()),
                           rot_l1=float(per_dim[3:6].mean()),
                           fingers_l1=float(per_dim[6:24].mean())), indent=2))
