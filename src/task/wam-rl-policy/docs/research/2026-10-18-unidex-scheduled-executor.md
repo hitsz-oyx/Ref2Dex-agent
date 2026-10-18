@@ -31,9 +31,11 @@ H4抽样、调度goal传递与reset。现有 `recipe_ppo.update_minibatches` 支
 `independent-gaussian` 动作类型；这不是完整原生PPO runner已经接通的证据。
 
 原 `official_unidex_ppo.py` 的2607D summary路径不作为此路线的τ/C执行实现。
-尚需完成原生环境driver、启动6帧策略、done/time-limit bootstrap、训练数据条件重算
-和物理smoke，才启动策略训练。观测坐标需全部来自同一世界系；原生动作保持canonical。
-启动6帧采用何种动作须固定并在BC与PPO一致，不能重复当前帧伪造已观测运动历史。
+原生确定性runner现已有`--wam-checkpoint`模式，12tick工程smoke通过；启动6步使用
+零命令获得真实历史。实际WAM条件数据重算和小包BC也已完成，内部开发未过门，见
+[实验卡](../experiments/probes/P-20261018-scheduled-wam-bc.md)。尚需PPO原生rollout、
+done/time-limit bootstrap及训练/部署启动分布一致性。观测全部来自同一世界系，
+原生动作保持canonical；不重复当前帧伪造已观测运动历史。
 
 ## 下一次有界 Decision Probe
 

@@ -57,3 +57,11 @@ dev裁剪比例9.505%。未通过dev优于常量的预设门槛，不扩大该�
 后续只做原生12tick工程smoke（seed0、最多180秒、同一Camera/scale.06），验证
 前6步零命令收集真实历史后能执行WAM条件BC命令，检查action隔离、τ记录和末次状态。
 不更新参数，不作成功率比较，不因这个短smoke产生新的学习或抓持结论。
+
+原生smoke完成：12tick，前6步零动作、后6步每步重新调用调度WAM；9.36秒，
+action/prefix完全一致，末次观测与τ已存档。6次WAM前向为.531/.332/.214/.164/.333/.073秒，
+与主训练共享GPU且样本极少，不视为稳态吞吐。无抬升/达标，但12步不用于策略质量判断。
+第一次启动因未把conda bin加入PATH而找不到ninja，修正PATH后成功；不涉及模型失败。
+该run旧manifest的note错误沿用了“GT-tau BC”文案，实际policy路径是本卡刚训练的
+`bc-probe/model.pt`（conditioning=scheduled-wam-v4）；原始记录保留，后续runner已
+改为从checkpoint读取conditioning，并将未运行oracle的replay指标设为null。

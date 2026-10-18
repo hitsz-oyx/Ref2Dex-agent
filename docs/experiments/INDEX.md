@@ -628,7 +628,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261018-scheduled-wam-bc](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261018-scheduled-wam-bc.md) | 调度WAM条件下的UniDex BC初始资格 | 见原卡 | 见原卡 | probes/PLANNED |
+| [P-20261018-scheduled-wam-bc](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261018-scheduled-wam-bc.md) | 调度WAM条件下的UniDex BC初始资格 | 见原卡 | 见原卡 | probes/COMPLETED |
 
 ## HF-shadow-bc-ppo
 

@@ -344,8 +344,12 @@ def main():
               'never supplies an executed action. realtime_success uses the '
               'current goal distance; success_ever is the upstream cumulative flag.'))
     if wam_bridge is not None:
+        manifest['policy_conditioning'] = checkpoint.get('conditioning', 'legacy_GT_tau')
+        manifest['oracle_script'] = None
+        manifest['max_replay_error'] = None
+        manifest['max_replay_tolerance'] = None
         manifest['note'] = ('Frozen scheduled WAM hand tau; no oracle queries or teacher actions. '
-            'Existing GT-tau BC is an integration diagnostic, not a WAM-conditioned trained policy.')
+            'Policy conditioning is recorded separately; short integration runs do not establish control quality.')
     write_json(args.output / 'manifest.json', manifest)
     print(json.dumps(manifest, indent=2), flush=True)
 

@@ -1,5 +1,29 @@
 # 当前状态
 
+## 2026-10-18 调度WAM→BC/PPO接口与本地checkpoint
+
+按用户架构，后续控制数据/环境先限定UniDexGrasp，已有九源WAM训练继续。
+修复版v4 step12000（下载时DEV best）推理checkpoint已下载并验证，配套1078个
+geometry payload路径已移植，入口为
+`outputs/ptv3-shared-wam-v4/local-control-snapshot-20261018-r1/step12000-local.pt`；
+不含optimizer，不作训练恢复。原始推理副本与来源manifest保留。
+
+`scheduled_executor.py`实现更新后的调度器→完整v4 forward→60Hz world τ→BC
+观测，以及保留BC归一化/权重的独立Gaussian PPO actor。实际归档BC权重通过现有
+PPO更新器的合成rollout检查（logprob重放误差0）；真实Camera实测状态的完整前向
+通过，冷启动前向.641秒、峰值398MiB，未证明实时60Hz或物理可执行。
+C独立返回但首轮actor不消费；原生runner新增`--wam-checkpoint`模式和六步零动作历史启动。
+
+[实际WAM条件BC Probe](experiments/probes/P-20261018-scheduled-wam-bc.md)完成128行
+单对象、raw-episode分组的小包：训练64/内部dev64，1000步随机初始化BC，39.74秒。
+TRAIN L1=.00309，dev=.29169，差于常量=.22235，dev裁剪9.505%；未过门，不扩大
+该checkpoint的PPO。归一化dev状态/τ最大绝对z为6.81/5.88，未见数值爆炸；
+小样本拟合不能代表完整BC路线或WAM无效。当前还没有完成新策略的PPO物理训练。
+原生12tick工程smoke随后完成（前6步零动作，后6步实际WAM条件BC控制），9.36秒，
+canonical action/prefix一致，τ和末次状态保存；仅证明接线，不作策略成功结论。
+
+设计与后续范围见[整合协议](research/2026-10-18-unidex-scheduled-executor.md)。
+
 ## 2026-10-18 GT-τ后期数据微调未过保持资格，停止这一配方
 
 [GT-τ实验卡](experiments/probes/P-20261018-unidex-live-oracle-tau.md)的有界后续已完成：
