@@ -100,3 +100,12 @@ wait8.49s几乎全部来自首次worker启动，稳定CPU预取已能跟上GPU�
 对应的不重叠行区间，分离done位图、日志、process/manifest/progress；主进程锁定协调权，
 只在全部rank完成且合并位图全真后发布COMPLETED和启动BC。既有已完成行直接跳过。
 单卡旧流水线先通过STOP退出，避免两个写入系统并存。时间上限6h、每卡4CPU worker。
+
+## Native接口工程检查
+
+新增`closed_loop_scheduled_shadow.py`独立入口，不改正在迭代的旧GT-tau runner。
+固定TRAIN bottle、seed0，两次reset各96个60Hz控制步，最长300s；本地GPU6/graspenv。
+初始使用旧全量BC扩展565（新列为零），验证完整接口启动、真实动作和反馈、episode reset，
+以及每个发出目标与48步后实测姿态的对齐。尾部不足48步的目标显式censor，不能当零误差。
+该工程检查没有teacher查询，也不用于宣称目标可达：初始actor尚未学习利用tau。
+产物`outputs/wam-rl-policy/full-scheduled-current-bc-20261018-local-r1/native-parent-r1/`。
