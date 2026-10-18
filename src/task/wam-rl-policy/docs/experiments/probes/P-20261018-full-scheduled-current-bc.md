@@ -87,3 +87,10 @@ GPU整条序列一次推理；使用4个worker，与GPU重叠。原数据范围/
 worker输入与原主进程构造逐tensor精确相等测试通过。
 保留原183条部分缓存，新的batch协议输出到同一run的`cache-fast`，不混写。
 先测50条工程端到端吞吐，再接续全量生成与BC。
+
+优化端到端50序列/7600行：排除首条冷启动后2.121序列/s，约322行/s，
+相较旧1.065序列/s约1.99倍；预计剩余5849s（约1.6h），需随对象和共享负载更新。
+PyTorch峰值1857MiB。50序列累计forward17.43s、tau1.77s、write4.94s；
+wait8.49s几乎全部来自首次worker启动，稳定CPU预取已能跟上GPU。
+全量生成已恢复到`cache-fast`，`tmux full-bc-cache-fast`持久运行，完成自动接续BC。
+测量记录`optimization-check.json`和`benchmark.json`。未宣称所有状态严格批次不变。
