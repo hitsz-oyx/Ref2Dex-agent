@@ -186,3 +186,9 @@ launcher现默认OS选择空闲端口，并在任何worker启动前拒绝占用�
 双卡结果不能直接当作六卡收益。真正归档WAM存在上述重复推理数值波动，
 不声称预测逐位确定。输出comparison.json位于all单卡run；双卡summary.json位于pair-r2。
 GPU6/7所有本轮worker结束，均回到约347MiB已有其他用户占用。
+
+## 进一步CPU/同步诊断（用户授权GPU6/7）
+
+每卡160环境、官方PPO配置不变，主r3不切换。先all模式12轮CPU profile（GPU6），
+及6轮CUDA timeline（GPU7，仅第4轮采样，限制trace范围）。每run900秒上限，
+本轮诊断30分钟预算；之后对照去除重复CPU几何及合并同步检查，保证有效性检查仍执行。

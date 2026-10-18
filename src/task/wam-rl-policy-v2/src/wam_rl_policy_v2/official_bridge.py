@@ -185,6 +185,7 @@ def run(task,snapshot,sim_step,actor,runtime,args):
             if state['model_sync_error']!=0:raise RuntimeError('Rank parameters diverged')
         with (args.output/'curve.jsonl').open('a') as f:f.write(json.dumps(state)+'\n')
         print(json.dumps(state),flush=True)
+        if timeline is not None:timeline.step()
     ppo.log=log
     def save(path):
         if args.rank==0:
@@ -195,6 +196,16 @@ def run(task,snapshot,sim_step,actor,runtime,args):
                 config=cfg,conditioning=scheduled_conditioning_contract(),bc_source=str(args.policy),
                 resume_semantics='model/optimizer; fresh native episodes'),dest)
     ppo.save=save
+    timeline=None
+    if os.environ.get('REF2DEX_PROFILE_CUDA')=='1':
+        def export_trace(prof):
+            events=[dict(name=e.key,count=e.count,self_cpu_us=e.self_cpu_time_total,
+                         self_device_us=getattr(e,'self_device_time_total',0)) for e in prof.key_averages()]
+            (args.output/'cuda-profile.json').write_text(json.dumps(events,indent=2)+'\n')
+            prof.export_chrome_trace(str(args.output/'cuda-trace.json.gz'))
+        timeline=torch.profiler.profile(activities=[torch.profiler.ProfilerActivity.CPU,torch.profiler.ProfilerActivity.CUDA],
+            schedule=torch.profiler.schedule(wait=2,warmup=1,active=1,repeat=1),on_trace_ready=export_trace)
+        timeline.start()
     profiler=None
     if os.environ.get('REF2DEX_PROFILE_PPO')=='1':
         import cProfile
@@ -205,6 +216,7 @@ def run(task,snapshot,sim_step,actor,runtime,args):
         (args.output/'learning-audit.json').write_text(json.dumps(dict(status='PASS',**state),indent=2)+'\n')
         return [state]
     finally:
+        if timeline is not None:timeline.stop()
         if profiler is not None:
             profiler.disable();profiler.dump_stats(str(args.output/'collection-profile.pstats'))
         ppo.writer.close()
