@@ -1,3 +1,11 @@
+## 2026-10-18 GPU6/7批量控制接口加速测试完成
+
+向量化GPU输入构造/τ转换与CPU批量Scheduler connector已实现为opt-in。
+单卡160环境短测每轮7.35→5.41秒，吞吐+35.8%；双卡12轮同步/动作路径检查通过，
+稳定窗口利用率约65%/70%。31项测试及真实归档字段审计通过。
+六卡主r3继续冻结旧版，本次不切换；预留卡已释放。结果及边界见
+[官方PPO实验卡](../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261018-official-scheduled-mixed-ppo.md)。
+
 ## 2026-10-18 优化版续训与WAM越界保护
 
 r2在第101轮后因rank4手点超出WAM固定空间而失败；最新完整checkpoint仅第1轮，
