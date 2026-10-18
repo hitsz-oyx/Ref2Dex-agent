@@ -64,6 +64,14 @@ def audit_run(directory, *, teacher_hold=False):
         current_pose = data['object_pose'].copy()
         archived_replay = float(data['replay_error'].max())
         initial_obs = obs[0].tolist()
+        terminal_from_observation = None
+        if 'terminal_observation' in data.files:
+            terminal = data['terminal_observation']
+            if terminal.shape != (300,) or not np.isfinite(terminal).all():
+                raise ValueError('finite terminal full-state observation required')
+            terminal_from_observation = float(np.linalg.norm(terminal[204:207]))
+            np.testing.assert_allclose(terminal_from_observation,
+                                       manifest['final_goal_distance_m'], atol=1e-6, rtol=1e-5)
     query_errors = []
     for packet in sorted((directory / 'oracle').glob('tick-*/result.json')):
         query = json.loads(packet.read_text())
@@ -78,7 +86,8 @@ def audit_run(directory, *, teacher_hold=False):
                 max_replay_error=archived_replay, oracle_queries=len(query_errors),
                 max_query_replay_error=max(query_errors) if query_errors else None,
                 terminal_after_last_action=(dict(distance_m=manifest['final_goal_distance_m'],
-                                                 success=bool(manifest['final_success']))
+                                                 success=bool(manifest['final_success']),
+                                                 raw_observation_distance_m=terminal_from_observation)
                                            if 'final_goal_distance_m' in manifest else None),
                 initial_observation=initial_obs,
                 limitation='Saved observations precede each action; old runs omit the post-final-action state.')

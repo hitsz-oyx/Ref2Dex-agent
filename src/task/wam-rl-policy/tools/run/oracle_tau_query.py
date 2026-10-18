@@ -37,6 +37,7 @@ def main():
     p.add_argument('--gpu', type=int, default=0)
     p.add_argument('--seed', type=int, required=True)
     p.add_argument('--horizon', type=int, default=8)
+    p.add_argument('--episode-length', type=int, default=0)
     p.add_argument('--object-code', default=DEFAULT_OBJECT)
     p.add_argument('--scale', type=float, default=.08)
     args = p.parse_args()
@@ -63,6 +64,10 @@ def main():
     cfg = yaml.safe_load((vendor / 'dexgrasp/cfg/shadow_hand_grasp.yaml').read_text())
     cfg['env'].update(numEnvs=1, random_time=False, printNumSuccesses=False,
                       object_code_dict={args.object_code: [args.scale]})
+    if args.episode_length:
+        if not args.horizon < args.episode_length <= 1000:
+            raise ValueError('bounded episode length longer than oracle horizon required')
+        cfg['env']['episodeLength'] = args.episode_length
     cfg['env']['asset']['assetRoot'] = str(assets)
     cfg['graphics_device_id'] = -1
     sim = gymapi.SimParams()
@@ -185,6 +190,7 @@ def main():
             future_object_pose=future_object_pose.cpu().numpy(),
             teacher_actions=torch.cat(teacher_actions).cpu().numpy())
     manifest = dict(status='COMPLETE', seed=args.seed, horizon=args.horizon,
+                    episode_length=int(task.max_episode_length),
                     prefix_steps=int(prefix.shape[0]),
                     replay_error=replay_error,
                     replay_tolerance=5e-2,

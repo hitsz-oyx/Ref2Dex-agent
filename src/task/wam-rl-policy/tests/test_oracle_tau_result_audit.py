@@ -24,6 +24,18 @@ def test_archive_audit_recomputes_latched_success_and_marks_missing_terminal(tmp
     assert result['last_record_hold']['longest_hold_frames'] == 1
     assert not result['last_record_hold']['final_success']
     assert result['terminal_after_last_action'] is None
+    # A post-action state may differ from the last recorded pre-action state.
+    terminal = np.zeros(300, np.float32)
+    terminal[204] = .02
+    (tmp_path / 'manifest.json').write_text(json.dumps(dict(
+        seed=453, variant='p2', policy='fixture.pt', success_frames=3,
+        final_goal_distance_m=.02, final_success=1.)))
+    np.savez(tmp_path / 'trajectory.npz', obs=obs, action=action, action_prefix=action,
+             replay_error=np.zeros(4), object_pose=np.zeros((4, 13)), terminal_observation=terminal)
+    result = module.audit_run(tmp_path)
+    assert not result['last_record_hold']['final_success']
+    assert result['terminal_after_last_action']['success']
+    assert abs(result['terminal_after_last_action']['raw_observation_distance_m'] - .02) < 1e-7
 
 
 def test_teacher_endpoint_uses_world_frame_and_reads_both_packet_generations(tmp_path):

@@ -49,6 +49,8 @@ def main():
     p.add_argument('--seed', type=int, required=True)
     p.add_argument('--ticks', type=int, default=120)
     p.add_argument('--horizon', type=int, default=8)
+    p.add_argument('--episode-length', type=int, default=0,
+                   help='explicit reset deadline; zero preserves the vendor configuration')
     p.add_argument('--labels', action='store_true',
                    help='query teacher actions at student states without using tau')
     p.add_argument('--max-replay-error', type=float, default=5e-2)
@@ -79,6 +81,10 @@ def main():
     cfg = yaml.safe_load((vendor / 'dexgrasp/cfg/shadow_hand_grasp.yaml').read_text())
     cfg['env'].update(numEnvs=1, random_time=False, printNumSuccesses=False,
                       object_code_dict={args.object_code: [args.scale]})
+    if args.episode_length:
+        if not args.horizon < args.episode_length <= 1000:
+            raise ValueError('bounded episode length longer than oracle horizon required')
+        cfg['env']['episodeLength'] = args.episode_length
     cfg['env']['asset']['assetRoot'] = str(assets)
     cfg['graphics_device_id'] = -1
     sim = gymapi.SimParams()
@@ -190,6 +196,8 @@ def main():
                     '--output', str(query_dir), '--gpu', str(args.gpu),
                     '--seed', str(args.seed), '--horizon', str(args.horizon),
                     '--object-code', args.object_code, '--scale', str(args.scale)]
+                if args.episode_length:
+                    command.extend(['--episode-length', str(args.episode_length)])
                 environment = os.environ.copy()
                 environment.setdefault('TORCH_EXTENSIONS_DIR',
                                        str(args.output / 'tmp/extensions'))
@@ -201,6 +209,8 @@ def main():
                     raise RuntimeError(f'oracle query failed at tick {tick}: '
                                        f'{completed.stderr[-2000:]}')
                 result = json.loads((query_dir / 'result.json').read_text())
+                if args.episode_length and result.get('episode_length') != task.max_episode_length:
+                    raise ValueError('student and oracle reset deadlines differ')
                 replay_error = float(result['replay_error'])
                 max_replay_error = max(max_replay_error, replay_error)
                 if replay_error > args.max_replay_error:
@@ -235,6 +245,7 @@ def main():
             sim_step(action)
             if tick % 10 == 0:
                 print(json.dumps(dict(tick=tick, success=float(task.successes[0]),
+                                      goal_distance_m=goal_distance(),
                                       lift=float(task.root_state_tensor[task.object_indices[0], 2]
                                                  - records[0]['object_pose'][2]),
                                       replay_error=replay_error)), flush=True)
@@ -248,6 +259,10 @@ def main():
     trajectory = {key: np.stack([r[key] for r in records], axis=0)
                   for key in records[0] if key != 'tau'}
     trajectory['action_prefix'] = np.stack(actions_history, axis=0)
+    # Preserve the raw terminal measurement, since normal records precede
+    # each action. This makes the final realtime metric independently auditable.
+    trajectory['terminal_observation'] = task.obs_buf[0].cpu().numpy().copy()
+    trajectory['terminal_object_pose'] = task.root_state_tensor[task.object_indices, 0:13][0].cpu().numpy().copy()
     np.savez_compressed(args.output / 'trajectory.npz', **trajectory)
     success = np.asarray([r['success'] for r in records])
     realtime_success = np.asarray([r['realtime_success'] for r in records])
@@ -259,6 +274,7 @@ def main():
         status='COMPLETE' if fork_failure is None else 'FORK_INVALID',
         variant=args.variant, seed=args.seed, ticks=int(len(records)),
         horizon=args.horizon, policy=str(args.policy),
+        episode_length=int(task.max_episode_length),
         oracle_script=str(args.oracle_script),
         fork_failure=fork_failure, labels=bool(args.labels),
         max_replay_error=max_replay_error,

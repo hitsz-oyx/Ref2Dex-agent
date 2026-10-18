@@ -378,6 +378,61 @@ contains `archive-audit.json`, `action-errors.json`, and
 `audit_oracle_tau_results.py --teacher-hold`.31 related contract tests plus
 the endpoint-frame regression and all four actual native rollouts passed.
 
+### Holding/recovery Decision: one additional adaptation initial state
+
+Following the user's instruction to continue, run
+`oracle-tau-holding-adapt-20261018-r1`, work version
+`oracle-tau-holding-adaptation.v1`, without changing WAM. Distinguish whether
+one extra orientation's late-interaction student-state labels can produce
+sustained holding on a different initial state. A positive result supports a
+further independent-initial-state check before WAM substitution. A failure
+stops this particular one-packet expansion and redirects attention to the
+executor observation/short-plan recovery contract, rather than more identical
+updates or more objects.
+
+Reuse the original421 DAgger150 rows plus archived453 ticks90--149 (60 rows).
+The latter includes late approach, goal attainment and initial drift; it is
+not claimed that all60 frames represent a stable hold. All210 labels are
+`teacher_actions[0]` at replay-verified student states; retain source seed/tick.
+Seed453 is now adaptation data, not a held-out evaluation. Neither471 nor482
+enters fitting. Keep BC's existing10 successful421--452 seeds and frozen
+normalization. Fine-tune the retained tau DAgger1 and zero-padded p2 DAgger1
+checkpoints for2000 updates, lr3e-4, same packet10x, same model seed0.
+Both allocate403->256->256->24. Do not select a checkpoint from evaluation.
+
+One200-tick live GT-tau episode on482 is the primary physical test, paired
+with a200-tick zero-padded p2 episode. Compare the first150 saved states with
+the archived protocol separately. Qualification requires at least60 consecutive
+realtime in-goal measurements and a post-final-action goal distance<=.05m;
+report ever-reached, longest run, max lift and failure separately. Old482 has
+only150 pre-action states, so any200-tick comparison is an engineering
+qualification, not a matched-duration causal improvement claim. Use existing
+471/482 query states for descriptive before/after action-error diagnostics;
+they remain held out from fitting but are development initializations, not a
+new untouched test set. Extra updates and added data change together; do not
+attribute an improvement solely to the added data.
+
+The vendor reset deadline is200 steps, so an8-step oracle fork near the end
+would otherwise cross an automatic reset. Explicitly use a220-step reset
+deadline for both student and oracle, while executing only200 student actions.
+The pinned full-state observation does not contain remaining time, and this
+deadline only changes the timeout reset condition (`random_time=false`). Record
+the deadline in both manifests and require agreement. This is an explicit
+evaluation protocol extension, not a WAM training change; compare an initial
+two-step fixed-policy smoke at native200 versus220 to check that the deadline
+override preserves the measured initial state and action prefix.
+
+This is cheaper than collecting new adaptation trajectories: all additional
+labels already exist. Use local GPU0 only, fresh single-environment prefix
+replay for every new tau query, strict max replay error1e-5, no middle-state
+restore and no teacher action execution. Bound the complete job at2700s,
+200 queries,2GiB new output and20GiB free-space floor; stop the owned process
+group on timeout or180s with no progress. Actual native environment stays
+`dexplore_v120_train` (Python3.8.10/Torch2.0.1+cu118/NumPy1.23.5). Store
+code snapshot, commit, commands and GPU samples. No automatic expansion to
+additional tau episodes if this test fails. The runner now preserves terminal
+raw observation/object pose so the last-action metric can be checked directly.
+
 ## 2026-10-18 audit caveat: action prefix and success frames
 
 The pinned `shadow_hand_grasp.py` rewrites `actions[:,0:3]` and `actions[:,3:6]`
