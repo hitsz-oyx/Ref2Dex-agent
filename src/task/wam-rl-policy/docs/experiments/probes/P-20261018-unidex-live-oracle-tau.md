@@ -1,11 +1,11 @@
 # P-20261018-unidex-live-oracle-tau
 
 `task`: `wam-rl-policy`  
-`status`: `PROMISING` (translation/finger identification; rotation limit)  
+`status`: `PROMISING` (translation/finger identification; rotation unresolved)  
 `stage`: Probe  
 `classification`: Decision  
 `code_branch`: `main`  
-`git_commit`: `a523c597`  
+`git_commit`: `6635e441`  
 `run_id`: `unidex-serial-replay-r1`, `unidex-teacher-rollouts-r1`, `unidex-partial-obs-200tick-32seed-r1`  
 `runtime`: `/home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train` (Python 3.8, Torch 2.0.1+cu118), Isaac Gym at `/home2/wyy/isaac-gym`, local RTX 3090 GPU 0.
 
