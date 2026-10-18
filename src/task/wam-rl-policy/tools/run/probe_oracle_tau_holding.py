@@ -161,6 +161,20 @@ def main():
                   '--seed', '482', '--ticks', '200', '--gpu', '0', '--gpu-seconds', '2500',
                   '--episode-length', '220',
                   '--max-replay-error', '.00001']
+        previous = ARTIFACTS / 'oracle-tau-capacity-20261018-r1/student-dagger/model.pt'
+        for deadline in (200, 220):
+            smoke = list(common)
+            smoke[smoke.index('--ticks') + 1] = '2'
+            smoke[smoke.index('--episode-length') + 1] = str(deadline)
+            run('deadline-' + str(deadline), smoke + ['--variant', 'p2', '--policy', str(previous),
+                                                     '--output', str(output / ('deadline-' + str(deadline)))])
+        with np.load(output / 'deadline-200/trajectory.npz') as left, np.load(
+                output / 'deadline-220/trajectory.npz') as right, np.load(
+                ARTIFACTS / 'oracle-tau-capacity-20261018-r2/seed-482/trajectory.npz') as reference:
+            for key in ('obs', 'action', 'hand', 'object_pose'):
+                np.testing.assert_array_equal(left[key], right[key])
+                np.testing.assert_array_equal(left[key], reference[key][:2])
+        metadata['deadline_smoke'] = 'bitwise identical200/220 and archived initial two states/actions'
         run('state-control', common + ['--variant', 'p2', '--policy', str(output / 'student-p2/model.pt'),
                                      '--output', str(output / 'run-state')])
         run('tau', common + ['--variant', 'p2_tau', '--policy', str(output / 'student-p2_tau/model.pt'),
