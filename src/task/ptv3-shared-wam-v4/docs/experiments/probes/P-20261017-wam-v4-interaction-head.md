@@ -5,7 +5,7 @@ experiment_id: P-20261017-wam-v4-interaction-head
 date: 2026-10-17
 task: ptv3-shared-wam-v4
 branch: main
-git_commit: 992962ec
+git_commit: 7b6d28a5
 claim_id: C1
 hypothesis_family: HF-wam-interaction-head
 probe_index_in_family: 1
@@ -14,7 +14,7 @@ seeds: [170]
 decision_changed_if_positive: keep the dynamic graph interface and run a matched tau-only versus tau-plus-C executor probe
 decision_changed_if_negative: remove or redesign C before any long pretraining budget
 status: RUNNING
-run_id: pretrain-nine-v4-dense512-cfix-warm80k-20261018-r1
+run_id: pretrain-nine-v4-auditnorm-warm80k-20261018-r1
 ---
 
 # WAM-v4 target-object interaction field
@@ -166,9 +166,106 @@ with utilization fluctuating as CPU labels/prefetch and GPU work alternate.
 No OOM/nonfinite values or loader timeout observed. The next fixed DEV panel
 is step1000; the 80k objective is still running, not completed.
 
-Limitations: this remains an offline Probe. Normalization is inherited rather
+Limitations of the stopped 992962ec run: this remains an offline Probe. Normalization is inherited rather
 than refitted after thinning; native geometry resolution is now repaired, but
 the native source8 snapshot is still the earlier subset. C metric values are
 dimensionless despite the inherited evaluator's `mean_mm` serialization key;
 only hand/object displacement metrics use millimetres. No robot improvement
 or matched-v3 representation improvement is established.
+
+## 2026-10-18 user audit at 28361da: objective/evaluation/resume correction
+
+Classification: Blocker. Reproduced the supplied archive
+`wamv4_audit_28361da.zip` in project tmp. Its scripts contain pinned source
+excerpts, so their successful reproduction demonstrates the old defects; it is
+not evidence that current repository code is fixed. Repository-level regressions
+exercise the real current functions separately. No new architecture or data
+collection is needed to distinguish the implementation errors.
+
+The old live `pretrain-nine-v4-dense512-cfix-warm80k-20261018-r1` was stopped
+through its own STOP at logged step1200 (loss1.989232), retaining step1,
+step1000 and all logs. This was an administrative stop, not scientific evidence
+against WAM or C. Its losses and best selection use the previous semantics and
+must not be joined into the corrected training curve.
+
+Code `7b6d28a5` makes these changes:
+
+* Hand, motion-weighted object, contact BCE and positive-contact part CE all
+  expose their own numerator/denominator. DDP uses world-size times each local
+  numerator divided by its global denominator; all four denominators are
+  reduced together. Runtime logs retain each rank's counts/weight sums.
+  See the [DDP gradient contract](https://docs.pytorch.org/docs/2.14/generated/torch.nn.parallel.DistributedDataParallel.html).
+* DEV accumulates sufficient statistics over each whole source in float64,
+  then applies the existing source macro average. Evaluation preserves the
+  training RNG stream and mode. Fixed predictions have identical scores and
+  A/B ranking for microbatch1/8/16 and grouped/interleaved orders.
+* Model forward requires only current geometry/hand/history/goal and optional
+  current query validity. Future supervision masks are restricted to losses
+  and metrics. `interaction_prediction_valid` describes the current observed
+  object/query support. Standalone native sample construction also masks C
+  whenever future object transport is unknown; the cleaned reader already
+  rejected those windows.
+* Initial baseline participates in best selection and gets a complete step0
+  checkpoint. Recovery snapshots preserve best score, step, path and originating
+  run. Resumption inherits that best and its checkpoint; retention preserves
+  dependencies of retained recovery snapshots. The unsupported subset-resume
+  flag fails before reading data. Full resume rejects legacy loss/evaluation
+  semantics and changed data identity.
+* Dense manifest v2 records each NPZ SHA-256. The recipe binds the manifest
+  digest, and checkpoints bind the recipe and surface digest. Arrays are loaded
+  from the verified bytes. The explicit upgrade tool creates new metadata
+  referencing existing arrays; it does not resample or overwrite them.
+* Removed mixed seven-channel C MAE, ambiguous `interaction_positive_only` and
+  dummy zero `interaction_consistency`. Metrics carry explicit mm/1/nats units.
+  C remains a parallel shared-context head; no candidate-trajectory conditioning
+  or explicit trajectory--C consistency objective is claimed.
+
+Objective identity: `v4.global-masked-components.v2`; evaluation identity:
+`v4.source-macro-sufficient-statistics.v2`. Bound recipe:
+`data/recipe-auditbound-20261018-r1` under the existing NAS root. Surface digest
+`1e2ec0cdba3eca9825232bdf2df45db9401fbba39482038c099fbcbbc14e53f7`.
+All 1,078 overlay geometries reuse the existing arrays and fixed flow queries.
+
+Validation: local and remote focused suites pass29 tests. Actual NCCL/DDP
+two-/four-rank complete-loss checks match the concatenated batch for grouped
+and interleaved partitions, including an empty-supervision rank; maximum
+gradient error5.82e-11/0. CPU regressions also reproduce the audit's A/B example
+and confirm corrected source scores A=.9227453, B=1.6258998 regardless of
+microbatch grouping or order. Hash tests reject moving the480 non-query points
+while retaining the32 original queries, and reject rewriting the manifest.
+
+Full real-data four-GPU/global512 `interface-auditnorm-smoke-20261018-r1`
+completed steps0--2, gradient audit, DEV and checkpoint writes. Step2 loss
+2.870777; its DEV was worse than the step0 score3.336509, so best remained0.
+`interface-auditnorm-resume-20261018-r1` restored optimizer step2 and exact
+CPU/CUDA RNG on all four ranks, then completed step4 with finite loss2.902905.
+At the resumed baseline, DEV3.336770 did not replace the historical best0;
+step4 DEV3.335858 improved it and correctly became best4.
+
+The new 80k run is an exact continuation of these four corrected updates,
+initialized originally from v3 step80000. It does not inherit the stopped
+legacy v4 run. Supervisor2598776, GPUs0/1/2/3, global512, workers2 per rank,
+same seven-day/8GB/20GiB guards. Code root:
+`training-code-audit-20261018-r1`; run output:
+`outputs/ptv3-shared-wam-v4/pretrain-nine-v4-auditnorm-warm80k-20261018-r1`
+under the NAS root. Local small evidence:
+`outputs/ptv3-shared-wam-v4/audit-28361da-evidence-20261018-r1/`.
+
+These checks qualify the repaired implementation contracts, not overall WAM-v4
+research success. The inherited normalization, source8 coverage limitation and
+need for a matched robot-benefit experiment remain. Scheduler-to-WAM-to-executor
+physical integration is outside this correction and is not claimed complete.
+
+The new continuation reached step100, loss2.641316 (hand=.087060,
+object=.169724, contact=.627148, positive-part CE=1.757385), finite gradient
+norm2.045429. All four ranks restored optimizer step4 and exact RNG. Recent
+segment=.35041 updates/s, provisional remaining63.34h; do not treat
+this startup estimate as a completion guarantee. Physical GPU usage was about
+8.0--8.3GiB per rank; utilization varies with CPU label preparation/prefetch.
+Runtime verified: remote graspenv, Python3.8.20, Torch2.0.1+cu118, CUDA11.8.
+
+Repository-wide `tools/verify.py --changed` still fails on six unchanged
+trajectory-policy v2 cards missing required schema/seed fields. The failing
+files have no diff from the pre-fix main55342ecd and were not rewritten as part
+of this WAM audit correction. The experiment index check passes; the focused
+implementation tests and real-data/runtime checks above are separate evidence.

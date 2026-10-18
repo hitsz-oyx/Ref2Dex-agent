@@ -1,3 +1,11 @@
+## 2026-10-18 dense overlay 内容绑定已完成
+
+按用户28361da审计，新增manifest v2：逐NPZ SHA-256、recipe中的manifest摘要、checkpoint
+中的数据身份。实际加载验证同一份字节；修改480个非query点或替换manifest都会被拒绝。
+`tools/run/freeze_v4_surface_recipe.py`已在远端生成独立
+`data/recipe-auditbound-20261018-r1`，复用全部1,078个原NPZ，未重新采样、未覆盖旧版本。
+修正版WAM-v4代码7b6d28a5已完成真实四卡训练与恢复smoke，详见WAM-v4实验卡。
+
 ## 2026-10-18 WAM-v4 真实 distinct512 几何派生产物已验收
 
 九源 canonical 几何审计发现 main3 的 252 个对象已有 512 个独立点，native 目标几何

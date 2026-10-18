@@ -1,4 +1,19 @@
-## 2026-10-18 WAM-v4 真实512点与C监督修复通过，远端80k已启动
+## 2026-10-18 WAM-v4 审计修复与新版80k
+
+用户28361da审计指出的hand/object DDP局部分母、DEV按microbatch平均、未来mask进入forward、
+恢复best重置和overlay内容未绑定均已修复。代码7b6d28a5，29项本地/远端测试通过，真实NCCL
+两卡/四卡完整总损失梯度与合并batch一致（最大差5.82e-11/0）。dense文件已绑定SHA-256，
+复用现有九源数据；C仍是共享上下文的并行头，不声称显式轨迹一致性或反事实预测。
+
+旧992962ec运行已在logged step1200通过STOP停止，step1/1000与日志保留；不能将旧损失/选模
+结果与修正版连成同一条曲线。新版本从v3 step80000重新model-only初始化，完成四卡2步smoke，
+再精确恢复至step4；所有rank的RNG/optimizer恢复通过，历史best0未被更差的恢复评估覆盖，
+step4改善后才切best4。新版`pretrain-nine-v4-auditnorm-warm80k-20261018-r1`继续这条修正轨迹，
+supervisor2598776，远端四卡/global512/每rank workers2，已至step100，loss2.64132、梯度有限；
+初段约.350步/秒，暂估剩余63小时，显存每卡约8.0--8.3GiB。七日/单run8GB/20GiB保护不变。
+见[实验卡](../src/task/ptv3-shared-wam-v4/docs/experiments/probes/P-20261017-wam-v4-interaction-head.md)。
+
+## 2026-10-18 WAM-v4 真实512点与C监督修复通过（后续损失审计已覆盖）
 
 九源目标几何均已通过真实512个独立点和单位法向审计；从原始CAD补采样1,078个不足对象，
 保留原32个flow query及v3数据/checkpoint。877个受影响的旧已筛窗口复查后恢复1个TRAIN窗，
