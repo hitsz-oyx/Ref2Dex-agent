@@ -138,10 +138,12 @@ DEV恢复426窗(+.0781%)，均已扣独立quality排除。规模小，不因此�
 启动 `pretrain-nine-v4-contractfix-warm13000-20261018-r1`。远端新代码目录
 `training-code-contract-20261018-r1`（commit `2183eb46`，由本地 `812c26aa` 起的补丁生成），
 四卡/global512/workers4，supervisor2638598。优化器、step、RNG、历史 best 全部重置；
-data identity 记录新的 input/label semantics。启动 smoke 通过；正式 run 已至step64760、
-loss0.6795、1.602步/秒、四卡约99%、每卡约7.7--7.9GiB，ETA约2.6h。DEV objective 在
-step53000--64000仍在1.696--1.791平台波动，best保持step30000的1.6841；尚未突破，仍无
-表征质量结论。该 run 仍使用旧
+data identity 记录新的 input/label semantics。正式 run 已完成80k（耗时51482s/约14.3h），
+最终DEV objective 1.73703，best仍为step30000的1.68407；step30000后DEV在1.68--1.79
+平台波动，没有持续改善，仍无表征质量结论。训练日志有14个loss>3的尖峰（scene项主导，
+最大step39600=23.58、step43200=14.77、step80000=12.09），clip_grad=1.0生效但
+step80000的最终更新受离群scene样本影响，后续应优先用best step30000而非final。
+该 run 仍使用旧
 window-filter manifests；`moving_object_noncontact` 的重新筛选后续已单独生成（见上文），
 未切入本run。因此采样覆盖仍是旧的，但输入特征和 C 标签已切到修复语义。新旧曲线不可直接拼接，见
 [v4 实验卡](../src/task/ptv3-shared-wam-v4/docs/experiments/probes/P-20261017-wam-v4-interaction-head.md)。

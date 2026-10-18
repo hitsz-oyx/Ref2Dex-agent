@@ -80,6 +80,25 @@ GiB each; the launcher ETA is about 47.8k seconds (13.3 h). DEV evaluation is
 scheduled at the configured interval; no model-benefit claim follows from the
 startup loss.
 
+### 2026-10-19 contract-fixed 80k completion
+
+`pretrain-nine-v4-contractfix-warm13000-20261018-r1` completed the 80k budget in
+51,482 s. Final DEV objective was `1.73703`; the historical best remained
+`step30000` at `1.68407`. DEV stayed in a roughly `1.68--1.79` band after
+step30000, so this run does not provide evidence of continued representation
+improvement, and it is still not a robot-benefit result.
+
+The training log contains 14 logged losses above 3, dominated by the scene term
+(e.g. step39600 `23.58`, step43200 `14.77`, step80000 `12.09`). Gradient
+clipping (`clip_grad=1.0`) was active, but the final step's update was driven by
+an outlier scene batch. Use `best.pt -> step30000.pt` for downstream evaluation;
+do not treat `step80000.pt` as the best model merely because it is final. A
+bounded scene-target outlier audit is the next diagnostic before another long
+pretraining run.
+
+The run still uses the pre-fix window-filter manifests; the new
+`moving_object_noncontact` retention was not active in this run.
+
 ## 2026-10-18 corrected C supervision and distributed startup
 
 Classification: Blocker. Missing future hand observations and shifted MCP part
