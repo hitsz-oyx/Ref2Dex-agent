@@ -73,6 +73,7 @@ def main():
    for _ in range(task.control_freq_inv):task.gym.simulate(task.sim);task.gym.fetch_results(task.sim,True)
    task.post_physics_step()
   packet=torch.load(a.policy,map_location='cpu',weights_only=False);old=None
+  manifest.update(policy_step=packet.get('step'),policy_source_schema=packet.get('schema'))
   if packet.get('schema')==SCHEMA:
    old=CurrentMLP().cuda().eval();old.load_state_dict(packet['model'])
    expanded=CurrentMLP(565);expanded.x_scale[300:564]=.05;expanded.initialize_current(packet)
@@ -85,6 +86,7 @@ def main():
    torch.manual_seed(a.seed);critic=Critic(obs_dim=565,value_scale=100.).cuda()
   cache=ROOT/'outputs/shadow-finetune/policy-data-full-20261015-r1';snap=ROOT/'outputs/ptv3-shared-wam-v4/local-control-snapshot-20261018-r1'
   runtime=V4Runtime(snap/'step12000-local.pt',[dict(object_code=a.object_code,scale=a.scale)],cache,dense_manifest=snap/'surface-manifest.json')
+  manifest['wam_step']=runtime.step
   summary=[];initial=[]
   for episode in range(a.episodes):
    for _ in range(2):
