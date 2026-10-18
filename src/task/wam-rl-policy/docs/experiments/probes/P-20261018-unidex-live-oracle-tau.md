@@ -1,11 +1,11 @@
 # P-20261018-unidex-live-oracle-tau
 
 `task`: `wam-rl-policy`  
-`status`: `PROMISING` (translation/finger identification; rotation unresolved)  
+`status`: `PROMISING` (offline translation/finger); `PARTIAL` (closed-loop BC: lift, no hold)  
 `stage`: Probe  
 `classification`: Decision  
 `code_branch`: `main`  
-`git_commit`: `6635e441`  
+`git_commit`: `1f1b66ec`  
 `run_id`: `unidex-serial-replay-r1`, `unidex-teacher-rollouts-r1`, `unidex-partial-obs-200tick-32seed-r1`  
 `runtime`: `/home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train` (Python 3.8, Torch 2.0.1+cu118), Isaac Gym at `/home2/wyy/isaac-gym`, local RTX 3090 GPU 0.
 
@@ -179,6 +179,47 @@ coverage limit of this 32-orientation teacher set (or a rotation-action
 parameterization limit), not evidence that the plan representation is the
 cause.
 
+## Closed-loop feasibility (seed 421)
+
+Protocol: one persistent single-environment student simulator is advanced only
+by the student's own actions.  For the tau arm, every tick writes the applied
+action prefix and current 300-D observation, then a fresh
+`oracle_tau_query.py` process resets with the same seed, replays the prefix,
+records the replayed-observation error, and rolls the frozen teacher eight
+steps to produce `tau_t`.  The state-only arm uses the same student
+architecture without tau and without oracle queries.  Both students are BC on
+the ten successful teacher rollouts (1910 rows, `2 x 256`, 3000 Adam steps;
+train L1 0.0247 for `p2`, 0.0180 for `p2_tau`).  The initial seed is 421;
+150 ticks are run.  The teacher calibration on the same seed lifts 0.205 m and
+reaches official success at tick 99.
+
+| arm | max lift above start | object outcome | success | fork replay error | hand-vs-teacher at 60 / 100 |
+|---|---|---|---|---|---|
+| p2 | 0.000 m | stays on the table | 0 | n/a | 0.114 / 0.303 m |
+| p2_tau | 0.057 m at tick 71 | grasps, lifts to z=0.754, drops by tick ~90 | 0 | 0.0 all ticks | 0.017 / 0.301 m |
+
+The `p2_tau` object height is 0.623 (tick 40), 0.666 (50), 0.714 (60), 0.754
+(71), 0.700 (80), 0.651 (85), 0.621 (95).  The state-only arm never leaves
+the table.  The tau arm tracks the teacher closely through grasp and initial
+lift (`hand_vs_teacher` 0.017 m at tick 60), then diverges and drops the
+object; the closed-loop action L1 against the teacher is 0.399 overall
+(xyz 0.415, rot 0.755, fingers 0.337), with the wrist-rotation error reaching
+1.5 around the drop.  The state-only action L1 is 0.373 (xyz 0.500, rot 0.750,
+fingers 0.288), but its hand is 0.114 m from the teacher already at tick 60.
+
+The online fork is valid: every query replayed the student's prefix with
+**zero** observation error, so the tau fed to the student is the teacher
+future from the student's real state.  The failure is the BC student, not the
+oracle.  A second simulator cannot be created in the same process
+(`Foundation object exists already. Only one instance per process can be
+created.`), so the fresh-process query is the only supported online route.
+
+This is a partial positive: conditioning on GT tau changes the closed-loop
+outcome qualitatively (grasp and a 13 cm table lift versus no lift), but pure
+BC does not hold the object.  The drop coincides with a rotation/finger
+divergence, consistent with BC covariate shift and with the offline rotation
+gap; it is not evidence that the live tau is wrong.
+
 ## Interpretation
 
 1. **The oracle plan is usable for translation and fingers.** Adding tau
@@ -208,9 +249,11 @@ cause.
 
 Local GPU 0 only; no remote resources. Each 200-tick single-environment
 teacher rollout takes about 7--14 s including startup. The 32 rollouts and
-the identification training are bounded and complete. Stop before closed-loop
-rollout: a closed-loop executor requires one fresh single-environment prefix
-replay per query, which is a separate cost/engineering decision.
+the identification training are bounded and complete. A tau-conditioned
+closed-loop episode costs one fresh process per tick: 150 ticks took 1371 s
+(about 9 s/query) in this run. The state-only arm took 6.3 s because it needs
+no oracle. DAgger with the same query increases the per-episode cost only
+linearly in ticks; the fresh-process reset is the dominant cost.
 
 ## Limitations
 
@@ -234,15 +277,15 @@ replay per query, which is a separate cost/engineering decision.
 
 ## Next decision
 
-The translation/finger result is positive enough to justify one closed-loop
-test with the serial fork contract, but the rotation design is not settled.
-The orientation-aware tau and object-pose follow-ups were both null, and the
-full-state reference has the same rotation gap, so the next rotation
-experiment should increase teacher coverage (more seeds/objects) or change
-the rotation action parameterization, not simply add orientation to tau. If a
-closed-loop fork is too expensive, the cheapest next step is a coverage sweep
-on the existing serial contract and a per-dimension analysis of the teacher
-rotation action.
+The online fork and the first closed-loop test are done.  GT tau changes the
+outcome from no lift to grasp plus a 5.7 cm lift, but pure BC drops the object.
+The next direct test is DAgger on the student-visited states: the oracle
+process already replays the student state, so it can also return the teacher's
+current action there; add those labels to the BC set, retrain both arms, and
+rerun the same seed.  If DAgger still cannot hold, the failure is the student
+capacity/observation/rotation control, not the tau interface.  Do not spend
+the next budget on WAM-predicted tau or cross-object generalization before
+this closed-loop hold is resolved.
 
 ## Artifacts
 
@@ -251,6 +294,10 @@ rotation action.
 * Identification data: `outputs/wam-rl-policy/P-20261018-unidex-partial-obs-200tick-32seed-r1/identification_data.npz`
 * Training and summary: `outputs/wam-rl-policy/P-20261018-unidex-partial-obs-200tick-32seed-r1/{train-all,train-success,summary}/`
 * Orientation and object-pose follow-up: `outputs/wam-rl-policy/P-20261018-unidex-partial-obs-200tick-32seed-p3-r1/`
+* Closed-loop students and runs: `outputs/wam-rl-policy/P-20261018-unidex-closed-loop-r1/`
+* Online oracle query: [`oracle_tau_query.py`](../../../tools/run/oracle_tau_query.py)
+* Closed-loop runner: [`closed_loop_unidex_oracle_tau.py`](../../../tools/run/closed_loop_unidex_oracle_tau.py)
+* Student training: [`train_closed_loop_student.py`](../../../tools/run/train_closed_loop_student.py)
 * Runners: [`probe_unidex_serial_replay.py`](../../../tools/run/probe_unidex_serial_replay.py),
   [`train_partial_obs_identification.py`](../../../tools/run/train_partial_obs_identification.py)
 * Audits: [`audit_serial_replay.py`](../../../tools/audit/audit_serial_replay.py),

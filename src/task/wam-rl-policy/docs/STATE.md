@@ -37,14 +37,21 @@ shuffle `0.1331` 和 full-state `0.1218`；wrist xyz 从 `0.1548` 降到 `0.0731
 rotation 几乎不变（`0.2307→0.2226`）。success-only 10-seed 子集 xyz 增益一致
 （`0.1411→0.0607`），整体 L1 因 rotation/finger trade-off 只有边缘改善。
 
-当前判断：11-point 位置 τ 对平移/手指是可用的 plan interface；rotation 没有改善，但
-这不是 11-point τ 独有的问题。补充的 orientation-aware τ（未来 8 步 hand euler delta，
-`p2_tau_rot - p2_tau` = +0.0024）和把 object pose 放回 partial obs（`p3_tau - p2_tau`
-= +0.0017）都没有降低 rotation；full-state 本身也有同样的 train/val gap
-（rotation 0.137 vs 0.225），所以当前数据不能把 rotation 缺口归因于 τ 表示，更可能是
-32 个 orientation 的覆盖/泛化或 rotation 动作参数化限制。下一步若要回答 rotation，
-应先扩大 teacher 覆盖或分析 rotation 维度，而不是简单给 τ 加 orientation；闭环
-serial-fork 验证则优先针对已经显示稳定增益的平移/手指。
+随后完成第一版在线闭环（seed 421，150 tick）：学生始终只执行自己的动作，每个 tick 由
+fresh process reset + 重放学生动作前缀，再从学生真实状态 fork teacher 8 步得到 τ。
+所有 query 的 replay error 都是 0.0，说明 fork 有效。`p2` state-only 全程没有抬升
+（max lift 0）；`p2_tau` 抓住了物体并抬到 initial+0.057 m（离桌 13 cm），但在 tick 80-90
+附近掉落，official success 仍为 0。掉落时 wrist rotation 动作误差升到 ~1.5、手与 teacher
+偏差从 0.017 m（tick 60）增到 0.30 m（tick 100），更像 BC covariate shift/旋转控制问题，
+不是 τ 接错。
+
+当前判断：11-point 位置 τ 对平移/手指是可用的 plan interface，并且在线 GT-τ 能把闭环
+从“完全抬不起来”推进到“抓起来并抬 5.7 cm”，但纯 BC 还不能稳定保持。orientation-aware τ
+（`p2_tau_rot - p2_tau` +0.0024）和 object pose（`p3_tau - p2_tau` +0.0017）都没有改善
+rotation；full-state 也有同样的 train/val gap（0.137 vs 0.225），所以 rotation 缺口
+不能归因于 τ 表示。下一步先把 DAgger 做出来：oracle query 已经重放到学生状态，可以同时
+返回该状态的 teacher action；用这些标签重训两臂并重跑同一 seed。DAgger 仍不能保持，
+才说明是学生容量/观察/旋转控制的问题，再考虑 WAM-τ 或跨物体。
 
 ## 2026-10-17 WAM runtime 修正 Probe：旧退化被实现问题混淆，修复后仍仅 UNCLEAR
 
