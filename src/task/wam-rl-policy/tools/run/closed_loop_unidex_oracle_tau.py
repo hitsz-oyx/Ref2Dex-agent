@@ -22,7 +22,10 @@ import time
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'run'))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'src'))
 from probe_unidex_oracle_tau import DEFAULT_OBJECT, load_replay_helpers, write_json
+from wam_rl_policy.action_contract import canonical_action, step_with_isolated_action
+from wam_rl_policy.hold_metrics import summarize_realtime_hold
 
 P2_SLICES = ((0, 44), (66, 131), (161, 191))
 
@@ -113,11 +116,17 @@ def main():
         return points
 
     def sim_step(action):
-        task.pre_physics_step(action)
+        # ``pre_physics_step`` mutates the wrist channels in place.  The
+        # simulator gets a disposable copy so the recorded canonical command
+        # and the saved action prefix cannot be rewritten behind our back.
+        step_with_isolated_action(lambda isolated: task.pre_physics_step(isolated), action)
         for _ in range(task.control_freq_inv):
             task.gym.simulate(task.sim)
             task.gym.fetch_results(task.sim, True)
         task.post_physics_step()
+
+    def goal_distance():
+        return float(torch.norm(task.object_pos - task.goal_pos, p=2, dim=-1)[0])
 
     def seed_runtime(seed):
         np.random.seed(seed)
@@ -159,6 +168,7 @@ def main():
             if time.monotonic() - started > args.gpu_seconds:
                 raise TimeoutError('closed-loop deadline')
             obs_np = task.obs_buf[0].cpu().numpy().astype(np.float32)
+            distance = goal_distance()
             features = p2_from_obs(obs_np)
             tau_np = None
             teacher_action_np = np.zeros((24,), np.float32)
@@ -202,17 +212,24 @@ def main():
                     features = np.concatenate([features, tau_np])
             x = torch.tensor(features, dtype=torch.float32, device='cuda:0')
             action = model(((x - mean) / std).reshape(1, -1)).clamp(-1, 1)
+            canonical = canonical_action(action)
             records.append(dict(
-                tick=np.int32(tick), obs=obs_np, action=action[0].cpu().numpy(),
+                tick=np.int32(tick), obs=obs_np, action=canonical[0].cpu().numpy(),
                 hand=hand_points()[0].cpu().numpy(),
                 object_pose=task.root_state_tensor[task.object_indices, 0:13][0].cpu().numpy(),
                 success=np.float32(task.successes[0].item()),
+                goal_distance=np.float32(distance),
+                realtime_success=np.float32(distance <= .05),
+                object_height=np.float32(task.object_pos[0, 2]),
                 replay_error=np.float32(replay_error),
                 teacher_action=teacher_action_np,
                 tau=(tau_np.reshape(args.horizon, 11, 3) if tau_np is not None
                      else np.zeros((0,), np.float32))))
+            # Save the pre-step canonical command, then execute an isolated
+            # copy.  ``trajectory['action']`` and ``action_prefix`` now express
+            # the same instruction.
+            actions_history.append(canonical[0].cpu().numpy().copy())
             sim_step(action)
-            actions_history.append(action[0].cpu().numpy())
             if tick % 10 == 0:
                 print(json.dumps(dict(tick=tick, success=float(task.successes[0]),
                                       lift=float(task.root_state_tensor[task.object_indices[0], 2]
@@ -220,12 +237,21 @@ def main():
                                       replay_error=replay_error)), flush=True)
             if task.reset_buf.any():
                 break
+    # Include the state after the final executed action in the realtime
+    # metrics; the per-tick records are taken before each action.
+    realtime_distance = [float(r['goal_distance']) for r in records]
+    if records:
+        realtime_distance.append(goal_distance())
     trajectory = {key: np.stack([r[key] for r in records], axis=0)
                   for key in records[0] if key != 'tau'}
     trajectory['action_prefix'] = np.stack(actions_history, axis=0)
     np.savez_compressed(args.output / 'trajectory.npz', **trajectory)
     success = np.asarray([r['success'] for r in records])
-    lift = np.asarray([r['object_pose'][2] for r in records]) - records[0]['object_pose'][2]
+    realtime_success = np.asarray([r['realtime_success'] for r in records])
+    lift = np.asarray([r['object_height'] for r in records]) - records[0]['object_height']
+    hold = summarize_realtime_hold(realtime_distance)
+    prefix_matches_action = bool(len(records) and np.array_equal(
+        trajectory['action'], trajectory['action_prefix']))
     manifest = dict(
         status='COMPLETE' if fork_failure is None else 'FORK_INVALID',
         variant=args.variant, seed=args.seed, ticks=int(len(records)),
@@ -234,12 +260,24 @@ def main():
         fork_failure=fork_failure, labels=bool(args.labels),
         max_replay_error=max_replay_error,
         max_replay_tolerance=args.max_replay_error,
-        final_success=float(success[-1]), max_success=float(success.max()),
+        # Corrected realtime task metric.  ``ever_success`` mirrors the
+        # upstream cumulative flag; it is not a contiguous hold count.
+        final_success=float(hold['final_success']),
+        ever_success=float(hold['ever_success']),
+        max_success=float(hold['ever_success']),
+        success_frames=int(hold['success_frames']),
+        success_frames_ever=int(success.sum()),
+        longest_hold_frames=int(hold['longest_hold_frames']),
+        first_success_tick=hold['first_success_index'],
+        drop_events_after_success=int(hold['drop_events_after_success']),
+        final_goal_distance_m=hold['final_distance_m'],
+        min_goal_distance_m=hold['min_distance_m'],
         max_lift_m=float(lift.max()),
-        success_frames=int(success.sum()),
+        action_prefix_matches_executed=prefix_matches_action,
         elapsed_s=time.monotonic() - started,
         note=('Student actions only. The oracle process is queried for tau and '
-              'never supplies an executed action.'))
+              'never supplies an executed action. realtime_success uses the '
+              'current goal distance; success_ever is the upstream cumulative flag.'))
     write_json(args.output / 'manifest.json', manifest)
     print(json.dumps(manifest, indent=2), flush=True)
 

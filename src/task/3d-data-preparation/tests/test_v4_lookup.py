@@ -47,8 +47,11 @@ def test_complete_labels_and_missing_hand_masks_match_reference(monkeypatch, dil
     valid[:, 1] = False
     queries = rng.normal(0, .035, (24, 128, 3)).astype(np.float32)
     policy = v4.V4SamplingPolicy(dilation=dilation)
-    actual = v4.interaction_field(hand, valid, queries, policy, active_sides=np.array([True, False]))
+    origin = v4.interaction_origin(queries[0])
+    actual = v4.interaction_field(hand, valid, queries, policy, origin=origin,
+                                  active_sides=np.array([True, False]))
     monkeypatch.setattr(v4, '_query_voxel_counts', reference_counts)
-    expected = v4.interaction_field(hand, valid, queries, policy, active_sides=np.array([True, False]))
+    expected = v4.interaction_field(hand, valid, queries, policy, origin=origin,
+                                    active_sides=np.array([True, False]))
     for a, b in zip(actual, expected):
         np.testing.assert_array_equal(a, b)

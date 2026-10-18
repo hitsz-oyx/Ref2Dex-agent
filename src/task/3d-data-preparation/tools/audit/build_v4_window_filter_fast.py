@@ -13,6 +13,7 @@ from pathlib import Path
 import numpy as np
 
 from pose_mesh_data.clean_data import CleanPoseMeshWindows
+from pose_mesh_data.dense_surface import apply_surface_overlay
 from pose_mesh_data.v4_interaction import V4SamplingPolicy, resampled_subset, retain_window
 
 
@@ -37,7 +38,11 @@ def _classify(hand, hand_valid, obj_future, policy):
             break
     if candidate:
         return 'contact_moving' if object_moving else 'contact_static'
-    return 'approach' if hand_moving else 'static_idle'
+    if hand_moving:
+        return 'approach'
+    if object_moving:
+        return 'moving_object_noncontact'
+    return 'static_idle'
 
 
 def _main3(dataset, index, policy):
@@ -90,11 +95,21 @@ def main():
     p.add_argument('--stop-index', type=int)
     p.add_argument('--static-keep-ratio', type=float, default=.10)
     p.add_argument('--approach-keep-ratio', type=float, default=.35)
+    p.add_argument('--moving-object-keep-ratio', type=float, default=.35)
+    p.add_argument('--surface-manifest', type=Path,
+                   help='dense 512-point overlay required for underfilled native surfaces')
+    p.add_argument('--surface-sha256')
     a = p.parse_args()
-    policy = V4SamplingPolicy(static_keep_ratio=a.static_keep_ratio, approach_keep_ratio=a.approach_keep_ratio)
+    policy = V4SamplingPolicy(static_keep_ratio=a.static_keep_ratio,
+                              approach_keep_ratio=a.approach_keep_ratio,
+                              moving_object_keep_ratio=a.moving_object_keep_ratio)
     from oakink_wm.multisource import MixedWindows
     main3 = MixedWindows(str(a.main3_root), 'train' if a.split == 'train' else 'val')
+    if bool(a.surface_manifest) != bool(a.surface_sha256):
+        raise ValueError('dense filter geometry requires manifest and SHA-256')
     native = CleanPoseMeshWindows(str(a.native_root), a.split, engineering=True, cache_size=8)
+    if a.surface_manifest:
+        apply_surface_overlay(native.geometry, a.surface_manifest, a.surface_sha256)
     counts, blocked = {}, []
     total = len(main3) + len(native)
     start = max(0, a.start_index)

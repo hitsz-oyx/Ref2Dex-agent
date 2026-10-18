@@ -1,4 +1,5 @@
 import copy
+import json
 from pathlib import Path
 import subprocess
 import sys
@@ -31,6 +32,12 @@ def test_resume_keeps_historical_best_even_when_first_validation_is_worse(tmp_pa
     new=tmp_path/'new';new.mkdir()
     inherited=inherit_checkpoint(new,restored['checkpoint'])
     assert load_checkpoint(inherited)['step']==0
+    # The inherited .pt still embeds the old run's selection.  The portable
+    # sidecar must win so a later resume does not chase the old directory.
+    portable=dict(restored);portable['checkpoint']=str(inherited)
+    (inherited.with_suffix('.selection.json')).write_text(
+        json.dumps({"selection": portable}))
+    assert load_checkpoint(inherited)['selection']['checkpoint']==str(inherited)
     later,improved=consider_selection(restored,.3,20,new/'step20.pt','new')
     assert not improved and later==restored
     later,improved=consider_selection(restored,.1,30,new/'step30.pt','new')
@@ -38,6 +45,9 @@ def test_resume_keeps_historical_best_even_when_first_validation_is_worse(tmp_pa
     changed=copy.deepcopy(stats);changed['recipe']['surface_geometry_sha256']='changed'
     with pytest.raises(ValueError,match='bound data'):
         validate_resume_contract(parent,config,changed,1)
+    old_identity=copy.deepcopy(parent);old_identity['data_identity'].pop('input_semantics')
+    with pytest.raises(ValueError,match='bound data'):
+        validate_resume_contract(old_identity,config,stats,1)
     del parent['objective_semantics']
     with pytest.raises(ValueError,match='legacy objective'):
         validate_resume_contract(parent,config,stats,1)

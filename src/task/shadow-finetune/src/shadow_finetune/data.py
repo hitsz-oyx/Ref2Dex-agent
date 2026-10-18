@@ -7,6 +7,9 @@ import torch
 from . import paths
 from video_data_preparation.unidexgrasp_data import object_poses
 
+# Must match pose_mesh_data.v4_interaction.STATIC_THRESHOLD_M.
+STATIC_THRESHOLD_M = .002
+
 STACK=('start_hand','start_hand_history','start_hand_valid','object_valid','scene_points',
        'start_object_points','goal_object_delta','object_goal_valid',
        'trajectory_target','trajectory_valid','scene_target','scene_valid','policy_state','action_target')
@@ -24,6 +27,7 @@ def current_inputs(obj_history,hand_history,goal_world,geometry):
     dynamics=lambda x:np.concatenate(((x[-1]-x[-2])*30,(x[-1]-2*x[-2]+x[-3])*900,x[-1]-x[0]),-1)
     features=np.zeros((len(points),18),np.float32);features[:,:3]=normals
     features[:,3:12]=dynamics(moved);features[:,12]=1
+    features[:,13]=np.linalg.norm(features[:,9:12],axis=-1)<STATIC_THRESHOLD_M
     start=np.zeros((2,11,3),np.float32);start[0]=hand[-1]
     history=np.zeros((2,11,9),np.float32);history[0]=dynamics(hand)
     valid=np.zeros((2,11),bool);valid[0]=True

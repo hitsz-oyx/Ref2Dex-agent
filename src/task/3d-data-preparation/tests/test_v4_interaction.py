@@ -79,7 +79,9 @@ def test_currently_observed_hand_disappearing_for_all_future_frames_is_unknown()
     valid = np.zeros((3, 2, 11), bool)
     valid[:, 0] = True
     obj = np.zeros((3, INTERACTION_POINTS, 3), np.float32)
-    target, mask = interaction_field(hand, valid, obj, active_sides=np.array([True, True]))
+    target, mask = interaction_field(hand, valid, obj,
+                                     origin=np.array([-0.1, -0.1, -0.1]),
+                                     active_sides=np.array([True, True]))
     assert not mask.any() and not target.any()
 
 
@@ -92,6 +94,39 @@ def test_static_thinning_keeps_contact_and_bounds_idle():
     assert classify_window(hand, valid, obj, target, p) == "static_idle"
     assert retain_window("contact_static", 1, p)
     assert retain_window("static_idle", 1, p) in (True, False)
+
+
+def test_moving_object_without_contact_is_not_static_idle():
+    p = V4SamplingPolicy()
+    hand = np.zeros((4, 2, 11, 3), np.float32)
+    valid = np.ones((4, 2, 11), bool)
+    # Hand stays still and far from the object; the object falls 5 mm/frame.
+    obj = np.zeros((4, INTERACTION_POINTS, 3), np.float32)
+    obj[:, :, 0] = 1.
+    obj[:, :, 2] = np.arange(4)[:, None] * .005
+    target = np.zeros((4, INTERACTION_POINTS, C_DIM), np.float32)
+    assert classify_window(hand, valid, obj, target, p) == "moving_object_noncontact"
+    # That kind has its own explicit retention ratio rather than the idle one.
+    p2 = V4SamplingPolicy(static_keep_ratio=.01, approach_keep_ratio=.01,
+                          moving_object_keep_ratio=1.)
+    assert retain_window("moving_object_noncontact", "x", p2)
+
+
+def test_interaction_origin_must_come_from_current_observation():
+    hand = np.zeros((2, 2, 11, 3), np.float32)
+    valid = np.ones((2, 2, 11), bool)
+    obj = np.zeros((2, INTERACTION_POINTS, 3), np.float32)
+    with pytest.raises(ValueError, match="current-observation origin"):
+        interaction_field(hand, valid, obj)
+    current = np.array([[0., 0., 0.], [0.1, 0.1, 0.1]], np.float32)
+    target, mask = interaction_field(hand, valid, obj, current_points=current)
+    assert mask.all()
+    # Moving the future t+1 frame must not change the grid phase selected by
+    # the current observation: labels for later frames stay bit-identical.
+    moved = obj.copy(); moved[0, :, 0] += .005
+    moved_target, moved_mask = interaction_field(hand, valid, moved, current_points=current)
+    np.testing.assert_array_equal(target[1:], moved_target[1:])
+    np.testing.assert_array_equal(mask[1:], moved_mask[1:])
 
 
 def test_resampled_subset_rejects_repeated_underfilled_geometry():

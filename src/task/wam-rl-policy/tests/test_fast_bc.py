@@ -22,6 +22,17 @@ def test_batched_h4_matches_original_all_features_and_ragged_geometry():
         expected=current_inputs(object_poses(obj[env]),hand[env],goal[env],geometries[env])
         assert actual.keys()==expected.keys()
         for key in actual:np.testing.assert_allclose(actual[key],expected[key],rtol=1e-6,atol=1e-6,err_msg=key)
+        assert np.all(actual['features'][:, 12] == 1)
+        assert np.array_equal(actual['features'][:, 13],
+                              np.linalg.norm(actual['features'][:, 9:12], axis=-1) < .002)
+
+
+def test_online_static_threshold_matches_v4_data_contract():
+    data_src = Path(__file__).resolve().parents[2] / '3d-data-preparation/src'
+    sys.path.insert(0, str(data_src))
+    from pose_mesh_data import v4_interaction
+    from wam_rl_policy import fast_bc
+    assert fast_bc.V4_STATIC_THRESHOLD_M == v4_interaction.STATIC_THRESHOLD_M
 
 
 def test_outside_support_zero_is_per_env_persistent_and_rejects_nan(monkeypatch):

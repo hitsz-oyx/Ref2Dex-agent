@@ -115,7 +115,9 @@ def main():
         return points
 
     def sim_step(action):
-        task.pre_physics_step(action)
+        # Same in-place wrist rewrite as the closed-loop runner: never expose
+        # a caller-owned canonical action tensor to the simulator.
+        task.pre_physics_step(action.clone())
         for _ in range(task.control_freq_inv):
             task.gym.simulate(task.sim)
             task.gym.fetch_results(task.sim, True)
@@ -153,6 +155,10 @@ def main():
                 raise ValueError(f'prefix replay reset at step {step}')
         replay_obs = task.obs_buf.clone()
         replay_error = float((replay_obs - torch.tensor(student_obs, device='cuda:0').reshape(1, -1)).abs().max())
+        # Read the current state before the teacher fork.  The old packet read
+        # object_pose only after the H-step rollout, so it silently described
+        # t+H and could not anchor a current-frame tau conversion.
+        current_object_pose = task.root_state_tensor[task.object_indices, 0:13][0].clone()
         current_hand = hand_points()
         future = []
         teacher_actions = []
@@ -168,12 +174,15 @@ def main():
         if fork_reset or len(future) != args.horizon:
             raise ValueError('teacher fork reset before horizon')
         tau = torch.stack(future, dim=1) - current_hand[:, None]
+        future_object_pose = task.root_state_tensor[task.object_indices, 0:13][0].clone()
         np.savez_compressed(
             args.output / 'tau.npz',
             tau=tau[0].cpu().numpy(),
             replay_obs=replay_obs[0].cpu().numpy(),
             current_hand=current_hand[0].cpu().numpy(),
-            object_pose=task.root_state_tensor[task.object_indices, 0:13][0].cpu().numpy(),
+            object_pose=current_object_pose.cpu().numpy(),
+            current_object_pose=current_object_pose.cpu().numpy(),
+            future_object_pose=future_object_pose.cpu().numpy(),
             teacher_actions=torch.cat(teacher_actions).cpu().numpy())
     manifest = dict(status='COMPLETE', seed=args.seed, horizon=args.horizon,
                     prefix_steps=int(prefix.shape[0]),

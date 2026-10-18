@@ -17,3 +17,7 @@ STATS_SCHEMA = "ref2dex.nine-source-horizon-stats.v1"
 SOURCE_IDS = (0, 1, 2, 4, 5, 6, 8, 9, 10)
 HORIZON = 24
 INTERACTION_ENCODING = "object-centric-interaction-field.v4"
+# Bump these whenever the derived reader input or C label definition changes.
+# A checkpoint with an older identity must not silently resume on new data.
+INPUT_SEMANTICS = "v4.target-static-h4-2mm.current-hand.v1"
+LABEL_SEMANTICS = "v4.current-interaction-origin-minus5cm.v1"

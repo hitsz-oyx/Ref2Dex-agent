@@ -12,7 +12,11 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-from .v4_interaction import V4SamplingPolicy, fixed_subset, resampled_subset
+from .v4_interaction import (
+    FEATURE_STATIC, FEATURE_TARGET, INTERACTION_ORIGIN_SEMANTICS, V4_SCHEMA,
+    V4SamplingPolicy, fixed_subset, resampled_subset, interaction_origin,
+    scene_target_static,
+)
 from .v4_windows import v4_pose_mesh_sample, prepare_v4_geometry
 
 
@@ -64,10 +68,12 @@ def _main3_target_sample(sample, normals, policy=V4SamplingPolicy()):
     if not np.isfinite(target_xyz).all() or not np.isfinite(target_features).all():
         raise ValueError("nonfinite main3 target geometry")
     # The target object is the current anchor in the source contract.  Keep
-    # source-derived motion features, but bind all v4 geometry to canonical
-    # point identity and the canonical normal artifact.
+    # the source H4 motion, but bind the metadata channels to the same
+    # target/static contract as the native reader and the online runtime.
     target_xyz = source_surface.copy()
     target_features[:, :3] = normals
+    target_features[:, FEATURE_TARGET] = 1.
+    target_features[:, FEATURE_STATIC] = scene_target_static(target_features[:, 9:12])
     target_features[:, 14:] = 0.
     future = np.einsum("tij,pj->tpi", effects[target, :, :3, :3], flow)
     future += effects[target, :, None, :3, 3]
@@ -79,13 +85,15 @@ def _main3_target_sample(sample, normals, policy=V4SamplingPolicy()):
     interaction_future = np.einsum("tij,qj->tqi", effects[target, :, :3, :3], interaction)
     interaction_future += effects[target, :, None, :3, 3]
     from .v4_interaction import classify_window, interaction_field
+    interaction_current = interaction
     interaction_target, interaction_valid = interaction_field(
         hand_future, hand_valid, interaction_future, policy,
+        origin=interaction_origin(interaction_current),
         active_sides=np.asarray(sample["start_hand_valid"], bool).any(-1))
     flow_valid = np.broadcast_to(valid, (24, policy.flow_points)).copy()
     kind = classify_window(hand_future, hand_valid, interaction_future, interaction_target, policy)
     return dict(
-        schema="ref2dex.wam-v4-target-object.v3", source_id=np.int64(sample["source_id"]),
+        schema=V4_SCHEMA, source_id=np.int64(sample["source_id"]),
         sample_id=np.asarray(sample["sample_id"], np.int64), target_object_only=np.array(True),
         xyz=target_xyz.astype(np.float32), features=target_features.astype(np.float32),
         scene_object=np.zeros(policy.surface_points, np.int64),
@@ -96,6 +104,8 @@ def _main3_target_sample(sample, normals, policy=V4SamplingPolicy()):
         surface_valid=np.ones((1, policy.surface_points), bool),
         interaction_points=interaction[None].astype(np.float32),
         interaction_normals=interaction_normals[None].astype(np.float32),
+        interaction_origin=interaction_origin(interaction_current)[None].astype(np.float32),
+        interaction_origin_semantics=np.array(INTERACTION_ORIGIN_SEMANTICS),
         interaction_target=interaction_target[None].astype(np.float32),
         interaction_valid=interaction_valid[None],
         start_hand=np.asarray(sample["start_hand"], np.float32),

@@ -11,10 +11,14 @@ from a deterministic 1cm voxelized semantic hand scaffold; no KNN is used.
 
 Native geometry with fewer than 512 distinct samples must be rebuilt from CAD
 triangles through a derived surface overlay; the reader rejects cyclic repeats.
-Original 32 flow identities are preserved. Main3 normals are recovered from its
-frozen canonical artifacts by object identity. A separate audit tool writes a derived
+The accepted identities are exactly 512 distinct target points, 32 preserved
+flow identities and 128 distinct interaction queries. Main3 normals are
+recovered from its frozen canonical artifacts by object identity. All entry
+points share the 18-D feature contract: target=1 and static from the same H4
+2 mm displacement threshold. A separate audit tool writes a derived
 window-filter manifest that thins idle static and approach windows while always
-keeping contact windows; raw data is never modified.
+keeping contact windows; moving-object non-contact windows have their own class
+and retention ratio. Raw data is never modified.
 
 `tools/run/train_pretrain.py --init-v3 <checkpoint>` performs a model-only
 warm start. Compatible v3 trunk parameters transfer, while the interaction
@@ -26,9 +30,16 @@ global denominators in DDP. DEV first sums each component over a whole source,
 then applies the source macro average. Reports include explicit metric units;
 there is no mixed seven-channel C MAE or placeholder consistency loss.
 
+C labels use a voxel origin derived only from the current observed interaction
+queries; the future t+1 frame cannot shift the grid phase of later labels. The
+label semantics and input semantics are part of the checkpoint data identity, so
+an old checkpoint cannot silently resume on the changed view.
+
 Forward inputs require current geometry, hand/history, object/goal and optional
 `interaction_query_valid[B,O,Q]`; future labels/masks are used only by losses
-and metrics. Output `interaction_prediction_valid` is current query/object
+and metrics. Invalid queries are cleaned before the query MLP; a NaN in a valid
+query fails closed. Non-unit `interaction_scales` are rejected because C is a
+probability head. Output `interaction_prediction_valid` is current query/object
 validity. C and trajectories are parallel predictions of shared current
 context: C does not condition on a proposed trajectory and no explicit
 trajectory--C consistency objective is implemented.
@@ -41,6 +52,16 @@ historical best score/step/checkpoint is inherited, and the initial baseline
 participates in selection. `--resume-reviewed-subset` is unsupported and fails
 before loading data. Historical checkpoints remain readable for audit, but
 legacy objective checkpoints cannot silently resume the corrected objective.
+
+Online WAM-v4 integration lives in `wam-rl-policy`:
+`wam_rl_policy.wam_v4_runtime` builds the 512/32/128 batch from the observed H4
+history, a scheduler SE(3) `goal_delta` or a position-only task goal, and a
+dense overlay; it exposes the `encode()` summary and the full `tau`/`C`
+`forward()` path separately. `wam_rl_policy.tau_contract` converts v4's
+30 Hz/24-step anchor-frame hand trajectory to the existing 60 Hz/8-step student
+tau (`tau(0)=0`, interpolation, right/left slot, optional world rotation). The
+summary path is explicitly `encode`-only and cannot be used as evidence that
+tau/C reached the executor.
 
 The exact integer voxel lookup sorts occupied scaffold cells only. Bounds and
 int64 overflow checks preserve the original lookup as a fallback; voxel origin,

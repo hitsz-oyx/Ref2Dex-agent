@@ -13,7 +13,14 @@ import numpy as np
 
 
 # v3 requires distinct CAD surface identities as well as corrected C masks.
-V4_SCHEMA = "ref2dex.wam-v4-target-object.v3"
+# v4 fixes the 18-D target/static feature contract and makes the C voxel
+# origin depend only on the current observation.  Both change the admitted
+# training input/label view, so the derived sample schema is versioned.
+V4_SCHEMA = "ref2dex.wam-v4-target-object.v4"
+FEATURE_TARGET = 12
+FEATURE_STATIC = 13
+STATIC_THRESHOLD_M = 0.002
+INTERACTION_ORIGIN_SEMANTICS = "current-interaction-min-minus-5cm.v1"
 SURFACE_POINTS = 512
 FLOW_POINTS = 32
 INTERACTION_POINTS = 128
@@ -43,6 +50,7 @@ class V4SamplingPolicy:
     dilation: int = 1
     static_keep_ratio: float = 0.10
     approach_keep_ratio: float = 0.35
+    moving_object_keep_ratio: float = 0.35
     hand_motion_threshold_m: float = 0.002
     object_motion_threshold_m: float = 0.001
 
@@ -51,7 +59,8 @@ class V4SamplingPolicy:
             raise ValueError("v4 uses the fixed 512/32/128 point contract")
         if not np.isfinite(self.voxel_m) or self.voxel_m <= 0 or self.dilation < 0:
             raise ValueError("positive voxel size and nonnegative dilation required")
-        for value in (self.static_keep_ratio, self.approach_keep_ratio):
+        for value in (self.static_keep_ratio, self.approach_keep_ratio,
+                      self.moving_object_keep_ratio):
             if not np.isfinite(value) or not 0 < value <= 1:
                 raise ValueError("sampling ratios must be in (0,1]")
         for value in (self.hand_motion_threshold_m, self.object_motion_threshold_m):
@@ -166,10 +175,33 @@ def _query_voxel_counts(cells, cell_counts, query_voxels):
     return found.reshape(*query_voxels.shape[:-1], PART_DIM).sum(1)
 
 
+def scene_target_static(displacement: np.ndarray,
+                        threshold: float = STATIC_THRESHOLD_M) -> np.ndarray:
+    """Per-point H4 static flag, shared by every v4 reader and runtime.
+
+    ``displacement`` is the current-minus-oldest point in the current object
+    anchor frame.  A rigid target gives the same flag for every point; the
+    per-point form keeps the contract explicit for future non-rigid views.
+    """
+    displacement = np.asarray(displacement, dtype=np.float32)
+    if displacement.shape[-1] != 3 or not np.isfinite(displacement).all():
+        raise ValueError("finite xyz H4 displacement required")
+    return np.linalg.norm(displacement, axis=-1) < float(threshold)
+
+
+def interaction_origin(current_points: np.ndarray) -> np.ndarray:
+    """Voxel origin determined only by the current observed query geometry."""
+    points = np.asarray(current_points)
+    if points.ndim != 2 or points.shape[1] != 3 or len(points) == 0 or not np.isfinite(points).all():
+        raise ValueError("finite current interaction points required")
+    return points.min(0).astype(np.float64) - 0.05
+
+
 def interaction_field(hand_future: np.ndarray, hand_valid: np.ndarray,
                       object_future: np.ndarray, policy: V4SamplingPolicy = V4SamplingPolicy(),
                       origin: np.ndarray | None = None,
-                      active_sides: np.ndarray | None = None) -> tuple[np.ndarray, np.ndarray]:
+                      active_sides: np.ndarray | None = None,
+                      current_points: np.ndarray | None = None) -> tuple[np.ndarray, np.ndarray]:
     """Generate ``[T,Q,7]`` contact+hand-part labels and validity.
 
     ``object_future`` is the same fixed 128 object query identity at every
@@ -187,7 +219,11 @@ def interaction_field(hand_future: np.ndarray, hand_valid: np.ndarray,
     if not np.isfinite(hand_future[hand_valid]).all() or not np.isfinite(object_future).all():
         raise ValueError("finite valid hand/object future required")
     if origin is None:
-        origin = object_future[0].min(0) - 0.05
+        # The future t+1 frame must never choose the voxel phase for later
+        # labels.  Callers pass current observed query geometry instead.
+        if current_points is None:
+            raise ValueError("interaction_field requires a current-observation origin")
+        origin = interaction_origin(current_points)
     origin = np.asarray(origin, np.float64)
     if origin.shape != (3,) or not np.isfinite(origin).all():
         raise ValueError("finite xyz voxel origin required")
@@ -247,7 +283,14 @@ def classify_window(hand_future: np.ndarray, hand_valid: np.ndarray,
     object_moving = bool(np.nanmax(object_delta) >= policy.object_motion_threshold_m)
     if contact.any():
         return "contact_moving" if object_moving else "contact_static"
-    return "approach" if hand_moving else "static_idle"
+    if hand_moving:
+        return "approach"
+    # No observed contact, hand still, object still moving: free fall, slide
+    # or roll after release.  Calling this static_idle silently removed those
+    # windows at the 10% idle rate.
+    if object_moving:
+        return "moving_object_noncontact"
+    return "static_idle"
 
 
 def retain_window(kind: str, identity: object, policy: V4SamplingPolicy = V4SamplingPolicy()) -> bool:
@@ -256,5 +299,11 @@ def retain_window(kind: str, identity: object, policy: V4SamplingPolicy = V4Samp
         return True
     digest = hashlib.sha256(repr(identity).encode()).digest()
     draw = int.from_bytes(digest[:8], "little") / float(2**64)
-    ratio = policy.approach_keep_ratio if kind == "approach" else policy.static_keep_ratio
-    return draw < ratio
+    ratios = {
+        "approach": policy.approach_keep_ratio,
+        "moving_object_noncontact": policy.moving_object_keep_ratio,
+        "static_idle": policy.static_keep_ratio,
+    }
+    if kind not in ratios:
+        raise ValueError("unknown v4 window kind: " + str(kind))
+    return draw < ratios[kind]

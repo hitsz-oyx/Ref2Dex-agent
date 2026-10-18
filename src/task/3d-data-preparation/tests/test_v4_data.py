@@ -26,3 +26,9 @@ def test_main3_view_and_collate_keep_dense_geometry_contract():
     assert b["interaction_target"].shape == (1, 1, 24, 128, 7)
     assert b["scene_points"].shape == (1, 1, 32, 3)
     assert torch.isfinite(b["interaction_target"]).all()
+    assert torch.all(b["features"][..., 12] == 1)
+    assert torch.all(b["features"][..., 13] == 1)  # no H4 displacement in fixture
+    moving = sample()
+    moving["features"][:, 9:12] = np.array([.01, 0., 0.], np.float32)
+    moved = _main3_target_sample(moving, np.tile([0., 0., 1.], (512, 1)))
+    assert np.all(moved["features"][:, 13] == 0.)

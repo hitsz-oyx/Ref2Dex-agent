@@ -23,6 +23,11 @@ def test_v4_sample_is_target_only_and_has_fixed_contract():
     assert sample['interaction_target'].shape == (1, 24, 128, 7)
     assert sample['object_valid'].tolist() == [True]
     assert np.isfinite(sample['interaction_target']).all()
+    # Same target/static contract as main3 and the online runtime.
+    assert np.all(sample['features'][:, 12] == 1.)
+    assert np.all(sample['features'][:, 13] == 0.)  # object moves 1 mm/frame in H4
+    assert sample['interaction_origin_semantics'] == 'current-interaction-min-minus-5cm.v1'
+    assert sample['schema'] == 'ref2dex.wam-v4-target-object.v4'
     seq['object_pose_valid'][8, 0] = False
     missing = v4_pose_mesh_sample(seq, [geometry, geometry], 3, 0, 8, [0, 3], 'test')
     assert not missing['interaction_valid'][:, 4].any()

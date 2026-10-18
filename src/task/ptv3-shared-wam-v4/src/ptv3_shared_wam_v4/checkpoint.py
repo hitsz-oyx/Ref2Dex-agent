@@ -3,7 +3,7 @@ from pathlib import Path
 import hashlib
 import json
 import torch
-from .paths import SCHEMA
+from .paths import SCHEMA, INPUT_SEMANTICS, LABEL_SEMANTICS
 from ptv3_shared_wam.checkpoint import atomic_json, directory_bytes, checkpoint_alias
 from .objectives import OBJECTIVE_SEMANTICS, EVALUATION_SEMANTICS
 
@@ -12,7 +12,8 @@ def data_identity(stats):
     recipe = stats.get('recipe', {})
     return dict(recipe_sha256=hashlib.sha256(json.dumps(recipe, sort_keys=True,
                     separators=(',', ':')).encode()).hexdigest(),
-                surface_geometry_sha256=recipe.get('surface_geometry_sha256'))
+                surface_geometry_sha256=recipe.get('surface_geometry_sha256'),
+                input_semantics=INPUT_SEMANTICS, interaction_semantics=LABEL_SEMANTICS)
 
 
 def validate_resume_contract(parent, config, stats, world):
@@ -41,10 +42,16 @@ def initialize_from_v3(path, model, config, stats):
                      "shared_heads", "shared_layers", "head_width", "head_heads",
                      "object_points", "history", "horizon", "position_scale_m",
                      "velocity_scale_mps", "acceleration_scale_mps2", "hand_in_ptv3",
-                     "explicit_hand", "horizon_normalization", "checkpoint_interaction")
+                     "explicit_hand", "horizon_normalization", "checkpoint_interaction",
+                     "scene_tokens", "patch_size", "voxel_m", "voxel_origin_m")
     for key in shared_fields:
         if old_config.get(key) != config.get(key):
             raise ValueError(f"v3/v4 shared architecture mismatch: {key}")
+    # The PTv3 backbone is loaded by shape-compatible name, so an unchecked
+    # architecture difference would silently copy old weights into a new
+    # network.  Check the complete trunk declaration as well.
+    if old_config.get("ptv3") != config.get("ptv3"):
+        raise ValueError("v3/v4 PTv3 architecture mismatch")
     for key in ("schema", "split", "units", "fps", "history", "horizon", "hand", "scene"):
         if old_stats.get(key) != stats.get(key):
             raise ValueError(f"v3/v4 normalization/statistics mismatch: {key}")
@@ -116,9 +123,22 @@ def prune_recovery_checkpoints(output, files, config):
 
 
 def load_checkpoint(path):
+    path = Path(path)
     state = torch.load(path, map_location="cpu", weights_only=False)
     if state.get("schema") != SCHEMA or state.get("stage") != "pretrain":
         raise ValueError("v4 full pretraining checkpoint required")
+    # An inherited checkpoint is a byte copy/hard link of an old run, so its
+    # embedded selection still names the old directory.  The adjacent
+    # portable sidecar is part of the read protocol and binds the same file to
+    # the new run's owned best path.
+    sidecar = path.with_suffix(".selection.json")
+    if sidecar.exists():
+        payload = json.loads(sidecar.read_text())
+        selection = payload.get("selection")
+        if selection is not None:
+            if not isinstance(selection, dict) or "checkpoint" not in selection:
+                raise ValueError("malformed portable selection sidecar")
+            state["selection"] = selection
     return state
 
 

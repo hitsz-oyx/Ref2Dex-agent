@@ -87,6 +87,34 @@ def test_v4_emits_tau_scene_and_interaction_and_goal_reaches_c():
     assert not torch.allclose(first["interaction"], second["interaction"])
 
 
+def test_nonunit_interaction_scales_are_rejected_as_probability_head():
+    c = config(); c["interaction_scales"] = [1.] * 6 + [2.]
+    try:
+        SharedWAMV4(stats(), c, Geometry(c["point_width"]))
+    except ValueError as error:
+        assert "unit interaction_scales" in str(error)
+    else:
+        raise AssertionError("non-unit probability scale must be rejected")
+
+
+def test_invalid_query_nan_is_cleaned_before_the_mlp_and_valid_nan_is_rejected():
+    c = config(); m = model(); b = batch()
+    b["interaction_query_valid"] = torch.ones(2, 1, 128, dtype=torch.bool)
+    b["interaction_query_valid"][0, 0, 4:] = False
+    b["interaction_points"][0, 0, 4:] = float("nan")
+    b["interaction_normals"][0, 0, 4:] = float("nan")
+    prediction = m(b)
+    assert torch.isfinite(prediction["interaction"]).all()
+    assert not prediction["interaction"][0, 0, :, 4:].any()
+    b["interaction_points"][0, 0, 0] = float("nan")
+    try:
+        m(b)
+    except ValueError as error:
+        assert "nonfinite valid observation" in str(error)
+    else:
+        raise AssertionError("valid NaN query must fail closed")
+
+
 def test_interaction_loss_backpropagates_to_new_head():
     c = config(); m = SharedWAMV4(stats(), c, Geometry(c["point_width"]))
     b = batch(); b["interaction_target"][0, 0, :, :4, 0] = 1.
@@ -168,3 +196,11 @@ def test_v3_model_only_warm_start_leaves_structured_head_fresh(tmp_path):
     report = initialize_from_v3(path, m, c, stats())
     assert report["parent_step"] == 80000 and report["transferred"] == len(old_model)
     assert "interaction_head.0.weight" in report["new_parameters"]
+    bad = dict(c); bad["voxel_origin_m"] = [-1., -1., -1.]
+    packet["config"] = c; torch.save(packet, path)
+    try:
+        initialize_from_v3(path, m, bad, stats())
+    except ValueError as error:
+        assert "shared architecture mismatch: voxel_origin_m" in str(error)
+    else:
+        raise AssertionError("voxel origin mismatch must be rejected")

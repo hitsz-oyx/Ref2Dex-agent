@@ -5,6 +5,11 @@ from shadow_finetune.execution import Controller
 from shadow_finetune.data import collate
 from video_data_preparation.unidexgrasp_data import object_poses
 
+# Must match pose_mesh_data.v4_interaction.STATIC_THRESHOLD_M.  The online
+# module cannot import the data-preparation task at simulator runtime, so the
+# contract is asserted by a cross-task test instead.
+V4_STATIC_THRESHOLD_M = .002
+
 
 def type_summaries(shared,valid,scene_count,hand_count):
     """Keep scene/hand/known-goal summaries separate; never include future readouts."""
@@ -29,7 +34,9 @@ def batched_inputs(objects,hands,goals,geometries):
     for env,geometry in enumerate(geometries):
         points=geometry['surface'];normals=geometry['normals']
         moved=np.einsum('hij,pj->hpi',relative[env,:,:3,:3],points)+relative[env,:,None,:3,3]
-        features=np.zeros((len(points),18),np.float32);features[:,:3]=normals;features[:,3:12]=dynamics(moved[None])[0];features[:,12]=1
+        features=np.zeros((len(points),18),np.float32);features[:,:3]=normals;features[:,3:12]=dynamics(moved[None])[0]
+        features[:,12]=1
+        features[:,13]=np.linalg.norm(features[:,9:12],axis=-1)<V4_STATIC_THRESHOLD_M
         start=np.zeros((2,11,3),np.float32);start[0]=local_hand[env,-1]
         history=np.zeros((2,11,9),np.float32);history[0]=hand_dynamics[env]
         valid=np.zeros((2,11),bool);valid[0]=True
@@ -41,6 +48,9 @@ def batched_inputs(objects,hands,goals,geometries):
 
 
 class FastController(Controller):
+    build_inputs = staticmethod(batched_inputs)
+    collate_fn = staticmethod(collate)
+
     def _ensure_histories(self, count):
         """Create one short history per simulator environment.
 
@@ -90,7 +100,7 @@ class FastController(Controller):
                           for e in range(count)], 0)
         hands=np.stack([np.stack([self.histories[e][i]['hand'][0] for i in past[e]], 0)
                         for e in range(count)], 0)
-        samples=batched_inputs(objects,hands,snapshot['goal'],self.geometry)
+        samples=self.build_inputs(objects,hands,snapshot['goal'],self.geometry)
         admitted=[];indices=[]
         for env,sample in enumerate(samples):
             if not np.isfinite(sample['start_hand']).all():raise FloatingPointError('Nonfinite native BC landmarks')
@@ -104,7 +114,7 @@ class FastController(Controller):
         action=torch.zeros(len(samples),24,device='cuda')
         if getattr(self,'expose_wam_features',False):self.last_wam_features=torch.zeros(len(samples),2304,device='cuda')
         if not admitted:return action
-        batch={k:v.cuda() for k,v in collate(admitted).items()}
+        batch={k:v.cuda() for k,v in self.collate_fn(admitted).items()}
         shared,valid,scene=self.model.forecaster.encode(batch)
         if getattr(self,'expose_wam_features',False):
             hand_count=batch['start_hand_valid'].flatten(1).shape[1]

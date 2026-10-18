@@ -59,7 +59,8 @@ def run_official(task, snapshot, objects, args):
 
     class WamObservationEnv:
         """Expose the frozen WAM summaries through the official VecTask API."""
-        def __init__(self, base, task, snapshot_fn, checkpoint, cache):
+        def __init__(self, base, task, snapshot_fn, checkpoint, cache,
+                     dense_manifest=None, dense_sha256=None):
             from gym import spaces
             from wam_rl_policy.wam_features import FeatureController
             self.base = base
@@ -75,7 +76,8 @@ def run_official(task, snapshot, objects, args):
             self.clip_obs = base.clip_obs
             self.clip_actions = base.clip_actions
             self.rl_device = base.rl_device
-            self.controller = FeatureController(checkpoint, objects, cache)
+            self.controller = FeatureController(checkpoint, objects, cache,
+                dense_manifest=dense_manifest, dense_sha256=dense_sha256)
             # The official task can explore outside the WAM training workspace.
             # Keep the bounded probe alive with the repository's admitted zero
             # fallback; the run records this as a feature-coverage limitation.
@@ -132,7 +134,9 @@ def run_official(task, snapshot, objects, args):
                         str(ROOT/'src/task/shadow-finetune/src'),
                         str(ROOT/'src/task/ptv3-shared-wam-v2/src'),
                         str(ROOT/'src/task/video-data-preparation/src')]
-        env = WamObservationEnv(env, task, snapshot, args.wam_checkpoint, args.wam_cache)
+        env = WamObservationEnv(env, task, snapshot, args.wam_checkpoint, args.wam_cache,
+                                dense_manifest=args.wam_dense_manifest,
+                                dense_sha256=args.wam_dense_sha256)
         cfg['policy']['obs_dim'] = 2607
         cfg['policy']['wam_adapter'] = bool(args.wam_adapter)
         cfg['policy']['wam_adapter_bounded'] = args.wam_adapter_gain is not None
@@ -326,6 +330,8 @@ def main():
     p.add_argument('--seconds', type=int, default=7200)
     p.add_argument('--wam-checkpoint', type=Path)
     p.add_argument('--wam-cache', type=Path)
+    p.add_argument('--wam-dense-manifest', type=Path)
+    p.add_argument('--wam-dense-sha256')
     p.add_argument('--wam-adapter', action='store_true')
     p.add_argument('--wam-adapter-gain', type=float,
                    help='Enable bounded zero-init WAM actor residual: gain*tanh(adapter).')
@@ -335,6 +341,9 @@ def main():
     if args.model:args.model = args.model.resolve()
     if args.wam_checkpoint:args.wam_checkpoint = args.wam_checkpoint.resolve()
     if args.wam_cache:args.wam_cache = args.wam_cache.resolve()
+    if args.wam_dense_manifest:args.wam_dense_manifest = args.wam_dense_manifest.resolve()
+    if bool(args.wam_dense_manifest) != bool(args.wam_dense_sha256):
+        raise ValueError('v4 dense geometry requires manifest and SHA-256')
     if bool(args.wam_checkpoint) != bool(args.wam_cache):raise ValueError('WAM requires both --wam-checkpoint and --wam-cache')
     if args.wam_adapter and not args.wam_checkpoint:raise ValueError('WAM adapter requires WAM features')
     if args.wam_adapter_gain is not None:

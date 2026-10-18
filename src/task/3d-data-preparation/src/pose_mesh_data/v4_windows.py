@@ -4,8 +4,10 @@ from __future__ import annotations
 import numpy as np
 
 from .v4_interaction import (
-    FLOW_POINTS, INTERACTION_POINTS, SURFACE_POINTS, V4SamplingPolicy,
+    FEATURE_STATIC, FEATURE_TARGET, FLOW_POINTS, INTERACTION_POINTS,
+    INTERACTION_ORIGIN_SEMANTICS, SURFACE_POINTS, V4_SCHEMA, V4SamplingPolicy,
     classify_window, fixed_subset, resampled_subset, interaction_field,
+    interaction_origin, scene_target_static,
 )
 
 
@@ -78,10 +80,17 @@ def v4_pose_mesh_sample(sequence, geometries, tick, target_slot, source_id, samp
     features[:, 3:6] = (surface_history[3] - surface_history[2]) * 30
     features[:, 6:9] = (surface_history[3] - 2 * surface_history[2] + surface_history[1]) * 900
     features[:, 9:12] = surface_history[3] - surface_history[0]
+    # The target-only view keeps the same physical semantics as the main3
+    # reader and the online runtime: target=1 and static from the H4
+    # displacement, not a zero-filled metadata row.
+    features[:, FEATURE_TARGET] = 1.
+    features[:, FEATURE_STATIC] = scene_target_static(features[:, 9:12])
     future_flow = np.einsum('tij,pj->tpi', relative[:, :3, :3], flow) + relative[:, None, :3, 3]
     future_interaction = np.einsum('tij,pj->tpi', relative[:, :3, :3], interaction) + relative[:, None, :3, 3]
+    interaction_current = _transform(interaction, observed[-1])
     interaction_target, interaction_valid = interaction_field(
         hand_future, future_hand_valid, future_interaction, policy,
+        origin=interaction_origin(interaction_current),
         active_sides=present.any(-1))
     # The cleaned reader already rejects these windows. Keep standalone reuse
     # safe as well: unknown object transport cannot supervise contact.
@@ -92,7 +101,7 @@ def v4_pose_mesh_sample(sequence, geometries, tick, target_slot, source_id, samp
     flow_valid = np.broadcast_to(future_known[:, None], (24, FLOW_POINTS)).copy()
     kind = classify_window(hand_future, future_hand_valid, future_interaction, interaction_target, policy)
     return dict(
-        schema='ref2dex.wam-v4-target-object.v3', source_id=np.int64(source_id),
+        schema=V4_SCHEMA, source_id=np.int64(source_id),
         sample_id=np.asarray(sample_id, np.int64), source_profile=np.array(profile),
         training_allowed=np.array(False), target_object_only=np.array(True),
         xyz=surface_current.astype(np.float32), features=features,
@@ -105,8 +114,10 @@ def v4_pose_mesh_sample(sequence, geometries, tick, target_slot, source_id, samp
         object_surface_points=surface_current[None].astype(np.float32),
         object_surface_normals=surface_normals[None].astype(np.float32),
         surface_valid=np.ones((1, SURFACE_POINTS), bool),
-        interaction_points=_transform(interaction, observed[-1])[None].astype(np.float32),
+        interaction_points=interaction_current[None].astype(np.float32),
         interaction_normals=_normal_transform(interaction_normals, observed[-1])[None].astype(np.float32),
+        interaction_origin=interaction_origin(interaction_current)[None].astype(np.float32),
+        interaction_origin_semantics=np.array(INTERACTION_ORIGIN_SEMANTICS),
         interaction_target=interaction_target[None].astype(np.float32),
         interaction_valid=interaction_valid[None],
         start_hand=np.where(present[..., None], hand[3], 0.).astype(np.float32),

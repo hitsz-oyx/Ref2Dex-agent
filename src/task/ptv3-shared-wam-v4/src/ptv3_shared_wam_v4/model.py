@@ -86,7 +86,14 @@ class SharedWAMV4(nn.Module):
             nn.LayerNorm(edge_width), nn.Linear(edge_width, edge_width), nn.GELU(), nn.Linear(edge_width, C_DIM))
         nn.init.normal_(self.interaction_head[-1].weight, std=.01)
         nn.init.zeros_(self.interaction_head[-1].bias)
-        self.register_buffer("interaction_scale", interaction_scales(config))
+        scale = interaction_scales(config)
+        # C is a probability head: multiplying sigmoid/softmax outputs by a
+        # non-unit scale can produce values outside [0,1] while the loss still
+        # treats the pre-scale logits as probabilities.  Reject that contract
+        # instead of silently reinterpreting it.
+        if not torch.allclose(scale, torch.ones_like(scale)):
+            raise ValueError("v4 interaction probability head requires unit interaction_scales")
+        self.register_buffer("interaction_scale", scale)
         self.normalizer = HorizonNormalizer(stats, config.get("horizon_normalization", True))
 
     def encode_hand(self, batch):
@@ -141,6 +148,15 @@ class SharedWAMV4(nn.Module):
 
         interaction_points = batch["interaction_points"]
         interaction_normals = batch["interaction_normals"]
+        # Prediction validity is a current-observation mask.  Clean invalid
+        # padding before it reaches Linear/LayerNorm; a NaN in a valid query
+        # is a hard error, not something the trailing output mask can repair.
+        query_valid = batch.get("interaction_query_valid",
+                                torch.ones_like(interaction_points[..., 0], dtype=torch.bool))
+        if query_valid.shape != interaction_points.shape[:-1]:
+            raise ValueError("current interaction query validity must have shape B,O,Q")
+        interaction_points = clean(interaction_points, query_valid)
+        interaction_normals = clean(interaction_normals, query_valid)
         q = self.interaction_query(torch.cat((interaction_points, interaction_normals), -1))
         object_context = self._masked_mean(object_latent, point_valid, dim=2).unsqueeze(2).unsqueeze(3)
         hand_tokens = shared[:, offset:offset + 22]
@@ -156,9 +172,6 @@ class SharedWAMV4(nn.Module):
         interaction = interaction_normalized * self.interaction_scale.view(1, 1, 1, 1, -1)
         # Prediction validity comes only from current observations. Future
         # label availability belongs exclusively to loss/metric computation.
-        query_valid = batch.get("interaction_query_valid", torch.ones_like(interaction_points[..., 0], dtype=torch.bool))
-        if query_valid.shape != interaction_points.shape[:-1]:
-            raise ValueError("current interaction query validity must have shape B,O,Q")
         c_mask = (query_valid.bool()[:, :, None, :] & object_valid[:, :, None, None]).expand(
             -1, -1, C_HORIZON, -1)
         hand_mask = batch["start_hand_valid"][:, None, ..., None]
@@ -173,7 +186,9 @@ class SharedWAMV4(nn.Module):
             interaction_normalized=torch.where(c_mask[..., None], interaction_normalized, 0.),
             interaction_prediction_valid=c_mask)
         if return_shared:
-            prediction.update(shared_tokens=shared, shared_valid=shared_valid, interaction_tokens=relation)
+            prediction.update(shared_tokens=shared, shared_valid=shared_valid,
+                              interaction_tokens=relation,
+                              scene_token_count=geometry["tokens"].shape[1])
         return prediction
 
     def parameter_groups(self, geometry_lr, shared_lr):
