@@ -68,6 +68,36 @@ def initialize_from_v3(path, model, config, stats):
                 new_parameters=sorted(set(target) - set(compatible)))
 
 
+def initialize_from_v4(path, model, config, stats):
+    """Load a v4 checkpoint as model-only initialization for a NEW run.
+
+    This is deliberately not a resume: the optimizer, step counter, per-rank
+    RNG and historical best belong to the old input/label semantics.  The new
+    run starts at step 0 with a fresh data identity and selection record.
+    """
+    state = torch.load(Path(path), map_location="cpu", weights_only=False)
+    if state.get("schema") != SCHEMA or state.get("stage") != "pretrain":
+        raise ValueError("v4 pretraining checkpoint required for model-only warm start")
+    if state.get("stats") != stats:
+        raise ValueError("v4 warm start requires identical normalization statistics")
+    parent_config = state.get("config", {})
+    for key, value in config.items():
+        # Execution-only fields may differ; architecture and geometry may not.
+        if key in ("batch_size", "updates", "max_seconds", "artifact_budget_bytes",
+                   "validation_samples", "validation_seed", "validation_interval",
+                   "checkpoint_interval", "checkpoint_keep_recent",
+                   "checkpoint_milestone_interval", "save_first_step", "log_interval",
+                   "profile_steps", "expected_world_size"):
+            continue
+        if parent_config.get(key) != value:
+            raise ValueError(f"v4 warm start config mismatch: {key}")
+    model.load_state_dict(state["model"], strict=True)
+    return dict(parent=str(Path(path).resolve()), parent_step=int(state.get("step", 0)),
+                parent_run_id=state.get("provenance", {}).get("run_id"),
+                parent_data_identity=state.get("data_identity"),
+                initialization="v4 model-only warm start; optimizer/step/RNG/selection reset")
+
+
 def save_checkpoint(path, model, optimizer, config, stats, step, provenance, rank_rng, selection):
     path = Path(path)
     if path.exists():

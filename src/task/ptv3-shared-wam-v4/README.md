@@ -21,8 +21,12 @@ keeping contact windows; moving-object non-contact windows have their own class
 and retention ratio. Raw data is never modified.
 
 `tools/run/train_pretrain.py --init-v3 <checkpoint>` performs a model-only
-warm start. Compatible v3 trunk parameters transfer, while the interaction
-field modules initialize freshly.
+warm start from a v3 checkpoint; the interaction field modules initialize
+freshly. `--init-v4 <checkpoint>` performs a model-only warm start from an
+existing v4 checkpoint for a **new data-identity run**: model weights load
+strictly, while the optimizer, step counter, per-rank RNG and historical best
+selection are reset. This is not an exact resume; the old input/label
+semantics and curve are not inherited.
 
 The audited objective `v4.global-masked-components.v2` separately normalizes
 hand, motion-weighted object, contact BCE and positive-contact part CE using

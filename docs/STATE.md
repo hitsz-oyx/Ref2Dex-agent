@@ -7,7 +7,8 @@ dense overlay、summary 与 τ/C 分开）和 30Hz anchor→60Hz world 的 τ �
 窗口与在线 adapter 的 xyz/features/hand/flow/interaction 输入最大差 6.6e-17；20个真实窗口
 上 current-origin 使 C origin 平均移动5.52mm、4.69% contact 标签变化。代码 `812c26aa`，
 28项reader、31项online、19项模型测试通过。`data_identity` 已加入 input/label semantics，
-旧 checkpoint 不能静默续训；远端正在跑的旧代码/数据未改动，需跑完旧 run 或另起新 run。
+旧 checkpoint 不能静默续训；可用 `--init-v4` 做 model-only 初始化另起新 run（优化器/step/RNG/
+选模重置，曲线不与旧 run 拼接）。远端正在跑的旧代码/数据未改动，需跑完旧 run 或另起新 run。
 Hilbert 动态 depth、scheduler goal 分布和 executor 对 v4 τ/C 的使用仍未验证。
 见[合同修复记录](../src/task/ptv3-shared-wam-v4/docs/audits/2026-10-18-input-label-contract.md)。
 

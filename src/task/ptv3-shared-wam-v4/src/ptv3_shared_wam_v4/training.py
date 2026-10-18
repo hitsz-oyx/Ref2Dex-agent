@@ -15,7 +15,7 @@ from .model import SharedWAMV4
 from .data import NineWindows, DevInputCache, collate, loader
 from .performance import StepTimings
 from .checkpoint import (atomic_json, save_checkpoint, load_checkpoint, restore_optimizer,
-    initialize_from_v3,
+    initialize_from_v3, initialize_from_v4,
     checkpoint_alias, prune_recovery_checkpoints, directory_bytes, git_commit,
     data_identity, validate_resume_contract)
 from .objectives import (forecast_loss, forecast_metrics, loss_components, combine_components,
@@ -114,6 +114,8 @@ def main():
     p.add_argument('--resume',type=Path)
     p.add_argument('--init-v3',type=Path,
         help='model-only v3 checkpoint warm-start; new structured C modules are initialized fresh')
+    p.add_argument('--init-v4',type=Path,
+        help='model-only v4 checkpoint warm-start for a NEW data-identity run; optimizer/step/RNG/selection reset')
     p.add_argument('--resume-reviewed-subset',action='store_true',help=argparse.SUPPRESS)
     p.add_argument('--resume-learning-rate-drop',action='store_true')
     p.add_argument('--stop-after',type=int)
@@ -124,8 +126,10 @@ def main():
     a=p.parse_args()
     if a.resume_reviewed_subset:
         p.error('--resume-reviewed-subset is not supported by WAM-v4; use a separately reviewed new run')
-    if a.resume and a.init_v3:
-        raise ValueError('choose either a full v4 resume or a model-only v3 warm-start')
+    if a.resume and (a.init_v3 or a.init_v4):
+        raise ValueError('choose either a full v4 resume or a model-only warm-start')
+    if a.init_v3 and a.init_v4:
+        raise ValueError('choose either a v3 or a v4 model-only warm-start')
     if a.resume_learning_rate_drop and (not a.resume or a.resume_reviewed_subset):
         raise ValueError('LR-only transition requires resume and cannot change the dataset')
     out,artifacts=a.output.resolve(),a.artifact_root.resolve()
@@ -175,6 +179,8 @@ def main():
     warm_start=None
     if a.init_v3:
         warm_start=initialize_from_v3(a.init_v3,model,config,stats)
+    elif a.init_v4:
+        warm_start=initialize_from_v4(a.init_v4,model,config,stats)
     model=model.to(device)
     optimizer=torch.optim.AdamW(model.parameter_groups(config['geometry_lr'],config['shared_lr']),
         weight_decay=config['weight_decay'],fused=True)
@@ -186,11 +192,12 @@ def main():
         input_implementation='exact-int64-voxel-lookup.v1',
         historical_filter_binding=bool(parent and 'window_filter_sha256' in parent['provenance']),
         objective_semantics=OBJECTIVE_SEMANTICS,evaluation_semantics=EVALUATION_SEMANTICS,initialization=(
+            warm_start.get('initialization') if warm_start and a.init_v4 else
             'common v3 model weights; structured C head fresh'
             if warm_start else 'all weights from scratch'),
         scope='offline nine-source pretraining Probe; robot benefit untested')
     if warm_start:
-        provenance['v3_warm_start']=warm_start
+        provenance['v4_warm_start' if a.init_v4 else 'v3_warm_start']=warm_start
     if a.resume:
         if a.resume_learning_rate_drop:
             provenance['lr_transition']=validate_lr_resume(parent,config,stats,world)

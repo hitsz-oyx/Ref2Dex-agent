@@ -7,12 +7,14 @@ import sys
 import pytest
 import torch
 
+TASK = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(TASK / "src"))
 from ptv3_shared_wam_v4.checkpoint import (save_checkpoint, load_checkpoint, data_identity,
-    validate_resume_contract, checkpoint_alias, prune_recovery_checkpoints)
+    validate_resume_contract, checkpoint_alias, prune_recovery_checkpoints,
+    initialize_from_v4)
+from ptv3_shared_wam_v4.paths import SCHEMA
 from ptv3_shared_wam_v4.objectives import OBJECTIVE_SEMANTICS, EVALUATION_SEMANTICS
 from ptv3_shared_wam_v4.selection import consider_selection, inherit_checkpoint
-
-TASK=Path(__file__).resolve().parents[1]
 
 
 def test_resume_keeps_historical_best_even_when_first_validation_is_worse(tmp_path):
@@ -51,6 +53,26 @@ def test_resume_keeps_historical_best_even_when_first_validation_is_worse(tmp_pa
     del parent['objective_semantics']
     with pytest.raises(ValueError,match='legacy objective'):
         validate_resume_contract(parent,config,stats,1)
+
+
+def test_v4_model_only_warm_start_resets_optimizer_step_rng_and_selection(tmp_path):
+    config = dict(schema=SCHEMA, point_width=8, updates=10)
+    stats = dict(recipe=dict(surface_geometry_sha256='same'))
+    old = torch.nn.Linear(2, 1)
+    packet = dict(schema=SCHEMA, stage='pretrain', step=123, config=config, stats=stats,
+                  model=old.state_dict(), provenance=dict(run_id='old'),
+                  data_identity=dict(input_semantics='old'))
+    path = tmp_path / 'old.pt'; torch.save(packet, path)
+    fresh = torch.nn.Linear(2, 1)
+    report = initialize_from_v4(path, fresh, config, stats)
+    assert report['parent_step'] == 123 and report['parent_run_id'] == 'old'
+    for key, value in old.state_dict().items():
+        assert torch.equal(fresh.state_dict()[key], value)
+    bad = dict(config); bad['point_width'] = 16
+    with pytest.raises(ValueError, match='config mismatch: point_width'):
+        initialize_from_v4(path, fresh, bad, stats)
+    with pytest.raises(ValueError, match='normalization statistics'):
+        initialize_from_v4(path, fresh, config, dict(recipe={}))
 
 
 def test_retention_keeps_historical_best_referenced_by_retained_checkpoints(tmp_path):

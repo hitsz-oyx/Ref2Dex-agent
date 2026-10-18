@@ -36,6 +36,7 @@ def main():
     p.add_argument('--stop-after',type=int)
     p.add_argument('--resume',type=Path)
     p.add_argument('--init-v3',type=Path)
+    p.add_argument('--init-v4',type=Path)
     p.add_argument('--resume-reviewed-subset',action='store_true',help=argparse.SUPPRESS)
     p.add_argument('--resume-learning-rate-drop',action='store_true')
     a=p.parse_args()
@@ -43,8 +44,10 @@ def main():
         p.error('--resume-reviewed-subset is not supported by WAM-v4; use a separately reviewed new run')
     if a.resume_learning_rate_drop and (not a.resume or a.resume_reviewed_subset):
         raise ValueError('LR-only continuation requires resume and unchanged dataset')
-    if a.resume and a.init_v3:
-        raise ValueError('choose either --resume or --init-v3')
+    if a.resume and (a.init_v3 or a.init_v4):
+        raise ValueError('choose either --resume or a model-only warm start')
+    if a.init_v3 and a.init_v4:
+        raise ValueError('choose either --init-v3 or --init-v4')
     artifacts,out=a.artifact_root.resolve(),a.output.resolve()
     if artifacts/'outputs'/TASK.name not in out.parents or out.exists():raise ValueError('fresh v3 output required')
     gpus=list(map(int,a.gpus.split(',')))
@@ -94,6 +97,7 @@ def main():
         if a.no_dev_cache:command+=['--no-dev-cache']
         if a.resume:command+=['--resume',str(a.resume.resolve())]
         if a.init_v3:command+=['--init-v3',str(a.init_v3.resolve())]
+        if a.init_v4:command+=['--init-v4',str(a.init_v4.resolve())]
         if a.resume_learning_rate_drop:command+=['--resume-learning-rate-drop']
         if a.stop_after:command+=['--stop-after',str(a.stop_after)]
         status.update(status='STARTING',command=command)

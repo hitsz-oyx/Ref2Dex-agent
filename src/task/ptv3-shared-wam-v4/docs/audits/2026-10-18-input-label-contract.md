@@ -73,8 +73,10 @@ or restart that run.
 
 - `data_identity` now includes `input_semantics` and `interaction_semantics`.
   A checkpoint created before this commit cannot silently resume on the changed
-  input/label view; it must finish under the old code or start a new run. The
-  remote run was not touched.
+  input/label view. It can still be used as `--init-v4` model-only
+  initialization for a fresh run: weights load strictly, but optimizer, step,
+  RNG and historical best selection reset. That new run is a new trajectory and
+  its curve is not comparable to the old run. The remote run was not touched.
 - The fixed C labels and features change the training distribution; pre/post
   curves are not one continuous trajectory.
 - The PointWorld Hilbert serialization depth still depends on the batch maximum
