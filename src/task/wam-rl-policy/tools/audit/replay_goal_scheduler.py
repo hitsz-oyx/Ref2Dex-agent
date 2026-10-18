@@ -9,6 +9,7 @@ import platform
 import subprocess
 import sys
 import time
+import types
 
 TASK = Path(__file__).resolve().parents[2]
 ROOT = TASK.parents[2]
@@ -17,6 +18,16 @@ import numpy as np
 import scipy
 from scipy.spatial.transform import Rotation
 from wam_rl_policy.goal_scheduler import OrderedGoalScheduler, SchedulerConfig, transform_points
+
+
+def geometry_baseline():
+    """Read the exact previous implementation without checking out or editing it."""
+    source = subprocess.check_output(['git', 'show',
+        'ee9a915d:src/task/wam-rl-policy/src/wam_rl_policy/goal_scheduler.py'], text=True)
+    module = types.ModuleType('goal_scheduler_geometry_baseline')
+    sys.modules[module.__name__] = module
+    exec(compile(source, 'git:ee9a915d/goal_scheduler.py', 'exec'), module.__dict__)
+    return module.OrderedGoalScheduler
 
 
 def poses_from_record(values):
@@ -31,13 +42,26 @@ def interpolate_index(arc, index):
 
 
 def replay(name, reference, ref_time, points, observed, live_time, *,
-           hands=None, ready=None, lost=None, metadata=None):
-    scheduler = OrderedGoalScheduler(reference, ref_time, points)
+           hands=None, ready=None, lost=None, metadata=None, with_interaction=False,
+           interaction_points=None, baseline_class=None):
+    scheduler = OrderedGoalScheduler(reference, ref_time, points, interaction_points=interaction_points)
+    baseline = None if baseline_class is None else baseline_class(reference, ref_time, points)
     rows = []
+    last_delta = last_legacy_delta = None
     ref_time = np.asarray(ref_time)-ref_time[0]
     for i, (pose, now) in enumerate(zip(observed, live_time)):
         row = scheduler.update(pose, now, execution_ready=None if ready is None else bool(ready[i]),
-                               lost_control=False if lost is None else bool(lost[i]))
+            lost_control=False if lost is None else bool(lost[i]),
+            hand_points=hands[i] if with_interaction and hands is not None else None)
+        row['relative_goal_step_m'] = 0. if last_delta is None else float(np.linalg.norm(row['goal_delta']-last_delta, axis=-1).mean())
+        last_delta = row['goal_delta'].copy()
+        if baseline is not None:
+            previous = baseline.update(pose, now, execution_ready=None if ready is None else bool(ready[i]),
+                                       lost_control=False if lost is None else bool(lost[i]))
+            row.update(legacy_goal_pose=previous['goal_pose'].tolist(), legacy_mode=previous['mode'],
+                legacy_goal_point_m=previous['goal_point_m'], legacy_progress=previous['confirmed_progress'],
+                legacy_relative_goal_step_m=0. if last_legacy_delta is None else float(np.linalg.norm(previous['goal_delta']-last_legacy_delta, axis=-1).mean()))
+            last_legacy_delta = previous['goal_delta'].copy()
         clock_index = min(int(np.searchsorted(ref_time, now+scheduler.config.horizon_s)), len(reference)-1)
         clock_position, clock_rotation, clock_point = scheduler._errors(pose, reference[clock_index])
         row.update(time_s=float(now), object_pose=pose.tolist(), clock_goal_pose=reference[clock_index].tolist(),
@@ -55,10 +79,14 @@ def replay(name, reference, ref_time, points, observed, live_time, *,
     assert all(r['goal_rotation_rad'] <= config.max_goal_rotation_rad+1e-7 for r in rows)
     assert all(r['goal_point_m'] <= config.max_goal_point_m+1e-7 for r in rows)
     assert np.all(np.diff([r['confirmed_index'] for r in rows]) >= 0)
-    return dict(name=name, metadata=metadata or {}, config=asdict(config), points=points.tolist(),
+    return dict(name=name, metadata=metadata or {}, config=asdict(config),
+        interaction_config=asdict(scheduler.interaction.config), points=points.tolist(),
         reference=reference.tolist(), milestones=scheduler.milestones.tolist(), rows=rows,
         summary=dict(frames=len(rows), complete=rows[-1]['complete'], timed_out=rows[-1]['timed_out'],
             confirmed_progress=rows[-1]['confirmed_progress'], modes=dict(Counter(r['mode'] for r in rows)),
+            interaction_states=dict(Counter(r['interaction']['state'] for r in rows)),
+            relative_goal_step_p95_mm=float(np.percentile([r['relative_goal_step_m'] for r in rows], 95)*1000),
+            legacy_relative_goal_step_p95_mm=None if baseline is None else float(np.percentile([r['legacy_relative_goal_step_m'] for r in rows], 95)*1000),
             clock_goal_point_p95_mm=float(np.percentile([r['clock_goal_point_m'] for r in rows], 95)*1000),
             adaptive_goal_point_p95_mm=float(np.percentile([r['goal_point_m'] for r in rows], 95)*1000),
             clock_goal_cap_violation_frames=sum(r['clock_goal_point_m'] > config.max_goal_point_m for r in rows),
@@ -66,10 +94,13 @@ def replay(name, reference, ref_time, points, observed, live_time, *,
             max_adaptive_lead_mm=max(r['adaptive_lead_m'] for r in rows)*1000))
 
 
-def synthetic_cases():
+def synthetic_cases(with_interaction=False, baseline_class=None):
     points = np.array([[.05, 0, 0], [-.05, 0, 0], [0, .05, 0], [0, -.05, 0], [0, 0, .05], [0, 0, -.05]])
     result = []
-    for kind in ('prepare_lift', 'out_and_back', 'rotation', 'recovery', 'stalled'):
+    kinds = ['prepare_lift', 'out_and_back', 'rotation', 'recovery', 'stalled']
+    if with_interaction:
+        kinds += ['hand_approach_then_coupling', 'hand_lost_while_object_moves']
+    for kind in kinds:
         n = 181
         ref = np.repeat(np.eye(4)[None], n, axis=0)
         if kind == 'rotation':
@@ -91,13 +122,23 @@ def synthetic_cases():
         if kind == 'recovery':
             actual[110:125, 1, 3] += .12
             lost[110:125] = True
+        hands = None
+        if kind.startswith('hand_'):
+            hands = np.tile([0., -.2, .1], (len(indices), 11, 1))
+            for i in range(len(indices)):
+                if i >= 45 and not (kind == 'hand_lost_while_object_moves' and i >= 120):
+                    hands[i, 6] = [.05, 0, .001]
+                    hands[i, 7] = [-.05, 0, .001]
+            hands += actual[:, None, :3, 3]
+            ready = None
         result.append(replay('synthetic / '+kind, ref, np.arange(n)/60, points, actual,
-            np.arange(len(indices))/60, ready=ready, lost=lost,
+            np.arange(len(indices))/60, ready=ready, lost=lost, hands=hands,
+            with_interaction=with_interaction, baseline_class=baseline_class,
             metadata=dict(kind='synthetic_geometry', intervention=kind)))
     return result
 
 
-def native_cases(source, cache, count):
+def native_cases(source, cache, count, with_interaction=False, baseline_class=None):
     identities = json.loads((source/'environment-objects.json').read_text())
     lookup = {r['object_code']: r['geometry'] for r in json.loads((cache/'manifest.json').read_text())['records']}
     with np.load(source/'last-episode.npz') as data:
@@ -127,14 +168,20 @@ def native_cases(source, cache, count):
         points = surface[np.linspace(0, len(surface)-1, 32, dtype=int)].copy()
         ref = poses_from_record(obj[:, env])
         dt = float(np.median(np.diff(clock)))
-        for variant in ('nominal', 'delayed_half_speed'):
+        variants = ('nominal', 'delayed_half_speed', '10_hz') if with_interaction else ('nominal', 'delayed_half_speed')
+        for variant in variants:
             speed, delay = (1., 0.) if variant == 'nominal' else (.5, .6)
             live_time = np.arange(0, delay+(len(ref)-1)*dt/speed+.4, dt)
             indices = np.clip(np.floor(np.maximum(live_time-delay, 0)*speed/dt+1e-6).astype(int), 0, len(ref)-1)
+            if variant == '10_hz':
+                live_time, indices = live_time[::6], indices[::6]
             result.append(replay(identity['object_code'].split('/')[-1].split('-')[0]+' / '+variant,
                 ref, clock, points, ref[indices], live_time, hands=hand[indices, env],
+                with_interaction=with_interaction, interaction_points=surface,
+                baseline_class=baseline_class,
                 metadata=dict(kind='recorded_geometry_replay', source=str(source), environment=env,
-                    identity=identity, variant=variant, ready_signal='unknown',
+                    identity=identity, variant=variant,
+                    ready_signal='causal_hand_object_proxies' if with_interaction else 'unknown',
                     frame_indices=indices.tolist(), scope='known recorded path; time-warped observations, no new physics')))
     return result
 
@@ -169,6 +216,7 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--objects', type=int, default=4)
     parser.add_argument('--seconds', type=float, default=180)
+    parser.add_argument('--interaction', action='store_true')
     args = parser.parse_args()
     if not 1 <= args.objects <= 8 or not 0 < args.seconds <= 600:
         raise ValueError('bounded object/time budget required')
@@ -184,7 +232,7 @@ def main():
     os.environ['MPLCONFIGDIR'] = str(scratch/'matplotlib')
     import matplotlib
     started = time.monotonic()
-    manifest = dict(status='RUNNING', experiment_id='P-20261018-goal-scheduler', run_id=output.name,
+    manifest = dict(status='RUNNING', experiment_id='P-20261018-interaction-goal-scheduler' if args.interaction else 'P-20261018-goal-scheduler', run_id=output.name,
         git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
         branch=subprocess.check_output(['git', 'branch', '--show-current'], text=True).strip(),
         python=sys.executable, python_version=platform.python_version(), numpy=np.__version__,
@@ -193,11 +241,13 @@ def main():
         source=str(args.source.resolve()), cache=str(args.cache.resolve()), device='cpu',
         device_reason='pure NumPy/SciPy pose scheduling; no neural inference, training or simulation',
         seconds_budget=args.seconds, output_budget_mib=100, objects=args.objects,
-        scope='geometry engineering Probe only; no WAM/control/task-success claim')
+        interaction=args.interaction, baseline_commit='ee9a915d' if args.interaction else None,
+            scope='geometry engineering Probe only; no WAM/control/task-success claim')
     (output/'manifest.json').write_text(json.dumps(manifest, indent=2)+'\n')
-    cases = synthetic_cases()
+    baseline_class = geometry_baseline() if args.interaction else None
+    cases = synthetic_cases(args.interaction, baseline_class)
     print(json.dumps(dict(stage='synthetic', seconds=time.monotonic()-started)), flush=True)
-    cases += native_cases(args.source, args.cache, args.objects)
+    cases += native_cases(args.source, args.cache, args.objects, args.interaction, baseline_class)
     if time.monotonic()-started > args.seconds:
         raise TimeoutError('geometry replay budget')
     (output/'replay.json').write_text(json.dumps(cases, separators=(',', ':'), allow_nan=False))

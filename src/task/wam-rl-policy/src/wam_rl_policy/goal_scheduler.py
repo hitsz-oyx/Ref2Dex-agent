@@ -8,6 +8,7 @@ from dataclasses import dataclass
 
 import numpy as np
 from scipy.spatial.transform import Rotation
+from .interaction_state import InteractionObserver
 
 
 def _pose(value):
@@ -65,6 +66,12 @@ class SchedulerConfig:
     final_settle_s: float = .2
     stall_timeout_s: float = 8.
     episode_timeout_s: float = 60.
+    minimum_lookahead_m: float = .003
+    lead_change_rate_mps: float = .04
+    progress_deadband_m: float = .001
+    max_observation_gap_s: float = .25
+    max_crossing_translation_m: float = .08
+    max_crossing_rotation_rad: float = .7
 
     def __post_init__(self):
         if any(not np.isfinite(v) or v <= 0 for v in self.__dict__.values()):
@@ -85,7 +92,7 @@ class OrderedGoalScheduler:
     The module emits a goal, never executable robot commands.
     """
     def __init__(self, reference_poses, reference_times_s, object_points, *,
-                 config=None, mandatory_indices=()):
+                 config=None, mandatory_indices=(), interaction_points=None, interaction_config=None):
         self.config = config or SchedulerConfig()
         self.poses = np.stack([_pose(p) for p in reference_poses])
         self.times = np.asarray(reference_times_s, dtype=np.float64).copy()
@@ -109,6 +116,8 @@ class OrderedGoalScheduler:
         if milestones[-1] != len(self.poses)-1:
             milestones.append(len(self.poses)-1)
         self.milestones = np.asarray(milestones, dtype=np.int64)
+        self.interaction = InteractionObserver(self.points if interaction_points is None else interaction_points,
+                                               config=interaction_config)
         self.reset()
 
     def reset(self):
@@ -117,6 +126,11 @@ class OrderedGoalScheduler:
         self.settle_since = None
         self.initial_acquired = self.complete = self.recovering = False
         self.terminal_reason = None
+        self.last_pose = None
+        self.progress_anchor_arc = 0.
+        self.best_finger_gap = float('inf')
+        self.last_lead = self.config.minimum_lookahead_m
+        self.interaction.reset()
 
     def _errors(self, actual, goal):
         position = float(np.linalg.norm(actual[:3, 3]-goal[:3, 3]))
@@ -155,37 +169,84 @@ class OrderedGoalScheduler:
                 high = middle
         return interpolate_pose(actual, goal, low)
 
-    def update(self, object_pose, time_s, *, execution_ready=None, lost_control=False):
+    def _arrival_witness(self, actual, target, dt):
+        """Observed arrival, or a bounded intervening SE(3) crossing witness.
+
+        A crossing is a local interpolation assumption, not proof of an unseen
+        arbitrary motion. Long observation gaps/jumps never supply this witness.
+        """
+        if self._reached(actual, target):
+            return 1., 'observed_arrival'
+        if self.last_pose is None or dt > self.config.max_observation_gap_s:
+            return None, None
+        translation, rotation, _ = self._errors(self.last_pose, actual)
+        if (translation > self.config.max_crossing_translation_m
+                or rotation > self.config.max_crossing_rotation_rad):
+            return None, None
+        start = transform_points(self.last_pose, self.points)
+        direction = transform_points(actual, self.points)-start
+        width = float(np.sum(direction**2))
+        if width < 1e-12:
+            return None, None
+        fraction = float(np.clip(np.sum((transform_points(target, self.points)-start)*direction)/width, 0, 1))
+        intermediate = interpolate_pose(self.last_pose, actual, fraction)
+        return (fraction, 'bounded_crossing') if self._reached(intermediate, target) else (None, None)
+
+    def update(self, object_pose, time_s, *, execution_ready=None, lost_control=False, hand_points=None):
         actual, now, c = _pose(object_pose), float(time_s), self.config
         if (not np.isfinite(now) or (self.last_time is not None and now <= self.last_time)
                 or (execution_ready is not None and not isinstance(execution_ready, (bool, np.bool_)))
                 or not isinstance(lost_control, (bool, np.bool_))):
             raise ValueError('strictly increasing live time and optional boolean readiness required')
         execution_ready = None if execution_ready is None else bool(execution_ready)
+        readiness_external = execution_ready is not None
+        dt = 0. if self.last_time is None else now-self.last_time
+        interaction = self.interaction.update(actual, hand_points, now)
+        if execution_ready is None:
+            execution_ready = interaction['execution_ready']
+        lost_control = bool(lost_control or interaction['lost_control'])
         if self.start_time is None:
             self.start_time = self.last_progress_time = now
         self.last_time = now
-        pending = int(self.milestones[min(self.pointer+1, len(self.milestones)-1)])
+        if not self.complete and now-self.start_time >= c.episode_timeout_s:
+            self.terminal_reason = 'episode_deadline'
         if not self.initial_acquired and self._reached(actual, self.poses[0]):
             self.initial_acquired = True
             self.last_progress_time = now
-        # No clock advancement or nearest-frame jump is allowed to confirm a milestone.
+        # Ordered crossing witnesses prevent missing milestones at lower sample
+        # rates. Their interpolation fractions must also occur in order.
+        arrival_witness = None
         if (self.terminal_reason is None and not self.complete and self.initial_acquired
-                and execution_ready is not False and not lost_control
-                and self._reached(actual, self.poses[pending])):
-            if self.pointer+1 == len(self.milestones)-1:
-                if self.settle_since is None:
-                    self.settle_since = now
-                if now-self.settle_since >= c.final_settle_s:
-                    self.pointer += 1
-                    self.complete = True
-                    self.last_progress_time = now
-            else:
+                and execution_ready is not False and not lost_control):
+            previous_fraction = -1.
+            for _ in range(8):
+                pending = int(self.milestones[min(self.pointer+1, len(self.milestones)-1)])
+                fraction, witness = self._arrival_witness(actual, self.poses[pending], dt)
+                if fraction is None or fraction+1e-6 < previous_fraction:
+                    self.settle_since = None
+                    break
+                if self.pointer+1 == len(self.milestones)-1:
+                    # Crossing the end is insufficient: actual pose must settle.
+                    if not self._reached(actual, self.poses[-1]):
+                        self.settle_since = None
+                        break
+                    if self.settle_since is None:
+                        self.settle_since = now
+                    if now-self.settle_since >= c.final_settle_s:
+                        self.pointer += 1
+                        self.complete = True
+                        self.last_progress_time = now
+                        arrival_witness = 'final_pose_settled'
+                    break
                 self.pointer += 1
                 self.last_progress_time = now
+                arrival_witness = witness
+                previous_fraction = fraction
         else:
             self.settle_since = None
-        first = int(self.milestones[self.pointer])
+        # A tolerance-based confirmation can occur before the exact milestone.
+        # Retain the preceding local segment so projection does not jump forward.
+        first = int(self.milestones[max(self.pointer-1, 0)])
         last = int(self.milestones[min(self.pointer+1, len(self.milestones)-1)])
         if not self.initial_acquired:
             first = last = 0
@@ -193,6 +254,13 @@ class OrderedGoalScheduler:
         error = np.linalg.norm(self.path_points[first:last+1]-actual_points[None], axis=-1).mean(-1)
         local = first+int(np.argmin(error))  # ties choose earliest, including static intervals
         tracking_error = float(error[local-first])
+        if self.arc[local] > self.progress_anchor_arc+c.progress_deadband_m:
+            self.progress_anchor_arc = float(self.arc[local])
+            self.last_progress_time = now
+        gap = interaction['fingertip_gap_m']
+        if gap is not None and gap < self.best_finger_gap-c.progress_deadband_m:
+            self.best_finger_gap = gap
+            self.last_progress_time = now
         self.recovering = bool(lost_control or not self.initial_acquired or
             tracking_error > (c.recovery_exit_m if self.recovering else c.recovery_enter_m))
         if not self.complete and self.terminal_reason is None:
@@ -212,7 +280,22 @@ class OrderedGoalScheduler:
             else:
                 mode, reason = 'TRACK', 'ordered_progress'
                 ahead = c.lookahead_m * max(.25, 1-tracking_error/c.recovery_enter_m)
-            goal, index = self._at_arc(min(self.arc[local]+ahead, self.arc[last]), local, last)
+            if (mode != 'RECOVER' and not readiness_external
+                    and interaction['state'] in ('APPROACH', 'PREPARE', 'CONTACT_CANDIDATE')):
+                mode, reason = 'PREPARE', interaction['reason']
+                confidence = interaction['confidence']
+                ahead = c.minimum_lookahead_m + (c.preparation_lookahead_m-c.minimum_lookahead_m)*confidence/.45
+            elif interaction['coupled'] and interaction['object_speed_mps'] is not None:
+                # Short-horizon reach demand is related to observed motion,
+                # while a positive floor preserves intent when motion pauses.
+                reachable_scale = c.horizon_s*(1.5*interaction['object_speed_mps']+.005)
+                ahead = min(ahead, max(c.minimum_lookahead_m, reachable_scale))
+            if mode not in ('RECOVER',):
+                change = c.lead_change_rate_mps*dt
+                ahead = float(np.clip(ahead, self.last_lead-change, self.last_lead+change))
+            available = max(0., float(self.arc[last]-self.arc[local]))
+            self.last_lead = min(ahead, available)
+            goal, index = self._at_arc(self.arc[local]+self.last_lead, local, last)
         # TIMEOUT emits an explicit hold at the live pose, not a reference goal.
         on_reference = mode != 'TIMEOUT'
         if not self._within_budget(actual, goal):
@@ -237,10 +320,14 @@ class OrderedGoalScheduler:
                 reason += ':bounded_connector_to_reference'
         position, rotation, point_error = self._errors(actual, goal)
         denominator = max(float(self.arc[-1]), 1e-12)
+        if on_reference and not self.complete:
+            self.last_lead = max(0., float(np.interp(index, np.arange(len(self.arc)), self.arc)-self.arc[local]))
+        self.last_pose = actual.copy()
         return dict(goal_pose=goal, goal_delta=rigid_goal_delta(actual, goal, self.points),
             horizon_s=c.horizon_s, mode=mode, reason=reason, execution_ready=execution_ready,
             confirmed_index=int(self.milestones[self.pointer]), projected_index=local,
             target_reference_index=index, target_on_reference=on_reference,
             confirmed_progress=float(self.arc[self.milestones[self.pointer]]/denominator) if self.arc[-1]>1e-12 else float(self.complete),
             reference_error_m=tracking_error, goal_position_m=position, goal_rotation_rad=rotation,
-            goal_point_m=point_error, complete=self.complete, timed_out=self.terminal_reason is not None)
+            goal_point_m=point_error, complete=self.complete, timed_out=self.terminal_reason is not None,
+            interaction=interaction, arrival_witness=arrival_witness, lookahead_m=self.last_lead)
