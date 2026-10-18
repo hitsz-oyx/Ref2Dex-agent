@@ -223,7 +223,7 @@ def main():
                 success=np.float32(task.successes[0].item()),
                 goal_distance=np.float32(distance),
                 realtime_success=np.float32(distance <= .05),
-                object_height=np.float32(task.object_pos[0, 2]),
+                object_height=np.float32(task.object_pos[0, 2].item()),
                 replay_error=np.float32(replay_error),
                 teacher_action=teacher_action_np,
                 tau=(tau_np.reshape(args.horizon, 11, 3) if tau_np is not None
