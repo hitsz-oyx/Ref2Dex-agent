@@ -160,10 +160,23 @@ class OrderedGoalScheduler:
     def _bounded(self, actual, goal):
         if self._within_budget(actual, goal):
             return goal.copy()
+        # Same 28 bisection decisions, but factor the invariant transform out
+        # of the loop. Translation and shortest-arc angle scale linearly.
+        delta = Rotation.from_matrix(actual[:3, :3].T @ goal[:3, :3]).as_rotvec()
+        distance = float(np.linalg.norm(goal[:3, 3]-actual[:3, 3]))
+        angle = float(np.linalg.norm(delta))
+        actual_points = transform_points(actual, self.points)
+        c = self.config
         low, high = 0., 1.
         for _ in range(28):
             middle = (low+high)/2
-            if self._within_budget(actual, interpolate_pose(actual, goal, middle)):
+            within = distance*middle <= c.max_goal_translation_m and angle*middle <= c.max_goal_rotation_rad
+            if within:
+                rotation = actual[:3, :3] @ Rotation.from_rotvec(delta*middle).as_matrix()
+                translation = (1-middle)*actual[:3, 3]+middle*goal[:3, 3]
+                moved = self.points @ rotation.T+translation
+                within = np.linalg.norm(actual_points-moved, axis=-1).mean() <= c.max_goal_point_m
+            if within:
                 low = middle
             else:
                 high = middle
