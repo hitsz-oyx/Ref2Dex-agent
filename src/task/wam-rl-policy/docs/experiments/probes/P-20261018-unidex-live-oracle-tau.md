@@ -455,24 +455,34 @@ goal and visual.  To test whether the held-out holding failure was caused by
 that handicap, the same BC/DAgger student was retrained with the 300-D native
 observation used by the scheduled 565-D PPO, with and without the 264-D tau.
 
-| arm (held-out seed 453) | max lift | longest in-goal run | final distance | success |
-|---|---:|---:|---:|---|
-| full 300 state-only | 0.000 m | 0 | 0.2809 m | 0 |
-| full 300 + tau (564-D) | 0.2169 m | 72 | 0.02445 m | 1 |
-| p2 139 + tau (403-D, earlier) | 0.1807 m | 14 | 0.05547 m | 0 |
+| seed | arm | max lift | longest in-goal run | final distance | success | teacher 16-step in-goal |
+|---|---|---:|---:|---:|---|---:|
+| 453 | full 300 state-only | 0.000 | 0 | 0.2809 | 0 | -- |
+| 453 | full 300 + tau | 0.2169 | 72 | 0.02445 | 1 | 11/14 |
+| 471 | full 300 state-only | 0.000 | 0 | 0.2183 | 0 | -- |
+| 471 | full 300 + tau | 0.2547 | 37 | 0.06113 | 0 | 0/4 |
+| 482 | full 300 state-only | 0.000 | 0 | 0.2792 | 0 | -- |
+| 482 | full 300 + tau | 0.1301 | 0 | 0.3106 | 0 | 1/13 |
 
-The full+tau arm first reaches the goal at tick 109 and holds 72 consecutive
-realtime frames through tick 180 (no drop events, replay error 0.0).  The
-full state-only arm never lifts.  On this held-out seed the rich native
-observation plus tau is sufficient for a sustained hold; the earlier 14-frame
-p2 result was at least partly an observation handicap.  This also aligns the
-executor input with the scheduled 565-D PPO (`current300 + world tau +
-valid`), instead of the 139-D p2.
+The full state-only arm never lifts on any of the three held-out seeds.  The
+full+tau arm holds 72 frames and succeeds on 453; it reaches the goal and
+holds 37 frames on 471, ending 1.1 cm outside (0.06113 m); it never enters the
+goal on 482 (minimum 0.0845 m).  This matches the teacher 16-step audit:
+453 11/14, 471 0/4, 482 1/13 in-goal endpoints.  The rich native observation
+plus tau therefore recovers sustained holding where the teacher's plan is
+recoverable (453) and nearly recovers the boundary seed (471), but does not
+repair 482's recovery envelope.
 
-Caveats: one seed and one model seed; 471/482 are running.  The tau here is
-the 264-D relative teacher plan, not the 565-D world-frame tau.  The full
-state-only failure may also reflect BC/DAgger sensitivity, so this is a
-matched control rather than a proof that tau is the only causal difference.
+Compared with p2+tau (453 14 frames/0.05547, 471 4/0.05263, 482 13/0.2859),
+the aligned input improves 453 and 471; 482 remains outside the teacher's
+recoverable region and is not an input-richness problem.  The full state-only
+failure on all three is a matched control: for this BC/DAgger executor, tau is
+necessary even when the object/contact state is visible.
+
+Caveats: one model seed; one episode per seed; tau is the 264-D relative
+teacher plan, not the 565-D world-frame tau.  The full state-only failure may
+also reflect BC/DAgger optimization sensitivity, so this is a matched
+comparison rather than a single-factor causal proof.
 
 ### Holding/recovery Decision: one additional adaptation initial state
 

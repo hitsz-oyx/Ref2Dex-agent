@@ -27,13 +27,17 @@ canonical action/prefix一致，τ和末次状态保存；仅证明接线，不�
 ## 2026-10-18 Aligned-input full300+τ：held-out 453 连续保持 72 帧
 
 把 GT-τ 学生从 p2 139 换成与 scheduled 565D PPO 对齐的 **full 300 native + τ
-264 = 564D**，同一 BC/DAgger 配方。held-out 453（未进 BC/DAgger）：
-full state-only max lift 0、从未进目标区；full+τ max lift .2169 m、tick109 起连续
-**72 个实时 in-goal 帧**、final distance .02445 m、drop events 0、replay error 0。
-而 p2+τ 在同一 seed 只有 14 帧、最后 .0555 m。说明此前 p2 的 partial observation
-确实是限制之一；输入与 565D PPO 对齐后，held-out 453 能稳定保持。仍只有一个 seed、
-一个 model seed；471/482 正在跑；τ 是 264D relative plan，不是 565D world τ。
-代码/产物在 `outputs/wam-rl-policy/P-20261018-unidex-aligned-input-r1/`。
+264 = 564D**，同一 BC/DAgger 配方。三个 held-out seed 全部完成：
+- 453：full state-only max lift 0、0 帧；full+τ max lift .2169 m、**72 帧**、
+  final .02445 m、success 1；
+- 471：full state-only 0；full+τ max lift .2547 m、**37 帧**、final .06113 m（差 1.1 cm）、
+  最后 success 0；
+- 482：full state-only 0；full+τ max lift .1301 m、**0 帧**、final .3106 m；与 teacher
+  16 步审计 1/13 一致，属于 recoverability 限制。
+full state-only 在三个 seed 都从未抬升，说明即使有 object/contact 观测，这个 BC/DAgger
+执行器仍然需要 τ。输入与 565D PPO 对齐后，453 稳定保持、471 接近保持；482 不是输入
+丰富度问题。仍只有一个 model seed、每 seed 一次 episode；τ 是 264D relative plan，
+不是 565D world τ。产物在 `outputs/wam-rl-policy/P-20261018-unidex-aligned-input-r1/`。
 
 ## 2026-10-18 4-seed fork adaptation 负结果：全局更新会破坏 approach
 
