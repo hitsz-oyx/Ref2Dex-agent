@@ -198,3 +198,27 @@ is still not established. The plot and compact snapshot are local
 and `training-curve-snapshot.json`; gradient evidence is
 `component-gradients-step5000.json`. The temporary GPU probe has exited;
 production training continues on the unchanged recipe/objective.
+
+## Decision probe: larger DEV panel outside selection sample IDs
+
+The active selection panel contains32 sampled windows per represented source.
+After the run passed12k, its source-macro score decreased mainly through C,
+while trajectory metrics fluctuate. Check whether that pattern also appears
+on a larger, disjoint panel before interpreting it as general learning.
+Run `heldout-dev-panel-20261018-r1`, work version
+`wam-v4-disjoint-dev-panel.v1`: select128 unique DEV indices per source,
+excluding every existing selection-panel index. Use the existing validation
+seed for deterministic candidate generation, fixed source order and batch8.
+This is a new DEV audit panel, not an untouched TEST split.
+
+Compare model-only predictions at retained step0 and a hard-linked snapshot
+of the latest completed checkpoint at launch; no checkpoint selection,
+optimizer step, normalization change or production-panel replacement. First
+reproduce the original step0 selection score within1e-5. Cache at most256MiB
+CPU inputs, use one remote GPU and a300s deadline; the snapshot is a hard link
+within the same NAS, retaining its inode without allocating a second full
+checkpoint. If the novel panel retains C improvement with flat trajectories,
+keep the C-learning interpretation and focus next on per-source trajectory
+conditioning. If it contradicts the original trend, diagnose panel sensitivity
+before changing losses or extending scientific claims. This is cheaper than
+another training run and runs separately from the local GT-tau experiment.
