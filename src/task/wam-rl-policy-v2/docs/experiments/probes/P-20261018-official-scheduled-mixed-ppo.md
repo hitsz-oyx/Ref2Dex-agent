@@ -139,3 +139,13 @@ valid point outside fixed PTv3 workspace，grid_min=[-6,171,169]。
 其余环境正常推理。未放宽WAM边界或裁剪输入，workspace_failures逐rank记录。
 新增显式失败终止条件；reward公式/PPO更新不变。这是相对原环境的终止规则差异，
 后续成功率比较必须保持该规则一致，并报告越界次数。
+
+## 用户授权GPU6/7批量接口实验
+
+主r3固定源码继续运行，不切换。工程实验比较REF2DEX_BATCH_PIPELINE五种模式：
+legacy、tau（GPU批量插值/旋转并保留565观测在设备上）、inputs（加GPU向量化WAM输入及越界检查）、
+scheduler（独立状态机+批量28次connector求解）、all。默认legacy。
+每种单卡160环境/同16对象/seed0/12轮，900秒上限；最多两卡同时，整个诊断30分钟。
+所有run保存源码副本，模式写入curve。WAM完整forward不变，不启用hand-only。
+GPU6已通过输入字段、tau与CPU基线比较；部分reset、越界mask和完整scheduler状态对照通过。
+WAM输入浮点容差2e-6，tau1e-7，scheduler1e-8；尚待端到端结果。

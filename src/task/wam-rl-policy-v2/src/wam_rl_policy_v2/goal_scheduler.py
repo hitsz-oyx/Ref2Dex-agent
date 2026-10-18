@@ -206,6 +206,16 @@ class OrderedGoalScheduler:
         return (fraction, 'bounded_crossing') if self._reached(intermediate, target) else (None, None)
 
     def update(self, object_pose, time_s, *, execution_ready=None, lost_control=False, hand_points=None):
+        operation = self._update_iter(object_pose, time_s, execution_ready=execution_ready,
+                                      lost_control=lost_control, hand_points=hand_points)
+        try:
+            actual, goal = next(operation)
+            operation.send(self._bounded(actual, goal))
+        except StopIteration as finished:
+            return finished.value
+        raise RuntimeError('unexpected extra scheduler request')
+
+    def _update_iter(self, object_pose, time_s, *, execution_ready=None, lost_control=False, hand_points=None):
         actual, now, c = _pose(object_pose), float(time_s), self.config
         if (not np.isfinite(now) or (self.last_time is not None and now <= self.last_time)
                 or (execution_ready is not None and not isinstance(execution_ready, (bool, np.bool_)))
@@ -332,7 +342,7 @@ class OrderedGoalScheduler:
                 goal, index = self._at_arc(low, local, last)
                 reason += ':shortened_along_reference'
             else:
-                goal = self._bounded(actual, goal)
+                goal = yield actual, goal
                 on_reference = False
                 mode = 'RECOVER' if mode not in ('TIMEOUT', 'COMPLETE') else mode
                 reason += ':bounded_connector_to_reference'
@@ -353,3 +363,45 @@ class OrderedGoalScheduler:
             goal_point_m=point_error, complete=self.complete, timed_out=self.terminal_reason is not None,
             interaction=interaction, arrival_witness=arrival_witness, lookahead_m=self.last_lead,
             inferred_readiness=interaction['execution_ready'], milestone_witnesses=milestone_witnesses)
+
+
+def bounded_connectors(schedulers, actual, goal):
+    """Vectorize 28 identical SE(3) bisections; each environment retains its limits."""
+    points = np.stack([s.points for s in schedulers])
+    delta = Rotation.from_matrix(np.swapaxes(actual[:,:3,:3],1,2) @ goal[:,:3,:3]).as_rotvec()
+    distance = np.linalg.norm(goal[:,:3,3]-actual[:,:3,3], axis=-1)
+    angle = np.linalg.norm(delta, axis=-1)
+    actual_points = points @ np.swapaxes(actual[:,:3,:3],1,2)+actual[:,None,:3,3]
+    limits = np.array([[s.config.max_goal_translation_m,s.config.max_goal_rotation_rad,s.config.max_goal_point_m]
+                       for s in schedulers])
+    low=np.zeros(len(schedulers));high=np.ones(len(schedulers))
+    for _ in range(28):
+        middle=(low+high)/2
+        rotation=actual[:,:3,:3] @ Rotation.from_rotvec(delta*middle[:,None]).as_matrix()
+        translation=(1-middle[:,None])*actual[:,:3,3]+middle[:,None]*goal[:,:3,3]
+        moved=points @ np.swapaxes(rotation,1,2)+translation[:,None]
+        within=(distance*middle<=limits[:,0]) & (angle*middle<=limits[:,1])
+        within &= np.linalg.norm(actual_points-moved,axis=-1).mean(-1)<=limits[:,2]
+        low=np.where(within,middle,low);high=np.where(within,high,middle)
+    result=np.broadcast_to(np.eye(4),(len(schedulers),4,4)).copy()
+    result[:,:3,:3]=actual[:,:3,:3] @ Rotation.from_rotvec(delta*low[:,None]).as_matrix()
+    result[:,:3,3]=(1-low[:,None])*actual[:,:3,3]+low[:,None]*goal[:,:3,3]
+    return result
+
+
+def update_schedulers(schedulers, poses, times, hands):
+    """Keep independent state machines; batch only pending connector computations."""
+    results=[None]*len(schedulers);pending={}
+    for i,scheduler in enumerate(schedulers):
+        operation=scheduler._update_iter(poses[i],float(times[i]),hand_points=hands[i])
+        try:
+            actual,goal=next(operation)
+            pending.setdefault(len(scheduler.points),[]).append((i,operation,actual,goal))
+        except StopIteration as finished:results[i]=finished.value
+    for group in pending.values():
+        goals=bounded_connectors([schedulers[r[0]] for r in group],np.stack([r[2] for r in group]),np.stack([r[3] for r in group]))
+        for (i,operation,_,_),goal in zip(group,goals):
+            try:operation.send(goal)
+            except StopIteration as finished:results[i]=finished.value
+            else:raise RuntimeError('unexpected extra scheduler request')
+    return results

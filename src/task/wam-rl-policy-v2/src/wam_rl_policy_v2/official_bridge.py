@@ -84,7 +84,8 @@ class ScheduledOfficialEnv:
         lift=state['pose'][:,2,3]-self.initial_z
         near=np.linalg.norm(state['pose'][:,:3,3]-state['goal'],axis=-1)<=.05
         self.streak=np.where(near & (lift>=.1),self.streak+1,0);self.longest=np.maximum(self.longest,self.streak)
-        result=self.inputs.observation(native.detach().cpu().numpy(),state['pose'],state['hand'],self.ticks/60)
+        current=native.detach() if self.inputs.pipeline in ('tau','inputs','all') else native.detach().cpu().numpy()
+        result=self.inputs.observation(current,state['pose'],state['hand'],self.ticks/60)
         self.workspace_invalid=result['workspace_invalid']
         self.ticks+=1
         return torch.as_tensor(result['observation'],device=self.runtime.device)
@@ -168,7 +169,7 @@ def run(task,snapshot,sim_step,actor,runtime,args):
     def log(locs):
         iteration=locs['it']+1
         metrics=reduce(torch.tensor([float(locs['mean_reward']),float(locs['mean_value_loss']),float(locs['mean_surrogate_loss'])],device=runtime.device))
-        state.update(iteration=completed+iteration,rank=args.rank,world_size=args.world_size,
+        state.update(iteration=completed+iteration,rank=args.rank,world_size=args.world_size,batch_pipeline=env.inputs.pipeline,
             env_steps=iteration*args.envs*cfg['learn']['nsteps']*args.world_size,
             elapsed_s=time.monotonic()-started,collection_s=locs['collection_time'],learning_s=locs['learn_time'],lr=ppo.step_size,reward_mean=float(metrics[0]),
             value_loss=float(metrics[1]),surrogate_loss=float(metrics[2]),reset_count=env.reset_count,
