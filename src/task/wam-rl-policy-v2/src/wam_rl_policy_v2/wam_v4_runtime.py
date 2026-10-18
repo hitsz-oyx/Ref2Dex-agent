@@ -287,6 +287,19 @@ class V4Runtime:
         return self.model(batch, return_shared=True)
 
     @torch.inference_mode()
+    def predict_hand(self, batch):
+        """Exact hand head for tau-only executors; skip unused scene/C readouts.
+
+        Keep the identical geometry/shared encoder, normalization and mask.
+        Call predict() when downstream consumers require scene or C outputs.
+        """
+        shared, _, geometry = self.model.encode(batch)
+        offset = geometry['tokens'].shape[1]
+        hand_z = self.model.hand_future(shared[:, offset:offset+22]).reshape(len(shared),24,2,11,3)
+        mask = batch['start_hand_valid'][:,None,...,None]
+        return dict(trajectory=torch.where(mask,self.model.normalizer.denormalize('hand',hand_z),0.))
+
+    @torch.inference_mode()
     def summary(self, batch):
         shared, valid, scene = self.model.encode(batch)
         from .summary_helpers import type_summaries
