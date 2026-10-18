@@ -66,10 +66,12 @@ Decision: 保留Viser作为goal与真实预测的审阅入口，先人工检查�
 - 三项新边界测试与原17项调度测试通过；Viser骨架／轨迹连线单独smoke通过。
 - `browser-audit.json`记录Firefox136 / Xvfb / llvmpipe真实WebGL2检查：四物体、
   首末观测与首末预测时刻16组合，观测／未来滑块、固定观测的预测播放、单／三栏布局、
-  跳到随动、真实鼠标旋转。截图`viser-review.png`已人工检查。
+  跳到随动、真实鼠标旋转。截图`viser-review.png`已查看。
 - 原几何HTML服务8768保留；Viser端口8770，进程、命令、24小时停止条件写
   `viewer-process.json`，当前观测状态写`viewer-state.json`。
 
 Limitations: 参考与实测来自同一条已有轨迹，不能检验偏离参考后的真实恢复；固定稀疏
 观测之间的目标更新未在界面中插值成新的模型推理。几何上限、接触proxy与目标条件敏感性
 均不认证可达或抓稳。仅实测右手11点和模型预测骨架，不虚构完整机器人手网格。
+仓库全局`verify.py --changed`仍被trajectory-policy既有六张卡的v2元数据缺失阻断，
+本次新增卡与工具未出现在报错中；日志保存在`tmp/goal-wam-viser-20261018-r1/verify.log`。
