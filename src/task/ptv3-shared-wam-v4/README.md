@@ -61,7 +61,10 @@ Online WAM-v4 integration lives in `wam-rl-policy`:
 `wam_rl_policy.wam_v4_runtime` builds the 512/32/128 batch from the observed H4
 history, a scheduler SE(3) `goal_delta` or a position-only task goal, and a
 dense overlay; it exposes the `encode()` summary and the full `tau`/`C`
-`forward()` path separately. `wam_rl_policy.tau_contract` converts v4's
+`forward()` path separately. The online cache must include the original32 flow
+queries; overlays preserve them exactly. Runtime inherits the checkpoint's
+dense-manifest binding, with an explicit path override for relocating the same
+manifest content. `wam_rl_policy.tau_contract` converts v4's
 30 Hz/24-step anchor-frame hand trajectory to the existing 60 Hz/8-step student
 tau (`tau(0)=0`, interpolation, right/left slot, optional world rotation). The
 summary path is explicitly `encode`-only and cannot be used as evidence that

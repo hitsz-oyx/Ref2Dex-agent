@@ -115,15 +115,25 @@ deadline and20GiB free-space guard. Inputs are the unchanged audit-bound
 recipe/dense overlay and old TRAIN/DEV filters; outputs/status/logs live under
 the NAS root's `data/filter-transition-20261018-r1/`. The active training code,
 recipe, normalization and filters are untouched. It rechecks1,587,404 TRAIN
-and276,176 DEV blocked indices. Results are **pending**, so prefix counts are
-not used to decide on a training restart. Decide whether to change coverage
-after completed counts by source and quality-admission exclusions are known.
+and276,176 DEV blocked indices. TRAIN results are **pending**, so prefix
+counts are not used to decide on a training restart. Decide whether to change
+coverage after completed counts by source and quality-admission exclusions are known.
 This scan uses conservative AABB contact candidates, not exact contact labels.
 It is a Decision probe: distinguish negligible coverage change from a material
 overall or per-source omission. The former supports retaining the frozen run;
 the latter motivates a separately versioned coverage run. Rechecking old blocks
 with the metadata classifier is cheaper than regenerating all C labels or
 launching another training run before knowing the affected counts.
+
+The full DEV scan completed in215.12s:1,476 old blocked windows now classify as
+`moving_object_noncontact`, and426 pass the deterministic0.35 retention ratio.
+All426 survive the independent quality-admission exclusion mask:417 from
+OakInk2 and9 from UniDexGrasp. Admitted DEV grows545,459->545,885 (+0.0781%).
+This is a coverage calculation, not a measurement of model quality, and cannot
+be extrapolated to TRAIN. `dev-coverage.json` beside the new filter records old
+and new admitted counts by source. The transition field `restored_counts` is
+misnamed in the existing tool: it counts **all rechecked classes**, not just
+restored indices; use `restored` and the coverage report for restoration counts.
 
 The online overlay previously accepted a correctly hashed NPZ whose32 flow
 queries had all moved1m. Unlike the training overlay, it did not compare them
