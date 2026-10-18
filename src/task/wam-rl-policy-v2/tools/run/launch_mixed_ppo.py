@@ -1,5 +1,5 @@
 """Bounded six-rank mixed-object PPO supervisor; one synchronized policy."""
-import argparse,json,os,shutil,signal,subprocess,sys,time
+import argparse,json,os,shutil,signal,socket,subprocess,sys,time
 from pathlib import Path
 TASK=Path(__file__).resolve().parents[2];ROOT=TASK.parents[2]
 sys.path.insert(0,str(TASK/'src'))
@@ -18,13 +18,17 @@ def main():
     p.add_argument('--updates',type=int,default=10000);p.add_argument('--ticks',type=int,default=8)
     p.add_argument('--seconds',type=int,default=7200);p.add_argument('--seed',type=int,default=0)
     p.add_argument('--save-every',type=int,default=200)
-    p.add_argument('--port',type=int,default=29671);p.add_argument('--resume',type=Path)
+    p.add_argument('--port',type=int,default=0);p.add_argument('--resume',type=Path)
     a=p.parse_args();a.output=a.output.resolve();a.policy=a.policy.resolve()
     if a.resume:a.resume=a.resume.resolve()
     if len(set(a.gpus))!=len(a.gpus) or not 1<=len(a.gpus)<=6:raise ValueError('One to six distinct GPUs')
     if not 1<=a.objects_per_rank<=a.envs<=256 or a.envs%a.objects_per_rank:raise ValueError('Equal object replicas required')
     if not 1<=a.updates<=10000 or not 1<=a.ticks<=180 or not 60<=a.seconds<=172800:raise ValueError('Bounded training required')
     if a.output.exists() or ROOT/'outputs/wam-rl-policy-v2' not in a.output.parents:raise ValueError('Fresh v2 output required')
+    # Check before any worker can join another run's store; OS selects a port by default.
+    with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as reservation:
+        reservation.bind(('127.0.0.1',a.port))
+        a.port=reservation.getsockname()[1]
     records=json.loads((ROOT/'outputs/shadow-finetune/policy-data-full-20261015-r1/manifest.json').read_text())['records']
     partitions=partition_objects(records,len(a.gpus),a.objects_per_rank,a.seed)
     a.output.mkdir(parents=True)
@@ -32,7 +36,7 @@ def main():
     frozen=a.output/'runtime-code'
     shutil.copytree(TASK,frozen,ignore=shutil.ignore_patterns('__pycache__','*.pyc','.pytest_cache'))
     status=dict(status='RUNNING',pid=os.getpid(),git_commit=commit,work_version=commit,run_id=a.output.name,
-        gpus=a.gpus,world_size=len(a.gpus),objects=len(a.gpus)*a.objects_per_rank,
+        gpus=a.gpus,world_size=len(a.gpus),rendezvous_port=a.port,batch_pipeline=os.environ.get('REF2DEX_BATCH_PIPELINE','legacy'),objects=len(a.gpus)*a.objects_per_rank,
         environments=len(a.gpus)*a.envs,updates=a.updates,ticks=a.ticks,seconds=a.seconds,
         policy=str(a.policy),resume=str(a.resume),python=sys.executable,
         training='pinned official PPO run/update/storage; synchronized gradients/KL/advantage statistics; frozen WAM; TRAIN only')
