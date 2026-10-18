@@ -13,7 +13,7 @@ seed_pool: debug
 seeds: [0]
 decision_changed_if_positive: expand the scheduled BC warmstart PPO to a training object panel
 decision_changed_if_negative: retain BC and repair continuous PPO before scaling
-status: RUNNING
+status: COMPLETED
 run_id: scheduled-batch-ppo-20261018-r1
 ---
 
@@ -52,3 +52,31 @@ r1在第二次更新前被严格likelihood回放检查拦下(1.4687e-4)。固定
 归档565D输入的3秒复现：合并2880条重放误差1.1444e-4，按采集16条重放误差0。
 修正为逐采集tick批大小回放，同时独立核验存储Normal分布；阈值仍1e-4。
 21项测试通过；r1保留首个PPO端点，r2从同一BC重新开始完整试跑。
+
+## r2完成结果与决策
+
+实际代码 `bb823d64`，输出 `outputs/wam-rl-policy-v2/scheduled-batch-ppo-20261018-r2/`。
+全程245秒，训练11520 transitions，另有前后各2880条评估交互。
+4次PPO更新分别接受3/6/6/7个actor步，共22步；critic各8步。
+回放误差全部0；KL分别.00907/.00980/.00984/.00921，均低于.01。
+actor LR首步校准至2.5e-6；critic解释方差.140→.685。
+GPU观测55–67%、总显存约3.7GiB，PyTorch峰值584MiB；完成后GPU6回到共享任务347MiB。
+
+同seed前后初始300维观测逐值一致；BC→PPO均值评估：
+- 终态距目标<5cm：2/16→4/16。
+- 平均终态距离：23.88→22.72cm。
+- 平均native reward：.22369→.28443。
+- 最长连续达标帧数的最大值：78→95 (60Hz)。
+
+r1/r2的BC初始观测也逐值一致，但BC终态达标数4/16与2/16不同，
+证明当前物理轨迹不可视为严格配对的确定性复现。上述前后变化不构成PPO提升证据。
+大部分环境仍未完成抓取；最大保持长度不能代表全部环境的稳定成功率。
+
+端点：`ppo-update-1.pt`、`ppo-update-4.pt`，包含actor/critic/optimizer和条件合同；
+原BC不覆盖。`baseline.npz`、`final-evaluation.npz` 保存逐拍距离与初态，
+`result-summary.json` 汇总结果。
+
+决策：工程blocker已消除，可以进入TRAIN多物体panel和更长预算；本轮不因
+单次2/16→4/16就发布策略提升结论。下一步需补PPO端点加载/续训入口、多物体
+几何与环境身份绑定、跨chunk episode/reset处理，再扩大训练；评估加入重复BC对照。
+未实施C条件或phase条件，也未把空间goal重新命名为已验证的0.8秒可达目标。

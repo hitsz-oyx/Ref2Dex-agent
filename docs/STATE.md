@@ -1,3 +1,11 @@
+## 2026-10-18 v2批量BC→PPO试跑完成
+
+16环境×180拍×4次更新完成，11520训练交互，actor接受22步；严格likelihood回放
+误差均0，KL<.01。修复了不同CUDA推理批大小导致检查假阳性，阈值未放宽。
+耗时245秒，GPU6已释放。均值策略终态5cm内2/16→4/16，但重复BC本身也在2–4/16间
+波动，尚不能声称PPO提升。允许下一步扩展TRAIN物体panel，仍需续训/异步reset接口。
+结果见[批量PPO卡](../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261018-scheduled-batch-ppo.md)。
+
 ## 2026-10-18 新观测执行器迁入 wam-rl-policy-v2
 
 按用户要求，新565维 scheduled BC/PPO链路使用独立Task和Python包 `wam_rl_policy_v2`。

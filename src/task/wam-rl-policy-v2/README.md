@@ -13,7 +13,7 @@
 - `tools/audit/check_control_pipeline.py`：真实模型、归档实测输入接口检查。
 - [控制合同及审计](docs/research/2026-10-18-control-interface.md)。
 - [全量BC结果](docs/experiments/probes/P-20261018-full-scheduled-current-bc.md)。
-- [批量PPO计划](docs/experiments/probes/P-20261018-scheduled-batch-ppo.md)。
+- [批量PPO试跑结果](docs/experiments/probes/P-20261018-scheduled-batch-ppo.md)。
 
 新输出使用 `outputs/wam-rl-policy-v2/<run_id>/`。
 已完成产物仍在 `outputs/wam-rl-policy/full-scheduled-current-bc-20261018-local-r1/`，
@@ -37,3 +37,6 @@ python src/task/wam-rl-policy-v2/tools/run/closed_loop_scheduled_shadow.py --hel
 PPO log-prob回放误差0。记录见
 `outputs/wam-rl-policy-v2/migration-interface-20261018-r1/report.json`。
 这是模型接口检查，不是native物理成功率或批量PPO训练结果。
+
+批量PPO首轮已完成：16环境、4次更新、11520训练交互；详见上述实验卡。
+当前只确认训练接口可用，尚未证实性能提升或跨物体泛化。
