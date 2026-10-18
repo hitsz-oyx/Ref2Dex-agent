@@ -162,7 +162,7 @@ def run(task,snapshot,sim_step,actor,runtime,args):
         metrics=reduce(torch.tensor([float(locs['mean_reward']),float(locs['mean_value_loss']),float(locs['mean_surrogate_loss'])],device=runtime.device))
         state.update(iteration=completed+iteration,rank=args.rank,world_size=args.world_size,
             env_steps=iteration*args.envs*cfg['learn']['nsteps']*args.world_size,
-            elapsed_s=time.monotonic()-started,lr=ppo.step_size,reward_mean=float(metrics[0]),
+            elapsed_s=time.monotonic()-started,collection_s=locs['collection_time'],learning_s=locs['learn_time'],lr=ppo.step_size,reward_mean=float(metrics[0]),
             value_loss=float(metrics[1]),surrogate_loss=float(metrics[2]),reset_count=env.reset_count,
             effective_std=float(ppo.actor_critic.log_std.exp().square().mean()),
             peak_mib=torch.cuda.max_memory_allocated()/2**20)

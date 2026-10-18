@@ -28,7 +28,7 @@ def main():
  a=p.parse_args();a.output=a.output.resolve();a.policy=a.policy.resolve()
  if not 1<=a.episodes<=4 or not 1<=a.ticks<=180:raise ValueError('Bounded native probe required')
  if a.ppo_smoke and (a.episodes!=1 or a.ticks%4):raise ValueError('PPO smoke needs one episode and ticks divisible by4')
- if not 1<=a.envs<=32 or not 0<=a.ppo_updates<=(10000 if a.official_ppo else 100):raise ValueError('Bounded batch pilot required')
+ if not 1<=a.envs<=(256 if a.official_ppo else 32) or not 0<=a.ppo_updates<=(10000 if a.official_ppo else 100):raise ValueError('Bounded batch pilot required')
  if a.envs>1 and not a.ppo_updates:raise ValueError('Batched execution requires PPO pilot')
  if a.ppo_updates and (a.ppo_smoke or a.ticks*a.envs%4):raise ValueError('Equal PPO minibatches required')
  if not 1<=a.world_size<=6 or not 0<=a.rank<a.world_size or a.save_every<1:raise ValueError('Bounded distributed rank required')
