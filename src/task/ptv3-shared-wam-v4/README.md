@@ -9,9 +9,10 @@ queries, and 128 fixed interaction queries.
 probabilities. Query positions and normals are inputs. Ground truth is created
 from a deterministic 1cm voxelized semantic hand scaffold; no KNN is used.
 
-Native geometry with fewer than 512 stored samples is represented by a
-deterministic cyclic repeat view. Main3 normals are recovered from its frozen
-canonical artifacts by object identity. A separate audit tool writes a derived
+Native geometry with fewer than 512 distinct samples must be rebuilt from CAD
+triangles through a derived surface overlay; the reader rejects cyclic repeats.
+Original 32 flow identities are preserved. Main3 normals are recovered from its
+frozen canonical artifacts by object identity. A separate audit tool writes a derived
 window-filter manifest that thins idle static and approach windows while always
 keeping contact windows; raw data is never modified.
 

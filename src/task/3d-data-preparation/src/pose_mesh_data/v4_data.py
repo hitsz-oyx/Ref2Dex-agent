@@ -84,7 +84,7 @@ def _main3_target_sample(sample, normals, policy=V4SamplingPolicy()):
     flow_valid = np.broadcast_to(valid, (24, policy.flow_points)).copy()
     kind = classify_window(hand_future, hand_valid, interaction_future, interaction_target, policy)
     return dict(
-        schema="ref2dex.wam-v4-target-object.v2", source_id=np.int64(sample["source_id"]),
+        schema="ref2dex.wam-v4-target-object.v3", source_id=np.int64(sample["source_id"]),
         sample_id=np.asarray(sample["sample_id"], np.int64), target_object_only=np.array(True),
         xyz=target_xyz.astype(np.float32), features=target_features.astype(np.float32),
         scene_object=np.zeros(policy.surface_points, np.int64),
@@ -111,9 +111,18 @@ def _main3_target_sample(sample, normals, policy=V4SamplingPolicy()):
 
 
 class V4NativeWindows(Dataset):
-    def __init__(self, root, split, *, engineering=True, policy=V4SamplingPolicy()):
+    def __init__(self, root, split, *, engineering=True, policy=V4SamplingPolicy(), surface_geometry_manifest=None):
         from .clean_data import CleanPoseMeshWindows
         self.base = CleanPoseMeshWindows(root, split, engineering=engineering, cache_size=8)
+        if surface_geometry_manifest:
+            from .dense_surface import apply_surface_overlay
+            apply_surface_overlay(self.base.geometry, surface_geometry_manifest)
+        # Fail at construction, before GPU allocation, if any target geometry
+        # would only meet the 512 tensor shape by repeating existing points.
+        target_keys = {row['objects'][row['target_slot']] for row in self.base.meta['sequences']
+                       if row['split'] == split and row.get('clock_verified') is True}
+        for key in target_keys:
+            resampled_subset(self.base.geometry[key]['surface'], policy.surface_points, name=key)
         self.policy = policy
 
     def __len__(self):

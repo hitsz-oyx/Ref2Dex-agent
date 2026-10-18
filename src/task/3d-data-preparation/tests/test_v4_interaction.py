@@ -85,8 +85,9 @@ def test_static_thinning_keeps_contact_and_bounds_idle():
     assert retain_window("static_idle", 1, p) in (True, False)
 
 
-def test_resampled_subset_repeats_underfilled_native_geometry_without_fabrication():
+def test_resampled_subset_rejects_repeated_underfilled_geometry():
     points = np.arange(32 * 3, dtype=np.float32).reshape(32, 3)
-    selected, ids = resampled_subset(points, 512)
-    assert selected.shape == (512, 3) and ids.shape == (512,)
-    np.testing.assert_array_equal(selected[32], points[0])
+    with pytest.raises(ValueError, match="distinct CAD points"):
+        resampled_subset(points, 512)
+    with pytest.raises(ValueError, match="distinct CAD points"):
+        resampled_subset(np.tile(points, (16, 1)), 512)

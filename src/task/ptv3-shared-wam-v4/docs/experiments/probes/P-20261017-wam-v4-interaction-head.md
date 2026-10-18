@@ -80,8 +80,40 @@ v3 data/checkpoints. Runtime: remote `graspenv`, Python 3.8.20,
 PyTorch 2.0.1+cu118. All observations remain offline Probe evidence.
 
 Limitations: v4 inherits frozen v3 TRAIN normalization rather than refitting it
-after thinning. Native objects stored with fewer than 512 unique surface
-samples still use cyclic repeats; a 512-point tensor does not add geometric
-resolution. The 80k run is explicitly user-authorized, but does not establish
+after thinning. At this stage native objects stored with fewer than 512 unique
+surface samples still used cyclic repeats; this is superseded by the dense
+geometry correction below. The 80k run is explicitly user-authorized, but does not establish
 that C benefits robot control. New metrics must be compared on identical
 masked panels; historical uncorrected C losses are not matched baselines.
+
+## 2026-10-18 actual distinct512 CAD surface correction
+
+The user asked whether reprocessing really provided 512 surface points. A
+complete canonical-file audit found that all 252 main3 geometries already have
+512 distinct points and unit normals, but native target geometries had 1,078
+deficiencies: UniDex 1,074/2,066, TACO 2/129, HOT3D 1/19, DexYCB 1/20;
+H2O 8/8 and HOI4D 286/286 were already qualified. Counts cover native target
+geometry identities and all main3 canonical artifacts, not training windows.
+
+Classification: Blocker before the authorized dense-v4 80k run. The cheapest
+repair samples only deficient canonical geometries, leaving temporal payloads,
+v3 snapshots, original 32 flow queries and normalization values untouched.
+`prepare_v4_dense_surfaces.py` sampled 1,078 derived CADs in 52.92s on local
+graspenv/CPU (geometry-only processing, no neural workload), producing 12MiB
+under `outputs/3d-data-preparation/v4-dense-surfaces-20261018-r1/`.
+Each replacement has the 32 original flow vertices plus 480 deterministic
+area-weighted triangle samples and unit normals; original queries must match
+CAD vertices in the same frame and scale. The v3 target-object data contract
+(`ref2dex.wam-v4-target-object.v3`, distinct from model version WAM-v4) now
+rejects all underfilled/cyclic-repeated geometry.
+
+The remote derived-recipe script audits all nine sources, rechecks previously
+thinned windows referencing repaired geometry (retaining already-kept windows),
+binds the new overlay and exercises real TRAIN/DEV mixed batches. User steering
+requests this data job run first while interface fixes are verified in parallel.
+Do not launch 80k on the older cyclic-repeat recipe. Planned new run identities:
+`interface-dense512-cfix-smoke-20261018-r1` and
+`pretrain-nine-v4-dense512-cfix-warm80k-20261018-r1`.
+The focused data/model suite passes 17 tests including on-CAD sampling,
+coordinate/scale mismatch rejection, immutable flow identities, label masks,
+rank0 validation without collectives and matched DDP C gradients.

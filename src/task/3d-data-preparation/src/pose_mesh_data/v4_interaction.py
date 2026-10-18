@@ -12,8 +12,8 @@ from dataclasses import dataclass
 import numpy as np
 
 
-# v2 records the corrected active-hand validity mask and semantic finger map.
-V4_SCHEMA = "ref2dex.wam-v4-target-object.v2"
+# v3 requires distinct CAD surface identities as well as corrected C masks.
+V4_SCHEMA = "ref2dex.wam-v4-target-object.v3"
 SURFACE_POINTS = 512
 FLOW_POINTS = 32
 INTERACTION_POINTS = 128
@@ -74,22 +74,17 @@ def fixed_subset(points: np.ndarray, count: int, *, name: str = "points") -> np.
 
 
 def resampled_subset(points: np.ndarray, count: int, *, name: str = "points") -> tuple[np.ndarray, np.ndarray]:
-    """Return a deterministic fixed-size view and the source indices.
-
-    Native legacy geometry can contain fewer than 512 surface samples.  The
-    v4 contract keeps those samples and repeats their canonical identities in
-    a cyclic, auditable way; it never invents a normal or perturbs a point.
-    Dense main3 geometry uses the one-to-one ``fixed_subset`` path.
-    """
+    """Select distinct canonical identities; underfilled geometry must be rebuilt."""
     points = np.asarray(points)
     if points.ndim != 2 or points.shape[1] != 3 or len(points) < 1:
         raise ValueError(f"{name} must contain at least one finite xyz point")
     if not np.isfinite(points).all():
         raise ValueError(f"{name} contains non-finite values")
-    if len(points) >= count:
-        ids = np.linspace(0, len(points) - 1, count, dtype=np.int64)
-    else:
-        ids = np.arange(count, dtype=np.int64) % len(points)
+    _, unique_ids = np.unique(points, axis=0, return_index=True)
+    unique_ids.sort()
+    if len(unique_ids) < count:
+        raise ValueError(f"{name} needs {count} distinct CAD points; cyclic repeats are not allowed")
+    ids = unique_ids[np.linspace(0, len(unique_ids) - 1, count, dtype=np.int64)]
     return points[ids].astype(np.float32, copy=True), ids
 
 

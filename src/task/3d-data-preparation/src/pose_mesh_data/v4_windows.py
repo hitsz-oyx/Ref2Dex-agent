@@ -78,7 +78,7 @@ def v4_pose_mesh_sample(sequence, geometries, tick, target_slot, source_id, samp
     flow_valid = np.broadcast_to(future_known[:, None], (24, FLOW_POINTS)).copy()
     kind = classify_window(hand_future, future_hand_valid, future_interaction, interaction_target, policy)
     return dict(
-        schema='ref2dex.wam-v4-target-object.v2', source_id=np.int64(source_id),
+        schema='ref2dex.wam-v4-target-object.v3', source_id=np.int64(source_id),
         sample_id=np.asarray(sample_id, np.int64), source_profile=np.array(profile),
         training_allowed=np.array(False), target_object_only=np.array(True),
         xyz=surface_current.astype(np.float32), features=features,
