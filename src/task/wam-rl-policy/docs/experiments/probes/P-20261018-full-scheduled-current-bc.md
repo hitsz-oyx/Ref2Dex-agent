@@ -58,3 +58,10 @@ best checkpoint，避免较差的继续训练覆盖父模型起点。PPO actor�
 本地直接复用既有current缓存，不重建。输出根
 `outputs/wam-rl-policy/full-scheduled-current-bc-20261018-local-r1/`，
 条件与训练子目录分别cache、fit。共享显存/吞吐实测后记录ETA。
+
+本地工程检查：真实父checkpoint step50000，128条DEV状态的迁移动作最大差
+8.34465e-7；新在线startup/history适配器在内共11项合同测试通过。
+4条记录/608行条件缓存完成；batch32与单条tau最大差0.000244m（阈值0.001m），
+PyTorch峰值713MiB。检查仅覆盖一次batch，不声称所有状态批处理等价。
+全量生成接续运行，完成后自动进入50k BC；运行状态/吞吐见本地产物的
+`pipeline-status.json`、`cache/progress.json`，失败会阻止后续训练。
