@@ -378,22 +378,51 @@ contains `archive-audit.json`, `action-errors.json`, and
 `audit_oracle_tau_results.py --teacher-hold`.31 related contract tests plus
 the endpoint-frame regression and all four actual native rollouts passed.
 
-### Active shuffled-tau control (one seed)
+### Active shuffled-tau and donor-plan controls
 
 The capacity control matched parameter count but not active plan content.  A
 second control trains the identical 403-D architecture with the tau channel
 row-shuffled during BC and DAgger (same successful rows, same 10x DAgger
-packet, same schedule and model seed).  After fine-tuning, BC L1 is .01657 and
-DAgger L1 is .00504.  Deploying it on seed 421 with a fixed donor tau (the
-seed-421 tick-0 plan) and no oracle queries gives max lift .113 m,
-minimum/final goal distance .08916 m, and 0 in-goal frames.  The state-matched
-tau arm on the same seed gives .219 m, 62 consecutive in-goal frames, last
-distance .01722 m.  A model trained on a shuffled plan therefore does not
-reproduce the result even though input width and allocated parameters match;
-this isolates the state-matched plan content more strongly than zero padding.
-One model seed and one donor remain; multiple seeds and donor permutations are
-future evidence.  Artifacts:
-`outputs/wam-rl-policy/P-20261018-unidex-active-shuffled-tau-r1/`.
+packet, same schedule and model seed; BC L1 .01657, DAgger L1 .00504).  With
+the seed-421 tick-0 donor it gives max lift .113 m and minimum/final goal
+distance .08916 m; with the seed-453 tick-0 donor it succeeds (max lift
+.184 m, 13 in-goal frames, final distance .02155 m).  The shuffled-plan model
+is therefore donor-sensitive, so this is not a clean null.
+
+The original state-matched tau model is much stricter.  Replacing its per-tick
+plan with any fixed donor tested -- seed-421 ticks 0/20/40/60/90 and seeds
+453/471/482 tick 0 -- makes it fail completely: max lift 0.000 m, minimum
+goal distance .20204 m, no in-goal frame.  The per-tick state-matched plan
+remains the only tested condition that gives the 62-frame hold.  The operative
+variable is the live, state-matched plan content, not input width or parameter
+count; a static or stale plan is not enough.  A shuffled-plan policy can
+sometimes exploit a donor plan, but not reliably (one of two donors).
+Artifacts: `outputs/wam-rl-policy/P-20261018-unidex-active-shuffled-tau-r1/`.
+
+### 16-step teacher hold audit at in-goal states
+
+Using the archived in-goal student states (453 131--144, 471 133--136,
+482 106--118) the oracle was replayed with a 16-step teacher fork; the
+per-step goal distance shows how long the teacher's own current-state plan
+stays inside the 5 cm region:
+
+| seed | in-goal states | 8-step endpoint in goal | 16-step endpoint in goal | mean 16-step endpoint |
+|---|---:|---:|---:|---:|
+| 453 | 14 | 11 | 11 | .0438 m |
+| 471 | 4 | 3 | 0 | .0517 m |
+| 482 | 13 | 7 | 1 | .1460 m |
+| all | 31 | 21 | 12 | -- |
+
+For 453 the teacher plan holds for 16 steps from most in-goal states, yet the
+student left the region (last .0555 m): that seed is execution-limited.  471
+is at the boundary even for the teacher (16-step endpoint .0517 m).  482 is
+different: the teacher itself leaves the region from 12/13 states by 16 steps
+(mean .146 m), so the student is likely outside the teacher's recoverable
+region; more holding DAgger on 482 would be fighting the teacher.  A longer
+8->16 horizon is not a uniform fix: it could help 453's execution, cannot fix
+471's boundary, and does not repair 482's recoverability.
+
+Artifacts: `outputs/wam-rl-policy/P-20261018-unidex-hold-horizon-audit-r1/`.
 
 ### Holding/recovery Decision: one additional adaptation initial state
 

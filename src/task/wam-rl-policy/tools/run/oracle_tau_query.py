@@ -167,6 +167,7 @@ def main():
         current_hand = hand_points()
         future = []
         teacher_actions = []
+        fork_goal_distance = []
         fork_reset = False
         for _ in range(args.horizon):
             if task.reset_buf.any():
@@ -176,6 +177,7 @@ def main():
             teacher_actions.append(action.clone())
             sim_step(action)
             future.append(hand_points().clone())
+            fork_goal_distance.append(float(torch.linalg.vector_norm(task.obs_buf[0, 204:207]).item()))
         if fork_reset or len(future) != args.horizon:
             raise ValueError('teacher fork reset before horizon')
         tau = torch.stack(future, dim=1) - current_hand[:, None]
@@ -188,6 +190,7 @@ def main():
             object_pose=current_object_pose.cpu().numpy(),
             current_object_pose=current_object_pose.cpu().numpy(),
             future_object_pose=future_object_pose.cpu().numpy(),
+            fork_goal_distance=np.asarray(fork_goal_distance, np.float32),
             teacher_actions=torch.cat(teacher_actions).cpu().numpy())
     manifest = dict(status='COMPLETE', seed=args.seed, horizon=args.horizon,
                     episode_length=int(task.max_episode_length),

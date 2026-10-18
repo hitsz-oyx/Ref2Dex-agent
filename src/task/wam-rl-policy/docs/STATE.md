@@ -35,6 +35,14 @@ state-matched τ 臂在同 seed 为 .219 m、62 个连续 in-goal 帧、最后�
 目前只有一个 model seed 和一个 donor；多 seed/多个 donor 置换仍是 future evidence。
 产物 `outputs/wam-rl-policy/P-20261018-unidex-active-shuffled-tau-r1/`，代码 `2305b708`。
 
+补充 donor sweep：原始 τ 模型配任何固定 donor（421 ticks 0/20/40/60/90、453/471/482
+tick0）都完全失败（max lift 0、min goal distance .202），只有 per-tick state-matched
+plan 给出 62 帧；shuffled-τ 模型配 421 donor 失败、配 453 donor 成功（.184 m、13 帧），
+所以 shuffled 对照不是干净 null，执行器对 plan 内容敏感但不是任意 plan 都行。另做 16 步
+teacher fork 审计（31 个 in-goal 状态）：453 11/14、471 0/4、482 1/13 在 16 步端点仍在
+目标区；453 更像执行问题，471 在边界，482 更像 teacher 恢复包络问题。16 步 horizon 不是
+统一解。产物 `outputs/wam-rl-policy/P-20261018-unidex-hold-horizon-audit-r1/`。
+
 ## 2026-10-18 GT-τ后期数据微调未过保持资格，停止这一配方
 
 [GT-τ实验卡](experiments/probes/P-20261018-unidex-live-oracle-tau.md)的有界后续已完成：
