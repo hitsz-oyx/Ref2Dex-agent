@@ -1,3 +1,16 @@
+## 2026-10-18 WAM-v4 输入/标签合同修复（旧 run 不可静默续训）
+
+按第二轮审计修复了 native 与在线路径的 target/static 18维特征不一致、C 体素原点依赖未来
+t+1、无接触物体运动被当作 idle、GT-τ action prefix 被上游原地改写、oracle object_pose
+取到 t+H、success_frames 使用累计标记等问题。新增 v4 runtime adapter（512/32/128、
+dense overlay、summary 与 τ/C 分开）和 30Hz anchor→60Hz world 的 τ 合同。真实 native
+窗口与在线 adapter 的 xyz/features/hand/flow/interaction 输入最大差 6.6e-17；20个真实窗口
+上 current-origin 使 C origin 平均移动5.52mm、4.69% contact 标签变化。代码 `812c26aa`，
+28项reader、31项online、19项模型测试通过。`data_identity` 已加入 input/label semantics，
+旧 checkpoint 不能静默续训；远端正在跑的旧代码/数据未改动，需跑完旧 run 或另起新 run。
+Hilbert 动态 depth、scheduler goal 分布和 executor 对 v4 τ/C 的使用仍未验证。
+见[合同修复记录](../src/task/ptv3-shared-wam-v4/docs/audits/2026-10-18-input-label-contract.md)。
+
 ## 2026-10-18 WAM-v4 精确输入加速与原状态续训
 
 代码`b65872f8`保持数据、标签、目标和global512不变，C查询改为无碰撞int64查表，
