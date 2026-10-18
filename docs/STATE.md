@@ -42,11 +42,10 @@ DEV恢复426窗(+.0781%)，均已扣独立quality排除。规模小，不因此�
 启动 `pretrain-nine-v4-contractfix-warm13000-20261018-r1`。远端新代码目录
 `training-code-contract-20261018-r1`（commit `2183eb46`，由本地 `812c26aa` 起的补丁生成），
 四卡/global512/workers4，supervisor2638598。优化器、step、RNG、历史 best 全部重置；
-data identity 记录新的 input/label semantics。启动 smoke 通过；正式 run 已至step8720、
-loss1.0168、1.567步/秒、四卡100%、每卡约7.7--7.9GiB，ETA约12.6h。DEV objective 在
-step0/1000/2000/3000/4000/5000/6000/7000/8000 为
-2.06847/2.07735/2.04790/1.98714/1.99532/1.98219/1.98791/2.02996/1.95683，best已切到
-step8000；单点波动明显，仍无表征或机器人收益结论。该 run 仍使用旧
+data identity 记录新的 input/label semantics。启动 smoke 通过；正式 run 已至step19880、
+loss0.8554、1.549步/秒、四卡100%、每卡约7.7--7.9GiB，ETA约10.8h。DEV objective 从
+step9000/10000的1.9536/1.8487继续下降到step18000的1.7474，best切到step18000；
+step19000为1.7856，仍有单点波动。该 run 仍使用旧
 window-filter manifests；`moving_object_noncontact` 的重新筛选后续已单独生成（见上文），
 未切入本run。因此采样覆盖仍是旧的，但输入特征和 C 标签已切到修复语义。新旧曲线不可直接拼接，见
 [v4 实验卡](../src/task/ptv3-shared-wam-v4/docs/experiments/probes/P-20261017-wam-v4-interaction-head.md)。
