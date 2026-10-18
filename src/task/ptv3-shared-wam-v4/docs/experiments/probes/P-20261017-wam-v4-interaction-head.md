@@ -47,3 +47,41 @@ checkpoint write. The NAS filter artifact is
 box contact candidates for thinning only, while exact C labels remain the
 voxel-scaffold training path. The scaffold query lookup is vectorized to keep
 the online labels practical; the nine-source raw v3 data remains untouched.
+
+## 2026-10-18 corrected C supervision and distributed startup
+
+Classification: Blocker. Missing future hand observations and shifted MCP part
+IDs invalidate C supervision, and a rank0-only validation collective prevents
+any training update. The cheapest discriminator is the label/DDP contract suite
+followed by a two-update four-GPU run with the full real-data DEV panel.
+
+The derived target-object contract is now `ref2dex.wam-v4-target-object.v2`:
+incomplete active-hand frames and windows with no observed hand are masked;
+MCP and tip pairs share their intended finger semantic ID. C BCE and positive
+part CE use separate globally reduced denominators during DDP training only.
+Rank0 evaluation and gradient audits use local masked objectives. Additional
+metrics separate all-query contact MAE, positive-part accuracy and part CE.
+The real-batch C gradient audit checks representative parameters in the C
+head/query, shared trunk, geometry, hand encoder and goal paths.
+
+The prior uncorrected long run stopped at step 18,300 and remains available as
+historical evidence, not a corrected-v4 result. Smoke r4 passed the C gradient
+audit but stalled before step 1 because evaluation entered training collectives
+while other ranks waited at a barrier; it was stopped through its own STOP
+file. The local regression reproduced that call and passes after honoring the
+`distributed=False` flag. The focused local suite passes 13 tests.
+
+Next execution: `interface-cfix-warm-smoke-20261018-r5`, four remote GPUs,
+global batch 512, two updates, v3 step80000 model-only initialization. After a
+successful smoke, start `pretrain-nine-v4-cfix-warm80k-20261018-r1`, same recipe
+and hardware, 80,000 new updates, seven-day/8GB run budget and 20GiB free-space
+floor. Use a dedicated v4 code checkout and NAS output directory; preserve all
+v3 data/checkpoints. Runtime: remote `graspenv`, Python 3.8.20,
+PyTorch 2.0.1+cu118. All observations remain offline Probe evidence.
+
+Limitations: v4 inherits frozen v3 TRAIN normalization rather than refitting it
+after thinning. Native objects stored with fewer than 512 unique surface
+samples still use cyclic repeats; a 512-point tensor does not add geometric
+resolution. The 80k run is explicitly user-authorized, but does not establish
+that C benefits robot control. New metrics must be compared on identical
+masked panels; historical uncorrected C losses are not matched baselines.

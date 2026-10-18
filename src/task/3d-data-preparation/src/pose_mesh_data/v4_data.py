@@ -84,7 +84,7 @@ def _main3_target_sample(sample, normals, policy=V4SamplingPolicy()):
     flow_valid = np.broadcast_to(valid, (24, policy.flow_points)).copy()
     kind = classify_window(hand_future, hand_valid, interaction_future, interaction_target, policy)
     return dict(
-        schema="ref2dex.wam-v4-target-object.v1", source_id=np.int64(sample["source_id"]),
+        schema="ref2dex.wam-v4-target-object.v2", source_id=np.int64(sample["source_id"]),
         sample_id=np.asarray(sample["sample_id"], np.int64), target_object_only=np.array(True),
         xyz=target_xyz.astype(np.float32), features=target_features.astype(np.float32),
         scene_object=np.zeros(policy.surface_points, np.int64),

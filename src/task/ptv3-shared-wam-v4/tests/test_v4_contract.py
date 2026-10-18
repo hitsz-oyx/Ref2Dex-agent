@@ -98,6 +98,64 @@ def test_interaction_loss_backpropagates_to_new_head():
     assert any(g is not None and torch.isfinite(g).all() and g.abs().sum() > 0 for g in grad)
 
 
+def test_rank0_evaluation_loss_does_not_enter_distributed_collectives(monkeypatch):
+    """Other ranks wait at a barrier while rank0 evaluates the DEV panel."""
+    from ptv3_shared_wam_v4 import objectives
+
+    c = config(); m = model(); b = batch()
+    prediction = m(b)
+    monkeypatch.setattr(objectives.dist, "is_available", lambda: True)
+    monkeypatch.setattr(objectives.dist, "is_initialized", lambda: True)
+    monkeypatch.setattr(objectives.dist, "get_world_size", lambda: 4)
+
+    def forbidden_collective(*args, **kwargs):
+        raise AssertionError("rank0-only evaluation entered all_reduce; other ranks are at barrier")
+
+    monkeypatch.setattr(objectives.dist, "all_reduce", forbidden_collective)
+    loss, _ = forecast_loss(prediction, b, c, m.normalizer, distributed=False)
+    assert torch.isfinite(loss)
+
+
+def test_distributed_contact_and_part_use_separate_global_counts(monkeypatch):
+    """DDP's averaged rank gradients match the concatenated masked objective."""
+    from ptv3_shared_wam_v4 import objectives
+
+    target = torch.zeros(2, 1, 24, 128, 7)
+    target[0, :, :, :2, 0:2] = 1.
+    target[1, :, :, :7, 0] = 1.
+    target[1, :, :, :7, 3] = 1.
+    valid = torch.ones(target.shape[:-1], dtype=torch.bool)
+    valid[0, :, :, 32:] = False
+    full_batch = dict(interaction_target=target, interaction_valid=valid)
+    logits = torch.randn_like(target, requires_grad=True)
+    reference, _, _ = objectives._interaction_loss(dict(interaction_logits=logits), full_batch, {})
+    expected_grad, = torch.autograd.grad(reference, logits)
+    totals = [valid.float().sum(), (valid & (target[..., 0] > 0)).float().sum()]
+    monkeypatch.setattr(objectives.dist, "is_available", lambda: True)
+    monkeypatch.setattr(objectives.dist, "is_initialized", lambda: True)
+    monkeypatch.setattr(objectives.dist, "get_world_size", lambda: 2)
+    calls = []
+
+    def reduce_count(value):
+        value.copy_(totals[len(calls) % 2])
+        calls.append(True)
+
+    monkeypatch.setattr(objectives.dist, "all_reduce", reduce_count)
+    losses = []
+    gradients = []
+    for rank in range(2):
+        local_logits = logits[rank:rank+1].detach().requires_grad_()
+        local_batch = {key: value[rank:rank+1] for key, value in full_batch.items()}
+        loss, _, _ = objectives._interaction_loss(
+            dict(interaction_logits=local_logits), local_batch, {}, distributed=True)
+        losses.append(loss.detach())
+        gradient, = torch.autograd.grad(loss, local_logits)
+        gradients.append(gradient / 2)
+    assert len(calls) == 4
+    torch.testing.assert_close(torch.stack(losses).mean(), reference.detach())
+    torch.testing.assert_close(torch.cat(gradients), expected_grad)
+
+
 def test_v3_model_only_warm_start_leaves_structured_head_fresh(tmp_path):
     c = config(); m = SharedWAMV4(stats(), c, Geometry(c["point_width"]))
     target = m.state_dict()

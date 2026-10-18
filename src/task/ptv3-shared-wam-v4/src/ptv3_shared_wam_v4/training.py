@@ -17,9 +17,42 @@ from .checkpoint import (atomic_json, save_checkpoint, load_checkpoint, restore_
     initialize_from_v3,
     checkpoint_alias, prune_recovery_checkpoints, directory_bytes, git_commit)
 from .objectives import forecast_loss, forecast_metrics
-from ptv3_shared_wam_v2.training import gradient_audit
 from ptv3_shared_wam.loading import to_device
 from .lr_transition import validate_lr_resume, apply_learning_rates
+
+
+def gradient_audit(model, batch, config):
+    """Run a bounded real-data audit for the v4 interaction path.
+
+    A representative parameter per path is sufficient to prove routing; an
+    all-parameter reverse pass here is prohibitively expensive before every
+    distributed run and does not add a stronger contract check.
+    """
+    model.eval()
+    prediction = model(batch)
+    total, terms = forecast_loss(prediction, batch, config, model.normalizer)
+    if not torch.isfinite(total):
+        raise ValueError("nonfinite actual-data objective")
+    report = dict(parameters=model.parameter_counts(),
+                  interaction_loss=float(terms["interaction"].detach()))
+    groups = (
+        ("interaction_head", next(model.interaction_head.parameters())),
+        ("interaction_query", next(model.interaction_query.parameters())),
+        ("shared_interaction", next(model.interaction.parameters())),
+        ("geometry", next(model.geometry.parameters())),
+        ("hand_encoder", next(model.hand_encoder.parameters())),
+        ("goal", next(model.goal.parameters())),
+    )
+    flat_grads = torch.autograd.grad(terms["interaction"],
+                                     [parameter for _, parameter in groups],
+                                     allow_unused=True)
+    for (name, _), grad in zip(groups, flat_grads):
+        norm = float(grad.detach().float().square().sum()) ** .5 if grad is not None else 0.
+        if not np.isfinite(norm) or norm <= 0:
+            raise ValueError("interaction loss does not reach " + name)
+        report["interaction_" + name + "_gradient"] = norm
+    model.train()
+    return report
 
 
 @torch.no_grad()

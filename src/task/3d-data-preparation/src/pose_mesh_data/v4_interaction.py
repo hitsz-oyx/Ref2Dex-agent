@@ -12,7 +12,8 @@ from dataclasses import dataclass
 import numpy as np
 
 
-V4_SCHEMA = "ref2dex.wam-v4-target-object.v1"
+# v2 records the corrected active-hand validity mask and semantic finger map.
+V4_SCHEMA = "ref2dex.wam-v4-target-object.v2"
 SURFACE_POINTS = 512
 FLOW_POINTS = 32
 INTERACTION_POINTS = 128
@@ -102,7 +103,14 @@ def _scaffold(hand: np.ndarray, valid: np.ndarray, origin: np.ndarray, policy: V
     for side in range(hand.shape[0]):
         for key, ok in enumerate(valid[side]):
             if ok:
-                part = 0 if key == 0 else (1 if key in (1, 6) else key - 1 if key <= 5 else key - 5)
+                # The 11-point contract is wrist, five MCP points, then five
+                # tips.  MCP/tip pairs share the same semantic finger id.
+                # Keep this explicit: ``key - 1`` shifts index--little MCP
+                # labels by one and silently corrupts the C supervision.
+                part = 0 if key == 0 else (1 if key in (1, 6) else
+                                           2 if key in (2, 7) else
+                                           3 if key in (3, 8) else
+                                           4 if key in (4, 9) else 5)
                 points.append(hand[side, key])
                 parts.append(part)
         for a, b, part in SCAFFOLD_SEGMENTS:
@@ -148,11 +156,23 @@ def interaction_field(hand_future: np.ndarray, hand_valid: np.ndarray,
     if origin.shape != (3,) or not np.isfinite(origin).all():
         raise ValueError("finite xyz voxel origin required")
     target = np.zeros((len(hand_future), policy.interaction_points, C_DIM), np.float32)
-    valid = np.ones((len(hand_future), policy.interaction_points), bool)
+    # A missing future hand frame means that contact is unknown, not negative.
+    # Inactive hands are all-false throughout the window (normal single-hand
+    # data), so only sides that are active anywhere are required to be fully
+    # observed at a frame.  This preserves single-hand samples while masking
+    # partial hand occlusion conservatively.
+    active_sides = hand_valid.any(axis=(0, 2))
+    frame_valid = np.zeros(len(hand_future), bool)
+    if active_sides.any():
+        frame_valid = hand_valid[:, active_sides].all(axis=(1, 2))
+    valid = np.broadcast_to(frame_valid[:, None],
+                            (len(hand_future), policy.interaction_points)).copy()
     offsets = np.asarray([(x, y, z) for x in range(-policy.dilation, policy.dilation + 1)
                           for y in range(-policy.dilation, policy.dilation + 1)
                           for z in range(-policy.dilation, policy.dilation + 1)], dtype=np.int64)
     for time, (hand, hvalid, obj) in enumerate(zip(hand_future, hand_valid, object_future)):
+        if not frame_valid[time]:
+            continue
         # Most approach/idle frames are far from the object.  An axis-aligned
         # conservative bound skips scaffold rasterization while preserving the
         # exact voxel result whenever contact is possible.
