@@ -1,5 +1,15 @@
 # 当前状态
 
+## 2026-10-18 独立goal调度器完成几何回放，尚未接WAM或策略
+
+按用户最新范围，只实现有序SE(3)进度、状态相关前视、有界恢复与显式超时；不修改WAM。
+[调度Probe](experiments/probes/P-20261018-goal-scheduler.md)的10项单测通过，固定代码
+ee9a915d回放13片段/4197帧，独立几何复算PASS。12个运动重放完成有序参考位姿，
+持续未准备片段按设计TIMEOUT；均为工程资格，不是抓取/任务成功或WAM收益。
+readiness未知时明确unknown，不从物体位置匹配推断抓稳。下一步先审阅goal跨度和切换，
+再决定真实任务参考上的后续检查；本轮未训练、未采集新物理轨迹。
+交互回放：`outputs/wam-rl-policy/goal-scheduler-replay-20261018-r3/review.html`。
+
 ## 2026-10-18 UniDex 单环境 serial replay 通过；partial-obs oracle-τ 主要改善平移
 
 [oracle-τ Probe](experiments/probes/P-20261018-unidex-live-oracle-tau.md) 先复刻了

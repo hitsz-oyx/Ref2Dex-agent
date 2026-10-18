@@ -456,6 +456,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261005-oracle-y-utility](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-oracle-y-utility.md) | Ref13 Oracle-Y Utility Gate | UNPROMISING for the fixed selector: baseline23/32 vs GT-Y24/32, +3.125pp [0,9.375]; GT-Z candidate upper25/32. | Stop this short-Y/seven-candidate selector; GatesB/C/D not activated, no predictor or PPO fitting. | probes/UNPROMISING |
 
+## HF-ordered-goal-scheduler
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261018-goal-scheduler](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261018-goal-scheduler.md) | 独立有序物体轨迹调度器：几何工程 Probe | 10项单测通过；r3的13片段/4197帧通过独立几何复算，12个运动片段完成有序参考位姿，1个持续未准备片段预期TIMEOUT。仅工程资格，不代表机器人任务成功。 | 保留有序进度与按状态前视作为候选，先审阅可视化和真实任务参考；不修改WAM，不启动策略训练。 | probes/COMPLETED |
+
 ## HF-per-finger-control
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

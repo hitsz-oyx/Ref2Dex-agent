@@ -25,7 +25,7 @@ function center(p){return [p[0][3],p[1][3],p[2][3]]}
 function render(){
  const c=DATA[+selector.value],r=c.rows[+slider.value],k=+slider.value;
  const actual=transform(r.object_pose,c.points),goal=transform(r.goal_pose,c.points),clock=transform(r.clock_goal_pose,c.points);
- const path=c.reference.map(center),pending=c.milestones.find(i=>i>r.confirmed_index)??c.reference.length-1;
+ const path=c.reference.map(center),next=c.milestones.find(i=>i>r.confirmed_index),pending=next===undefined?c.reference.length-1:next;
  const bounds=path.concat(actual,goal,clock,r.hand||[]),mid=[0,1,2].map(d=>(Math.min(...bounds.map(p=>p[d]))+Math.max(...bounds.map(p=>p[d])))/2);
  const span=Math.max(.12,...[0,1,2].map(d=>Math.max(...bounds.map(p=>p[d]))-Math.min(...bounds.map(p=>p[d]))))*1.25/(+el('zoom').value);
  for(const [id,a,b] of [['xy',0,1],['xz',0,2],['yz',1,2]]){
