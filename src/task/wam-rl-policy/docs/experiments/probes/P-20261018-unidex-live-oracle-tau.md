@@ -291,13 +291,17 @@ wrist twice. The current code saves the action before the step and passes a
 clone to the simulator; the manifest records
 `action_prefix_matches_executed`.
 
-This does not by itself prove that the historical run was affected: the card's
-`replay_error = 0` claim is inconsistent with the pinned mutation unless the
-runtime actually used an independent copy. The archived run must be checked by
-comparing `trajectory['action']` with `trajectory['action_prefix']`, and by
-confirming the actual vendor file used at run time. Until that check is done,
-do not treat the reported zero replay error as independent evidence that the
-prefix semantics were correct.
+The archive was checked directly. In all four retained closed-loop runs
+(`run-p2`, `run-p2_tau`, `run-p2_tau-dagger1`, `run-p2-labels`),
+`trajectory['action']` and `trajectory['action_prefix']` are exactly equal and
+the maximum replay error is 0.0. Their wrist action channels are nonzero. The
+runtime copy in the same output directories contains the in-place rewrite, so
+the equality implies that the rewrite did not change the executed values under
+the measured reset state (the effective yaw transform was the identity for
+these runs). The historical zero replay error is therefore credible, but the
+old code was relying on an accidental condition. With a nonzero yaw the same
+code would have saved a double-rotated prefix. The fixed code removes that
+dependence; future runs record `action_prefix_matches_executed`.
 
 The same card's `success_frames` was computed by summing the upstream
 `successes` tensor. That tensor is a cumulative "ever reached" flag, not a
