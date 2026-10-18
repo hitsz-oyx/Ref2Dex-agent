@@ -27,7 +27,7 @@ def read_objects(path,envs):
 def bind_environment_objects(task,rows):
     declared={r['object_code']:float(r['scale']) for r in rows}
     codes=[task.object_code_list[int(i)] for i in task.object_id_buf.detach().cpu().tolist()]
-    scales=task.object_scale_buf.detach().cpu().tolist()
+    scales=[float(task.object_scale_buf[i]) for i in range(len(codes))]
     result=[]
     for code,scale in zip(codes,scales):
         if code not in declared or not np.isclose(scale,declared[code],atol=1e-6):

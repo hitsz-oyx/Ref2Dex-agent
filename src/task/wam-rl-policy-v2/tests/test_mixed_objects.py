@@ -13,7 +13,7 @@ def test_train_partitions_disjoint_and_measured_identity_binding():
     assert parts==partition_objects(records,3,4)
     rows=parts[0]
     task=SimpleNamespace(object_code_list=[r['object_code'] for r in rows],
-        object_id_buf=torch.tensor([3,2,1,0]),object_scale_buf=torch.full((4,),.08))
+        object_id_buf=torch.tensor([3,2,1,0]),object_scale_buf={i:.08 for i in range(4)})
     bound=bind_environment_objects(task,rows)
     assert [r['object_code'] for r in bound]==task.object_code_list[::-1]
     task.object_scale_buf[0]=.1
