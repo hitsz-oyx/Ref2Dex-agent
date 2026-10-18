@@ -14,6 +14,7 @@ TASK = Path(__file__).resolve().parents[2]
 ROOT = TASK.parents[2]
 sys.path.insert(0, str(TASK/'src'))
 import numpy as np
+import scipy
 from scipy.spatial.transform import Rotation
 from wam_rl_policy.goal_scheduler import OrderedGoalScheduler, SchedulerConfig, transform_points
 
@@ -177,11 +178,14 @@ def main():
     scratch = ROOT/'tmp'/output.name
     scratch.mkdir(parents=True, exist_ok=True)
     os.environ['MPLCONFIGDIR'] = str(scratch/'matplotlib')
+    import matplotlib
     started = time.monotonic()
     manifest = dict(status='RUNNING', experiment_id='P-20261018-goal-scheduler', run_id=output.name,
         git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
         branch=subprocess.check_output(['git', 'branch', '--show-current'], text=True).strip(),
         python=sys.executable, python_version=platform.python_version(), numpy=np.__version__,
+        scipy=scipy.__version__, matplotlib=matplotlib.__version__, hostname=platform.node(),
+        conda_prefix=os.environ.get('CONDA_PREFIX'), pid=os.getpid(),
         source=str(args.source.resolve()), cache=str(args.cache.resolve()), device='cpu',
         device_reason='pure NumPy/SciPy pose scheduling; no neural inference, training or simulation',
         seconds_budget=args.seconds, output_budget_mib=100, objects=args.objects,

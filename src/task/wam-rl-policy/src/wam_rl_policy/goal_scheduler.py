@@ -213,11 +213,27 @@ class OrderedGoalScheduler:
                 mode, reason = 'TRACK', 'ordered_progress'
                 ahead = c.lookahead_m * max(.25, 1-tracking_error/c.recovery_enter_m)
             goal, index = self._at_arc(min(self.arc[local]+ahead, self.arc[last]), local, last)
-        on_reference = self._within_budget(actual, goal)
-        if not on_reference:
-            goal = self._bounded(actual, goal)
-            mode = 'RECOVER' if mode not in ('TIMEOUT', 'COMPLETE') else mode
-            reason += ':bounded_connector_to_reference'
+        on_reference = True
+        if not self._within_budget(actual, goal):
+            if self._within_budget(actual, self.poses[local]):
+                # A large rotation ahead is a NORMAL reason to shorten the
+                # path goal. Interpolate along the reference, not a connector.
+                low = float(self.arc[local])
+                high = float(np.interp(index, np.arange(len(self.arc)), self.arc))
+                for _ in range(28):
+                    middle = (low+high)/2
+                    candidate, _ = self._at_arc(middle, local, last)
+                    if self._within_budget(actual, candidate):
+                        low = middle
+                    else:
+                        high = middle
+                goal, index = self._at_arc(low, local, last)
+                reason += ':shortened_along_reference'
+            else:
+                goal = self._bounded(actual, goal)
+                on_reference = False
+                mode = 'RECOVER' if mode not in ('TIMEOUT', 'COMPLETE') else mode
+                reason += ':bounded_connector_to_reference'
         position, rotation, point_error = self._errors(actual, goal)
         denominator = max(float(self.arc[-1]), 1e-12)
         return dict(goal_pose=goal, goal_delta=rigid_goal_delta(actual, goal, self.points),

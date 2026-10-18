@@ -14,7 +14,7 @@ seeds: [0]
 decision_changed_if_positive: keep ordered state-based scheduling as a candidate for later frozen-WAM and physical execution checks
 decision_changed_if_negative: fix progress, rotation, timeout or recovery semantics before any policy experiment
 status: RUNNING
-run_id: goal-scheduler-replay-20261018-r1
+run_id: goal-scheduler-replay-20261018-r2
 ---
 
 # 独立有序物体轨迹调度器：几何工程 Probe
@@ -54,7 +54,11 @@ Python3 / NumPy / SciPy / Matplotlib，实际版本写入 manifest。纯几何�
 
 ## 当前结果
 
-待回放。9项针对性单测已通过；尚不代表真实执行或完整参考任务成功。
+首轮r1完成12片段/3656帧，7.62秒，所有有界/单调进度检查通过。逐状态复查发现
+纯旋转因短目标角度上限而频繁误标RECOVER；已修正为沿原参考缩短前视，只有真正需要
+离开参考作连接时才标恢复。r1保留，不以它的模式统计作为最终结果。
+
+10项针对性单测已通过，r2固定代码后重放；尚不代表真实执行或完整参考任务成功。
 
 ## Limitations / future evidence
 

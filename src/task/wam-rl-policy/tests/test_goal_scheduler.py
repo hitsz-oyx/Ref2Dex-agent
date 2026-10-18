@@ -81,6 +81,7 @@ def test_pure_rotation_is_a_goal_and_encodes_same_point_identity():
     s = scheduler(ref)
     result = s.update(ref[0], 0)
     assert result['goal_position_m'] == 0 and result['goal_rotation_rad'] > 0
+    assert result['mode'] == 'TRACK' and result['target_on_reference']
     assert result['goal_rotation_rad'] <= s.config.max_goal_rotation_rad+1e-8
     assert np.linalg.norm(result['goal_delta']) > 0
     expected = POINTS @ result['goal_pose'][:3, :3].T - POINTS
@@ -116,6 +117,19 @@ def test_reset_and_separate_instances_keep_environment_memory_isolated():
     first.reset()
     assert first.pointer == 0 and first.last_time is None
     assert first.update(ref[0], 0)['confirmed_index'] == 0
+
+
+def test_mandatory_milestone_and_numpy_readiness_cannot_be_skipped():
+    ref = path(np.c_[np.linspace(0, .1, 101), np.zeros((101, 2))])
+    s = scheduler(ref, mandatory_indices=(10,))
+    assert 10 in s.milestones
+    s.update(ref[0], 0)
+    result = s.update(ref[10], .1, execution_ready=np.bool_(False))
+    assert result['mode'] == 'PREPARE' and result['confirmed_index'] == 0
+    result = s.update(ref[10], .2, execution_ready=True)
+    assert result['confirmed_index'] == 10
+    with pytest.raises(ValueError):
+        s.update(ref[10], .3, lost_control='false')
 
 
 def test_goal_coordinates_are_in_current_anchor_and_leave_inputs_unchanged():
