@@ -90,5 +90,9 @@ or restart that run.
   `rebuild_v4_window_filter_transition.py` can recheck only the old blocked
   windows and write a new filter; a clean run should regenerate the recipe/stats
   and start a new data identity rather than replacing filters under a live run.
+  A remote probe on the first 2000 of 1,587,404 TRAIN blocked indices took 1.57 s
+  and restored none (1755 `approach`, 245 `static_idle`). This is only a prefix,
+  not a corpus statistic; it mainly shows that a full transition scan is cheap
+  enough to run separately.
 - C remains a parallel interaction head; it does not condition on a candidate
   action and cannot be used as a counterfactual action scorer.
