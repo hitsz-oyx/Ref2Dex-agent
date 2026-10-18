@@ -115,9 +115,8 @@ deadline and20GiB free-space guard. Inputs are the unchanged audit-bound
 recipe/dense overlay and old TRAIN/DEV filters; outputs/status/logs live under
 the NAS root's `data/filter-transition-20261018-r1/`. The active training code,
 recipe, normalization and filters are untouched. It rechecks1,587,404 TRAIN
-and276,176 DEV blocked indices. TRAIN results are **pending**, so prefix
-counts are not used to decide on a training restart. Decide whether to change
-coverage after completed counts by source and quality-admission exclusions are known.
+and276,176 DEV blocked indices. Both scans completed; decisions below use
+whole-split counts and independent quality-admission exclusions.
 This scan uses conservative AABB contact candidates, not exact contact labels.
 It is a Decision probe: distinguish negligible coverage change from a material
 overall or per-source omission. The former supports retaining the frozen run;
@@ -134,6 +133,18 @@ be extrapolated to TRAIN. `dev-coverage.json` beside the new filter records old
 and new admitted counts by source. The transition field `restored_counts` is
 misnamed in the existing tool: it counts **all rechecked classes**, not just
 restored indices; use `restored` and the coverage report for restoration counts.
+
+The full TRAIN scan completed in1231.32s:8,839 old blocked windows now classify
+as moving-object non-contact, restoring2,471 at the fixed0.35 retention ratio.
+All2,471 survive quality admission:2,454 OakInk2,15 UniDexGrasp,2 HOT3D.
+Admitted TRAIN grows3,218,740->3,221,211 (+0.0768%); even the largest relative
+source increase is only0.1064% (OakInk2). These are small overall and per-source
+coverage changes. Keep the active run and frozen filters; the count result
+does not justify stopping/restarting it. Preserve the new candidate filters
+separately for the next data identity. It does not prove that rare release or
+rolling cases are unimportant to a targeted downstream task.
+Local evidence copies of `train-coverage.json` and `dev-coverage.json` are in
+`outputs/ptv3-shared-wam-v4/filter-transition-20261018-r1/`.
 
 The online overlay previously accepted a correctly hashed NPZ whose32 flow
 queries had all moved1m. Unlike the training overlay, it did not compare them
@@ -153,3 +164,18 @@ Python3.8.20, PyTorch2.4.1+cu121 and NumPy1.24.4. A subsequent focused model
 check covers the already-present `scene_token_count` in real v4 forward output;
 it was incorrectly reported missing during review and requires no model fix.
 No simulator rollout or new neural training was launched for this runtime fix.
+
+## Decision probe at contract-fixed step5000
+
+The early DEV score improves mainly through C while trajectory distances do
+not yet show a source-macro improvement. Distinguish a strong opposing C
+gradient from trajectories on a general optimization plateau. The cheapest
+check is three fixed source-balanced TRAIN batches (two windows/source,
+seeds181/182/183), computing weighted hand/scene/C gradient norms and cosine
+on the complete final shared transformer layer at step5000. Use eval mode,
+the actual AMP/config/reader, one GPU,180s budget, no optimizer or checkpoint
+write; do not alter the production run. A consistently dominant opposing C
+direction would motivate a separate bounded loss-balance comparison; absence
+of that pattern redirects diagnosis to per-source fit/conditioning rather
+than changing C weight from scalar loss magnitudes alone. This small layer
+probe cannot establish whole-trunk or full-DDP training dynamics.

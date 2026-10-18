@@ -327,6 +327,57 @@ leave6/7 unallocated by this task, preserve the remote WAM run. Runtime remains
 commands, code commit and GPU samples are written into the new run directory.
 No WAM-predicted tau substitution is claimed by this follow-up.
 
+### Follow-up results and next decision
+
+Code `9cd751a6` implements the pending padded-input control and saves its
+padding contract for deployment. The first native rollout exposed a CUDA
+scalar recording error at tick0 (`np.float32(cuda_tensor)`); `731bf35d` fixes
+the missing `.item()`. Run r1 retains both fitted checkpoints and the failed
+engineering log. Run `oracle-tau-capacity-20261018-r2` reuses those checkpoints
+without retraining and completes all four150-tick rollouts in82.32s (exit0).
+Sampled GPU memory peaked at3258MiB, including other-user occupancy; the task
+used GPU0 only and released it after completion. Inputs match each archived
+tau reference bitwise on the full initial300-D observation and13-D object
+state, for all four seeds.
+
+Both the zero-padded and tau models allocate175,384 parameters. Padded p2
+fits BC L1=.02271, then DAgger L1=.00998 / BC L1=.02160 after fine-tuning.
+It never lifts above its initial height or enters the5cm region on any of
+421/453/471/482; final distances are.30650/.27935/.34077/.28394m. All action
+prefix checks pass. Thus matching allocated size does not reproduce the tau
+result under this fixed recipe. It does not isolate all effects of active
+input capacity or training initialization; an active shuffled-tau control and
+multiple model seeds remain future evidence. The original fixed-seed tau
+result remains a local positive; held-out sustained holding remains unresolved.
+
+An additional cheap Decision check uses the archived8-step teacher forks at
+the **student's** in-goal states. World goals are recovered with the measured
+canonical-to-world rotation; reconstructing current object positions has
+maximum error1.62e-7m and inferred fixed-goal drift stays below6.72e-8m.
+For453/471/482, the teacher's8-step endpoint remains in goal for11/14,3/4,
+7/13 queries respectively. For453 and482, teacher fork endpoints eventually
+leave the goal region even when the student currently remains inside it.
+Endpoint attainment is not continuous holding or long-horizon recoverability.
+This does not prove a defective oracle: student drift may already have left
+its recoverable region. It prevents attributing every failure solely to the
+student's current action regression error.
+
+Archived action errors support a targeted follow-up rather than broad new
+pretraining:453/482 wrist-rotation L1 rises from.191/.199 before goal to
+.387/.349 during goal attainment;471 remains near the geometric boundary
+with much smaller errors. Next prioritize holding-state coverage and the
+teacher's recovery envelope before replacing GT-tau with WAM-tau. Reuse saved
+query labels where possible; do not relabel a seed used for added DAgger as
+held-out, and require a new matched-state fork for any new student trajectory.
+No extra oracle rollouts or hyperparameter search were launched here.
+
+Artifacts: `outputs/wam-rl-policy/oracle-tau-capacity-20261018-r2/summary.json`
+and `process.json`; fitted models remain in r1. The follow-up audit directory
+contains `archive-audit.json`, `action-errors.json`, and
+`teacher-endpoint-audit.json`. The latter is reproduced by
+`audit_oracle_tau_results.py --teacher-hold`.31 related contract tests plus
+the endpoint-frame regression and all four actual native rollouts passed.
+
 ## 2026-10-18 audit caveat: action prefix and success frames
 
 The pinned `shadow_hand_grasp.py` rewrites `actions[:,0:3]` and `actions[:,3:6]`
@@ -355,8 +406,9 @@ The same card's `success_frames` was computed by summing the upstream
 contiguous hold count. The corrected runner records realtime
 `goal_distance <= 0.05` frames, `longest_hold_frames`, `first_success_tick`,
 `final_success`, `success_frames_ever` and drop events. The sentence
-"holds 62 frames" should therefore be re-derived from the archived trajectory or
-from a rerun; it is not supported by the old aggregate alone.
+"holds 62 frames" requires independent recomputation from the archived
+trajectory; the follow-up above confirms it for421, while correcting the
+held-out seed conclusions. The old aggregate alone was insufficient.
 
 ## Interpretation
 
@@ -423,14 +475,12 @@ linearly in ticks; the fresh-process reset is the dominant cost.
 
 ## Next decision
 
-Stage 1 is complete on the fixed seed: the live GT-tau executor with one
-DAgger iteration grasps, lifts and holds, while the matched state-only
-controls do not.  Stage 2 should now use a small set of held-out successful
-seeds/orientations that were not in the student's BC or DAgger data, with the
-same two-arm protocol.  Only after that should the plan be replaced by
-WAM-predicted tau or extended to more objects.  The current result is one
-seed, one episode per arm, and one object; do not describe it as a general
-closed-loop grasping claim yet.
+Stage1 retains its fixed-seed reach-and-hold positive. Stage2's three selected
+held-out states show improved goal attainment but fail to sustain in-goal
+holding at the last recorded state. Equal allocated capacity did not reproduce
+the tau result. Prioritize a bounded holding/recovery qualification using
+saved student-state labels, before substituting WAM-tau or adding objects.
+Keep added adaptation seeds separate from subsequent held-out evaluations.
 
 ## Artifacts
 
