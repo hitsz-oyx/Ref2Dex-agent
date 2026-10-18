@@ -112,12 +112,13 @@ def _main3_target_sample(sample, normals, policy=V4SamplingPolicy()):
 
 
 class V4NativeWindows(Dataset):
-    def __init__(self, root, split, *, engineering=True, policy=V4SamplingPolicy(), surface_geometry_manifest=None):
+    def __init__(self, root, split, *, engineering=True, policy=V4SamplingPolicy(),
+                 surface_geometry_manifest=None, surface_geometry_sha256=None):
         from .clean_data import CleanPoseMeshWindows
         self.base = CleanPoseMeshWindows(root, split, engineering=engineering, cache_size=8)
         if surface_geometry_manifest:
             from .dense_surface import apply_surface_overlay
-            apply_surface_overlay(self.base.geometry, surface_geometry_manifest)
+            apply_surface_overlay(self.base.geometry, surface_geometry_manifest, surface_geometry_sha256)
         # Fail at construction, before GPU allocation, if any target geometry
         # would only meet the 512 tensor shape by repeating existing points.
         target_keys = {row['objects'][row['target_slot']] for row in self.base.meta['sequences']

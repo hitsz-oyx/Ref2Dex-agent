@@ -137,7 +137,7 @@ def test_distributed_contact_and_part_use_separate_global_counts(monkeypatch):
     calls = []
 
     def reduce_count(value):
-        value.copy_(totals[len(calls) % 2])
+        value.copy_(torch.stack(totals))
         calls.append(True)
 
     monkeypatch.setattr(objectives.dist, "all_reduce", reduce_count)
@@ -151,7 +151,7 @@ def test_distributed_contact_and_part_use_separate_global_counts(monkeypatch):
         losses.append(loss.detach())
         gradient, = torch.autograd.grad(loss, local_logits)
         gradients.append(gradient / 2)
-    assert len(calls) == 4
+    assert len(calls) == 2
     torch.testing.assert_close(torch.stack(losses).mean(), reference.detach())
     torch.testing.assert_close(torch.cat(gradients), expected_grad)
 

@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 import trimesh
 
-from pose_mesh_data.dense_surface import SCHEMA, apply_surface_overlay, sample_mesh_surface
+from pose_mesh_data.dense_surface import SCHEMA, apply_surface_overlay, sample_mesh_surface, file_sha256
 
 
 def plane():
@@ -41,12 +41,33 @@ def test_overlay_preserves_source_and_rejects_changed_flow(tmp_path):
     np.savez(tmp_path / "plane.npz", **replacement)
     manifest = tmp_path / "manifest.json"
     manifest.write_text(json.dumps(dict(schema=SCHEMA, status="COMPLETED",
-                                       objects=[dict(key="plane", path="plane.npz")])))
+                                       objects=[dict(key="plane", path="plane.npz",sha256=file_sha256(tmp_path/'plane.npz'))])))
     geometry = dict(plane=original)
     apply_surface_overlay(geometry, manifest)
     assert geometry["plane"]["surface"].shape == (512, 3)
     assert original["surface"].shape == (36, 3)
     replacement["query"][0] += .01
     np.savez(tmp_path / "plane.npz", **replacement)
+    m=json.loads(manifest.read_text());m['objects'][0]['sha256']=file_sha256(tmp_path/'plane.npz')
+    manifest.write_text(json.dumps(m))
     with pytest.raises(ValueError, match="identity mismatch"):
         apply_surface_overlay(dict(plane=original), manifest)
+
+
+def test_surface_payload_and_manifest_changes_are_rejected(tmp_path):
+    mesh, original = plane()
+    replacement=sample_mesh_surface(mesh,original,'plane')
+    payload=tmp_path/'plane.npz'; np.savez(payload,**replacement)
+    manifest=tmp_path/'manifest.json'
+    manifest.write_text(json.dumps(dict(schema=SCHEMA,status='COMPLETED',
+        objects=[dict(key='plane',path=payload.name,sha256=file_sha256(payload))])))
+    digest=file_sha256(manifest)
+    apply_surface_overlay(dict(plane=original),manifest,digest)
+    replacement['surface'][32:,0]+=1.
+    np.savez(payload,**replacement)
+    with pytest.raises(ValueError,match='payload SHA-256 mismatch'):
+        apply_surface_overlay(dict(plane=original),manifest,digest)
+    m=json.loads(manifest.read_text());m['objects'][0]['sha256']=file_sha256(payload)
+    manifest.write_text(json.dumps(m))
+    with pytest.raises(ValueError,match='manifest SHA-256 mismatch'):
+        apply_surface_overlay(dict(plane=original),manifest,digest)

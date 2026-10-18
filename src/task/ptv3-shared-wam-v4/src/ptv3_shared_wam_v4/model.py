@@ -154,7 +154,13 @@ class SharedWAMV4(nn.Module):
         interaction_normalized = torch.cat((interaction_logits[..., :1].sigmoid(),
                                             interaction_logits[..., 1:].softmax(-1)), -1)
         interaction = interaction_normalized * self.interaction_scale.view(1, 1, 1, 1, -1)
-        c_mask = batch["interaction_valid"].bool() & object_valid[:, :, None, None]
+        # Prediction validity comes only from current observations. Future
+        # label availability belongs exclusively to loss/metric computation.
+        query_valid = batch.get("interaction_query_valid", torch.ones_like(interaction_points[..., 0], dtype=torch.bool))
+        if query_valid.shape != interaction_points.shape[:-1]:
+            raise ValueError("current interaction query validity must have shape B,O,Q")
+        c_mask = (query_valid.bool()[:, :, None, :] & object_valid[:, :, None, None]).expand(
+            -1, -1, C_HORIZON, -1)
         hand_mask = batch["start_hand_valid"][:, None, ..., None]
         scene_mask = point_valid[:, :, None, :, None]
         prediction = dict(
@@ -165,7 +171,7 @@ class SharedWAMV4(nn.Module):
             trajectory_normalized=torch.where(hand_mask, hand_z, 0.),
             scene_normalized=torch.where(scene_mask, scene_z, 0.),
             interaction_normalized=torch.where(c_mask[..., None], interaction_normalized, 0.),
-            interaction_valid=c_mask)
+            interaction_prediction_valid=c_mask)
         if return_shared:
             prediction.update(shared_tokens=shared, shared_valid=shared_valid, interaction_tokens=relation)
         return prediction

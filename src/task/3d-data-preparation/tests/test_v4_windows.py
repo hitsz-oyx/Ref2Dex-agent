@@ -23,3 +23,7 @@ def test_v4_sample_is_target_only_and_has_fixed_contract():
     assert sample['interaction_target'].shape == (1, 24, 128, 7)
     assert sample['object_valid'].tolist() == [True]
     assert np.isfinite(sample['interaction_target']).all()
+    seq['object_pose_valid'][8, 0] = False
+    missing = v4_pose_mesh_sample(seq, [geometry, geometry], 3, 0, 8, [0, 3], 'test')
+    assert not missing['interaction_valid'][:, 4].any()
+    assert not missing['interaction_target'][:, 4].any()

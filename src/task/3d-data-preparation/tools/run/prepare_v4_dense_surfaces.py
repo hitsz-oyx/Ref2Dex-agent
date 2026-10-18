@@ -14,7 +14,7 @@ import trimesh
 
 TASK = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(TASK / "src"))
-from pose_mesh_data.dense_surface import SCHEMA, sample_mesh_surface
+from pose_mesh_data.dense_surface import SCHEMA, sample_mesh_surface, file_sha256
 
 
 def main():
@@ -49,7 +49,7 @@ def main():
         values = sample_mesh_surface(mesh, original, key, scale)
         dest = "geometry/object-%05d.npz" % len(rows)
         np.savez_compressed(root / dest, **values)
-        rows.append(dict(key=key, path=dest, mesh=source, mesh_scale=scale,
+        rows.append(dict(key=key, path=dest, sha256=file_sha256(root/dest),mesh=source, mesh_scale=scale,
                          source_id=int(needed[key]), original_unique_points=len(np.unique(original["surface"], axis=0)),
                          unique_points=512, preserved_flow_queries=True))
         if len(rows) % 100 == 0:

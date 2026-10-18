@@ -34,9 +34,11 @@ def main():
     p.add_argument('--stop-after',type=int)
     p.add_argument('--resume',type=Path)
     p.add_argument('--init-v3',type=Path)
-    p.add_argument('--resume-reviewed-subset',action='store_true')
+    p.add_argument('--resume-reviewed-subset',action='store_true',help=argparse.SUPPRESS)
     p.add_argument('--resume-learning-rate-drop',action='store_true')
     a=p.parse_args()
+    if a.resume_reviewed_subset:
+        p.error('--resume-reviewed-subset is not supported by WAM-v4; use a separately reviewed new run')
     if a.resume_learning_rate_drop and (not a.resume or a.resume_reviewed_subset):
         raise ValueError('LR-only continuation requires resume and unchanged dataset')
     if a.resume and a.init_v3:
@@ -89,9 +91,6 @@ def main():
         if a.resume:command+=['--resume',str(a.resume.resolve())]
         if a.init_v3:command+=['--init-v3',str(a.init_v3.resolve())]
         if a.resume_learning_rate_drop:command+=['--resume-learning-rate-drop']
-        if a.resume_reviewed_subset:
-            if not a.resume:raise ValueError('reviewed subset transition requires parent checkpoint')
-            command+=['--resume-reviewed-subset']
         if a.stop_after:command+=['--stop-after',str(a.stop_after)]
         status.update(status='STARTING',command=command)
         last_progress=time.monotonic();last_step=-1;checked=0.;launched=time.monotonic()

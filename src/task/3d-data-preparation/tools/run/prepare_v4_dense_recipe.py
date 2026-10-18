@@ -13,7 +13,7 @@ for name in ("3d-data-preparation", "ptv3-shared-wam-v4"):
     sys.path.insert(0, str(TASK.parent / name / "src"))
 from ptv3_shared_wam_v4 import paths
 from pose_mesh_data.clean_data import CleanPoseMeshWindows
-from pose_mesh_data.dense_surface import apply_surface_overlay
+from pose_mesh_data.dense_surface import apply_surface_overlay, file_sha256
 from pose_mesh_data.v4_interaction import V4SamplingPolicy, retain_window
 sys.path.insert(0, str(TASK / "tools/audit"))
 from build_v4_window_filter_fast import _native
@@ -41,6 +41,7 @@ def main():
     overlay = json.loads(args.surface_manifest.read_text())
     changed = {row["key"] for row in overlay["objects"]}
     recipe["surface_geometry_manifest"] = str(args.surface_manifest.resolve())
+    recipe["surface_geometry_sha256"] = file_sha256(args.surface_manifest)
     recipe["data_profile"] = "nine-source-v4-target-object-dense512.v1"
     report = audit(recipe)
     write(root / "surface-audit.json", report)

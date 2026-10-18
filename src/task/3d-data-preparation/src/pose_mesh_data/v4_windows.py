@@ -74,6 +74,10 @@ def v4_pose_mesh_sample(sequence, geometries, tick, target_slot, source_id, samp
     interaction_target, interaction_valid = interaction_field(
         hand_future, future_hand_valid, future_interaction, policy,
         active_sides=present.any(-1))
+    # The cleaned reader already rejects these windows. Keep standalone reuse
+    # safe as well: unknown object transport cannot supervise contact.
+    interaction_valid &= future_known[:, None]
+    interaction_target = np.where(interaction_valid[..., None], interaction_target, 0.)
     flow_start = _transform(flow, observed[-1])
     flow_target = future_flow - flow_start
     flow_valid = np.broadcast_to(future_known[:, None], (24, FLOW_POINTS)).copy()

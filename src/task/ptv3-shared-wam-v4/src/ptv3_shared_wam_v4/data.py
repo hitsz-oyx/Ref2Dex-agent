@@ -50,9 +50,12 @@ def excluded_indices(recipe, split, total):
 class NineWindows(Dataset):
     def __init__(self, main3, native, split, recipe=None):
         self.split = split
+        if (recipe or {}).get('surface_geometry_manifest') and not recipe.get('surface_geometry_sha256'):
+            raise ValueError('v4 recipe must bind dense surface manifest SHA-256')
         self.main = V4Main3Windows(main3, 'train' if split == 'train' else 'val')
         self.native = V4NativeWindows(native, split, engineering=True,
-            surface_geometry_manifest=(recipe or {}).get('surface_geometry_manifest'))
+            surface_geometry_manifest=(recipe or {}).get('surface_geometry_manifest'),
+            surface_geometry_sha256=(recipe or {}).get('surface_geometry_sha256'))
         self.pools = source_pools(self.native.base)
         self.counts = {str(i): len(s) for i, s in enumerate(self.main.base.sources)}
         self.counts.update({s: len(p) for s, p in self.pools.items()})

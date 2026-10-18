@@ -15,10 +15,13 @@ from .model import SharedWAMV4
 from .data import NineWindows, collate, loader
 from .checkpoint import (atomic_json, save_checkpoint, load_checkpoint, restore_optimizer,
     initialize_from_v3,
-    checkpoint_alias, prune_recovery_checkpoints, directory_bytes, git_commit)
-from .objectives import forecast_loss, forecast_metrics
+    checkpoint_alias, prune_recovery_checkpoints, directory_bytes, git_commit,
+    data_identity, validate_resume_contract)
+from .objectives import (forecast_loss, forecast_metrics, loss_components, combine_components,
+    OBJECTIVE_SEMANTICS, EVALUATION_SEMANTICS)
 from ptv3_shared_wam.loading import to_device
 from .lr_transition import validate_lr_resume, apply_learning_rates
+from .selection import consider_selection, inherit_checkpoint
 
 
 def gradient_audit(model, batch, config):
@@ -56,28 +59,47 @@ def gradient_audit(model, batch, config):
 
 
 @torch.no_grad()
-def evaluate(model, dataset, panel, config, device):
+def evaluate(model, dataset, panel, config, device, microbatch_size=None):
+    was_training=model.training
+    devices=[device.index if device.index is not None else torch.cuda.current_device()] if device.type=='cuda' else []
+    with torch.random.fork_rng(devices=devices):
+        try:
+            return _evaluate(model,dataset,panel,config,device,microbatch_size)
+        finally:
+            model.train(was_training)
+
+
+def _evaluate(model, dataset, panel, config, device, microbatch_size=None):
     model.eval()
     reports = {}
+    microbatch_size = microbatch_size or config.get('validation_microbatch_size', 8)
+    if microbatch_size < 1:
+        raise ValueError('positive validation microbatch size required')
     for sid, indices in panel.items():
-        totals, objective, count = {}, 0., 0
-        for first in range(0,len(indices),8):
-            samples = indices[first:first+8]
+        totals, components = {}, {}
+        if not len(indices):
+            raise ValueError('nonempty source DEV panel required')
+        for first in range(0,len(indices),microbatch_size):
+            samples = indices[first:first+microbatch_size]
             batch = to_device(collate([dataset[int(i)] for i in samples])['model_inputs'],device)
-            with torch.autocast('cuda',dtype=torch.bfloat16,enabled=config['amp']):
+            with torch.autocast(device.type,dtype=torch.bfloat16,enabled=config['amp']):
                 pred = model(batch)
-                loss,_ = forecast_loss(pred,batch,config,model.normalizer)
-            if not torch.isfinite(loss):
-                raise ValueError('nonfinite DEV objective')
-            objective += float(loss)*len(samples)
-            count += len(samples)
+                parts = loss_components(pred,batch,config,model.normalizer,reduction_dtype=torch.float64)
+            for key,(numerator, denominator) in parts.items():
+                if not torch.isfinite(numerator) or not torch.isfinite(denominator):
+                    raise ValueError('nonfinite DEV sufficient statistics')
+                slot = components.setdefault(key,dict(numerator=0.,denominator=0.))
+                slot['numerator'] += float(numerator); slot['denominator'] += float(denominator)
             for key,value in forecast_metrics(pred,batch,config).items():
-                slot = totals.setdefault(key,dict(sum_mm=0.,count=0))
-                slot['sum_mm'] += value['sum_mm']; slot['count'] += value['count']
-        reports[sid] = dict(objective=objective/count,metrics={k:dict(
-            mean_mm=v['sum_mm']/v['count'] if v['count'] else None,count=v['count']) for k,v in totals.items()})
+                slot = totals.setdefault(key,dict(sum=0.,count=0,unit=value['unit']))
+                slot['sum'] += value['sum']; slot['count'] += value['count']
+        means = {k:v['numerator']/max(v['denominator'],1e-8) for k,v in components.items()}
+        objective, terms = combine_components(means,config)
+        reports[sid] = dict(objective=objective,terms=terms,components=components,metrics={k:dict(
+            mean=v['sum']/v['count'] if v['count'] else None,count=v['count'],unit=v['unit']) for k,v in totals.items()})
     model.train()
-    return dict(sources=reports,objective=float(np.mean([r['objective'] for r in reports.values()])))
+    return dict(sources=reports,objective=float(np.mean([r['objective'] for r in reports.values()])),
+                semantics=EVALUATION_SEMANTICS)
 
 
 def main():
@@ -89,12 +111,14 @@ def main():
     p.add_argument('--resume',type=Path)
     p.add_argument('--init-v3',type=Path,
         help='model-only v3 checkpoint warm-start; new structured C modules are initialized fresh')
-    p.add_argument('--resume-reviewed-subset',action='store_true')
+    p.add_argument('--resume-reviewed-subset',action='store_true',help=argparse.SUPPRESS)
     p.add_argument('--resume-learning-rate-drop',action='store_true')
     p.add_argument('--stop-after',type=int)
     p.add_argument('--loader-workers',type=int,default=2)
     p.add_argument('--experiment-card',type=Path,default=TASK/'docs/experiments/probes/P-20261017-wam-v4-interaction-head.md')
     a=p.parse_args()
+    if a.resume_reviewed_subset:
+        p.error('--resume-reviewed-subset is not supported by WAM-v4; use a separately reviewed new run')
     if a.resume and a.init_v3:
         raise ValueError('choose either a full v4 resume or a model-only v3 warm-start')
     if a.resume_learning_rate_drop and (not a.resume or a.resume_reviewed_subset):
@@ -103,6 +127,9 @@ def main():
     if artifacts/'outputs'/TASK.name not in out.parents or out.exists():
         raise ValueError('fresh v3 output required, including resume')
     config=json.loads(a.config.read_text())
+    if (config.get('objective_semantics') != OBJECTIVE_SEMANTICS
+            or config.get('evaluation_semantics') != EVALUATION_SEMANTICS):
+        raise ValueError('explicit audited objective/evaluation semantics required')
     recipe=json.loads((a.recipe/'recipe.json').read_text())
     stats=json.loads((a.recipe/'horizon-stats.json').read_text())
     import yaml
@@ -114,6 +141,13 @@ def main():
     if config['hand_weight']!=1 or config['scene_weight']!=1:
         raise ValueError('initial nine-source recipe retains hand/scene coefficients 1:1')
     world,rank,local=[int(os.environ.get(k,v)) for k,v in [('WORLD_SIZE','1'),('RANK','0'),('LOCAL_RANK','0')]]
+    parent=load_checkpoint(a.resume) if a.resume else None
+    if parent:
+        validate_resume_contract(parent,config,stats,world)
+        if a.resume_learning_rate_drop:
+            validate_lr_resume(parent,config,stats,world)
+        elif parent['config']!=config:
+            raise ValueError('resume requires identical configuration')
     if not 1<=world<=4 or config.get('expected_world_size',world)!=world or not 0<=a.loader_workers<=4:
         raise ValueError('bounded world size/workers and matching execution profile required')
     torch.cuda.set_device(local)
@@ -134,22 +168,19 @@ def main():
     model=model.to(device)
     optimizer=torch.optim.AdamW(model.parameter_groups(config['geometry_lr'],config['shared_lr']),
         weight_decay=config['weight_decay'],fused=True)
-    first=0; previous_elapsed=0.; parent=None
+    first=0; previous_elapsed=0.
     provenance=dict(task=TASK.name,git_commit=git_commit(),code_root=str(ROOT),
         experiment_id=experiment['experiment_id'],run_id=out.name,branch=experiment['branch'],
-        world_size=world,recipe=str(a.recipe.resolve()),initialization=(
+        world_size=world,recipe=str(a.recipe.resolve()),data_identity=data_identity(stats),
+        objective_semantics=OBJECTIVE_SEMANTICS,evaluation_semantics=EVALUATION_SEMANTICS,initialization=(
             'common v3 model weights; structured C head fresh'
             if warm_start else 'all weights from scratch'),
         scope='offline nine-source pretraining Probe; robot benefit untested')
     if warm_start:
         provenance['v3_warm_start']=warm_start
     if a.resume:
-        parent=load_checkpoint(a.resume)
         if a.resume_learning_rate_drop:
             provenance['lr_transition']=validate_lr_resume(parent,config,stats,world)
-        elif a.resume_reviewed_subset:
-            from .data_transition import validate_subset_resume
-            provenance['data_transition']=validate_subset_resume(parent,config,stats,world)
         elif parent['config']!=config or parent['stats']!=stats or parent['provenance']['world_size']!=world:
             raise ValueError('resume requires identical config/statistics/world size')
         model.load_state_dict(parent['model'],strict=True)
@@ -158,7 +189,7 @@ def main():
         apply_learning_rates(optimizer,config,first+1)
         provenance.update(resume_parent=str(a.resume.resolve()),parent_step=first,
             parent_git_commit=parent['provenance']['git_commit'],
-            initialization='full v3 optimizer/model/per-rank RNG resume')
+            initialization='full v4 optimizer/model/per-rank RNG resume')
     if a.resume_reviewed_subset and not a.resume:raise ValueError('reviewed subset transition requires parent checkpoint')
     target=a.stop_after or config['updates']
     if not 0<=first<target<=config['updates']:
@@ -170,7 +201,7 @@ def main():
         atomic_json(out/'manifest.json',dict(status='RUNNING',config=config,provenance=provenance,
             parameters=model.parameter_counts(),train_windows=train.counts,dev_windows=dev.counts))
     if world>1:dist.barrier()
-    started=time.monotonic(); curve=[]; best=float('inf'); files=[]; drawn=Counter()
+    started=time.monotonic(); curve=[]; selection=None; files=[]; drawn=Counter()
     try:
         # Mixed nine-source engineering audit before sustained updates, per rank.
         coverage=train.panel(1,17)
@@ -191,8 +222,42 @@ def main():
             if not restored:raise ValueError('per-rank RNG restore failed')
         wrapped=nn.parallel.DistributedDataParallel(model,device_ids=[local],gradient_as_bucket_view=True) if world>1 else model
         if rank==0:
-            curve.append(dict(step=first,**evaluate(model,dev,panel,config,device)))
+            baseline=evaluate(model,dev,panel,config,device)
+            curve.append(dict(step=first,**baseline))
             atomic_json(out/'curve.json',curve)
+            selection,baseline_best=consider_selection(parent.get('selection') if parent else None,
+                baseline['objective'],first,out/('step%d.pt'%first),out.name)
+        else:baseline_best=False
+        decisions=[baseline_best]
+        if world>1:dist.broadcast_object_list(decisions,src=0)
+        if parent:
+            # Startup audits/evaluation must not consume the resumed RNG stream.
+            torch.set_rng_state(parent['rank_rng'][rank]['torch'])
+            torch.cuda.set_rng_state(parent['rank_rng'][rank]['cuda'])
+        if decisions[0]:
+            states=[None]*world
+            rng=dict(torch=torch.get_rng_state(),cuda=torch.cuda.get_rng_state())
+            if world>1:dist.all_gather_object(states,rng)
+            else:states=[rng]
+            if rank==0:
+                path=out/('step%d.pt'%first)
+                provenance['elapsed_s']=previous_elapsed+time.monotonic()-started
+                save_checkpoint(path,model,optimizer,config,stats,first,provenance,states,selection)
+                files.append(path.name)
+                checkpoint_alias(out,'best.pt',path.name);checkpoint_alias(out,'latest.pt',path.name)
+        elif rank==0:
+            chosen=inherit_checkpoint(out,selection['checkpoint'])
+            selection['checkpoint']=str(chosen)
+            atomic_json(chosen.with_suffix('.selection.json'),dict(selection=selection))
+            files.append(chosen.name);checkpoint_alias(out,'best.pt',chosen.name)
+            current=chosen if chosen.name==a.resume.resolve().name else inherit_checkpoint(out,a.resume)
+            if current.name not in files:
+                files.append(current.name)
+                atomic_json(current.with_suffix('.selection.json'),dict(selection=selection))
+            checkpoint_alias(out,'latest.pt',current.name)
+        if rank==0:
+            atomic_json(out/'selection.json',selection)
+            atomic_json(out/'checkpoint_files.json',files)
         if world>1:dist.barrier()
         batches=loader(train,config,rank,first+1,target,a.loader_workers)
         torch.cuda.empty_cache();torch.cuda.reset_peak_memory_stats()
@@ -216,8 +281,9 @@ def main():
                 if rank==0:
                     report=evaluate(model,dev,panel,config,device)
                     curve.append(dict(step=step,**report));atomic_json(out/'curve.json',curve)
-                    new_best=report['objective']<best
-                    if new_best:best=report['objective']
+                    selection,new_best=consider_selection(selection,report['objective'],step,
+                        out/('step%d.pt'%step),out.name)
+                    atomic_json(out/'selection.json',selection)
                 decision=[new_best]
                 if world>1:dist.broadcast_object_list(decision,src=0)
                 new_best=decision[0]
@@ -229,15 +295,19 @@ def main():
                 if rank==0:
                     provenance['elapsed_s']=previous_elapsed+time.monotonic()-started
                     path=out/('step%d.pt'%step)
-                    save_checkpoint(path,model,optimizer,config,stats,step,provenance,states)
+                    save_checkpoint(path,model,optimizer,config,stats,step,provenance,states,selection)
                     checkpoint_alias(out,'latest.pt',path.name)
                     if new_best:checkpoint_alias(out,'best.pt',path.name)
                     files.append(path.name);files=prune_recovery_checkpoints(out,files,config)
                     atomic_json(out/'checkpoint_files.json',files)
                 if world>1:dist.barrier()
             if step==1 or step%config['log_interval']==0 or step==target:
-                values=torch.stack([loss.detach(), terms['hand'].detach(), terms['scene'].detach(),
-                                    terms['interaction'].detach(), terms['interaction_consistency'].detach()])
+                term_names=('hand','scene','interaction','contact','part')
+                values=torch.stack([loss.detach()]+[terms[k].detach() for k in term_names])
+                local_counts={k:float(v[1]) for k,v in terms['components'].items()}
+                all_counts=[None]*world
+                if world>1:dist.all_gather_object(all_counts,local_counts)
+                else:all_counts=[local_counts]
                 if world>1:
                     dist.all_reduce(values);values/=world
                 torch.cuda.synchronize()
@@ -245,7 +315,8 @@ def main():
                 rate=(step-logged_step)/(time.monotonic()-logged)
                 if rank==0:
                     record=dict(status='RUNNING',step=step,learning_rates=rates,loss=float(values[0]),
-                        terms={k:float(values[i+1]) for i,k in enumerate(('hand','scene','interaction','interaction_consistency'))},
+                        terms={k:float(values[i+1]) for i,k in enumerate(term_names)},
+                        rank_denominators=all_counts,objective_semantics=OBJECTIVE_SEMANTICS,
                         grad_norm=float(norm),elapsed_s=elapsed,updates_per_s=rate,
                         eta_seconds=(config['updates']-step)/rate,local_samples_per_s=rate*config['batch_size'],
                         global_batch=world*config['batch_size'],world_size=world,

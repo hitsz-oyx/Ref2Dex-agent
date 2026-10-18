@@ -1,11 +1,31 @@
 """Derived CAD surface samples, retaining the original 32 flow identities."""
 import hashlib
+import io
 import json
 from pathlib import Path
 
 import numpy as np
 
-SCHEMA = "ref2dex.wam-v4-dense-surface.v1"
+SCHEMA = "ref2dex.wam-v4-dense-surface.v2"
+
+
+def file_sha256(path):
+    digest = hashlib.sha256()
+    with Path(path).open('rb') as stream:
+        for chunk in iter(lambda: stream.read(1024*1024), b''):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def read_surface_manifest(path, expected_sha256=None):
+    data = Path(path).read_bytes()
+    actual = hashlib.sha256(data).hexdigest()
+    if expected_sha256 is not None and actual != expected_sha256:
+        raise ValueError('dense surface manifest SHA-256 mismatch')
+    manifest = json.loads(data)
+    if manifest.get('schema') != SCHEMA or manifest.get('status') != 'COMPLETED':
+        raise ValueError('completed content-bound v4 dense surface manifest required')
+    return manifest
 
 
 def sample_mesh_surface(mesh, original, key, scale=1.):
@@ -53,17 +73,20 @@ def sample_mesh_surface(mesh, original, key, scale=1.):
     return dict(surface=surface, normals=normals, query=query.copy())
 
 
-def apply_surface_overlay(geometry, path):
+def apply_surface_overlay(geometry, path, expected_sha256=None):
     path = Path(path)
-    manifest = json.loads(path.read_text())
-    if manifest.get("schema") != SCHEMA or manifest.get("status") != "COMPLETED":
-        raise ValueError("completed v4 dense surface manifest required")
+    manifest = read_surface_manifest(path, expected_sha256)
     seen = set()
     for row in manifest["objects"]:
         key = row["key"]
         if key not in geometry or key in seen:
             raise ValueError("unknown or duplicated dense surface identity: " + key)
-        with np.load(path.parent / row["path"], allow_pickle=False) as values:
+        payload = (path.parent / row['path']).read_bytes()
+        if hashlib.sha256(payload).hexdigest() != row.get('sha256'):
+            raise ValueError('dense surface payload SHA-256 mismatch: ' + key)
+        # Load the bytes that were verified, avoiding a second read of a file
+        # that could change between verification and array construction.
+        with np.load(io.BytesIO(payload), allow_pickle=False) as values:
             replacement = {key: values[key].copy() for key in values.files}
         if (replacement["surface"].shape != (512, 3)
                 or len(np.unique(replacement["surface"], axis=0)) != 512

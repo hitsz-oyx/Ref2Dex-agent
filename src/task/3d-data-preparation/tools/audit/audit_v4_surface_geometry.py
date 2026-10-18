@@ -3,8 +3,12 @@ import argparse
 from collections import Counter, defaultdict
 import json
 from pathlib import Path
+import sys
 
 import numpy as np
+
+sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'src'))
+from pose_mesh_data.dense_surface import read_surface_manifest, file_sha256
 
 
 def inspect_geometry(path, point_key):
@@ -27,9 +31,12 @@ def audit(recipe):
     overlay = {}
     if recipe.get("surface_geometry_manifest"):
         path = Path(recipe["surface_geometry_manifest"])
-        manifest = json.loads(path.read_text())
-        if manifest.get("schema") != "ref2dex.wam-v4-dense-surface.v1" or manifest.get("status") != "COMPLETED":
-            raise ValueError("completed dense surface manifest required")
+        if not recipe.get('surface_geometry_sha256'):
+            raise ValueError('recipe must bind dense surface manifest SHA-256')
+        manifest = read_surface_manifest(path,recipe['surface_geometry_sha256'])
+        for row in manifest['objects']:
+            if file_sha256(path.parent/row['path'])!=row.get('sha256'):
+                raise ValueError('dense surface payload SHA-256 mismatch: '+row['key'])
         overlay = {row["key"]: path.parent / row["path"] for row in manifest["objects"]}
     keys = defaultdict(set)
     for row in meta["sequences"]:

@@ -1,5 +1,8 @@
 {
   "schema": "ref2dex.ptv3-shared-wam.v4",
+  "objective_semantics": "v4.global-masked-components.v2",
+  "evaluation_semantics": "v4.source-macro-sufficient-statistics.v2",
+  "validation_microbatch_size": 8,
   "interaction_encoding": "object-centric-interaction-field.v4",
   "interaction_dim": 7,
   "interaction_scales": [
@@ -110,6 +113,5 @@
   },
   "interaction_horizon": 24,
   "interaction_edge_width": 64,
-  "contact_metric_threshold": 0.25,
-  "interaction_positive_only": true
+  "contact_metric_threshold": 0.25
 }

@@ -1,8 +1,29 @@
 """v4 identity: immutable complete model, normalizer, optimizer and per-rank RNG."""
 from pathlib import Path
+import hashlib
+import json
 import torch
 from .paths import SCHEMA
-from ptv3_shared_wam.checkpoint import atomic_json, directory_bytes, checkpoint_alias, prune_recovery_checkpoints
+from ptv3_shared_wam.checkpoint import atomic_json, directory_bytes, checkpoint_alias
+from .objectives import OBJECTIVE_SEMANTICS, EVALUATION_SEMANTICS
+
+
+def data_identity(stats):
+    recipe = stats.get('recipe', {})
+    return dict(recipe_sha256=hashlib.sha256(json.dumps(recipe, sort_keys=True,
+                    separators=(',', ':')).encode()).hexdigest(),
+                surface_geometry_sha256=recipe.get('surface_geometry_sha256'))
+
+
+def validate_resume_contract(parent, config, stats, world):
+    if (parent.get('objective_semantics') != OBJECTIVE_SEMANTICS
+            or parent.get('evaluation_semantics') != EVALUATION_SEMANTICS):
+        raise ValueError('legacy objective/evaluation checkpoint cannot be silently resumed')
+    if (parent.get('data_identity') != data_identity(stats) or parent['stats'] != stats
+            or parent['provenance']['world_size'] != world or len(parent['rank_rng']) != world):
+        raise ValueError('resume requires identical bound data/statistics/world/rank RNG')
+    if not parent.get('selection'):
+        raise ValueError('resume checkpoint must preserve historical best selection')
 
 
 def initialize_from_v3(path, model, config, stats):
@@ -40,16 +61,58 @@ def initialize_from_v3(path, model, config, stats):
                 new_parameters=sorted(set(target) - set(compatible)))
 
 
-def save_checkpoint(path, model, optimizer, config, stats, step, provenance, rank_rng):
+def save_checkpoint(path, model, optimizer, config, stats, step, provenance, rank_rng, selection):
     path = Path(path)
     if path.exists():
         raise FileExistsError("immutable v3 checkpoint")
     packet = dict(schema=SCHEMA, stage="pretrain", config=config, stats=stats, step=step,
         model={k: v.detach().cpu() for k, v in model.state_dict().items()},
-        optimizer=optimizer.state_dict(), provenance=provenance, rank_rng=rank_rng)
+        optimizer=optimizer.state_dict(), provenance=provenance, rank_rng=rank_rng,
+        selection=dict(selection), objective_semantics=OBJECTIVE_SEMANTICS,
+        evaluation_semantics=EVALUATION_SEMANTICS, data_identity=data_identity(stats))
     temporary = path.with_suffix(".pt.part")
     torch.save(packet, temporary)
     temporary.replace(path)
+    atomic_json(path.with_suffix('.selection.json'), dict(selection=selection))
+
+
+def prune_recovery_checkpoints(output, files, config):
+    """Keep the best dependencies of every retained recovery checkpoint."""
+    output = Path(output).resolve()
+    if config.get('checkpoint_keep_recent') is None:
+        return files
+    keep, milestone = int(config['checkpoint_keep_recent']), int(config['checkpoint_milestone_interval'])
+    if keep < 1 or milestone < 1:
+        raise ValueError('positive checkpoint retention required')
+    steps = {}
+    for name in files:
+        path = output / name
+        if Path(name).name != name or path.resolve().parent != output or not path.is_file():
+            raise ValueError('owned existing checkpoint required')
+        steps[name] = int(Path(name).stem[4:])
+    preserved = set(sorted(files, key=steps.get)[-keep:])
+    preserved.update(name for name, step in steps.items()
+                     if step == 1 or step == config['updates'] or step % milestone == 0)
+    for alias in ('best.pt', 'latest.pt'):
+        path = output / alias
+        if path.is_symlink():
+            if path.resolve().parent != output or path.resolve().name not in steps:
+                raise ValueError('checkpoint alias must identify an owned registered file')
+            preserved.add(path.resolve().name)
+    for name in list(preserved):
+        sidecar = (output / name).with_suffix('.selection.json')
+        if not sidecar.exists():
+            raise ValueError('selection dependency record required')
+        selected = Path(json.loads(sidecar.read_text())['selection']['checkpoint'])
+        if selected.parent == output:
+            if selected.name not in steps:
+                raise ValueError('retained checkpoint is missing its historical best')
+            preserved.add(selected.name)
+    for name in files:
+        if name not in preserved:
+            (output/name).unlink()
+            (output/name).with_suffix('.selection.json').unlink()
+    return [name for name in files if name in preserved]
 
 
 def load_checkpoint(path):
