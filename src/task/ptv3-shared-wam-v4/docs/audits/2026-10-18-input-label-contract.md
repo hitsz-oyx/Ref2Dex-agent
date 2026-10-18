@@ -222,3 +222,31 @@ keep the C-learning interpretation and focus next on per-source trajectory
 conditioning. If it contradicts the original trend, diagnose panel sensitivity
 before changing losses or extending scientific claims. This is cheaper than
 another training run and runs separately from the local GT-tau experiment.
+
+The audit completed in147.30s on remote `graspenv`/GPU0, pinned training
+dependencies `2183eb46` and audit tool `756c11c2`. It retained step13000,
+used1,024 unique windows (128/source,8 represented sources), CPU cache
+176,241,664 bytes and PyTorch peak allocation469.3MiB. The original selection
+baseline reproduced exactly:2.0684724698694046. The production panel and
+selection aliases were not changed; the audit process exited.
+
+| Disjoint-panel source-macro metric | Step0 | Step13000 |
+| --- | ---: | ---: |
+| Objective | 2.087452 | 1.873956 |
+| Hand all24 error (mm) | 36.9025 | 37.0866 |
+| Object all24 error (mm) | 11.1615 | 10.8577 |
+| C contact MAE, all valid queries | .15530 | .13141 |
+| C positive-contact part accuracy | 61.4235% | 69.1950% |
+
+Objective decreases10.23% on the disjoint panel; all8 source objectives improve.
+The arithmetic C-component decrease accounts for98.6% of the total objective
+decrease, not a causal decomposition of representation learning. Hand error
+is+.50%, object error-2.72%. GRAB/HOT3D hand error increases70.30->72.52 and
+56.12->59.61mm, while TACO improves28.71->26.58mm and ARCTIC60.55->59.39mm.
+Thus the interpretation is retained: broader C learning is present, aggregate
+hand-trajectory improvement is not. Inspect per-source conditioning/coverage
+next rather than restarting training or reducing C weight from loss magnitude.
+This panel excludes selection window IDs, not necessarily their sequences or
+nearby overlapping windows; it is still DEV, with no independent TEST claim.
+Local report/panel/summary:
+`outputs/ptv3-shared-wam-v4/heldout-dev-panel-20261018-r1/`.
