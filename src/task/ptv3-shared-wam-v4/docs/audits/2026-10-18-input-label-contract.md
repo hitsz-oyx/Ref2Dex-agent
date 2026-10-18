@@ -179,3 +179,22 @@ direction would motivate a separate bounded loss-balance comparison; absence
 of that pattern redirects diagnosis to per-source fit/conditioning rather
 than changing C weight from scalar loss magnitudes alone. This small layer
 probe cannot establish whole-trunk or full-DDP training dynamics.
+
+The probe completed on real step5000 with dependency commit `2183eb46`,
+tool commit `685bba0c`, remote Python3.8/Torch2.0.1+cu118. It took9.79s,
+peak allocated6239.6MiB, inspecting7,087,872 final-layer parameters. Weighted
+C/hand+scene gradient norms are.565/.682, .406/.573, .474/.444; their cosine
+values are.00821, .02860, -.00201. This limited probe does not show a
+consistently dominant opposing C gradient. Do not lower C weight solely from
+its larger scalar loss; examine per-source fitting/conditioning next, while
+preserving the current run. No optimizer or checkpoint was written.
+
+At step5000 the fixed DEV objective is1.98219175 vs initial2.06847247
+(-4.17%). Source-macro hand all24 error is35.1115->35.3817mm, object all24
+12.4189->12.3721mm, positive-contact part accuracy60.308->64.369%.
+Improvement is mainly interaction prediction; broad trajectory improvement
+is still not established. The plot and compact snapshot are local
+`outputs/ptv3-shared-wam-v4/filter-transition-20261018-r1/training-progress.png`
+and `training-curve-snapshot.json`; gradient evidence is
+`component-gradients-step5000.json`. The temporary GPU probe has exited;
+production training continues on the unchanged recipe/objective.

@@ -1,3 +1,24 @@
+## 2026-10-18 GT-τ 留出保持结论修正，等容量对照完成
+
+接续当天DSH的`ff7519bd`会话，重算了GT-τ闭环归档。固定seed421确有62个连续实时
+达标帧；留出453/471/482只连续达标14/4/13帧，最后记录均已离开5cm目标区，旧19/17/44
+是累计success标记，撤回“留出终末稳定保持成功”。GT-τ为3/3曾到达，对照0/3，但仍不是
+跨初态稳定抓取结论。补完403维零填充state-only，同175384参数、同BC/DAgger配方，
+四初态均未抬升/达标，实际初态与归档逐值相同；32项相关测试和四次原生
+rollout通过。只占本地GPU0，已释放。teacher在部分近边界学生状态的8步端点也会离开目标，
+下一步优先保持阶段覆盖/恢复资格，暂不把GT-τ换成WAM-τ或扩大物体。
+详见[GT-τ实验卡](../src/task/wam-rl-policy/docs/experiments/probes/P-20261018-unidex-live-oracle-tau.md)。
+
+v4旧过滤器全量过渡扫描已完成：TRAIN恢复2471窗(+.0768%，OakInk2454/UniDex15/HOT3D2)，
+DEV恢复426窗(+.0781%)，均已扣独立quality排除。规模小，不因此重启当前修正语义run；
+新filter单独保留，当前训练代码/recipe/normalization未改。见[v4审计记录](../src/task/ptv3-shared-wam-v4/docs/audits/2026-10-18-input-label-contract.md)。
+
+修正run到step5000，DEV2.06847->1.98219(-4.17%)，C part accuracy60.31->64.37%，
+手轨迹35.11->35.38mm、物体流12.42->12.37mm，尚无整体轨迹收益。真实权重三组54窗
+的最后共享层梯度检查完成：C与hand+scene的cosine=.008/.029/-.002，未见持续明显对冲；
+不凭标量loss大小改C权重，下一步看各源拟合/条件分布。probe9.79秒，无optimizer更新，
+已退出；主训练继续。曲线图和梯度JSON见本地`outputs/ptv3-shared-wam-v4/filter-transition-20261018-r1/`。
+
 ## 2026-10-18 停止旧 v4 run，以旧 ckpt 做 model-only 初始化启动修复版
 
 按用户指令先停止旧 `pretrain-nine-v4-fastinput-warm80k-20261018-r1`（step13560，
