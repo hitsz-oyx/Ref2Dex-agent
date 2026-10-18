@@ -461,6 +461,7 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261018-goal-scheduler](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261018-goal-scheduler.md) | 独立有序物体轨迹调度器：几何工程 Probe | 10项单测通过；r3的13片段/4197帧通过独立几何复算，12个运动片段完成有序参考位姿，1个持续未准备片段预期TIMEOUT。仅工程资格，不代表机器人任务成功。 | 保留有序进度与按状态前视作为候选，先审阅可视化和真实任务参考；不修改WAM，不启动策略训练。 | probes/COMPLETED |
+| [P-20261018-goal-wam-viser](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261018-goal-wam-viser.md) | Viser审阅实际goal条件下的冻结WAM预测 | 4个TRAIN物体68状态204组冻结预测完成，43.54秒；20项几何相关测试、全部缓存独立复核及Firefox真实WebGL2交互检查通过，仅条件敏感性与展示资格。 | 保留Viser作为goal与真实预测的审阅入口，先人工检查准备/随动/丢失阶段，再决定有界执行探针；不改WAM训练，不声称物理可达或机器人收益。 | probes/COMPLETED |
 | [P-20261018-interaction-goal-scheduler](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261018-interaction-goal-scheduler.md) | 手物历史条件的goal调度与3D审阅 | 17项单测通过；r2的19片段/4811帧和32次有界穿越证据独立复算通过。原速度真实面板相对目标跳变p95由14.8–15.8mm降至4.7–5.6mm；Clock10Hz仍卡住。Firefox真实交互检查通过。仅工程判断。 | 保留连续进度和手物观测代理，维持弱proxy与几何进度分离；优先审阅Clock低频边界与接触proxy误判，不改WAM。 | probes/COMPLETED |
 
 ## HF-per-finger-control

@@ -1,5 +1,16 @@
 # 当前状态
 
+## 2026-10-18 Viser已接入真实调度goal条件下的冻结WAM预测
+
+[Viser Probe](experiments/probes/P-20261018-goal-wam-viser.md)固定修复版v4 step2000，
+在相同H4状态下比较半倍前视／当前调度／双倍前视，保留检查点与跨度约束。
+4个TRAIN物体68状态204组预测，远端RTX4090推理43.54秒，PyTorch峰值398MiB；
+本地八卡有其他用户进程，本轮未占本地GPU。现有远端训练未停止或改动，推理GPU已释放。
+原始手物状态、SE(3)预算、goal锚点、预测t0、原生τ转换及C概率独立复核通过。
+模型手点末端相对调度臂平均差：短臂3.10–3.78mm，长臂3.49–5.74mm，仅条件敏感性。
+端口8770的Viser只读本地缓存，当前实测与预测未来时间分开；尚无执行器或物理可达结论。
+产物`outputs/wam-rl-policy/goal-wam-viser-20261018-r1/`；不修改WAM训练或调度算法。
+
 ## 2026-10-18 调度器加入手物历史并修复进度问题，真实3D审阅已就绪
 
 [后续工程Probe](experiments/probes/P-20261018-interaction-goal-scheduler.md)修复持续慢速

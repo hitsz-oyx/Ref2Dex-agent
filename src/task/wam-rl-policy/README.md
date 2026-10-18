@@ -1,5 +1,22 @@
 # WAM-assisted robot RL
 
+Viser真实预测审阅：`tools/audit/review_goal_wam_viser.py`（端口8770），
+缓存`outputs/wam-rl-policy/goal-wam-viser-20261018-r1/`。
+冻结修复版v4 step2000，4个TRAIN物体、68个状态、204组真实预测；左／中／右为较短前视、
+当前调度、较长前视。当前观测与未来预测时间分别控制，支持只看调度、跳到随动、C接触
+置信度着色及可选录制未来对照。浏览服务只用CPU，没有机器人执行或新训练。
+协议与来源见[Viser Probe](docs/experiments/probes/P-20261018-goal-wam-viser.md)。
+
+从仓库根目录运行：
+
+```bash
+/home2/wyy/miniconda3/envs/graspenv/bin/python src/task/wam-rl-policy/tools/audit/review_goal_wam_viser.py \
+  --directory outputs/wam-rl-policy/goal-wam-viser-20261018-r1 --port 8770 --hours 24
+```
+
+`prepare_goal_wam_review.py`在GPU上生成缓存；`audit_goal_wam_review.py`独立复核原始观测、
+goal锚点、坐标变换、原生τ采样时钟、C概率和真实未来mask。不覆盖已有预测缓存。
+
 调度决策审阅：`outputs/wam-rl-policy/interaction-goal-scheduler-20261018-r2/decision-review/review.html`。
 3D右侧逐帧解释进度确认、局部匹配、前视选择和输出约束；下方参考位置轴包含旋转，
 与回放时间轴分开。提供六个合成／真实情形跳转，保留Clock10Hz卡住的失败。

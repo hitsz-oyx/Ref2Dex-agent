@@ -55,10 +55,14 @@ class Viewer:
             self.server.stop()
             raise RuntimeError('requested port is occupied; no automatic port switch')
         self.server.scene.set_up_direction('+z')
-        self.server.gui.configure_theme(control_width='large', show_share_button=False)
+        self.grid = self.server.scene.add_grid('/scale-grid', width=3., height=1.5,
+            cell_size=.05, section_size=.25, cell_color=(210, 220, 215),
+            section_color=(165, 185, 175), shadow_opacity=0.)
+        self.server.gui.configure_theme(control_layout='fixed', control_width='large', show_share_button=False)
         gui = self.server.gui
         gui.add_markdown('## Goal → WAM τ\n\n**绿色**：当前实测物体 · **灰色**：当前实测手\n\n'
             '**金色**：输入物体 goal · **蓝色**：WAM 预测手与物体 query\n\n'
+            '**左 → 中 → 右：较短前视 → 当前调度 → 较长前视。**\n\n'
             '固定同一观测，比较三个 goal。没有执行机器人动作；当前观测不会被预测推动。')
         gui.add_markdown(f'冻结 v4 **step {self.manifest["checkpoint_step"]}** · H4@30Hz → 未来24帧 / 0.8s。'
                          '\n\nC 是预测代理，不是接触真值或动作评分。')
@@ -93,6 +97,7 @@ class Viewer:
         self.layout.on_update(lambda e: self.change_layout() if e.client is not None else None)
         self.server.on_client_connect(lambda client: self.fit(client))
         self.render()
+        self.fit()
 
     def case_index(self):
         return next(i for i, c in enumerate(self.catalog['cases']) if c['name'] == self.selected.value)
@@ -164,17 +169,22 @@ class Viewer:
 
     def spacing(self):
         d = self.data[self.case_index()]
-        return max(.48, 2.5*float(np.linalg.norm(np.ptp(d['surface'], axis=0))))
+        return max(.32, 2.5*float(np.linalg.norm(np.ptp(d['surface'], axis=0))))
 
     def fit(self, client=None):
         with self.lock:
             d = self.data[self.case_index()]
             center = d['object_pose'][int(self.frame.value), :3, 3].copy()
-            distance = self.spacing()*(1.65 if self.layout.value == '三组 goal 并排' else .85)
+            distance = self.spacing()*1.65 if self.layout.value == '三组 goal 并排' else max(.4, self.spacing()*.85)
+            position = center+np.array([.2, -distance, distance*.72])
+            self.server.initial_camera.position = position
+            self.server.initial_camera.look_at = center+[0, 0, .03]
             for target in [client] if client is not None else self.server.get_clients().values():
-                target.camera.look_at = center+[0, 0, .03]
-                target.camera.position = center+np.array([.2, -distance, distance*.72])
+                # Viser's position setter translates look_at as well. Set the
+                # final target AFTER position, or the entire scene drifts offscreen.
+                target.camera.position = position
                 target.camera.up_direction = (0, 0, 1)
+                target.camera.look_at = center+[0, 0, .03]
 
     def render(self):
         with self.lock, self.server.atomic():
@@ -185,6 +195,7 @@ class Viewer:
                 handle.visible = False
             now = d['object_pose'][f]
             actual = transform_points(now, d['surface'])
+            self.grid.position = (now[0, 3], now[1, 3], float(actual[:, 2].min())-.02)
             anchors = transform_points(now, d['interaction_points'])
             selected_only = self.layout.value == '只看当前调度'
             for variant, title in enumerate(self.catalog['variants']):
@@ -225,7 +236,7 @@ class Viewer:
                 goal_mm = np.linalg.norm(d['goal_delta'][f, variant], axis=-1).mean()*1000
                 tau_mm = np.linalg.norm(d['predicted_hand'][f, variant, k]-d['hand'][f], axis=-1).mean()*1000
                 self.label(prefix+'/title', now[:3, 3]+shift+[0, 0, .22],
-                           f'{title}\ngoal 对应点 {goal_mm:.1f} mm · 手预测位移 {tau_mm:.1f} mm')
+                           f'{("SHORT", "SCHEDULED", "LONG")[variant]}\nGoal {goal_mm:.1f} mm | Hand {tau_mm:.1f} mm')
             interaction = row['interaction']
             self.info.content = (f'**{case["name"]} · 实测 tick {int(d["tick"][f])} / {len(d["reference"])-1}**\n\n'
                 f'当前记录时间 **{d["time"][f]:.2f}s**；蓝色预测未来 **+{k/30:.3f}s**。\n\n'
@@ -243,7 +254,10 @@ class Viewer:
                 +('当前预测时刻有录制未来可供对照。' if observed else '当前预测时刻超过记录末端，真实未来图层已隐藏。'))
             state = dict(case=case['name'], snapshot=f, source_tick=int(d['tick'][f]),
                          future_frame=k, mode=row['mode'], panels=1 if selected_only else 3)
-            (self.directory/'viewer-state.json').write_text(json.dumps(state)+'\n')
+            state_path = self.directory/'viewer-state.json'
+            pending = state_path.with_suffix('.pending')
+            pending.write_text(json.dumps(state)+'\n')
+            pending.replace(state_path)
 
     def run(self, hours):
         stop = threading.Event()
