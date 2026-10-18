@@ -3,7 +3,7 @@ schema: ref2dex.probe.v2
 probe_id: P-20261018-full-scheduled-current-bc
 experiment_id: P-20261018-full-scheduled-current-bc
 date: 2026-10-18
-task: wam-rl-policy
+task: wam-rl-policy-v2
 branch: main
 git_commit: recorded-in-run-manifest
 claim_id: C1

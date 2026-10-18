@@ -3,7 +3,7 @@ schema: ref2dex.probe.v2
 probe_id: P-20261018-scheduled-batch-ppo
 experiment_id: P-20261018-scheduled-batch-ppo
 date: 2026-10-18
-task: wam-rl-policy
+task: wam-rl-policy-v2
 branch: main
 git_commit: recorded-in-run-manifest
 claim_id: C1
@@ -13,7 +13,7 @@ seed_pool: debug
 seeds: [0]
 decision_changed_if_positive: expand the scheduled BC warmstart PPO to a training object panel
 decision_changed_if_negative: retain BC and repair continuous PPO before scaling
-status: RUNNING
+status: PLANNED
 run_id: scheduled-batch-ppo-20261018-r1
 ---
 
@@ -38,7 +38,7 @@ actor LR1e-5、critic LR1e-4、joint KL上限.01；前后各一次确定性均�
 预算1800秒、磁盘余量20GiB、最多2个PPO端点；STOP文件/非有限/概率回放漂移/
 无接受的actor更新停止。父BC永不覆盖。用户已允许共享GPU；GPU1/7不分配本任务。
 环境 graspenv，Python3.8/Torch2.4.1+cu121/IsaacGym，运行版本写manifest。
-输出 `outputs/wam-rl-policy/scheduled-batch-ppo-20261018-r1/`。
+输出 `outputs/wam-rl-policy-v2/scheduled-batch-ppo-20261018-r1/`。
 入口 `tools/run/closed_loop_scheduled_shadow.py --envs 16 --ppo-updates 4 --ticks 180`。
 
 批量历史的部分重置、合并推理、60Hz插值以及原控制合同/目标指标共4项测试通过。

@@ -1,10 +1,10 @@
 # WAM-assisted robot RL
 
-2026-10-18 [正式控制接口与审计处置](docs/research/2026-10-18-control-interface.md)：
+2026-10-18 [正式控制接口与审计处置](../wam-rl-policy-v2/docs/research/2026-10-18-control-interface.md)：
 `ScheduledShadowControl`连接实测状态→局部SE(3) goal→WAMv4→565维BC/PPO→隔离的canonical动作。
 显式区分空间waypoint与预测时域、几何进度与任务成功；25项测试和真实权重12拍归档接口smoke通过。
 尚需565维native物理runner和PPO rollout验证。全量条件缓存已在GPU2–6按不重叠记录并行，
-状态见[全量BC实验卡](docs/experiments/probes/P-20261018-full-scheduled-current-bc.md)。
+状态见[全量BC实验卡](../wam-rl-policy-v2/docs/experiments/probes/P-20261018-full-scheduled-current-bc.md)。
 
 Viser真实预测审阅：`tools/audit/review_goal_wam_viser.py`（端口8770），
 缓存`outputs/wam-rl-policy/goal-wam-viser-20261018-r1/`。

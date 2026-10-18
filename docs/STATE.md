@@ -1,3 +1,9 @@
+## 2026-10-18 新观测执行器迁入 wam-rl-policy-v2
+
+按用户要求，新565维 scheduled BC/PPO链路使用独立Task和Python包 `wam_rl_policy_v2`。
+已有全量缓存和BC checkpoint保持原路径复用；新输出写入 `outputs/wam-rl-policy-v2/`。
+批量PPO代码已实现，尚未启动试跑。见[新Task入口](../src/task/wam-rl-policy-v2/README.md)。
+
 ## 2026-10-18 全量scheduled BC完成，native闭环与真实PPO更新接口通过
 
 条件缓存全部完成，TRAIN1536897/DEV354761行经独立逐行合同审计通过。
@@ -8,7 +14,7 @@
 不称稳定保持。已记录每拍目标与48步后实测姿态；期间重规划，不能直接据此判定可达性。
 真实64步PPO工程更新通过概率回放、末态bootstrap和KL回滚，actor接受1步、critic4步；
 不是长期PPO训练或效果提升结论。后续推进批量rollout/持续PPO和控制对照。
-见[全量BC卡](../src/task/wam-rl-policy/docs/experiments/probes/P-20261018-full-scheduled-current-bc.md)。
+见[全量BC卡](../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261018-full-scheduled-current-bc.md)。
 
 ## 2026-10-18 全量BC调度条件缓存五卡并行，正式Shadow控制接口落地
 
@@ -21,7 +27,7 @@ GPU1/7不分配本任务，GPU0已有任务不动。全量完成后自动启动B
 世界系60Hz tau以及raw PPO action/canonical action；拒绝缺测、布局不匹配和过期执行。
 25项合同测试及真实WAM/BC的12拍归档接口smoke通过，PPO概率回放误差0。
 phase暂不进入WAM/actor，空间waypoint不保证0.8s可达；565维native物理闭环和PPO训练仍待完成。
-见[接口审计处置](../src/task/wam-rl-policy/docs/research/2026-10-18-control-interface.md)。
+见[接口审计处置](../src/task/wam-rl-policy-v2/docs/research/2026-10-18-control-interface.md)。
 
 ## 2026-10-18 GT-τ有界后续失败；WAM-v4在更大DEV上主要改善C
 
