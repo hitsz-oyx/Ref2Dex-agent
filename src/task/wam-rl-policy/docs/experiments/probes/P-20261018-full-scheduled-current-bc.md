@@ -94,3 +94,9 @@ PyTorch峰值1857MiB。50序列累计forward17.43s、tau1.77s、write4.94s；
 wait8.49s几乎全部来自首次worker启动，稳定CPU预取已能跟上GPU。
 全量生成已恢复到`cache-fast`，`tmux full-bc-cache-fast`持久运行，完成自动接续BC。
 测量记录`optimization-check.json`和`benchmark.json`。未宣称所有状态严格批次不变。
+
+用户进一步授权多GPU并行：选择GPU2/3/4/5/6，GPU1/7不分配本任务，GPU0已有任务不动。
+`parallel_scheduled_cache.py`仅恢复已初始化缓存；各rank拥有global_record_id % 5
+对应的不重叠行区间，分离done位图、日志、process/manifest/progress；主进程锁定协调权，
+只在全部rank完成且合并位图全真后发布COMPLETED和启动BC。既有已完成行直接跳过。
+单卡旧流水线先通过STOP退出，避免两个写入系统并存。时间上限6h、每卡4CPU worker。

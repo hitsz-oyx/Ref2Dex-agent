@@ -23,3 +23,19 @@ def test_worker_preparation_matches_main_process_inputs(tmp_path):
         expected=collate_v4(v4_online_samples(old['objects'][lo:hi],old['hands'][lo:hi],
             [geometry]*(hi-lo),goal_delta=old['goals'][lo:hi]))
         for key,value in expected.items():torch.testing.assert_close(new['batches'][i][key],value,atol=0,rtol=0)
+
+
+def test_parallel_completion_only_accepts_owned_records():
+    import importlib.util
+    from pathlib import Path
+    path=Path(__file__).resolve().parents[1]/'tools/run/parallel_scheduled_cache.py'
+    spec=importlib.util.spec_from_file_location('parallel_cache',path)
+    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    base=np.zeros(11,bool);base[0]=True
+    shards=[np.zeros(11,bool) for _ in range(3)]
+    shards[0][3]=True;shards[1][4]=True;shards[2][5]=True
+    shards[0][7]=True  # Wrong-owner marker must not publish this row.
+    merged=module.merge_completion(base,shards)
+    assert np.flatnonzero(merged).tolist()==[0,3,4,5]
+    for rank,flags in enumerate(shards):flags[rank::3]=True
+    assert module.merge_completion(base,shards).all()

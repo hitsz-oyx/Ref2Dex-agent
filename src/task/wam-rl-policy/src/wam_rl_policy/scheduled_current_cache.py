@@ -82,10 +82,13 @@ def prepare(args,out,write):
     identity=dict(base=str(base),source=str(source),wam=str(args.wam_checkpoint.resolve()),
                   dense=str(args.wam_dense_manifest.resolve()),batch=args.wam_batch,
                   protocol='scheduled-current565.v1',records=len(records))
+    shard_count=getattr(args,'shard_count',1);shard_index=getattr(args,'shard_index',0)
+    sharded=shard_count>1
     previous=out/'cache-identity.json'
     if previous.exists() and json.loads(previous.read_text())!=identity:
         raise ValueError('cache resume input/protocol identity changed')
-    write('cache-identity.json',identity)
+    if sharded and not previous.exists():raise ValueError('Coordinator must initialize cache')
+    if not sharded:write('cache-identity.json',identity)
     shape=lambda split:(cache['splits'][split]['windows'],SCHEDULED_DIM)
     arrays={}
     for split in ('train','dev'):
@@ -94,24 +97,28 @@ def prepare(args,out,write):
             arrays[split]=np.load(path,mmap_mode='r+')
             if arrays[split].shape!=shape(split):raise ValueError('cache shape mismatch')
         else:
+            if sharded:raise ValueError('Coordinator must initialize arrays')
             arrays[split]=np.lib.format.open_memmap(path,mode='w+',dtype=np.float32,shape=shape(split))
             old=np.load(base/(split+'-x.npy'),mmap_mode='r')
             for lo in range(0,len(old),16384):arrays[split][lo:lo+16384,:300]=old[lo:lo+16384]
             arrays[split][:,300:]=0;arrays[split].flush()
-        # Recopy immutable current states on resume: an interrupted initial
-        # allocation may have created the file before finishing its prefix.
-        old=np.load(base/(split+'-x.npy'),mmap_mode='r')
-        for lo in range(0,len(old),16384):arrays[split][lo:lo+16384,:300]=old[lo:lo+16384]
-        arrays[split].flush()
-        for suffix in ('y.npy','tick.npy','seq.npy','index.json'):
-            link=out/(split+'-'+suffix)
-            if not link.exists():link.symlink_to(base/link.name)
-    if not (out/'dev-panel.npy').exists():(out/'dev-panel.npy').symlink_to(base/'dev-panel.npy')
-    stats=dict(np.load(base/'stats.npz'))
-    stats['x_mean']=np.r_[stats['x_mean'],np.zeros(265,np.float32)]
-    stats['x_scale']=np.r_[stats['x_scale'],np.full(264,.05,np.float32),np.ones(1,np.float32)]
-    np.savez(out/'stats.npz',**stats)
-    done_path=out/'done.npy'
+        if not sharded:
+            # Recopy immutable current states on resume: an interrupted initial
+            # allocation may have created the file before finishing its prefix.
+            old=np.load(base/(split+'-x.npy'),mmap_mode='r')
+            for lo in range(0,len(old),16384):arrays[split][lo:lo+16384,:300]=old[lo:lo+16384]
+            arrays[split].flush()
+            for suffix in ('y.npy','tick.npy','seq.npy','index.json'):
+                link=out/(split+'-'+suffix)
+                if not link.exists():link.symlink_to(base/link.name)
+    if not sharded:
+        if not (out/'dev-panel.npy').exists():(out/'dev-panel.npy').symlink_to(base/'dev-panel.npy')
+        stats=dict(np.load(base/'stats.npz'))
+        stats['x_mean']=np.r_[stats['x_mean'],np.zeros(265,np.float32)]
+        stats['x_scale']=np.r_[stats['x_scale'],np.full(264,.05,np.float32),np.ones(1,np.float32)]
+        np.savez(out/'stats.npz',**stats)
+    done_path=out/('done-shard-%d.npy'%shard_index if sharded else 'done.npy')
+    if sharded and not done_path.exists():raise ValueError('Coordinator must initialize shard completion map')
     if done_path.exists():done=np.load(done_path,mmap_mode='r+')
     else:
         done=np.lib.format.open_memmap(done_path,mode='w+',dtype=bool,shape=(len(records),));done[:]=False;done.flush()
@@ -123,7 +130,8 @@ def prepare(args,out,write):
     write('manifest.json',manifest)
     started=time.monotonic()
     runtime=V4Runtime(args.wam_checkpoint,identities,source,dense_manifest=args.wam_dense_manifest,device='cuda:0')
-    pending=[i for i in range(len(records)) if not done[i]]
+    assigned=[i for i in range(len(records)) if i%shard_count==shard_index]
+    pending=[i for i in assigned if not done[i]]
     if args.max_records:pending=pending[:args.max_records]
     dataset=RecordInputs(source,[records[i] for i in pending],runtime.geometry,prepare_batch=args.wam_batch)
     loader=torch.utils.data.DataLoader(dataset,batch_size=None,num_workers=args.workers,collate_fn=unchanged,pin_memory=True,
@@ -169,12 +177,12 @@ def prepare(args,out,write):
         if warm_start is None:warm_start=time.monotonic()
         last=time.monotonic()
         if count==1 or count%10==0 or count==len(pending):
-            elapsed=time.monotonic()-started;completed=int(done.sum())
-            report=dict(records_done=completed,records_total=len(records),rows_this_run=rows_done,
-                elapsed_s=elapsed,eta_s=((time.monotonic()-warm_start)/max(1,count-1)*(len(records)-completed)),
+            elapsed=time.monotonic()-started;completed=int(done[assigned].sum())
+            report=dict(records_done=completed,records_total=len(assigned),shard_index=shard_index,shard_count=shard_count,rows_this_run=rows_done,
+                elapsed_s=elapsed,eta_s=((time.monotonic()-warm_start)/max(1,count-1)*(len(assigned)-completed)),
                 warm_records_per_second=(count-1)/max(.001,time.monotonic()-warm_start),timings=timings.copy(),
                 peak_mib=torch.cuda.max_memory_allocated()/2**20)
             write('progress.json',report);print(json.dumps(report),flush=True)
-    manifest.update(status='COMPLETED' if done.all() else 'PARTIAL',records_done=int(done.sum()),
+    manifest.update(status='COMPLETED' if done[assigned].all() else 'PARTIAL',records_done=int(done[assigned].sum()),shard_index=shard_index,shard_count=shard_count,
                     elapsed_s=time.monotonic()-started)
     write('manifest.json',manifest)

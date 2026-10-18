@@ -33,11 +33,15 @@ def main():
     p.add_argument('--wam-dense-manifest',type=Path)
     p.add_argument('--wam-batch',type=int,default=32)
     p.add_argument('--workers',type=int,default=2)
+    p.add_argument('--shard-index',type=int,default=0)
+    p.add_argument('--shard-count',type=int,default=1)
     p.add_argument('--max-records',type=int,default=0)
     p.add_argument('--resume-cache',action='store_true')
     p.add_argument('--allow-shared-gpu',action='store_true',help='Only for project-owned jobs or explicitly authorized shared allocation')
     p.add_argument('--init-current',type=Path)
     a=p.parse_args();out=a.output.resolve()
+    if not 0<=a.shard_index<a.shard_count:raise ValueError('Invalid shard assignment')
+    if a.shard_count>1 and (a.stage!='prepare-scheduled' or not a.resume_cache):raise ValueError('Shards require initialized resumable cache')
     if a.resume and a.init_current:raise ValueError('Choose resume or initialization')
     if a.stage=='prepare-scheduled' and (not all((a.sequence_cache,a.wam_checkpoint,a.wam_dense_manifest)) or a.wam_batch<1):
         raise ValueError('Source, WAM, dense manifest and positive batch required')
@@ -53,6 +57,7 @@ def main():
     out.mkdir(parents=True,exist_ok=a.stage=='prepare-scheduled' and a.resume_cache);started=time.monotonic()
     commit=os.environ.get('REF2DEX_CODE_COMMIT') or subprocess.check_output(['git','rev-parse','HEAD'],cwd=TASK,text=True).strip()
     def write(name,value):
+        if a.shard_count>1:name='shard-%d-'%a.shard_index+name
         part=out/(name+'.part');part.write_text(json.dumps(value,indent=2,allow_nan=False)+'\n');part.replace(out/name)
     process=dict(status='RUNNING',pid=os.getpid(),stage=a.stage,gpu=a.gpu if a.stage!='prepare' else None,
         git_commit=commit,max_seconds=a.seconds,python=sys.executable,
