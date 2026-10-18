@@ -3,6 +3,7 @@ import argparse,importlib.util,runpy,sys
 from pathlib import Path
 TASK=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(TASK/'src'))
+sys.path.insert(0,str(TASK/'tools/run'))
 p=argparse.ArgumentParser(add_help=False)
 p.add_argument('--baseline-scheduler',type=Path)
 a,remaining=p.parse_known_args()
