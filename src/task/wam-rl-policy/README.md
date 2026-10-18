@@ -1,5 +1,9 @@
 # WAM-assisted robot RL
 
+2026-10-18 [完整物体轨迹到WAM短目标的调度器调研](docs/research/2026-10-18-goal-scheduler-literature.md)：
+区分已知未来参考与真实未来oracle，核查既有短目标/进度接口，提出按状态推进的有界前视方案。
+目前仅为设计讨论，未实现调度器或启动新实验。
+
 2026-10-16 [共同抓取起点上的协调奖励Probe](docs/experiments/probes/P-20261016-wam-coordination-bonus.md)
 已完成：固定DEV同初态BC/none/geometry/WAM保持28/26/23/25，当前抬起后辅助奖励接法
 UNPROMISING，停止增加其权重或训练预算。实现提供`--coordination-kind none/geometry/wam`、
