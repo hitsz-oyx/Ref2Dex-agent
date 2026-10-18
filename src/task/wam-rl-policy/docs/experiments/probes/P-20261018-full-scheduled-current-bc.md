@@ -109,3 +109,14 @@ wait8.49s几乎全部来自首次worker启动，稳定CPU预取已能跟上GPU�
 以及每个发出目标与48步后实测姿态的对齐。尾部不足48步的目标显式censor，不能当零误差。
 该工程检查没有teacher查询，也不用于宣称目标可达：初始actor尚未学习利用tau。
 产物`outputs/wam-rl-policy/full-scheduled-current-bc-20261018-local-r1/native-parent-r1/`。
+
+原生父BC接口检查完成：两次96步；每次前6拍valid=False、第7拍起True，
+reset初始300维观测逐值一致；actor均值相对父BC最大误差7.153e-7/5.960e-7。
+终态距目标3.43/6.09cm、最大抬升20.45/20.42cm，第一条仅末尾9帧达5cm门槛，
+不称稳定成功；同初态GPU物理rollout仍出现差异，不作为精确配对因果比较。
+每条有49个0.8s目标审计样本；均值误差14.01/14.72cm，父BC尚不利用tau，
+只能说明测量链路可用，不能据此修改goal或宣称Scheduler不可达。
+
+新增`--ppo-smoke`：同一native入口采样原始Gaussian动作，保存真实reward/done，
+截断从实际末态重新构造565维输入并bootstrap；单次4-minibatch PPO更新检验概率重放、
+actor/critic梯度与KL回滚，reward不改。属于工程资格，不是PPO效果实验。

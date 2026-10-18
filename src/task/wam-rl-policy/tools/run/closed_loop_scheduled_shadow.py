@@ -18,8 +18,10 @@ def main():
  p.add_argument('--ticks',type=int,default=96);p.add_argument('--episodes',type=int,default=2)
  p.add_argument('--seconds',type=int,default=300);p.add_argument('--object-code',default=DEFAULT_OBJECT)
  p.add_argument('--scale',type=float,default=.08)
+ p.add_argument('--ppo-smoke',action='store_true',help='One on-policy rollout and bounded PPO update; engineering only')
  a=p.parse_args();a.output=a.output.resolve();a.policy=a.policy.resolve()
  if not 1<=a.episodes<=4 or not 1<=a.ticks<=180:raise ValueError('Bounded native probe required')
+ if a.ppo_smoke and (a.episodes!=1 or a.ticks%4):raise ValueError('PPO smoke needs one episode and ticks divisible by4')
  if a.output.exists():raise ValueError('Fresh output required')
  a.output.mkdir(parents=True);(a.output/'tmp').mkdir()
  os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu),TMPDIR=str(a.output/'tmp'))
@@ -76,6 +78,11 @@ def main():
    expanded=CurrentMLP(565);expanded.x_scale[300:564]=.05;expanded.initialize_current(packet)
    packet=dict(schema=SCHEDULED_SCHEMA,model=expanded.state_dict(),config=dict(conditioning=scheduled_conditioning_contract()))
   actor=BCWarmStartActor(packet).cuda().eval()
+  critic=None
+  if a.ppo_smoke:
+   from wam_rl_policy.ppo import Critic
+   from wam_rl_policy.recipe_ppo import update_minibatches
+   torch.manual_seed(a.seed);critic=Critic(obs_dim=565,value_scale=100.).cuda()
   cache=ROOT/'outputs/shadow-finetune/policy-data-full-20261015-r1';snap=ROOT/'outputs/ptv3-shared-wam-v4/local-control-snapshot-20261018-r1'
   runtime=V4Runtime(snap/'step12000-local.pt',[dict(object_code=a.object_code,scale=a.scale)],cache,dense_manifest=snap/'surface-manifest.json')
   summary=[];initial=[]
@@ -87,17 +94,21 @@ def main():
    first=snapshot();initial.append(first['current']);target=first['pose'].copy();target[:3,3]=first['goal']
    scheduler=OrderedGoalScheduler([first['pose'],target],[0,2],runtime.geometry[0][2],interaction_points=runtime.geometry[0][0])
    control=ScheduledShadowControl(runtime,scheduler,actor,TaskIntent('unidex-position-goal'));episode_id='native-%d'%episode;control.reset(episode_id)
-   states=[first];commands=[];applied=[];parent_error=0.;decision_trace=[];reset_reason=None
+   states=[first];commands=[];applied=[];parent_error=0.;decision_trace=[];reset_reason=None;rollout=[]
    with torch.inference_mode():
     for tick in range(a.ticks):
      measured=states[-1]
      state=MeasuredShadowState(episode_id,tick,tick/60,measured['current'],measured['pose'],measured['hand'],np.ones(11,bool))
-     command=control.compute(state)
+     command=control.compute(state,sample=a.ppo_smoke)
+     if critic is not None:
+      x=torch.as_tensor(command['executor_observation'][None],device='cuda');dist=actor.distribution(x)
+      value=float(critic(x)[0]);mean=dist.loc[0].cpu().numpy().copy();std=dist.scale[0].cpu().numpy().copy()
      if old is not None:
       x=torch.as_tensor(command['executor_observation'][None],device='cuda')
       parent_error=max(parent_error,float((actor(x)-old(x[:,:300])).abs().max()))
      before=command['canonical_action'].copy();control.execute(command,sim_step)
      np.testing.assert_array_equal(before,command['canonical_action'])
+     if critic is not None:rollout.append(dict(value=value,mean=mean,std=std,reward=float(task.rew_buf[0]),done=bool(task.reset_buf[0])))
      applied.append(task.actions[0].detach().cpu().numpy().copy());commands.append(command);states.append(snapshot())
      d=command['scheduler'];decision_trace.append(dict(tick=tick,mode=d['mode'],reason=d['reason'],confirmed_progress=d['confirmed_progress'],
        arrival_witness=d['arrival_witness'],milestone_witnesses=d['milestone_witnesses'],path_complete=d['complete'],task_success=command['task_success']))
@@ -117,6 +128,29 @@ def main():
     hold=metrics,goal_audit_eligible=len(outcomes['ticks']),goal_audit_endpoint_error_mean_m=float(np.mean(outcomes['endpoint_position_error_m'])) if len(outcomes['ticks']) else None,
     goal_audit_scope='observed under this policy; no claim of goal controllability',final_distance_m=float(distances[-1]),max_lift_m=float(poses[:,2,3].max()-poses[0,2,3]))
    if old is not None and parent_error>1e-5:raise ValueError('Expanded parent BC behavior changed')
+   if critic is not None:
+    if len(commands)%4:raise ValueError('Early terminal not divisible by4; preserve rollout without update')
+    if rollout[-1]['done']:bootstrap=torch.zeros(1,device='cuda')
+    else:
+     last=states[-1];final=MeasuredShadowState(episode_id,len(commands),len(commands)/60,last['current'],last['pose'],last['hand'],np.ones(11,bool))
+     terminal_command=control.compute(final)
+     with torch.no_grad():bootstrap=critic(torch.as_tensor(terminal_command['executor_observation'][None],device='cuda')).detach()
+    batch={k:torch.as_tensor(np.asarray([r[k] for r in rollout]),device='cuda').unsqueeze(1) for k in ('value','mean','std','reward','done')}
+    batch.update(observation=torch.as_tensor(np.stack([c['executor_observation'] for c in commands]),device='cuda').unsqueeze(1),
+      latent=torch.as_tensor(np.stack([c['raw_action'] for c in commands]),device='cuda').unsqueeze(1),
+      logp=torch.as_tensor([c['action_log_prob'] for c in commands],device='cuda').unsqueeze(1),bootstrap=bootstrap)
+    batch['value']=batch['value'].float();batch['reward']=batch['reward'].float()
+    before=actor.actor.net[0].weight.detach().clone();actor_opt=torch.optim.Adam(actor.parameters(),lr=1e-5)
+    critic_opt=torch.optim.Adam(critic.parameters(),lr=1e-4)
+    metrics=update_minibatches(actor,critic,batch,actor_opt,critic_opt,bc_weight=0.,target_kl=.01,epochs=1,minibatches=4)
+    metrics.update(scope='one native on-policy engineering update; no policy improvement claim',
+      reward='unmodified pinned UniDex native reward',bootstrap=float(bootstrap[0]),
+      actor_first_layer_max_change=float((actor.actor.net[0].weight-before).abs().max()))
+    if metrics['actor_steps']<1 or metrics['actor_first_layer_max_change']==0:raise ValueError('No actor update accepted')
+    torch.save(dict(schema='ref2dex.scheduled-shadow-ppo-engineering.v1',actor=actor.state_dict(),critic=critic.state_dict(),
+      actor_optimizer=actor_opt.state_dict(),critic_optimizer=critic_opt.state_dict(),conditioning=scheduled_conditioning_contract()),a.output/'ppo-smoke.pt')
+    torch.save({k:v.detach().cpu() for k,v in batch.items()},a.output/'rollout.pt')
+    write_json(a.output/'ppo-update.json',metrics);report['ppo']=metrics
    summary.append(report);write_json(a.output/'episodes.json',summary);print(json.dumps(report),flush=True)
   manifest.update(status='COMPLETED',elapsed_s=time.monotonic()-started,episodes=summary,
     repeated_reset_max_observation_error=float(np.max(np.abs(np.stack(initial)-initial[0]))),peak_mib=torch.cuda.max_memory_allocated()/2**20,
