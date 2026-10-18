@@ -50,7 +50,7 @@ class BatchedScheduledInputs:
             batch={k:v.to(self.runtime.device) for k,v in collate_v4(samples).items()}
             precision=torch.autocast('cuda',dtype=torch.bfloat16) if self.runtime.device.type=='cuda' else nullcontext()
             with torch.inference_mode(), precision:
-                trajectory=getattr(self.runtime,'predict_hand',self.runtime.predict)(batch)['trajectory'].float().cpu().numpy()
+                trajectory=self.runtime.predict(batch)['trajectory'].float().cpu().numpy()
             for row,i in enumerate(ready):
                 tau[i]=v4_trajectory_to_student(trajectory[row],object_rotation=poses[i,:3,:3])
                 valid[i]=1

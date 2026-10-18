@@ -1,3 +1,11 @@
+## 2026-10-18 用户确认565维输入，继续官方10000轮预算
+
+六卡各160环境（总960）、96 TRAIN物体，保留最终位置误差+WAM tau条件，
+从全量scheduled BC初始化。运行official-scheduled-mixed-20261018-r2，48小时预算，
+预计约26小时；GPU6/7不分配本任务。此前1000轮训练及192环境计时已主动停止。
+hand-only推理未通过真实GPU等价性检查，正式训练保留完整WAM推理。
+详见[实验卡](../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261018-official-scheduled-mixed-ppo.md)。
+
 ## 2026-10-18 六卡混合训练改为复用官方 UniDex PPO
 
 按用户要求复核旧官方PPO实验，v2现复用固定上游run/update/storage及原配置，

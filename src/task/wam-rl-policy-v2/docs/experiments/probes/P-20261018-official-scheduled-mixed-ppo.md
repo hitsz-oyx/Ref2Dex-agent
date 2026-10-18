@@ -69,3 +69,26 @@ r1资产路径预检未进入训练；实际worker r1因原生scale_buf为dict�
 正式运行 `outputs/wam-rl-policy-v2/official-scheduled-mixed-20261018-r1/` 从同一BC重新初始化，
 不从32iteration工程端点继续选模。加入被动episode计数/native success/held60+lift10cm，
 不改reward或更新。tmux持久化supervisor，固定代码副本与最多2小时预算。
+
+## 用户修订：官方10000迭代与吞吐测试
+
+用户明确要求官方超参、计时并提高利用率。旧192环境/1000迭代run通过STOP停止，
+原BC、首迭代checkpoint和全部日志保留；不将提前停止误称完成。
+保持官方更新数学、8步rollout、5epoch/4minibatch/Adam/adaptive KL；正式目标10000迭代。
+先在相同96 TRAIN物体与BC上测六卡每卡160/192环境，各12iteration，900秒上限，
+记录上游采集/学习wall time、总交互吞吐、GPU利用率/显存；前2轮作预热。
+总960/1152环境接近官方配置1000，六卡均匀分配避免修改梯度权重。
+根据实测选择规模并估算10000迭代耗时，之后设有余量且不超过48小时的有界预算。
+无需新增缓存或下载；停止线仍为磁盘20GiB和任一rank失败。
+
+## 输入确认后继续正式预算（2026-10-18）
+
+用户确认保留565维：native300（含最终位置误差）+tau264+history-valid1。
+160环境/卡计时完成，192环境/卡计时因用户暂停而中止，不用于完整比较。
+选择GPU0–5各160环境，共960环境、96 TRAIN物体，10000迭代（76800000环境步），
+每卡20 Adam steps/iteration；48小时硬预算，预计约26小时，每200轮及末端保存。
+run_id: official-scheduled-mixed-20261018-r2；从同一完整scheduled BC重新初始化，
+不续接短计时试跑权重。输出outputs/wam-rl-policy-v2/official-scheduled-mixed-20261018-r2。
+环境graspenv Python3.8/Torch2.4.1+cu121，固定运行源码副本和commit。
+hand-only优化真实GPU等价性检查失败，max差0.00050056m，原因待查；
+正式运行已恢复完整runtime.predict，不使用该优化，不放宽检查阈值。
