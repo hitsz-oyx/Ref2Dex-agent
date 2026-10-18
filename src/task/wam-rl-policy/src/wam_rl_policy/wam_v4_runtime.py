@@ -71,7 +71,8 @@ def apply_dense_overlay(geometry, manifest_path, expected_sha256=None):
         if key not in geometry:
             continue
         payload = (root / row["path"]).read_bytes()
-        if row.get("sha256") and hashlib.sha256(payload).hexdigest() != row["sha256"]:
+        if ((manifest['schema'].endswith('.v2') or row.get('sha256'))
+                and hashlib.sha256(payload).hexdigest() != row.get('sha256')):
             raise ValueError("dense surface payload SHA-256 mismatch: " + key)
         with np.load(io.BytesIO(payload), allow_pickle=False) as values:
             surface = values["surface"].copy()
@@ -82,12 +83,13 @@ def apply_dense_overlay(geometry, manifest_path, expected_sha256=None):
                 or not np.isfinite(surface).all() or not np.isfinite(normals).all()
                 or not np.allclose(np.linalg.norm(normals, axis=-1), 1., atol=1e-5)):
             raise ValueError("dense surface/normal identity mismatch: " + key)
+        original_query = geometry[key].get('query')
+        if (query is None or original_query is None
+                or query.shape != (FLOW_POINTS, 3) or not np.isfinite(query).all()
+                or not np.array_equal(query, original_query)):
+            raise ValueError("dense flow query must preserve the original 32 identities: " + key)
         replacement = dict(surface=surface.astype(np.float32),
-                           normals=normals.astype(np.float32))
-        if query is not None:
-            if query.shape != (FLOW_POINTS, 3) or not np.isfinite(query).all():
-                raise ValueError("dense flow query mismatch: " + key)
-            replacement["query"] = query.astype(np.float32)
+                           normals=normals.astype(np.float32), query=query.astype(np.float32))
         geometry[key] = replacement
         replaced += 1
     return replaced
@@ -125,6 +127,9 @@ def load_geometry(cache, env_objects, dense_manifest=None, dense_sha256=None):
             surface = values["surface"].copy()
             normals = values["normals"].copy()
             query = values["query"].copy() if "query" in values.files else None
+        if (query is None or query.shape != (FLOW_POINTS, 3)
+                or not np.isfinite(query).all() or len(np.unique(query, axis=0)) != FLOW_POINTS):
+            raise ValueError('online cache requires the original 32 flow queries: ' + key)
         length = np.linalg.norm(normals, axis=-1)
         keep = length > 1e-6
         if not keep.all():
@@ -246,6 +251,16 @@ class V4Runtime:
             raise ValueError("v4 runtime requires ref2dex.ptv3-shared-wam.v4")
         self.config, self.stats = packet["config"], packet["stats"]
         self.step = int(packet.get("step", 0))
+        recipe = self.stats.get('recipe', {})
+        bound_digest = recipe.get('surface_geometry_sha256')
+        if bound_digest is not None:
+            if dense_sha256 is not None and dense_sha256 != bound_digest:
+                raise ValueError('checkpoint and online dense geometry identities differ')
+            dense_sha256 = bound_digest
+            if dense_manifest is None:
+                dense_manifest = recipe.get('surface_geometry_manifest')
+            if dense_manifest is None:
+                raise ValueError('checkpoint-bound dense geometry requires its surface manifest')
         self.device = torch.device(device if torch.cuda.is_available() or device == "cpu" else "cpu")
         if model_factory is None:
             v4_src = TASK_ROOT.parent / "ptv3-shared-wam-v4" / "src"
@@ -297,7 +312,7 @@ class V4Runtime:
 
     @torch.inference_mode()
     def interaction_for_executor(self, prediction):
-        """Return ``C[24,128,7]`` and its current-observation validity mask."""
+        """Return the first sample's ``C[objects,24,128,7]`` and validity mask."""
         if "interaction" not in prediction or "interaction_prediction_valid" not in prediction:
             raise ValueError("full v4 forward output required")
         return (prediction["interaction"][0].detach().cpu().numpy(),

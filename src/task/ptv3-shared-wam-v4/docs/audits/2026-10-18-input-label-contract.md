@@ -96,3 +96,50 @@ or restart that run.
   enough to run separately.
 - C remains a parallel interaction head; it does not condition on a candidate
   action and cannot be used as a counterfactual action scorer.
+
+## Follow-up: running training and online geometry identity
+
+The contract-fixed production run is pinned to remote commit `2183eb46`,
+`pretrain-nine-v4-contractfix-warm13000-20261018-r1`. Its checkpoint identity
+records `v4.target-static-h4-2mm.current-hand.v1` inputs and
+`v4.current-interaction-origin-minus5cm.v1` labels. At the follow-up check it
+reached step1860 with finite loss1.18921/gradient4.59354, about1.605 updates/s
+and a provisional remaining13.52h. This is numerical/operational evidence,
+not proof of downstream execution quality. Keep this run and its frozen filters;
+the coverage question below does not establish that the run is invalid.
+
+An independent CPU-only full filter transition scan was launched against
+`b9c0800d` with Python3.8.20, NumPy1.24.4 in remote `graspenv`. Run ID is
+`filter-transition-20261018-r1`, supervisor2644469, two processes, one-hour
+deadline and20GiB free-space guard. Inputs are the unchanged audit-bound
+recipe/dense overlay and old TRAIN/DEV filters; outputs/status/logs live under
+the NAS root's `data/filter-transition-20261018-r1/`. The active training code,
+recipe, normalization and filters are untouched. It rechecks1,587,404 TRAIN
+and276,176 DEV blocked indices. Results are **pending**, so prefix counts are
+not used to decide on a training restart. Decide whether to change coverage
+after completed counts by source and quality-admission exclusions are known.
+This scan uses conservative AABB contact candidates, not exact contact labels.
+It is a Decision probe: distinguish negligible coverage change from a material
+overall or per-source omission. The former supports retaining the frozen run;
+the latter motivates a separately versioned coverage run. Rechecking old blocks
+with the metadata classifier is cheaper than regenerating all C labels or
+launching another training run before knowing the affected counts.
+
+The online overlay previously accepted a correctly hashed NPZ whose32 flow
+queries had all moved1m. Unlike the training overlay, it did not compare them
+to the original geometry. The runtime now requires explicit32 distinct cached
+flow queries, rejects missing/changed overlay queries, and requires payload
+digests for v2 manifests. When a checkpoint binds a dense-manifest digest,
+runtime uses that binding automatically; an explicit relocated manifest is
+accepted with the same content, while a different digest is rejected. Legacy
+v1 overlays remain readable when the checkpoint has no dense binding. Existing
+v3 cache builders must supply the original flow queries for use with v4;
+resampling32 new identities from a512-point surface is no longer accepted.
+
+Regression tests first reproduced missing/changed query acceptance and the
+unbound checkpoint geometry, then passed after the runtime fix. The related
+local model/data/runtime suite passed103 tests (8 warnings) in33.20s, using
+Python3.8.20, PyTorch2.4.1+cu121 and NumPy1.24.4. A subsequent focused model
+check covers the already-present `scene_token_count` in real v4 forward output;
+it was incorrectly reported missing during review and requires no model fix.
+No simulator rollout or new neural training was launched for this runtime fix.

@@ -76,7 +76,8 @@ def test_c_contract_and_target_are_masked():
 
 
 def test_v4_emits_tau_scene_and_interaction_and_goal_reaches_c():
-    m = model(); b = batch(); first = m(b)
+    m = model(); b = batch(); first = m(b, return_shared=True)
+    assert first['scene_token_count'] == 4
     assert first["trajectory"].shape == (2, 24, 2, 11, 3)
     assert first["scene"].shape == (2, 1, 24, 32, 3)
     assert first["interaction"].shape == (2, 1, 24, 128, C_DIM)

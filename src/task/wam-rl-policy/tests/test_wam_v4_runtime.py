@@ -1,8 +1,10 @@
 import json
+import hashlib
 import sys
 from pathlib import Path
 
 import numpy as np
+import pytest
 import torch
 from scipy.spatial.transform import Rotation
 
@@ -77,6 +79,8 @@ def test_geometry_cache_and_v1_dense_overlay_are_bound_to_identity(tmp_path):
     dense = tmp_path / 'dense'
     dense.mkdir()
     replacement = _geometry(offset=1.)
+    replacement['query'] = _geometry()['query']
+    replacement['surface'][:32] = replacement['query']
     np.savez(dense / 'object.npz', **replacement)
     (dense / 'surface-manifest.json').write_text(json.dumps(dict(
         schema='ref2dex.wam-v4-dense-surface.v1', status='COMPLETED',
@@ -85,7 +89,7 @@ def test_geometry_cache_and_v1_dense_overlay_are_bound_to_identity(tmp_path):
                              dense / 'surface-manifest.json')
     assert len(prepared) == 1
     surface = prepared[0][0]
-    np.testing.assert_allclose(surface[:, 2], 1., atol=1e-6)
+    np.testing.assert_allclose(surface[32:, 2], 1., atol=1e-6)
     with np.testing.assert_raises(ValueError):
         load_geometry(cache, [dict(object_code='core/bottle', scale=.08)],
                       dense / 'surface-manifest.json', dense_sha256='0' * 64)
@@ -101,6 +105,79 @@ def test_apply_dense_overlay_rejects_unknown_payload_identity(tmp_path):
         objects=[dict(key='core/bottle@0.08', path='object.npz')])))
     with np.testing.assert_raises(ValueError):
         apply_dense_overlay({'core/bottle@0.08': _geometry()}, dense / 'surface-manifest.json')
+
+
+def test_runtime_cache_requires_explicit_original_flow_queries(tmp_path):
+    geometry = _geometry()
+    del geometry['query']
+    np.savez(tmp_path / 'object.npz', **geometry)
+    (tmp_path / 'manifest.json').write_text(json.dumps(dict(records=[dict(
+        object_code='core/bottle', scale=.08, geometry=str(tmp_path / 'object.npz'))])))
+    with pytest.raises(ValueError, match='original 32 flow queries'):
+        load_geometry(tmp_path, [dict(object_code='core/bottle', scale=.08)])
+
+
+@pytest.mark.parametrize('invalid', ['changed_query', 'missing_query', 'missing_original'])
+def test_dense_overlay_preserves_original_flow_queries(tmp_path, invalid):
+    original, replacement = _geometry(), _geometry()
+    if invalid == 'changed_query':
+        replacement['query'] += 1.
+    elif invalid == 'missing_query':
+        del replacement['query']
+    else:
+        del original['query']
+    payload = tmp_path / 'object.npz'
+    np.savez(payload, **replacement)
+    manifest = tmp_path / 'surface-manifest.json'
+    manifest.write_text(json.dumps(dict(
+        schema='ref2dex.wam-v4-dense-surface.v2', status='COMPLETED',
+        objects=[dict(key='core/bottle@0.08', path=payload.name,
+                      sha256=hashlib.sha256(payload.read_bytes()).hexdigest())])))
+    with pytest.raises(ValueError, match='flow query'):
+        apply_dense_overlay({'core/bottle@0.08': original}, manifest,
+                            hashlib.sha256(manifest.read_bytes()).hexdigest())
+
+
+def test_v4_runtime_enforces_checkpoint_dense_geometry_binding(tmp_path):
+    cache = tmp_path / 'cache'
+    cache.mkdir()
+    np.savez(cache / 'object.npz', **_geometry())
+    (cache / 'manifest.json').write_text(json.dumps(dict(records=[dict(
+        object_code='core/bottle', scale=.08, geometry=str(cache / 'object.npz'))])))
+    payload = tmp_path / 'dense.npz'
+    dense = _geometry(offset=.02)
+    dense['query'] = _geometry()['query']
+    dense['surface'][:32] = dense['query']
+    np.savez(payload, **dense)
+    manifest = tmp_path / 'surface-manifest.json'
+    manifest.write_text(json.dumps(dict(
+        schema='ref2dex.wam-v4-dense-surface.v2', status='COMPLETED',
+        objects=[dict(key='core/bottle@0.08', path=payload.name,
+                      sha256=hashlib.sha256(payload.read_bytes()).hexdigest())])))
+    digest = hashlib.sha256(manifest.read_bytes()).hexdigest()
+    checkpoint = tmp_path / 'v4.pt'
+    torch.save(dict(schema=V4_SCHEMA, config={}, stats={'recipe': dict(
+        surface_geometry_manifest=str(manifest), surface_geometry_sha256=digest)},
+        model={'weight': torch.tensor([2.])}), checkpoint)
+    from wam_rl_policy.wam_v4_runtime import V4Runtime
+    # An omitted CLI override still uses the checkpoint's bound overlay.
+    runtime = V4Runtime(checkpoint, [dict(object_code='core/bottle', scale=.08)], cache,
+                        device='cpu', model_factory=FakeModel)
+    np.testing.assert_array_equal(runtime.geometry[0][0], dense['surface'])
+    relocated = tmp_path / 'relocated-manifest.json'
+    relocated.write_bytes(manifest.read_bytes())
+    runtime = V4Runtime(checkpoint, [dict(object_code='core/bottle', scale=.08)], cache,
+                        dense_manifest=relocated, device='cpu', model_factory=FakeModel)
+    np.testing.assert_array_equal(runtime.geometry[0][0], dense['surface'])
+    # A different valid manifest cannot override the checkpoint identity.
+    manifest.write_text(manifest.read_text() + '\n')
+    with pytest.raises(ValueError, match='manifest SHA-256 mismatch'):
+        V4Runtime(checkpoint, [], cache, dense_manifest=manifest,
+                  device='cpu', model_factory=FakeModel)
+    with pytest.raises(ValueError, match='checkpoint.*dense'):
+        V4Runtime(checkpoint, [], cache, dense_manifest=manifest,
+                  dense_sha256=hashlib.sha256(manifest.read_bytes()).hexdigest(),
+                  device='cpu', model_factory=FakeModel)
 
 
 class FakeModel(torch.nn.Module):
