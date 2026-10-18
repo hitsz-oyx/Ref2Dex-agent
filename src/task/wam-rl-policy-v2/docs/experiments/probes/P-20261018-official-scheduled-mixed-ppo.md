@@ -100,3 +100,26 @@ hand-only优化真实GPU等价性检查失败，max差0.00050056m，原因待查
 REF2DEX_PROFILE_PPO=1输出cProfile分解；后续最多GPU6/7对照，总诊断预算30分钟。
 目标区分CPU组装/scheduler、WAM计算、同步等待，优化决策以端到端吞吐及语义一致性为准。
 所有输出独立v2目录，不覆盖主训练或BC，测试完释放预留卡。
+
+### 性能诊断完成：Scheduler重复SE(3)计算
+
+profile基线bff64750，GPU6，12轮；优化9b877365，GPU7，同配置。
+总剖析124秒中scheduler.update累计63.54秒、其中_bounded37.57秒；
+完整WAM33.50秒。优化将28次二分中不变的rotvec、距离、实际表面点移到循环外，
+保留28次二分与相同限幅，先检查线性平移/角度预算，再计算表面点误差。
+180组随机纯平移/纯旋转/混合情况对原实现误差<=1e-8，25项测试通过。
+500固定输入原1.001秒→0.360秒；profile中_bounded37.57→13.40秒。
+
+关闭profiler的最终native A/B：代码d29d9d6d，GPU6 baseline绑定冻结旧_bounded，
+GPU7优化；相同16 TRAIN物体、160环境、seed0、16轮，各320 Adam steps，
+每run600秒上限。两组均COMPLETED，动作路径误差0，跨96个episode。
+去掉前2轮，平均每轮8.809→7.195秒（-18.3%），145.3→177.9环境步/秒（+22.4%）。
+其中采集8.631→7.020秒，更新0.178→0.176秒。共同运行窗口1Hz利用率采样
+GPU6均值39.6%、GPU7均值42.7%；包含monica的共享任务，仅描述性参考。
+输出：outputs/wam-rl-policy-v2/scheduler-ab-{baseline,optimized}-20261018-r1，
+汇总位于optimized的comparison.json；可复现入口tools/audit/benchmark_scheduler_worker.py。
+首个wrapper尝试因native_helpers搜索路径未设置而在仿真前退出，已修正并重跑。
+
+限制：单次短测、不同共享GPU，尚无六卡整体提速测量；非成功率实验。
+六卡主训练r2仍用其固定40b35d51源码，未热替换、未重启、未损失进度；
+此优化已提交供后续有checkpoint的续训使用。GPU6/7诊断进程全部退出并释放显存。
