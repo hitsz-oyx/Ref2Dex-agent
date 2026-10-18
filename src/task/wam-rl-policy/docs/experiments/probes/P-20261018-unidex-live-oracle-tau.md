@@ -1,7 +1,7 @@
 # P-20261018-unidex-live-oracle-tau
 
 `task`: `wam-rl-policy`  
-`status`: `PROMISING` (closed-loop tau+DAgger holds; state-only controls fail)  
+`status`: `PROMISING` (fixed421 positive; cross-initial-state holding unresolved; late-state adaptation UNPROMISING)
 `stage`: Probe  
 `classification`: Decision  
 `code_branch`: `main`  
@@ -433,6 +433,65 @@ code snapshot, commit, commands and GPU samples. No automatic expansion to
 additional tau episodes if this test fails. The runner now preserves terminal
 raw observation/object pose so the last-action metric can be checked directly.
 
+### Holding/recovery result: stop this one-packet adaptation
+
+The bounded job completed normally in2121.85s (35.36min), code
+`d2c5de16fc01acf1d4d65a2d46f1b87e605635cf`, run
+`oracle-tau-holding-adapt-20261018-r1`. Both200-step native rollouts completed;
+all200 tau queries had replay error0, and every action equaled its saved
+canonical prefix. The initial300-D observation and13-D object state are
+bitwise identical across the old482 tau run and both new arms. The deadline
+200/220 two-step smoke also matched the archived initial state/actions exactly.
+Post-final-action goal distance was independently recomputed from the saved
+terminal raw observation. The qualification gate failed.
+
+| Seed482 policy | First150 in-goal / longest frames | Maximum lift from initial | Post-final-action distance at200 |
+| --- | ---: | ---: | ---: |
+| Retained tau DAgger1 (archived150-step baseline) | 13 /13 | .18318m | unavailable; last pre-action distance .28588m |
+| Added453 late-state adaptation, tau | 0 /0 | 0m | .29612m |
+| Added453 late-state adaptation, equal-capacity state-only | 0 /0 | 0m | .28264m |
+
+Neither new arm reaches the goal in the complete200 steps either. Zero lift
+here is measured relative to the initial object height; the object first
+settles about7.7cm, and the tau arm briefly rises from that settled position,
+without recovering initial height. This is a failure to retain reaching/lifting,
+not merely a failure to hold after a successful grasp. The archived baseline
+is only150 pre-action states, so report its first150 comparison separately;
+there is no corresponding archived200-step terminal outcome.
+
+Training fit improved: tau BC action L1 .01252->.01164 and adaptation-packet
+L1 .03597->.00688, with the original input normalization exactly preserved.
+On fixed archived471/482 late states held out from fitting, clipped action L1
+also improves .01797->.01608 and .13664->.13155, respectively. These one-step
+identification gains did not predict the new closed-loop behavior. They do not
+show that the actual newly visited state distribution is covered, nor that the
+remaining error is a pure observation or rotation limitation.
+
+Decision: mark this particular packet-plus-update expansion UNPROMISING and
+stop it; retain the previous checkpoint and all new negative evidence. Do not
+append epochs, automatically collect another oracle episode, or replace GT-tau
+with WAM-tau in this failed student and interpret the result as WAM quality.
+The fixed421 positive and original held-out goal-attainment evidence remain;
+cross-initial-state sustained holding remains unresolved. Added data and extra
+updates changed together, so this single development-initial-state result does
+not identify a unique cause. Next executor work should qualify its observation,
+plan-condition training coverage and recovery contract explicitly, including
+the separately developed scheduled WAM adapter, before another physical test.
+
+Artifacts under `outputs/wam-rl-policy/oracle-tau-holding-adapt-20261018-r1/`:
+`process.json`, `gpu.jsonl`, `run-{tau,state}/{manifest.json,trajectory.npz}`,
+`heldout-action-diagnostics.json`, and `comparison/{summary.json,comparison.png}`.
+The comparison audits350 total retained/new oracle packets and all initial
+states, and is reproducible with
+[`summarize_oracle_tau_holding.py`](../../../tools/audit/summarize_oracle_tau_holding.py).
+The complete job used localGPU0, with a short offline diagnostic onGPU1;
+both are released. Artifacts total about21.5MiB, below2GiB. Actual environment
+was Python3.8.10/Torch2.0.1+cu118/NumPy1.23.5.32 related contract tests passed;
+the generated plot was inspected. Remote WAM pretraining was not changed.
+Scoped Python syntax/Markdown-link checks pass. The repository-wide verifier
+is blocked by missing v2 metadata fields in six existing `trajectory-policy`
+experiment cards; those unrelated cards were not modified in this follow-up.
+
 ## 2026-10-18 audit caveat: action prefix and success frames
 
 The pinned `shadow_hand_grasp.py` rewrites `actions[:,0:3]` and `actions[:,3:6]`
@@ -533,9 +592,12 @@ linearly in ticks; the fresh-process reset is the dominant cost.
 Stage1 retains its fixed-seed reach-and-hold positive. Stage2's three selected
 held-out states show improved goal attainment but fail to sustain in-goal
 holding at the last recorded state. Equal allocated capacity did not reproduce
-the tau result. Prioritize a bounded holding/recovery qualification using
-saved student-state labels, before substituting WAM-tau or adding objects.
-Keep added adaptation seeds separate from subsequent held-out evaluations.
+the tau result. The bounded453 late-state adaptation failed to preserve482
+reaching/lifting; stop that packet-plus-update expansion. Qualify the executor
+observation, plan-condition training coverage and recovery interface before
+another physical test. Seed453 is adaptation data;471/482 remain development
+evaluations, not untouched TEST. Do not infer WAM deployment quality from
+substituting its predictions into this unqualified student.
 
 ## Artifacts
 

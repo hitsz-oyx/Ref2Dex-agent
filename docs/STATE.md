@@ -1,3 +1,19 @@
+## 2026-10-18 GT-τ有界后续失败；WAM-v4在更大DEV上主要改善C
+
+复用421的150行与453晚期60行微调2000步后，482的GT-τ/state-only各200步均未抬过
+初始高度或达标，终态29.61/28.26cm；原τ在同前150步曾抬升18.32cm、连续达标13帧。
+200个新query回放误差0、初态逐值一致、终态raw obs复核通过。离线动作误差下降仍未
+保住闭环行为，停止这个packet+额外更新配方，保留旧正向与checkpoint；不直接换WAM-τ
+来解释WAM质量。运行35.36分钟，32项相关测试通过，本地GPU0/1均已释放。
+详见[GT-τ实验卡](../src/task/wam-rl-policy/docs/experiments/probes/P-20261018-unidex-live-oracle-tau.md)。
+
+WAM-v4修正run保持原配方。1024个不同于选模panel的DEV窗口、八源固定权重推理，
+step0->13000 objective2.08745->1.87396(-10.23%)，八源总分均降；手轨迹36.90->37.09mm，
+物体流11.16->10.86mm，分数下降约98.6%来自C项（算术分解，非因果贡献）。这些仍是
+同DEV split中的不同窗口，不是独立TEST。20:04远端到step16040，常规1.6步/秒、四卡约
+7.7GiB/98--99%，剩余约11小时；best step15000 objective1.76669，step16000为1.83189，
+仍有波动。不凭标量loss下降宣称手轨迹或机器人收益。见[v4审计记录](../src/task/ptv3-shared-wam-v4/docs/audits/2026-10-18-input-label-contract.md)。
+
 ## 2026-10-18 GT-τ 留出保持结论修正，等容量对照完成
 
 接续当天DSH的`ff7519bd`会话，重算了GT-τ闭环归档。固定seed421确有62个连续实时
@@ -31,8 +47,8 @@ loss1.0168、1.567步/秒、四卡100%、每卡约7.7--7.9GiB，ETA约12.6h。DE
 step0/1000/2000/3000/4000/5000/6000/7000/8000 为
 2.06847/2.07735/2.04790/1.98714/1.99532/1.98219/1.98791/2.02996/1.95683，best已切到
 step8000；单点波动明显，仍无表征或机器人收益结论。该 run 仍使用旧
-window-filter manifests，`moving_object_noncontact` 的重新筛选尚未生成；因此采样覆盖
-仍是旧的，但输入特征和 C 标签已切到修复语义。新旧曲线不可直接拼接，见
+window-filter manifests；`moving_object_noncontact` 的重新筛选后续已单独生成（见上文），
+未切入本run。因此采样覆盖仍是旧的，但输入特征和 C 标签已切到修复语义。新旧曲线不可直接拼接，见
 [v4 实验卡](../src/task/ptv3-shared-wam-v4/docs/experiments/probes/P-20261017-wam-v4-interaction-head.md)。
 
 ## 2026-10-18 WAM-v4 输入/标签合同修复（旧 run 不可静默续训）

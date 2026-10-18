@@ -1,5 +1,20 @@
 # 当前状态
 
+## 2026-10-18 GT-τ后期数据微调未过保持资格，停止这一配方
+
+[GT-τ实验卡](experiments/probes/P-20261018-unidex-live-oracle-tau.md)的有界后续已完成：
+原421 DAgger150行加453晚期60行，两臂同容量、同额外2000步微调，482各执行200步。
+新τ臂和state-only均未达到目标或超过初始物体高度，终态距目标29.61/28.26cm；
+原τ在相同前150步曾抬升18.32cm、连续达标13帧。200个新query回放误差全0，
+三臂初始观测/物体状态逐值相同，末次动作后原始obs独立复算一致。训练/固定旧状态上
+动作误差改善没有转化为闭环行为；该packet+额外更新配方UNPROMISING，停止追加。
+保留固定421正向与旧checkpoint，不把一次失败归咎WAM，也不在该学生上直接换WAM-τ。
+453已成为适应数据，471/482是开发评估，不是未触碰TEST。后续执行器应明确观测、
+计划条件训练覆盖和恢复合同后再物理测试；并行调度执行器实现不由本结果自动认证。
+代码d2c5de16，Python3.8.10/Torch2.0.1+cu118，35.36分钟、21.5MiB；32项相关测试通过，
+本地GPU0及短诊断GPU1已释放，远端训练未动。结果与曲线在
+`outputs/wam-rl-policy/oracle-tau-holding-adapt-20261018-r1/comparison/`。
+
 ## 2026-10-18 Viser已接入真实调度goal条件下的冻结WAM预测
 
 [Viser Probe](experiments/probes/P-20261018-goal-wam-viser.md)固定修复版v4 step2000，
