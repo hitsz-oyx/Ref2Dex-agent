@@ -1,7 +1,7 @@
 # P-20261018-unidex-live-oracle-tau
 
 `task`: `wam-rl-policy`  
-`status`: `PROMISING` (offline translation/finger); `PARTIAL` (closed-loop BC: lift, no hold)  
+`status`: `PROMISING` (closed-loop tau+DAgger holds; state-only controls fail)  
 `stage`: Probe  
 `classification`: Decision  
 `code_branch`: `main`  
@@ -243,9 +243,21 @@ to 0.0073.  The rerun with the same seed and 150 ticks reaches:
 | fork replay error | 0.0 all ticks |
 
 DAgger fixes the covariate shift cleanly: the tau student now grasps, lifts
-0.219 m and holds through the end of the episode.  The state-only DAgger
-control (same packet size, same fine-tuning schedule, same seed) is required
-before attributing this success to tau rather than to DAgger alone.
+0.219 m and holds through the end of the episode.  The matched state-only
+controls use the same architecture, BC data, DAgger size, fine-tuning schedule
+and seed; the only difference is the tau input.
+
+| arm | DAgger packet | DAgger L1 before -> after | max lift | success frames | final success |
+|---|---|---|---|---|---|
+| p2_tau | own | 0.266 -> 0.0073 | 0.219 m | 62 | 1 |
+| p2 | own | 0.285 -> 0.0114 | 0.019 m | 0 | 0 |
+| p2 | tau arm's | 0.320 -> 0.0085 | 0.082 m | 0 | 0 |
+
+Both state-only controls fit their teacher labels well but never reach
+official success.  The stricter control, trained on the exact tau-arm packet
+with tau removed, lifts to z=0.776 (0.082 m above start) around tick 108 and
+then drops; the tau arm lifts to 0.917 and holds 62 frames.  On this fixed
+seed, the live GT-tau conditioning is the differentiator, not DAgger alone.
 
 ## Interpretation
 
@@ -271,6 +283,14 @@ before attributing this success to tau rather than to DAgger alone.
    four-process single-environment audit is bitwise exact. A faithful fork
    must therefore be built as a fresh single-environment prefix replay, not
    as a second GPU environment or a restored PhysX state.
+5. **DAgger makes the closed-loop tau result real.** With the live oracle
+   fork (zero replay error) and one DAgger iteration, the tau student reaches
+   official success, lifts 0.219 m and holds 62 frames.  The matched
+   state-only students, including one trained on the identical tau-arm packet
+   with only the tau input removed, plateau at 0.019--0.082 m and never
+   succeed.  For this fixed bottle/seed task, the live GT-tau plan is the
+   operative ingredient.  This is one seed and one episode per arm; it is not
+   yet a generalization claim.
 
 ## Resource and stop condition
 
@@ -304,15 +324,14 @@ linearly in ticks; the fresh-process reset is the dominant cost.
 
 ## Next decision
 
-The online fork and the first closed-loop test are done.  GT tau changes the
-outcome from no lift to grasp plus a 5.7 cm lift, but pure BC drops the object.
-The next direct test is DAgger on the student-visited states: the oracle
-process already replays the student state, so it can also return the teacher's
-current action there; add those labels to the BC set, retrain both arms, and
-rerun the same seed.  If DAgger still cannot hold, the failure is the student
-capacity/observation/rotation control, not the tau interface.  Do not spend
-the next budget on WAM-predicted tau or cross-object generalization before
-this closed-loop hold is resolved.
+Stage 1 is complete on the fixed seed: the live GT-tau executor with one
+DAgger iteration grasps, lifts and holds, while the matched state-only
+controls do not.  Stage 2 should now use a small set of held-out successful
+seeds/orientations that were not in the student's BC or DAgger data, with the
+same two-arm protocol.  Only after that should the plan be replaced by
+WAM-predicted tau or extended to more objects.  The current result is one
+seed, one episode per arm, and one object; do not describe it as a general
+closed-loop grasping claim yet.
 
 ## Artifacts
 
@@ -322,6 +341,7 @@ this closed-loop hold is resolved.
 * Training and summary: `outputs/wam-rl-policy/P-20261018-unidex-partial-obs-200tick-32seed-r1/{train-all,train-success,summary}/`
 * Orientation and object-pose follow-up: `outputs/wam-rl-policy/P-20261018-unidex-partial-obs-200tick-32seed-p3-r1/`
 * Closed-loop students and runs: `outputs/wam-rl-policy/P-20261018-unidex-closed-loop-r1/`
+* DAgger packets and fine-tuned students: `outputs/wam-rl-policy/P-20261018-unidex-closed-loop-r1/{dagger-p2_tau,dagger-p2,student-p2_tau-dagger1,student-p2-dagger1,student-p2-dagger1-tau-packet}/`
 * Online oracle query: [`oracle_tau_query.py`](../../../tools/run/oracle_tau_query.py)
 * Closed-loop runner: [`closed_loop_unidex_oracle_tau.py`](../../../tools/run/closed_loop_unidex_oracle_tau.py)
 * Student training: [`train_closed_loop_student.py`](../../../tools/run/train_closed_loop_student.py)
