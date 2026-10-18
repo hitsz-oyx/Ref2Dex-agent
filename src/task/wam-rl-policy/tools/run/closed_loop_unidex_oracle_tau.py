@@ -53,6 +53,8 @@ def main():
                    help='explicit reset deadline; zero preserves the vendor configuration')
     p.add_argument('--labels', action='store_true',
                    help='query teacher actions at student states without using tau')
+    p.add_argument('--donor-tau', type=Path,
+                   help='use one fixed tau for every tick and skip oracle queries')
     p.add_argument('--wam-checkpoint', type=Path,
                    help='replace oracle with frozen scheduled v4; first six actions are zero')
     p.add_argument('--wam-cache', type=Path)
@@ -69,6 +71,8 @@ def main():
             setattr(args, key, getattr(args, key).resolve())
     for key in ('subset', 'vendor', 'assets', 'policy', 'output', 'oracle_script'):
         setattr(args, key, getattr(args, key).resolve())
+    if args.donor_tau:
+        args.donor_tau = args.donor_tau.resolve()
     if args.output == Path('/tmp') or Path('/tmp') in args.output.parents:
         raise ValueError('outputs must remain in the project workspace')
     if 'float' not in np.__dict__:
@@ -170,6 +174,15 @@ def main():
     mean = torch.tensor(checkpoint['mean'], dtype=torch.float32, device='cuda:0')
     std = torch.tensor(checkpoint['std'], dtype=torch.float32, device='cuda:0')
 
+    donor_tau_flat = None
+    if args.donor_tau:
+        if args.variant != 'p2_tau':
+            raise ValueError('donor tau requires the p2_tau variant')
+        source = np.load(args.donor_tau, allow_pickle=False)
+        donor = source['tau'] if hasattr(source, 'files') else source
+        donor_tau_flat = np.asarray(donor, dtype=np.float32).reshape(-1)
+        if donor_tau_flat.shape[0] != args.horizon * 11 * 3:
+            raise ValueError('donor tau shape does not match the horizon')
     oracle_root = args.output / 'oracle'
     oracle_root.mkdir(parents=True, exist_ok=True)
     actions_history = []
@@ -218,6 +231,8 @@ def main():
                         pose, features)
                     tau_np = inputs['tau'].reshape(-1)
                     wam_seconds.append(time.monotonic()-begin)
+            elif donor_tau_flat is not None:
+                tau_np = donor_tau_flat
             elif args.variant == 'p2_tau' or args.labels:
                 query_dir = oracle_root / f'tick-{tick:03d}'
                 query_dir.mkdir(parents=True, exist_ok=True)
@@ -319,6 +334,7 @@ def main():
         episode_length=int(task.max_episode_length),
         oracle_script=str(args.oracle_script),
         fork_failure=fork_failure, labels=bool(args.labels),
+        donor_tau=str(args.donor_tau) if args.donor_tau else None,
         max_replay_error=max_replay_error,
         max_replay_tolerance=args.max_replay_error,
         # Corrected realtime task metric.  ``ever_success`` mirrors the
@@ -337,12 +353,18 @@ def main():
         action_prefix_matches_executed=prefix_matches_action,
         elapsed_s=time.monotonic() - started,
         wam_checkpoint=str(args.wam_checkpoint) if args.wam_checkpoint else None,
-        plan_source='scheduled_wam_v4' if wam_bridge is not None else 'oracle',
+        plan_source=('scheduled_wam_v4' if wam_bridge is not None
+                     else 'donor_tau' if args.donor_tau else 'oracle'),
         startup='six zero commands, measured history only' if wam_bridge is not None else 'native',
         wam_forward_seconds=wam_seconds,
         note=('Student actions only. The oracle process is queried for tau and '
               'never supplies an executed action. realtime_success uses the '
               'current goal distance; success_ever is the upstream cumulative flag.'))
+    if args.donor_tau:
+        manifest['oracle_script'] = None
+        manifest['note'] = ('Fixed donor tau at every tick; no oracle queries or teacher '
+                            'actions. This is an active shuffled-plan control, not a '
+                            'state-matched plan.')
     if wam_bridge is not None:
         manifest['policy_conditioning'] = checkpoint.get('conditioning', 'legacy_GT_tau')
         manifest['oracle_script'] = None

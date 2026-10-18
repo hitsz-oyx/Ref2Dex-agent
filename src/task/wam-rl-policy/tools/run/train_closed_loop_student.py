@@ -49,6 +49,9 @@ def main():
     p.add_argument('--lr', type=float, default=1e-3)
     p.add_argument('--pad-to', type=int, default=0,
                    help='zero-pad a state-only input to this dimension for a capacity control')
+    p.add_argument('--shuffle-tau', action='store_true',
+                   help='row-shuffle the tau channel during BC and DAgger')
+    p.add_argument('--tau-shuffle-seed', type=int, default=20261018)
     args = p.parse_args()
     if args.output == Path('/tmp') or Path('/tmp') in args.output.parents:
         raise ValueError('checkpoint must remain in the project workspace')
@@ -66,8 +69,16 @@ def main():
         seeds = [int(s) for s in np.unique(data['seed'])]
 
     def features(packet):
-        return student_features(packet['p2'], args.variant,
-                                tau=packet.get('tau'), pad_to=args.pad_to)
+        value = student_features(packet['p2'], args.variant,
+                                 tau=packet.get('tau'), pad_to=args.pad_to)
+        if args.shuffle_tau:
+            if args.variant != 'p2_tau':
+                raise ValueError('shuffle-tau requires the p2_tau variant')
+            state_dim = packet['p2'].shape[1]
+            state, tau_part = value[:, :state_dim], value[:, state_dim:]
+            permutation = np.random.default_rng(args.tau_shuffle_seed).permutation(len(value))
+            value = np.concatenate([state, tau_part[permutation]], axis=1)
+        return value
 
     x_bc = features(data)
     y_bc = data['action'].astype(np.float32)
@@ -130,7 +141,7 @@ def main():
     torch.save(dict(state_dict=model.state_dict(), mean=mean, std=std,
                     variant=args.variant, hidden=int(model[0].out_features), seed=args.seed,
                     input_dim=int(x.shape[1]), rows=int(len(x)), seeds=seeds,
-                    pad_to=args.pad_to,
+                    pad_to=args.pad_to, shuffle_tau=bool(args.shuffle_tau),
                     init=str(args.init) if args.init else None,
                     dagger_data=str(args.dagger_data) if args.dagger_data else None),
                args.output / 'model.pt')
@@ -139,7 +150,7 @@ def main():
         variant=args.variant, rows=int(len(x)), bc_rows=int(len(x_bc)),
         dagger_rows=dagger_rows, dagger_weight=args.dagger_weight,
         seeds=seeds, input_dim=int(x.shape[1]), steps=args.steps, lr=args.lr,
-        pad_to=args.pad_to,
+        pad_to=args.pad_to, shuffle_tau=bool(args.shuffle_tau),
         seed=args.seed, train_l1=train_l1,
         bc_l1_before=before_bc, bc_l1_after=after_bc,
         dagger_l1_before=before_dagger, dagger_l1_after=after_dagger,
