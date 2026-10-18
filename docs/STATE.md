@@ -5,8 +5,10 @@
 启动 `pretrain-nine-v4-contractfix-warm13000-20261018-r1`。远端新代码目录
 `training-code-contract-20261018-r1`（commit `2183eb46`，由本地 `812c26aa` 起的补丁生成），
 四卡/global512/workers4，supervisor2638598。优化器、step、RNG、历史 best 全部重置；
-data identity 记录新的 input/label semantics。启动 smoke 通过；正式 run 已至step40、
-loss1.3867、1.674步/秒、四卡100%、每卡约7.7--7.9GiB，ETA约13.3h。该 run 仍使用旧
+data identity 记录新的 input/label semantics。启动 smoke 通过；正式 run 已至step3060、
+loss1.1443、1.660步/秒、四卡约99%、每卡约7.7--7.9GiB，ETA约12.9h。DEV objective 在
+step0/1000/2000/3000 为2.06847/2.07735/2.04790/1.98714，best已切到step3000；仍无表征或
+机器人收益结论。该 run 仍使用旧
 window-filter manifests，`moving_object_noncontact` 的重新筛选尚未生成；因此采样覆盖
 仍是旧的，但输入特征和 C 标签已切到修复语义。新旧曲线不可直接拼接，见
 [v4 实验卡](../src/task/ptv3-shared-wam-v4/docs/experiments/probes/P-20261017-wam-v4-interaction-head.md)。
