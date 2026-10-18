@@ -1,0 +1,25 @@
+import numpy as np
+import torch
+from wam_rl_policy.scheduled_current_cache import RecordInputs
+from wam_rl_policy.wam_v4_runtime import v4_online_samples,collate_v4
+
+
+def test_worker_preparation_matches_main_process_inputs(tmp_path):
+    rng=np.random.RandomState(7)
+    poses=np.repeat(np.eye(4)[None],12,0)
+    hand=np.zeros((12,11,3));hand[:,:,2]=.03
+    obs=np.zeros((12,300));actions=np.zeros((11,24))
+    goal=np.tile([0,0,.1],(12,1))
+    np.savez(tmp_path/'sequence.npz',poses=poses,hand=hand,time=np.arange(12)/60,
+        observation=obs,action=actions,goal=goal)
+    surface=rng.randn(512,3)*.01;normals=surface/np.linalg.norm(surface,axis=1,keepdims=True)
+    geometry=(surface,normals,surface[:32],surface[:128],normals[:128])
+    records=[dict(source=dict(path='sequence.npz',ticks=list(range(9))),lo=0,hi=9,geometry=0)]
+    old=RecordInputs(tmp_path,records,[geometry])[0]
+    new=RecordInputs(tmp_path,records,[geometry],prepare_batch=2)[0]
+    assert len(new['batches'])==2
+    for i,lo in enumerate(range(0,3,2)):
+        hi=min(lo+2,3)
+        expected=collate_v4(v4_online_samples(old['objects'][lo:hi],old['hands'][lo:hi],
+            [geometry]*(hi-lo),goal_delta=old['goals'][lo:hi]))
+        for key,value in expected.items():torch.testing.assert_close(new['batches'][i][key],value,atol=0,rtol=0)

@@ -71,3 +71,19 @@ PyTorch峰值713MiB。检查仅覆盖一次batch，不声称所有状态批处�
 穷举每个状态的WAM条件是新增条件BC的方法选择，不是PPO warmstart的必要条件。
 实测约150行/秒；端到端包含CPU调度/输入构造、batch32完整WAM forward、逐记录flush，
 未做分项profiling，不能把全部耗时归因于GPU推理。
+
+## 缓存吞吐优化（工程）
+
+用户澄清要求加速同一份全量缓存，不改成跳过缓存/PPO优先。
+`tools/audit/benchmark_scheduled_cache.py`在固定6条序列测batch32/128/256：
+每条146个有效状态，batch256实际只运行146条；稳定forward从约0.65s降至0.33s，
+显存峰值约1610MiB；与batch32的tau最大差0.000415m，未超工程阈值0.001m。
+CPU逐序列调度约0.49–0.55s、在线输入构造约0.09s、tau转换约0.034s。
+这些是组件计时，不冒充端到端加速。
+
+优化实现：worker同时准备调度状态和完整WAM输入tensor，pin-memory预取，
+GPU整条序列一次推理；使用4个worker，与GPU重叠。原数据范围/划分/归一化不变。
+新增wait/transfer/forward/tau/write计时和排除首条冷启动的吞吐/ETA。
+worker输入与原主进程构造逐tensor精确相等测试通过。
+保留原183条部分缓存，新的batch协议输出到同一run的`cache-fast`，不混写。
+先测50条工程端到端吞吐，再接续全量生成与BC。

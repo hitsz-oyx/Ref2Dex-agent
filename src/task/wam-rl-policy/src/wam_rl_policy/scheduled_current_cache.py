@@ -13,8 +13,9 @@ from .tau_contract import v4_trajectory_to_student
 
 
 class RecordInputs(torch.utils.data.Dataset):
-    def __init__(self, source, records, geometries):
+    def __init__(self, source, records, geometries, prepare_batch=0):
         self.source, self.records, self.geometries = Path(source), records, geometries
+        self.prepare_batch=prepare_batch
 
     def __len__(self):
         return len(self.records)
@@ -41,9 +42,18 @@ class RecordInputs(torch.utils.data.Dataset):
         selected=ticks[ticks>=6]
         indices=selected[:,None]+np.array([-6,-4,-2,0])[None]
         objects=np.concatenate((poses[:,:3,3],Rotation.from_matrix(poses[:,:3,:3]).as_quat()),-1)
-        return dict(index=index,ticks=ticks,selected=selected,objects=objects[indices],
+        result=dict(index=index,ticks=ticks,selected=selected,objects=objects[indices],
                     hands=hand[indices],rotations=poses[selected,:3,:3],
                     goals=np.stack([goals[int(t)] for t in selected]) if len(selected) else np.zeros((0,32,3)))
+        if self.prepare_batch:
+            from .wam_v4_runtime import v4_online_samples,collate_v4
+            result['batches']=[]
+            for lo in range(0,len(selected),self.prepare_batch):
+                hi=min(lo+self.prepare_batch,len(selected))
+                samples=v4_online_samples(result['objects'][lo:hi],result['hands'][lo:hi],
+                    [self.geometries[row['geometry']]]*(hi-lo),goal_delta=result['goals'][lo:hi])
+                result['batches'].append(collate_v4(samples))
+        return result
 
 
 def unchanged(value):
@@ -115,24 +125,29 @@ def prepare(args,out,write):
     runtime=V4Runtime(args.wam_checkpoint,identities,source,dense_manifest=args.wam_dense_manifest,device='cuda:0')
     pending=[i for i in range(len(records)) if not done[i]]
     if args.max_records:pending=pending[:args.max_records]
-    dataset=RecordInputs(source,[records[i] for i in pending],runtime.geometry)
-    loader=torch.utils.data.DataLoader(dataset,batch_size=None,num_workers=args.workers,collate_fn=unchanged,
+    dataset=RecordInputs(source,[records[i] for i in pending],runtime.geometry,prepare_batch=args.wam_batch)
+    loader=torch.utils.data.DataLoader(dataset,batch_size=None,num_workers=args.workers,collate_fn=unchanged,pin_memory=True,
         **(dict(multiprocessing_context='spawn',prefetch_factor=2) if args.workers else {}))
     rows_done=0;checked=False
+    timings=dict(wait_s=0.,transfer_s=0.,forward_s=0.,tau_s=0.,write_s=0.);last=time.monotonic();warm_start=None
     for count,item in enumerate(loader,1):
+        timings['wait_s']+=time.monotonic()-last
         if (out/'STOP').exists():raise RuntimeError('owned STOP requested; cache remains resumable')
         if shutil.disk_usage(out).free<20*2**30:raise RuntimeError('20GiB free-space floor')
         index=pending[item['index']];row=records[index];geometry=runtime.geometry[row['geometry']]
         predicted=[]
         for lo in range(0,len(item['selected']),args.wam_batch):
             hi=min(lo+args.wam_batch,len(item['selected']))
-            samples=v4_online_samples(item['objects'][lo:hi],item['hands'][lo:hi],[geometry]*(hi-lo),
-                                      goal_delta=item['goals'][lo:hi])
-            batch={k:v.to(runtime.device) for k,v in collate_v4(samples).items()}
+            stage=time.monotonic()
+            batch={k:v.to(runtime.device,non_blocking=True) for k,v in item['batches'][lo//args.wam_batch].items()}
+            torch.cuda.synchronize();timings['transfer_s']+=time.monotonic()-stage;stage=time.monotonic()
             with torch.inference_mode(),torch.autocast('cuda',dtype=torch.bfloat16):prediction=runtime.predict(batch)
             trajectory=prediction['trajectory'].float().cpu().numpy()
+            timings['forward_s']+=time.monotonic()-stage;stage=time.monotonic()
             tau=np.stack([v4_trajectory_to_student(t,object_rotation=r) for t,r in zip(trajectory,item['rotations'][lo:hi])])
+            timings['tau_s']+=time.monotonic()-stage
             if not checked:
+                samples=v4_online_samples(item['objects'][lo:lo+1],item['hands'][lo:lo+1],[geometry],goal_delta=item['goals'][lo:lo+1])
                 one={k:v.to(runtime.device) for k,v in collate_v4(samples[:1]).items()}
                 with torch.inference_mode(),torch.autocast('cuda',dtype=torch.bfloat16):single=runtime.predict(one)
                 reference=v4_trajectory_to_student(single['trajectory'].float().cpu().numpy(),object_rotation=item['rotations'][lo])
@@ -142,17 +157,22 @@ def prepare(args,out,write):
                 if error>.001:raise ValueError('batch/single tau difference exceeds1mm; use --wam-batch1 in new cache')
                 checked=True
             predicted.append(tau.reshape(hi-lo,264))
+        stage=time.monotonic()
         block=arrays[row['split']][row['lo']:row['hi']]
         valid=item['ticks']>=6
         if predicted:block[valid,300:564]=np.concatenate(predicted)
         block[:,564]=valid.astype(np.float32)
         if not np.isfinite(block).all():raise ValueError('nonfinite prepared BC condition')
         arrays[row['split']].flush();done[index]=True;done.flush()
+        timings['write_s']+=time.monotonic()-stage
         rows_done+=len(block)
+        if warm_start is None:warm_start=time.monotonic()
+        last=time.monotonic()
         if count==1 or count%10==0 or count==len(pending):
             elapsed=time.monotonic()-started;completed=int(done.sum())
             report=dict(records_done=completed,records_total=len(records),rows_this_run=rows_done,
-                elapsed_s=elapsed,eta_s=elapsed/count*(len(records)-completed),
+                elapsed_s=elapsed,eta_s=((time.monotonic()-warm_start)/max(1,count-1)*(len(records)-completed)),
+                warm_records_per_second=(count-1)/max(.001,time.monotonic()-warm_start),timings=timings.copy(),
                 peak_mib=torch.cuda.max_memory_allocated()/2**20)
             write('progress.json',report);print(json.dumps(report),flush=True)
     manifest.update(status='COMPLETED' if done.all() else 'PARTIAL',records_done=int(done.sum()),
