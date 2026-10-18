@@ -80,7 +80,8 @@ def _main3_target_sample(sample, normals, policy=V4SamplingPolicy()):
     interaction_future += effects[target, :, None, :3, 3]
     from .v4_interaction import classify_window, interaction_field
     interaction_target, interaction_valid = interaction_field(
-        hand_future, hand_valid, interaction_future, policy)
+        hand_future, hand_valid, interaction_future, policy,
+        active_sides=np.asarray(sample["start_hand_valid"], bool).any(-1))
     flow_valid = np.broadcast_to(valid, (24, policy.flow_points)).copy()
     kind = classify_window(hand_future, hand_valid, interaction_future, interaction_target, policy)
     return dict(

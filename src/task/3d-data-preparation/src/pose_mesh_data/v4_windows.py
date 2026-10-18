@@ -72,7 +72,8 @@ def v4_pose_mesh_sample(sequence, geometries, tick, target_slot, source_id, samp
     future_flow = np.einsum('tij,pj->tpi', relative[:, :3, :3], flow) + relative[:, None, :3, 3]
     future_interaction = np.einsum('tij,pj->tpi', relative[:, :3, :3], interaction) + relative[:, None, :3, 3]
     interaction_target, interaction_valid = interaction_field(
-        hand_future, future_hand_valid, future_interaction, policy)
+        hand_future, future_hand_valid, future_interaction, policy,
+        active_sides=present.any(-1))
     flow_start = _transform(flow, observed[-1])
     flow_target = future_flow - flow_start
     flow_valid = np.broadcast_to(future_known[:, None], (24, FLOW_POINTS)).copy()

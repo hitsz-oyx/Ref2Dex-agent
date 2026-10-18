@@ -128,7 +128,8 @@ def _scaffold(hand: np.ndarray, valid: np.ndarray, origin: np.ndarray, policy: V
 
 def interaction_field(hand_future: np.ndarray, hand_valid: np.ndarray,
                       object_future: np.ndarray, policy: V4SamplingPolicy = V4SamplingPolicy(),
-                      origin: np.ndarray | None = None) -> tuple[np.ndarray, np.ndarray]:
+                      origin: np.ndarray | None = None,
+                      active_sides: np.ndarray | None = None) -> tuple[np.ndarray, np.ndarray]:
     """Generate ``[T,Q,7]`` contact+hand-part labels and validity.
 
     ``object_future`` is the same fixed 128 object query identity at every
@@ -156,7 +157,16 @@ def interaction_field(hand_future: np.ndarray, hand_valid: np.ndarray,
     # data), so only sides that are active anywhere are required to be fully
     # observed at a frame.  This preserves single-hand samples while masking
     # partial hand occlusion conservatively.
-    active_sides = hand_valid.any(axis=(0, 2))
+    future_active = hand_valid.any(axis=(0, 2))
+    if active_sides is None:
+        active_sides = future_active
+    else:
+        active_sides = np.asarray(active_sides, bool)
+        if active_sides.shape != (2,):
+            raise ValueError("active hand sides must have shape (2,)")
+        # A hand observed at the current instant can disappear for the entire
+        # future window. It must remain required for known-negative C labels.
+        active_sides = active_sides | future_active
     frame_valid = np.zeros(len(hand_future), bool)
     if active_sides.any():
         frame_valid = hand_valid[:, active_sides].all(axis=(1, 2))

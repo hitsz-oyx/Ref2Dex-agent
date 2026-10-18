@@ -74,6 +74,15 @@ def test_interaction_masks_windows_with_no_observed_hand():
     assert not mask.any() and not target.any()
 
 
+def test_currently_observed_hand_disappearing_for_all_future_frames_is_unknown():
+    hand = np.zeros((3, 2, 11, 3), np.float32)
+    valid = np.zeros((3, 2, 11), bool)
+    valid[:, 0] = True
+    obj = np.zeros((3, INTERACTION_POINTS, 3), np.float32)
+    target, mask = interaction_field(hand, valid, obj, active_sides=np.array([True, True]))
+    assert not mask.any() and not target.any()
+
+
 def test_static_thinning_keeps_contact_and_bounds_idle():
     p = V4SamplingPolicy(static_keep_ratio=.1, approach_keep_ratio=.2)
     hand = np.zeros((4, 2, 11, 3), np.float32)
