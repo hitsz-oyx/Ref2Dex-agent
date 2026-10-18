@@ -1,3 +1,16 @@
+## 2026-10-18 停止旧 v4 run，以旧 ckpt 做 model-only 初始化启动修复版
+
+按用户指令先停止旧 `pretrain-nine-v4-fastinput-warm80k-20261018-r1`（step13560，
+保留 step13000 best/日志/过滤器），然后从 step13000 做 `--init-v4` model-only 初始化，
+启动 `pretrain-nine-v4-contractfix-warm13000-20261018-r1`。远端新代码目录
+`training-code-contract-20261018-r1`（commit `2183eb46`，由本地 `812c26aa` 起的补丁生成），
+四卡/global512/workers4，supervisor2638598。优化器、step、RNG、历史 best 全部重置；
+data identity 记录新的 input/label semantics。启动 smoke 通过；正式 run 已至step40、
+loss1.3867、1.674步/秒、四卡100%、每卡约7.7--7.9GiB，ETA约13.3h。该 run 仍使用旧
+window-filter manifests，`moving_object_noncontact` 的重新筛选尚未生成；因此采样覆盖
+仍是旧的，但输入特征和 C 标签已切到修复语义。新旧曲线不可直接拼接，见
+[v4 实验卡](../src/task/ptv3-shared-wam-v4/docs/experiments/probes/P-20261017-wam-v4-interaction-head.md)。
+
 ## 2026-10-18 WAM-v4 输入/标签合同修复（旧 run 不可静默续训）
 
 按第二轮审计修复了 native 与在线路径的 target/static 18维特征不一致、C 体素原点依赖未来

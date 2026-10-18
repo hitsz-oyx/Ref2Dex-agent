@@ -49,6 +49,37 @@ box contact candidates for thinning only, while exact C labels remain the
 voxel-scaffold training path. The scaffold query lookup is vectorized to keep
 the online labels practical; the nine-source raw v3 data remains untouched.
 
+## 2026-10-18 contract-fixed warm start from the existing v4 checkpoint
+
+The audited input/label fixes (unified target/static 18-D features, current-
+observation C origin, moving-object non-contact class, realtime metrics, v4
+online tau contract) are in code commit `812c26aa` and its follow-ups. The old
+remote run was stopped after its retained best at step 13000; its checkpoints,
+logs and filter artifacts remain untouched.
+
+The new run is **not a continuation of the old curve**:
+
+- `run_id`: `pretrain-nine-v4-contractfix-warm13000-20261018-r1`
+- remote code: `training-code-contract-20261018-r1`, commit `2183eb46`
+- initialization: `--init-v4 <old step13000.pt>`; model weights only, with
+  optimizer, step, per-rank RNG and historical best reset
+- data identity: `input_semantics=v4.target-static-h4-2mm.current-hand.v1`,
+  `interaction_semantics=v4.current-interaction-origin-minus5cm.v1`
+- recipe: existing `recipe-auditbound-20261018-r1` and its frozen
+  `window-filter-{train,dev}.json`. The new `moving_object_noncontact`
+  classifier has **not** yet regenerated those filter manifests, so window
+  sampling coverage is still the old one; features and C labels are the fixed
+  ones.
+- supervisor: `2638598`; four remote GPUs, global batch 512, per-rank loader
+  workers 4.
+
+A `--stop-after 1` smoke first verified strict checkpoint load, baseline
+selection, finite step-1 loss and checkpoint write. The full run reached step
+40 at loss `1.3867`, `1.674` updates/s, four GPUs at 100% and about 7.7--7.9
+GiB each; the launcher ETA is about 47.8k seconds (13.3 h). DEV evaluation is
+scheduled at the configured interval; no model-benefit claim follows from the
+startup loss.
+
 ## 2026-10-18 corrected C supervision and distributed startup
 
 Classification: Blocker. Missing future hand observations and shifted MCP part
