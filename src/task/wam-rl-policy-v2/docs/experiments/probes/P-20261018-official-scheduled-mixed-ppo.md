@@ -55,3 +55,17 @@ supervisor终止本任务其余进程组，不触及其他任务。STEP与checkp
 旧自定义PPO入口仅留作历史工程诊断，不作为本轮六卡训练器。
 23项测试通过，包括上游PPO.run AST不变、分布/动作路径一致、TRAIN分片与实测物体绑定。
 性能、成功率与稳定保持均待实测；官方探索噪声可能损害BC控制，须记录而非事后改配方。
+
+## 六卡工程检查通过
+
+r1资产路径预检未进入训练；实际worker r1因原生scale_buf为dict而停止，
+修正身份读取后r2完成，代码ce93103b。六卡32iteration共49152环境步，
+每rank严格640个官方Adam step，全部learning-audit PASS；动作路径误差0，
+首/末端点六卡参数误差0，各rank跨过43次环境reset。
+全程136.6秒，纯训练115.5秒，约3.61秒/iteration；单卡约4.1GiB总显存。
+预计1000iteration约1小时。注意smoke过程manifest的legacy ticks=180未参与官方循环，
+实际nsteps由保存的官方training-config.json确定为8；正式训练metadata已明确记录8。
+
+正式运行 `outputs/wam-rl-policy-v2/official-scheduled-mixed-20261018-r1/` 从同一BC重新初始化，
+不从32iteration工程端点继续选模。加入被动episode计数/native success/held60+lift10cm，
+不改reward或更新。tmux持久化supervisor，固定代码副本与最多2小时预算。

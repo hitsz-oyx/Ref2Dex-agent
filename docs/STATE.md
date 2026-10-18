@@ -1,3 +1,11 @@
+## 2026-10-18 六卡混合训练改为复用官方 UniDex PPO
+
+按用户要求复核旧官方PPO实验，v2现复用固定上游run/update/storage及原配置，
+仅适配565维观测、自训练BC均值和六卡同步。96 TRAIN物体、192环境，GPU0–5，
+GPU6/7不分配。六卡32iteration检查完成：各640 Adam step、参数同步/动作均值误差0，
+已跨实际episode重置。1000iteration有界训练启动，预计约1小时，详见
+[官方混合训练卡](../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261018-official-scheduled-mixed-ppo.md)。
+
 ## 2026-10-18 v2批量BC→PPO试跑完成
 
 16环境×180拍×4次更新完成，11520训练交互，actor接受22步；严格likelihood回放

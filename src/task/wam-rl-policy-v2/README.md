@@ -40,3 +40,10 @@ PPO log-prob回放误差0。记录见
 
 批量PPO首轮已完成：16环境、4次更新、11520训练交互；详见上述实验卡。
 当前只确认训练接口可用，尚未证实性能提升或跨物体泛化。
+
+
+当前训练入口以用户指定的官方UniDex PPO为准：
+`tools/run/launch_mixed_ppo.py` 启动六卡同一策略的混合物体训练，复用固定上游
+PPO.run/update/storage及原配置，增加BC均值/WAM观测和多卡同步。
+[协议与审计](docs/experiments/probes/P-20261018-official-scheduled-mixed-ppo.md)。
+此前自定义PPO试跑保留为工程历史，不作为当前训练底座。

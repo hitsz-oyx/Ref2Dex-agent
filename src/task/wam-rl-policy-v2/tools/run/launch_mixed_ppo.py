@@ -15,7 +15,7 @@ def main():
     p.add_argument('--output',type=Path,required=True);p.add_argument('--policy',type=Path,required=True)
     p.add_argument('--gpus',type=int,nargs='+',default=[0,1,2,3,4,5])
     p.add_argument('--objects-per-rank',type=int,default=16);p.add_argument('--envs',type=int,default=32)
-    p.add_argument('--updates',type=int,default=1000);p.add_argument('--ticks',type=int,default=180)
+    p.add_argument('--updates',type=int,default=1000);p.add_argument('--ticks',type=int,default=8)
     p.add_argument('--seconds',type=int,default=7200);p.add_argument('--seed',type=int,default=0)
     p.add_argument('--save-every',type=int,default=200)
     p.add_argument('--port',type=int,default=29671);p.add_argument('--resume',type=Path)

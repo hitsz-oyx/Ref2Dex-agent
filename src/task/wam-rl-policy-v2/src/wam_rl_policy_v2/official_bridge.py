@@ -68,6 +68,8 @@ class ScheduledOfficialEnv:
         self.observation_space=spaces.Box(low=-np.inf,high=np.inf,shape=(565,),dtype=np.float32)
         self.ticks=np.zeros(self.num_envs,int);self.pending=np.zeros(self.num_envs,bool)
         self.inputs=None;self.reset_count=0;self.steps=0
+        self.initial_z=np.zeros(self.num_envs);self.streak=np.zeros(self.num_envs,int);self.longest=np.zeros(self.num_envs,int)
+        self.completed_episodes=0;self.successful_episodes=0;self.held_episodes=0
 
     def augment(self,native,reset_ids):
         state=self.snapshot()
@@ -77,6 +79,10 @@ class ScheduledOfficialEnv:
             self.inputs=BatchedScheduledInputs(self.runtime,schedulers)
         for i in reset_ids:
             self.inputs.histories[i].clear();self.inputs.schedulers[i]=self.scheduler(state,i);self.ticks[i]=0
+            self.initial_z[i]=state['pose'][i,2,3];self.streak[i]=0;self.longest[i]=0
+        lift=state['pose'][:,2,3]-self.initial_z
+        near=np.linalg.norm(state['pose'][:,:3,3]-state['goal'],axis=-1)<=.05
+        self.streak=np.where(near & (lift>=.1),self.streak+1,0);self.longest=np.maximum(self.longest,self.streak)
         result=self.inputs.observation(native.detach().cpu().numpy(),state['pose'],state['hand'],self.ticks/60)
         self.ticks+=1
         return torch.as_tensor(result['observation'],device=self.runtime.device)
@@ -97,6 +103,9 @@ class ScheduledOfficialEnv:
         result=self.augment(native,reset_ids)
         self.reset_count+=len(reset_ids);self.steps+=1
         self.pending=done.detach().cpu().numpy().astype(bool).copy()
+        self.completed_episodes+=int(self.pending.sum())
+        self.successful_episodes+=int((self.task.successes.detach().cpu().numpy()[self.pending]>0).sum())
+        self.held_episodes+=int((self.longest[self.pending]>=60).sum())
         return result,reward,done,info
 
     def get_state(self):return self.base.get_state()
@@ -157,8 +166,11 @@ def run(task,snapshot,sim_step,actor,runtime,args):
             value_loss=float(metrics[1]),surrogate_loss=float(metrics[2]),reset_count=env.reset_count,
             effective_std=float(ppo.actor_critic.log_std.exp().square().mean()),
             peak_mib=torch.cuda.max_memory_allocated()/2**20)
+        counts=reduce(torch.tensor([env.completed_episodes,env.successful_episodes,env.held_episodes],device=runtime.device,dtype=torch.float64),'sum')
+        state.update(completed_episodes=int(counts[0]),native_success_episodes=int(counts[1]),held60_lift10cm_episodes=int(counts[2]))
         state['eta_s']=state['elapsed_s']/iteration*(args.ppo_updates-iteration)
         if iteration==1 or iteration%args.save_every==0 or iteration==args.ppo_updates:
+            state['model_sync_iteration']=completed+iteration
             state['model_sync_error']=parameter_sync_error(ppo.actor_critic)
             if state['model_sync_error']!=0:raise RuntimeError('Rank parameters diverged')
         with (args.output/'curve.jsonl').open('a') as f:f.write(json.dumps(state)+'\n')

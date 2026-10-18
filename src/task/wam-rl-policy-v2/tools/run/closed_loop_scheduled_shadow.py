@@ -53,7 +53,7 @@ def main():
  signal.signal(signal.SIGALRM,lambda *_:(_ for _ in ()).throw(TimeoutError('native loop deadline')));signal.alarm(a.seconds)
  commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
  manifest=dict(status='RUNNING',git_commit=commit,python=sys.executable,torch=torch.__version__,gpu=a.gpu,
-    rank=a.rank,world_size=a.world_size,object_manifest=str(a.object_manifest),resume=str(a.rl_checkpoint),seed=a.seed,ticks=a.ticks,episodes=a.episodes,envs=a.envs,ppo_updates=a.ppo_updates,policy=str(a.policy),scope='native interface engineering; not policy success validation')
+    rank=a.rank,world_size=a.world_size,object_manifest=str(a.object_manifest),resume=str(a.rl_checkpoint),seed=a.seed,ticks=8 if a.official_ppo else a.ticks,episodes=a.episodes,envs=a.envs,ppo_updates=a.ppo_updates,policy=str(a.policy),scope='native interface engineering; not policy success validation')
  write_json(a.output/'manifest.json',manifest);started=time.monotonic();task=None
  try:
   vendor=ROOT/'third_party/UniDexGrasp2';assets=ROOT/'outputs/video-data-preparation/unidexgrasp-policy-assets-20261014-r1/assets'
