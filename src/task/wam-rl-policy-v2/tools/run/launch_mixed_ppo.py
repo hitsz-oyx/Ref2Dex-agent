@@ -3,7 +3,7 @@ import argparse,json,os,shutil,signal,subprocess,sys,time
 from pathlib import Path
 TASK=Path(__file__).resolve().parents[2];ROOT=TASK.parents[2]
 sys.path.insert(0,str(TASK/'src'))
-from wam_rl_policy_v2.mixed_objects import partition_objects
+from wam_rl_policy_v2.mixed_objects import partition_objects,prepare_assets
 
 
 def write(path,value):
@@ -27,12 +27,6 @@ def main():
     if a.output.exists() or ROOT/'outputs/wam-rl-policy-v2' not in a.output.parents:raise ValueError('Fresh v2 output required')
     records=json.loads((ROOT/'outputs/shadow-finetune/policy-data-full-20261015-r1/manifest.json').read_text())['records']
     partitions=partition_objects(records,len(a.gpus),a.objects_per_rank,a.seed)
-    assets=ROOT/'outputs/video-data-preparation/unidexgrasp-policy-assets-20261014-r1/assets'
-    scale_names={.06:'006',.08:'008',.10:'010',.12:'012',.15:'015'}
-    for rows in partitions:
-        for row in rows:
-            path=assets/'meshdatav3_scaled'/row['object_code']/'coacd'/('coacd_'+scale_names[row['scale']]+'.urdf')
-            if not path.exists():raise FileNotFoundError(path)
     a.output.mkdir(parents=True)
     commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
     frozen=a.output/'runtime-code'
@@ -47,7 +41,9 @@ def main():
     for sig in (signal.SIGTERM,signal.SIGINT):signal.signal(sig,lambda *_:stopped.__setitem__(0,True))
     try:
         for rank,(gpu,rows) in enumerate(zip(a.gpus,partitions)):
-            manifest=a.output/('objects-rank-%d.json'%rank);write(manifest,dict(objects=rows))
+            manifest=a.output/('objects-rank-%d.json'%rank)
+            assets=a.output/('assets-rank-%d'%rank);size=prepare_assets(rows,assets)
+            write(manifest,dict(objects=rows,asset_root=str(assets),linked_assets_bytes=size))
             cmd=[sys.executable,'-u',str(frozen/'tools/run/closed_loop_scheduled_shadow.py'),
                 '--output',str(a.output/('rank-%d'%rank)),'--policy',str(a.policy),
                 '--object-manifest',str(manifest),'--gpu',str(gpu),'--rank',str(rank),

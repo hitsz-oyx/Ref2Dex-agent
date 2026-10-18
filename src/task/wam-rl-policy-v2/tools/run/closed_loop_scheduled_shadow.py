@@ -61,6 +61,7 @@ def main():
   Task=replay.task_class(vendor,a.output)
   cfg=yaml.safe_load((vendor/'dexgrasp/cfg/shadow_hand_grasp.yaml').read_text())
   from wam_rl_policy_v2.mixed_objects import read_objects,bind_environment_objects
+  if a.object_manifest:assets=Path(json.loads(a.object_manifest.read_text())['asset_root'])
   objects=read_objects(a.object_manifest,a.envs) if a.object_manifest else [dict(object_code=a.object_code,scale=a.scale)]
   cfg['env'].update(numEnvs=a.envs,random_time=a.official_ppo,printNumSuccesses=False,
     object_code_dict={r['object_code']:[r['scale']] for r in objects})
@@ -69,7 +70,8 @@ def main():
   sim.physx.solver_type=1;sim.physx.num_position_iterations=4;sim.physx.num_velocity_iterations=0
   sim.physx.num_threads=4;sim.physx.use_gpu=True;sim.physx.num_subscenes=0;sim.physx.max_gpu_contact_pairs=8*1024*1024
   gymutil.parse_sim_config(cfg['sim'],sim)
-  work=assets.parent/'dexgrasp';work.mkdir(exist_ok=True);os.chdir(work)
+  work=a.output/'runtime-work/dexgrasp';work.mkdir(parents=True)
+  (work.parent/'assets').symlink_to(assets.resolve(),target_is_directory=True);os.chdir(work)
   task=Task(cfg,sim,gymapi.SIM_PHYSX,'cuda',0,True)
   env_objects=bind_environment_objects(task,objects)
   write_json(a.output/'env-objects.json',env_objects)
