@@ -44,7 +44,8 @@ def test_device_tau_matches_reference(device):
     np.testing.assert_allclose(native_tau(torch.tensor(tau,device=device),torch.tensor(rotation,device=device)).cpu().numpy(),old,rtol=0,atol=1e-7)
 
 
-def test_batched_scheduler_preserves_state_and_decisions():
+@pytest.mark.parametrize('fast_geometry',[False,True])
+def test_batched_scheduler_preserves_state_and_decisions(fast_geometry):
     rng=np.random.RandomState(42);points=rng.randn(32,3)*.04;n=12
     start=np.repeat(np.eye(4)[None],n,0);goal=start.copy();goal[:,2,3]=.2
     single=[OrderedGoalScheduler([s,g],[0,2],points) for s,g in zip(start,goal)];batched=copy.deepcopy(single)
@@ -54,7 +55,7 @@ def test_batched_scheduler_preserves_state_and_decisions():
         hands=rng.randn(n,11,3)*.05;times=np.full(n,tick/60)
         if tick==10:single[0].reset();batched[0].reset()
         old=[s.update(p,t,hand_points=h) for s,p,t,h in zip(single,actual,times,hands)]
-        new=update_schedulers(batched,actual,times,hands)
+        new=update_schedulers(batched,actual,times,hands,fast_geometry=fast_geometry)
         for a,b in zip(old,new):
             for key in ['goal_pose','goal_delta','confirmed_progress','goal_point_m','lookahead_m']:
                 np.testing.assert_allclose(a[key],b[key],rtol=0,atol=1e-8)

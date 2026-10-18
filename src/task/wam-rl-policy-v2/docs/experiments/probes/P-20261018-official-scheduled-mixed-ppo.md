@@ -192,3 +192,12 @@ GPU6/7所有本轮worker结束，均回到约347MiB已有其他用户占用。
 每卡160环境、官方PPO配置不变，主r3不切换。先all模式12轮CPU profile（GPU6），
 及6轮CUDA timeline（GPU7，仅第4轮采样，限制trace范围）。每run900秒上限，
 本轮诊断30分钟预算；之后对照去除重复CPU几何及合并同步检查，保证有效性检查仍执行。
+
+进一步profile：all版77.9秒中update_schedulers31.54秒，重复_pose11.18秒，
+完整WAM33.48秒；CUDA单轮1875次cudaStreamSynchronize、CPU等待2.11秒。
+这不是全部可消除的空转，包含真实GPU执行。
+REF2DEX_DEEP_OPT=cpu：批量验证SE3后复用已验证位姿、批量交互几何；
+sync：process-local clean hooks保留所有masked finite谓词，在完整predict返回前
+合并检查一次，context外仍原同步检查；把native pose/hand/goal打包成单次D2H，
+不传重复未使用的current300。all同时开启；none默认。共享WAM源文件不修改。
+各模式16轮/160环境，GPU6/7，900秒上限；进一步GPU预测/异常mask检查后计时。

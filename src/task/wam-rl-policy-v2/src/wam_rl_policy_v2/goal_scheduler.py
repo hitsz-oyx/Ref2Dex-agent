@@ -215,8 +215,8 @@ class OrderedGoalScheduler:
             return finished.value
         raise RuntimeError('unexpected extra scheduler request')
 
-    def _update_iter(self, object_pose, time_s, *, execution_ready=None, lost_control=False, hand_points=None):
-        actual, now, c = _pose(object_pose), float(time_s), self.config
+    def _update_iter(self, object_pose, time_s, *, execution_ready=None, lost_control=False, hand_points=None, _validated=False, _interaction_geometry=None):
+        actual, now, c = object_pose.copy() if _validated else _pose(object_pose), float(time_s), self.config
         if (not np.isfinite(now) or (self.last_time is not None and now <= self.last_time)
                 or (execution_ready is not None and not isinstance(execution_ready, (bool, np.bool_)))
                 or not isinstance(lost_control, (bool, np.bool_))):
@@ -224,7 +224,7 @@ class OrderedGoalScheduler:
         execution_ready = None if execution_ready is None else bool(execution_ready)
         readiness_external = execution_ready is not None
         dt = 0. if self.last_time is None else now-self.last_time
-        interaction = self.interaction.update(actual, hand_points, now)
+        interaction = self.interaction.update(actual, hand_points, now, _geometry=_interaction_geometry)
         # Weak proximity/motion proxies shape the requested goal; they cannot
         # veto independently observed geometric path progress. Only explicit
         # caller readiness/failure signals act as hard progress gates.
@@ -351,7 +351,13 @@ class OrderedGoalScheduler:
         if on_reference and not self.complete:
             self.last_lead = max(0., float(np.interp(index, np.arange(len(self.arc)), self.arc)-self.arc[local]))
         self.last_pose = actual.copy()
-        return dict(goal_pose=goal, goal_delta=rigid_goal_delta(actual, goal, self.points),
+        if _validated:
+            rotation_delta=actual[:3,:3].T @ goal[:3,:3]
+            translation_delta=actual[:3,:3].T @ (goal[:3,3]-actual[:3,3])
+            goal_delta=self.points @ rotation_delta.T+translation_delta-self.points
+        else:
+            goal_delta=rigid_goal_delta(actual,goal,self.points)
+        return dict(goal_pose=goal, goal_delta=goal_delta,
             horizon_s=c.horizon_s, goal_semantics='spatial_path_waypoint',
             reference_endpoint_time_s=None, progress_semantics='geometric_path_only',
             readiness_source='external' if readiness_external else 'heuristic_or_unknown',
@@ -389,11 +395,29 @@ def bounded_connectors(schedulers, actual, goal):
     return result
 
 
-def update_schedulers(schedulers, poses, times, hands):
+def update_schedulers(schedulers, poses, times, hands, *, fast_geometry=False):
     """Keep independent state machines; batch only pending connector computations."""
+    geometry=[None]*len(schedulers)
+    if fast_geometry:
+        poses=np.asarray(poses,dtype=np.float64);hands=np.asarray(hands,dtype=np.float64)
+        if (poses.shape!=(len(schedulers),4,4) or not np.isfinite(poses).all()
+                or not np.allclose(poses[:,3,:],[0,0,0,1],atol=1e-6)
+                or not np.allclose(poses[:,:3,:3].transpose(0,2,1) @ poses[:,:3,:3],np.eye(3),atol=1e-5)
+                or not np.isclose(np.linalg.det(poses[:,:3,:3]),1,atol=1e-5).all()):
+            raise ValueError('finite proper SE(3) pose required')
+        if hands.shape!=(len(schedulers),11,3) or not np.isfinite(hands).all():
+            raise ValueError('finite measured palm/bases/tips hand11 required')
+        groups={}
+        for i,s in enumerate(schedulers):groups.setdefault(len(s.interaction.points),[]).append(i)
+        for ids in groups.values():
+            points=np.stack([schedulers[i].interaction.points for i in ids]);p=poses[ids]
+            local=(hands[ids]-p[:,None,:3,3]) @ p[:,:3,:3]
+            distance=np.linalg.norm(local[:,6:,None]-points[:,None],axis=-1).min(-1)
+            world=points @ p[:,:3,:3].transpose(0,2,1)+p[:,None,:3,3]
+            for j,i in enumerate(ids):geometry[i]=(local[j],distance[j],world[j])
     results=[None]*len(schedulers);pending={}
     for i,scheduler in enumerate(schedulers):
-        operation=scheduler._update_iter(poses[i],float(times[i]),hand_points=hands[i])
+        operation=scheduler._update_iter(poses[i],float(times[i]),hand_points=hands[i],_validated=fast_geometry,_interaction_geometry=geometry[i])
         try:
             actual,goal=next(operation)
             pending.setdefault(len(scheduler.points),[]).append((i,operation,actual,goal))

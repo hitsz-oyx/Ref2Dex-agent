@@ -43,7 +43,7 @@ class InteractionObserver:
         self.coupling_since = self.loss_since = None
         self.lost = False
 
-    def update(self, pose, hand, now):
+    def update(self, pose, hand, now, *, _geometry=None):
         c = self.config
         if hand is None:
             # Never bridge a missing-observation interval as a motion sample.
@@ -55,11 +55,14 @@ class InteractionObserver:
         hand = np.asarray(hand, dtype=np.float64)
         if hand.shape != (11, 3) or not np.isfinite(hand).all():
             raise ValueError('finite measured palm/bases/tips hand11 required')
-        local = (hand-pose[:3, 3]) @ pose[:3, :3]
-        distance = np.linalg.norm(local[6:, None]-self.points[None], axis=-1).min(-1)
+        if _geometry is None:
+            local = (hand-pose[:3, 3]) @ pose[:3, :3]
+            distance = np.linalg.norm(local[6:, None]-self.points[None], axis=-1).min(-1)
+            world_points = self.points @ pose[:3, :3].T + pose[:3, 3]
+        else:
+            local, distance, world_points = _geometry
         near = int(np.sum(distance <= c.near_surface_m))
         gap = float(distance.min())
-        world_points = self.points @ pose[:3, :3].T + pose[:3, 3]
         if self.history and now-self.history[-1][0] > c.history_s:
             self.reset()
         self.history.append((now, local.copy(), world_points))

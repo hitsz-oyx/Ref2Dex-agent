@@ -41,7 +41,7 @@ class BatchedScheduledInputs:
         for history, now in zip(self.histories,times):
             if history and not np.isclose(now-history[-1][0],1/60,atol=1e-6,rtol=0):
                 raise ValueError('consecutive 60Hz history required; reset the affected environment')
-        decisions=update_schedulers(self.schedulers,poses,times,hands) if self.pipeline in ('scheduler','all') else []
+        decisions=update_schedulers(self.schedulers,poses,times,hands,fast_geometry=os.environ.get('REF2DEX_DEEP_OPT') in ('cpu','all')) if self.pipeline in ('scheduler','all') else []
         objects_now=np.concatenate((poses[:,:3,3],Rotation.from_matrix(poses[:,:3,:3].copy()).as_quat()),axis=-1)
         for i, scheduler in enumerate(self.schedulers):
             pose=poses[i]

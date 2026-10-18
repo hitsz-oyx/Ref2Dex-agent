@@ -9,6 +9,7 @@ SE(3) goal delta.  This module owns that boundary and keeps the summary
 from __future__ import annotations
 
 import os
+from contextlib import nullcontext
 import hashlib
 import io
 import json
@@ -272,6 +273,11 @@ class V4Runtime:
         model = model_factory(self.stats, self.config)
         model.load_state_dict(packet["model"], strict=True)
         self.model = model.to(self.device).eval().requires_grad_(False)
+        self.defer_checks=os.environ.get('REF2DEX_DEEP_OPT') in ('sync','all')
+        if self.defer_checks:
+            from .deferred_checks import install_clean_hooks
+            from ptv3_shared_wam.model import clean
+            install_clean_hooks(clean)
         self.geometry = load_geometry(cache, env_objects, dense_manifest, dense_sha256)
         if len(self.geometry) != len(env_objects):
             raise ValueError("one prepared v4 geometry per environment required")
@@ -299,7 +305,9 @@ class V4Runtime:
 
     @torch.inference_mode()
     def predict(self, batch):
-        return self.model(batch, return_shared=True)
+        from .deferred_checks import checked_prediction
+        with checked_prediction() if getattr(self,'defer_checks',False) else nullcontext():
+            return self.model(batch, return_shared=True)
 
     @torch.inference_mode()
     def predict_hand(self, batch):

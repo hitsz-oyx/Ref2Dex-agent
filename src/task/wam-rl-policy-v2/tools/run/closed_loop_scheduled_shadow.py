@@ -114,6 +114,11 @@ def main():
    def batch_snapshot():
     rigid=task.rigid_body_states[:,ids];hand=rigid[:,:,:3].clone()
     hand[:,6:]+=quat_apply(rigid[:,6:,3:7].reshape(-1,4),offsets.repeat(a.envs,1)).reshape(a.envs,5,3)
+    if a.official_ppo and os.environ.get('REF2DEX_DEEP_OPT') in ('sync','all'):
+     # One device-to-host boundary; the official bridge already owns native obs.
+     packed=torch.cat((task.object_pose,hand.flatten(1),task.goal_pos),1).detach().cpu().numpy()
+     return dict(pose=object_poses(packed[:,:7,None].transpose(0,2,1))[:,0],
+       hand=packed[:,7:40].reshape(a.envs,11,3),goal=packed[:,40:43])
     return dict(pose=object_poses(task.object_pose.detach().cpu().numpy()[:,None])[:,0],
       hand=hand.cpu().numpy().copy(),current=task.obs_buf.cpu().numpy().copy(),goal=task.goal_pos.cpu().numpy().copy())
    manifest.update(envs=a.envs,ppo_updates=a.ppo_updates,scope='official UniDex PPO with scheduled565 BC/WAM' if a.official_ppo else 'custom truncated PPO pilot')
