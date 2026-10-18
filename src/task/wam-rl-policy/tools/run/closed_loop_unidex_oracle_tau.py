@@ -35,13 +35,17 @@ def p2_from_obs(obs):
     return np.concatenate([obs[lo:hi] for lo, hi in P2_SLICES])
 
 
+def features_from_obs(obs, variant):
+    return obs if variant in ('full', 'full_tau') else p2_from_obs(obs)
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument('--subset', type=Path, required=True)
     p.add_argument('--vendor', type=Path, required=True)
     p.add_argument('--assets', type=Path, required=True)
     p.add_argument('--policy', type=Path, required=True)
-    p.add_argument('--variant', choices=('p2', 'p2_tau'), required=True)
+    p.add_argument('--variant', choices=('p2', 'p2_tau', 'full', 'full_tau'), required=True)
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--oracle-script', type=Path,
                    default=Path(__file__).resolve().parent / 'oracle_tau_query.py')
@@ -203,8 +207,8 @@ def main():
 
     donor_tau_flat = None
     if args.donor_tau:
-        if args.variant != 'p2_tau':
-            raise ValueError('donor tau requires the p2_tau variant')
+        if args.variant not in ('p2_tau', 'full_tau'):
+            raise ValueError('donor tau requires a tau variant')
         source = np.load(args.donor_tau, allow_pickle=False)
         donor = source['tau'] if hasattr(source, 'files') else source
         donor_tau_flat = np.asarray(donor, dtype=np.float32).reshape(-1)
@@ -240,7 +244,7 @@ def main():
                 raise TimeoutError('closed-loop deadline')
             obs_np = task.obs_buf[0].cpu().numpy().astype(np.float32)
             distance = goal_distance()
-            features = p2_from_obs(obs_np)
+            features = features_from_obs(obs_np, args.variant)
             tau_np = None
             teacher_action_np = np.zeros((24,), np.float32)
             replay_error = 0.0
@@ -260,7 +264,7 @@ def main():
                     wam_seconds.append(time.monotonic()-begin)
             elif donor_tau_flat is not None:
                 tau_np = donor_tau_flat
-            elif args.variant == 'p2_tau' or args.labels:
+            elif args.variant in ('p2_tau', 'full_tau') or args.labels:
                 query_dir = oracle_root / f'tick-{tick:03d}'
                 query_dir.mkdir(parents=True, exist_ok=True)
                 prefix = (np.stack(actions_history, axis=0) if actions_history

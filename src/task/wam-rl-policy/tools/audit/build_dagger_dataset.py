@@ -29,7 +29,7 @@ def main():
     with np.load(run / 'trajectory.npz', allow_pickle=False) as source:
         trajectory = {key: source[key] for key in source.files}
     obs = trajectory['obs']
-    rows = dict(p2=[], tau=[], action=[], student_action=[], tick=[],
+    rows = dict(p2=[], full=[], tau=[], action=[], student_action=[], tick=[],
                 success=[], object_pose=[], replay_error=[])
     for tick in range(obs.shape[0]):
         query = run / 'oracle' / f'tick-{tick:03d}' / 'tau.npz'
@@ -39,6 +39,7 @@ def main():
             teacher_actions = source['teacher_actions']
             tau = source['tau']
         rows['p2'].append(np.concatenate([obs[tick, lo:hi] for lo, hi in P2_SLICES]))
+        rows['full'].append(obs[tick])
         rows['tau'].append(tau)
         rows['action'].append(teacher_actions[0])
         rows['student_action'].append(trajectory['action'][tick])
@@ -48,9 +49,11 @@ def main():
         rows['replay_error'].append(trajectory['replay_error'][tick])
     data = {}
     for key, value in rows.items():
-        data[key] = (np.stack(value) if key in ('p2', 'tau', 'action', 'student_action',
-                                                'object_pose') else np.asarray(value))
-    if not np.isfinite(data['p2']).all() or not np.isfinite(data['tau']).all():
+        data[key] = (np.stack(value) if key in ('p2', 'full', 'tau', 'action',
+                                                'student_action', 'object_pose')
+                     else np.asarray(value))
+    if (not np.isfinite(data['p2']).all() or not np.isfinite(data['full']).all()
+            or not np.isfinite(data['tau']).all()):
         raise ValueError('nonfinite DAgger packet')
     correction = np.abs(data['action'] - data['student_action'])
     args.output.mkdir(parents=True, exist_ok=True)

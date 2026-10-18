@@ -37,7 +37,7 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument('--data', type=Path, required=True)
     p.add_argument('--output', type=Path, required=True)
-    p.add_argument('--variant', choices=('p2', 'p2_tau'), required=True)
+    p.add_argument('--variant', choices=('p2', 'p2_tau', 'full', 'full_tau'), required=True)
     p.add_argument('--success-only', action='store_true')
     p.add_argument('--hidden', type=int, default=256)
     p.add_argument('--steps', type=int, default=3000)
@@ -69,12 +69,14 @@ def main():
         seeds = [int(s) for s in np.unique(data['seed'])]
 
     def features(packet):
-        value = student_features(packet['p2'], args.variant,
+        observation = (packet['full'] if args.variant in ('full', 'full_tau')
+                       else packet['p2'])
+        value = student_features(observation, args.variant,
                                  tau=packet.get('tau'), pad_to=args.pad_to)
         if args.shuffle_tau:
-            if args.variant != 'p2_tau':
-                raise ValueError('shuffle-tau requires the p2_tau variant')
-            state_dim = packet['p2'].shape[1]
+            if args.variant not in ('p2_tau', 'full_tau'):
+                raise ValueError('shuffle-tau requires a tau variant')
+            state_dim = observation.shape[1]
             state, tau_part = value[:, :state_dim], value[:, state_dim:]
             permutation = np.random.default_rng(args.tau_shuffle_seed).permutation(len(value))
             value = np.concatenate([state, tau_part[permutation]], axis=1)

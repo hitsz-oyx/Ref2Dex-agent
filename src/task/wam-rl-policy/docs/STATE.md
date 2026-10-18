@@ -24,6 +24,17 @@ canonical action/prefix一致，τ和末次状态保存；仅证明接线，不�
 
 设计与后续范围见[整合协议](research/2026-10-18-unidex-scheduled-executor.md)。
 
+## 2026-10-18 Aligned-input full300+τ：held-out 453 连续保持 72 帧
+
+把 GT-τ 学生从 p2 139 换成与 scheduled 565D PPO 对齐的 **full 300 native + τ
+264 = 564D**，同一 BC/DAgger 配方。held-out 453（未进 BC/DAgger）：
+full state-only max lift 0、从未进目标区；full+τ max lift .2169 m、tick109 起连续
+**72 个实时 in-goal 帧**、final distance .02445 m、drop events 0、replay error 0。
+而 p2+τ 在同一 seed 只有 14 帧、最后 .0555 m。说明此前 p2 的 partial observation
+确实是限制之一；输入与 565D PPO 对齐后，held-out 453 能稳定保持。仍只有一个 seed、
+一个 model seed；471/482 正在跑；τ 是 264D relative plan，不是 565D world τ。
+代码/产物在 `outputs/wam-rl-policy/P-20261018-unidex-aligned-input-r1/`。
+
 ## 2026-10-18 4-seed fork adaptation 负结果：全局更新会破坏 approach
 
 把 453/471/482 的 150-tick fork packet 与 421 合并成 600 行，做了两种更新：

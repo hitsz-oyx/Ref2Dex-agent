@@ -448,6 +448,32 @@ not for fork data itself.
 
 Artifacts: `outputs/wam-rl-policy/P-20261018-unidex-4seed-adapt-r1/`.
 
+### Aligned-input control: full 300-D native observation + tau
+
+The p2 observation deliberately removed object pose/velocity, contact forces,
+goal and visual.  To test whether the held-out holding failure was caused by
+that handicap, the same BC/DAgger student was retrained with the 300-D native
+observation used by the scheduled 565-D PPO, with and without the 264-D tau.
+
+| arm (held-out seed 453) | max lift | longest in-goal run | final distance | success |
+|---|---:|---:|---:|---|
+| full 300 state-only | 0.000 m | 0 | 0.2809 m | 0 |
+| full 300 + tau (564-D) | 0.2169 m | 72 | 0.02445 m | 1 |
+| p2 139 + tau (403-D, earlier) | 0.1807 m | 14 | 0.05547 m | 0 |
+
+The full+tau arm first reaches the goal at tick 109 and holds 72 consecutive
+realtime frames through tick 180 (no drop events, replay error 0.0).  The
+full state-only arm never lifts.  On this held-out seed the rich native
+observation plus tau is sufficient for a sustained hold; the earlier 14-frame
+p2 result was at least partly an observation handicap.  This also aligns the
+executor input with the scheduled 565-D PPO (`current300 + world tau +
+valid`), instead of the 139-D p2.
+
+Caveats: one seed and one model seed; 471/482 are running.  The tau here is
+the 264-D relative teacher plan, not the 565-D world-frame tau.  The full
+state-only failure may also reflect BC/DAgger sensitivity, so this is a
+matched control rather than a proof that tau is the only causal difference.
+
 ### Holding/recovery Decision: one additional adaptation initial state
 
 Following the user's instruction to continue, run
