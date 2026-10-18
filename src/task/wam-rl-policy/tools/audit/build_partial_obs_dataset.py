@@ -25,6 +25,7 @@ K = 8
 SLICES = {
     'p1': ((0, 44), (167, 191)),
     'p2': ((0, 44), (66, 131), (161, 191)),
+    'p3': ((0, 44), (66, 131), (161, 191), (191, 198)),
 }
 
 
@@ -52,9 +53,13 @@ def build(root, horizon=K):
     if rows <= 0:
         raise ValueError(f'rollout shorter than horizon: {root}')
     tau = np.stack([hand[t + 1:t + 1 + horizon] - hand[t] for t in range(rows)])
+    hand_euler = obs[:, 164:167]
+    tau_rot = np.stack([(hand_euler[t + 1:t + 1 + horizon] - hand_euler[t] + np.pi)
+                        % (2 * np.pi) - np.pi for t in range(rows)])
     partial = {name: np.concatenate([obs[:rows, lo:hi] for lo, hi in slices], axis=1)
                for name, slices in SLICES.items()}
-    data = dict(full=obs[:rows], tau=tau, action=action[:rows],
+    data = dict(full=obs[:rows], tau=tau, tau_rot=tau_rot,
+                hand_euler=hand_euler[:rows], action=action[:rows],
                 tick=np.arange(rows, dtype=np.int32),
                 seed=np.full(rows, int(manifest['seed']), np.int32),
                 success=success[:rows])
@@ -96,14 +101,18 @@ def main():
         seeds=seeds, runs=manifests,
         full_dim=int(merged['full'].shape[1]),
         p1_dim=int(merged['p1'].shape[1]), p2_dim=int(merged['p2'].shape[1]),
+        p3_dim=int(merged['p3'].shape[1]),
         tau_dim=int(np.prod(merged['tau'].shape[1:])),
+        tau_rot_dim=int(np.prod(merged['tau_rot'].shape[1:])),
         partial_slices={name: [list(s) for s in slices] for name, slices in SLICES.items()},
         tau_definition='teacher_future_hand_landmarks_minus_live_hand_landmarks',
         note=('Teacher states only. tau is the teacher future from the same rollout, '
               'so it is the live-state oracle plan without a fork.')))
     print(json.dumps(dict(rows=int(merged['full'].shape[0]), seeds=seeds,
                           p1_dim=merged['p1'].shape[1], p2_dim=merged['p2'].shape[1],
-                          tau_dim=int(np.prod(merged['tau'].shape[1:]))), indent=2))
+                          p3_dim=merged['p3'].shape[1],
+                          tau_dim=int(np.prod(merged['tau'].shape[1:])),
+                          tau_rot_dim=int(np.prod(merged['tau_rot'].shape[1:]))), indent=2))
 
 
 if __name__ == '__main__':

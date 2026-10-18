@@ -147,6 +147,38 @@ Paired differences: `p2_tau - p2` is -0.0176 ± 0.0102 overall,
 The xyz gain is consistent; the overall gain is diluted by rotation and
 finger trade-offs in this smaller subset.
 
+## Follow-up: orientation-aware tau and object pose
+
+Two cheap additions were tested on the same 32 rollouts. `tau_rot` adds the
+teacher's future 8-step hand-euler deltas (24-D); `p3` adds the current object
+position and quaternion (7-D) to `p2` (146-D).
+
+| model | dim | train L1 | val L1 | xyz | rot | fingers |
+|---|---|---|---|---|---|---|
+| p1_rot | 92 | 0.1057 | 0.1375 ± 0.0164 | 0.1638 | 0.2533 | 0.1138 |
+| p1_tau_rot | 356 | 0.0772 | 0.1094 ± 0.0123 | 0.0854 | 0.2424 | 0.0912 |
+| p2_rot | 163 | 0.0888 | 0.1308 ± 0.0111 | 0.1459 | 0.2302 | 0.1117 |
+| p2_tau_rot | 427 | 0.0670 | 0.1070 ± 0.0097 | 0.0729 | 0.2261 | 0.0928 |
+| p2_tau_rot_shuffle | 427 | 0.0673 | 0.1070 ± 0.0099 | 0.0741 | 0.2269 | 0.0925 |
+| p3 | 146 | 0.0927 | 0.1330 ± 0.0127 | 0.1569 | 0.2327 | 0.1124 |
+| p3_tau | 410 | 0.0675 | 0.1062 ± 0.0102 | 0.0755 | 0.2228 | 0.0919 |
+| p3_shuffle | 410 | 0.0857 | 0.1358 ± 0.0123 | 0.1646 | 0.2404 | 0.1135 |
+
+Paired: `p1_tau_rot - p1_tau` +0.0007 ± 0.0009 (rot +0.0019);
+`p2_tau_rot - p2_tau` +0.0024 ± 0.0017 (rot +0.0035);
+`p2_tau_rot_shuffle - p2_tau_rot` +0.0000 ± 0.0013;
+`p3 - p2` +0.0028 ± 0.0026 (rot +0.0020);
+`p3_tau - p2_tau` +0.0017 ± 0.0015 (rot +0.0002).
+
+Neither the orientation-aware plan nor the object pose closes the rotation
+gap. More importantly, the same holds for the full-state reference: full
+train rotation 0.137 vs validation rotation 0.225; `p2_tau` 0.143 vs 0.223;
+`p3_tau` 0.144 vs 0.223. The rotation gap is therefore not explained by the
+11-point plan or by hiding the object pose; it is a generalization/data
+coverage limit of this 32-orientation teacher set (or a rotation-action
+parameterization limit), not evidence that the plan representation is the
+cause.
+
 ## Interpretation
 
 1. **The oracle plan is usable for translation and fingers.** Adding tau
@@ -154,11 +186,13 @@ finger trade-offs in this smaller subset.
    `p1`) and improves the overall action L1 in the 6112-row set. The shuffle
    control is worse than the matched tau arm, so the gain is from the
    state-plan pairing, not merely from a larger input.
-2. **The 11-point plan does not carry wrist orientation.** Rotation error is
-   essentially unchanged (`p2_tau - p2`: -0.0081; `p1_tau - p1`: -0.0081 in
-   the 32-seed set, with a positive rotation delta in the success-only set).
-   The plan is a position-only object, so the executor still needs the object
-   orientation or an orientation-aware plan to resolve the wrist rotation.
+2. **Rotation is unresolved, but not attributable to the 11-point plan.**
+   Rotation error is unchanged by tau (`p2_tau - p2`: -0.0081), by the
+   orientation-aware plan (`p2_tau_rot - p2_tau`: +0.0035), and by adding
+   object pose (`p3_tau - p2_tau`: +0.0002). The full-state reference shows
+   the same train/validation gap (0.137 vs 0.225). The current probe cannot
+   separate "plan lacks orientation" from "the 32-orientation data or the
+   rotation parameterization does not generalize"; do not claim the former.
 3. **Partial plus tau can beat the full-state state-only reference on unseen
    seeds** (`p2_tau - full`: -0.0173 ± 0.0027). This is not evidence that tau
    is better than full state in general: the full model overfits
@@ -200,13 +234,15 @@ replay per query, which is a separate cost/engineering decision.
 
 ## Next decision
 
-The positive translation/finger result justifies one closed-loop test with
-the serial fork contract. Before spending that budget, decide the plan
-representation: either keep the object orientation in the executor
-observation, or extend tau with hand orientation. Without one of those, the
-rotation limitation above will remain. If the closed-loop fork is too
-expensive, the next cheap experiment is an orientation-augmented tau
-identification on the same 32 rollouts.
+The translation/finger result is positive enough to justify one closed-loop
+test with the serial fork contract, but the rotation design is not settled.
+The orientation-aware tau and object-pose follow-ups were both null, and the
+full-state reference has the same rotation gap, so the next rotation
+experiment should increase teacher coverage (more seeds/objects) or change
+the rotation action parameterization, not simply add orientation to tau. If a
+closed-loop fork is too expensive, the cheapest next step is a coverage sweep
+on the existing serial contract and a per-dimension analysis of the teacher
+rotation action.
 
 ## Artifacts
 
@@ -214,6 +250,7 @@ identification on the same 32 rollouts.
 * Teacher rollouts: `outputs/wam-rl-policy/P-20261018-unidex-teacher-rollouts-r1/serial200-seed-421..452/`
 * Identification data: `outputs/wam-rl-policy/P-20261018-unidex-partial-obs-200tick-32seed-r1/identification_data.npz`
 * Training and summary: `outputs/wam-rl-policy/P-20261018-unidex-partial-obs-200tick-32seed-r1/{train-all,train-success,summary}/`
+* Orientation and object-pose follow-up: `outputs/wam-rl-policy/P-20261018-unidex-partial-obs-200tick-32seed-p3-r1/`
 * Runners: [`probe_unidex_serial_replay.py`](../../../tools/run/probe_unidex_serial_replay.py),
   [`train_partial_obs_identification.py`](../../../tools/run/train_partial_obs_identification.py)
 * Audits: [`audit_serial_replay.py`](../../../tools/audit/audit_serial_replay.py),

@@ -127,7 +127,24 @@ def main():
         'p2': data['p2'],
         'p2_tau': np.concatenate([data['p2'], tau], axis=1),
         'p2_shuffle': np.concatenate([data['p2'], tau_shuffled], axis=1),
+        'p3': data['p3'],
+        'p3_tau': np.concatenate([data['p3'], tau], axis=1),
+        'p3_shuffle': np.concatenate([data['p3'], tau_shuffled], axis=1),
     }
+    if 'tau_rot' in data:
+        tau_rot = data['tau_rot'].reshape(data['tau_rot'].shape[0], -1)
+        tau_rot_shuffled = tau_rot[
+            np.random.default_rng(20261019).permutation(len(tau_rot))]
+        variants.update({
+            'p1_rot': np.concatenate([data['p1'], tau_rot], axis=1),
+            'p1_tau_rot': np.concatenate([data['p1'], tau, tau_rot], axis=1),
+            'p1_tau_rot_shuffle': np.concatenate(
+                [data['p1'], tau, tau_rot_shuffled], axis=1),
+            'p2_rot': np.concatenate([data['p2'], tau_rot], axis=1),
+            'p2_tau_rot': np.concatenate([data['p2'], tau, tau_rot], axis=1),
+            'p2_tau_rot_shuffle': np.concatenate(
+                [data['p2'], tau, tau_rot_shuffled], axis=1),
+        })
     y = data['action'].astype(np.float32)
     action_std = np.maximum(y.std(axis=0), 1e-6)
     fold_of_seed = {int(seed): i % args.folds

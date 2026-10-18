@@ -22,6 +22,18 @@ PAIRS = (
     ('p2_shuffle', 'p2'),
     ('p2_tau', 'p2_shuffle'),
     ('p2_tau', 'full'),
+    ('p1_tau_rot', 'p1_tau'),
+    ('p1_tau_rot', 'p1_rot'),
+    ('p1_tau_rot_shuffle', 'p1_tau_rot'),
+    ('p2_tau_rot', 'p2_tau'),
+    ('p2_tau_rot', 'p2_rot'),
+    ('p2_tau_rot_shuffle', 'p2_tau_rot'),
+    ('p2_tau_rot', 'full'),
+    ('p3_tau', 'p3'),
+    ('p3_tau', 'p3_shuffle'),
+    ('p3', 'p2'),
+    ('p3_tau', 'p2_tau'),
+    ('p3', 'full'),
 )
 METRICS = ('val_all', 'val_xyz', 'val_rot', 'val_fingers')
 

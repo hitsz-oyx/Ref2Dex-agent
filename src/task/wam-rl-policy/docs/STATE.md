@@ -17,9 +17,14 @@ shuffle `0.1331` 和 full-state `0.1218`；wrist xyz 从 `0.1548` 降到 `0.0731
 rotation 几乎不变（`0.2307→0.2226`）。success-only 10-seed 子集 xyz 增益一致
 （`0.1411→0.0607`），整体 L1 因 rotation/finger trade-off 只有边缘改善。
 
-当前判断：11-point 位置 τ 对平移/手指是可用的 plan interface，但没有携带 wrist
-orientation，不能据此回答 rotation；下一步要么在 executor 保留 object orientation，
-要么给 τ 加 orientation，再做闭环 serial-fork 验证。
+当前判断：11-point 位置 τ 对平移/手指是可用的 plan interface；rotation 没有改善，但
+这不是 11-point τ 独有的问题。补充的 orientation-aware τ（未来 8 步 hand euler delta，
+`p2_tau_rot - p2_tau` = +0.0024）和把 object pose 放回 partial obs（`p3_tau - p2_tau`
+= +0.0017）都没有降低 rotation；full-state 本身也有同样的 train/val gap
+（rotation 0.137 vs 0.225），所以当前数据不能把 rotation 缺口归因于 τ 表示，更可能是
+32 个 orientation 的覆盖/泛化或 rotation 动作参数化限制。下一步若要回答 rotation，
+应先扩大 teacher 覆盖或分析 rotation 维度，而不是简单给 τ 加 orientation；闭环
+serial-fork 验证则优先针对已经显示稳定增益的平移/手指。
 
 ## 2026-10-17 WAM runtime 修正 Probe：旧退化被实现问题混淆，修复后仍仅 UNCLEAR
 
