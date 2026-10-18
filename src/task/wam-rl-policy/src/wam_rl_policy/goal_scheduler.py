@@ -329,7 +329,10 @@ class OrderedGoalScheduler:
             self.last_lead = max(0., float(np.interp(index, np.arange(len(self.arc)), self.arc)-self.arc[local]))
         self.last_pose = actual.copy()
         return dict(goal_pose=goal, goal_delta=rigid_goal_delta(actual, goal, self.points),
-            horizon_s=c.horizon_s, mode=mode, reason=reason, execution_ready=execution_ready,
+            horizon_s=c.horizon_s, goal_semantics='spatial_path_waypoint',
+            reference_endpoint_time_s=None, progress_semantics='geometric_path_only',
+            readiness_source='external' if readiness_external else 'heuristic_or_unknown',
+            mode=mode, reason=reason, execution_ready=execution_ready,
             confirmed_index=int(self.milestones[self.pointer]), projected_index=local,
             target_reference_index=index, target_on_reference=on_reference,
             confirmed_progress=float(self.arc[self.milestones[self.pointer]]/denominator) if self.arc[-1]>1e-12 else float(self.complete),

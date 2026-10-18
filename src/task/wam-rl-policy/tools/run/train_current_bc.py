@@ -55,7 +55,10 @@ def main():
         os.environ['CUDA_VISIBLE_DEVICES']=str(a.gpu)
     import numpy as np
     out.mkdir(parents=True,exist_ok=a.stage=='prepare-scheduled' and a.resume_cache);started=time.monotonic()
-    commit=os.environ.get('REF2DEX_CODE_COMMIT') or subprocess.check_output(['git','rev-parse','HEAD'],cwd=TASK,text=True).strip()
+    try:commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=TASK,text=True,stderr=subprocess.DEVNULL).strip()
+    except subprocess.CalledProcessError:
+        commit=os.environ.get('REF2DEX_CODE_COMMIT')
+        if not commit:raise ValueError('Frozen source commit required outside Git checkout')
     def write(name,value):
         if a.shard_count>1:name='shard-%d-'%a.shard_index+name
         part=out/(name+'.part');part.write_text(json.dumps(value,indent=2,allow_nan=False)+'\n');part.replace(out/name)
@@ -145,6 +148,7 @@ def main():
             ticks=np.load(a.data/'train-tick.npy');early=np.flatnonzero(ticks<8)
             manifest=dict(schema=schema,status='RUNNING',git_commit=commit,seed=a.seed,steps=a.steps,batch=a.batch,
                 source_cache=str(a.data.resolve()),data=cache['splits'],stats='TRAIN-only',
+                conditioning=cache.get('conditioning'),
                 input_dim=input_dim,init_current=str(a.init_current) if a.init_current else None,
                 initialization='expanded full-data BC' if a.init_current else ('resume own BC' if a.resume else 'fresh random'),
                 resume=str(a.resume.resolve()) if a.resume else None,resume_step=offset,lr=a.lr,schedule=a.schedule,weight_decay=1e-5,

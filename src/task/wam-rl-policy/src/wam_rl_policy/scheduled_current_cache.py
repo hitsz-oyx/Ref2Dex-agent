@@ -63,6 +63,7 @@ def unchanged(value):
 def prepare(args,out,write):
     from .wam_v4_runtime import V4Runtime,v4_online_samples,collate_v4
     from .bc_mlp import SCHEDULED_DIM
+    from .control_contracts import scheduled_conditioning_contract
     base=args.data.resolve();source=args.sequence_cache.resolve()
     meta=json.loads((source/'manifest.json').read_text())
     cache=json.loads((base/'manifest.json').read_text())
@@ -124,6 +125,7 @@ def prepare(args,out,write):
         done=np.lib.format.open_memmap(done_path,mode='w+',dtype=bool,shape=(len(records),));done[:]=False;done.flush()
     manifest=dict(schema='ref2dex.shadow-scheduled-current-cache.v1',status='RUNNING',
         source=str(source),base_cache=str(base),splits=cache['splits'],input_dim=SCHEDULED_DIM,
+        conditioning=scheduled_conditioning_contract(),
         condition='current300 + scheduled WAM world tau264 + history-valid1',
         startup='tick<6: tau=0, valid=0; native BC still observes full current300',
         normalization='original TRAIN state/action stats; tau fixed .05m; validity scale1',identity=identity)

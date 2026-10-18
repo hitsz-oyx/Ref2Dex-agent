@@ -26,6 +26,9 @@ for the sampled action when computing probability ratios.
         from .bc_mlp import CurrentMLP,SCHEDULED_SCHEMA,SCHEDULED_DIM
         self.current_model = packet.get('schema') == SCHEDULED_SCHEMA
         if self.current_model:
+            from .control_contracts import scheduled_conditioning_contract
+            declared=packet.get('config',{}).get('conditioning')
+            if declared is not None and declared!=scheduled_conditioning_contract():raise ValueError('BC conditioning contract mismatch')
             if not np.isfinite(initial_std) or initial_std <= 0:
                 raise ValueError('positive finite exploration std required')
             self.actor=CurrentMLP(SCHEDULED_DIM)
@@ -133,7 +136,7 @@ class ScheduledCurrentExecutorInputs:
     def reset(self):
         self.history.clear();self.scheduler.reset()
 
-    def observation(self,current,pose,hand,time_s):
+    def observation(self,current,pose,hand,time_s,*,execution_ready=None,lost_control=False):
         from scipy.spatial.transform import Rotation
         current,pose,hand=map(np.asarray,(current,pose,hand))
         if (current.shape!=(300,) or pose.shape!=(4,4) or hand.shape!=(11,3)
@@ -141,8 +144,9 @@ class ScheduledCurrentExecutorInputs:
             raise ValueError('finite current300, pose4x4, hand11x3 and time required')
         if self.history and not np.isclose(time_s-self.history[-1][0],1/60,atol=1e-6,rtol=0):
             raise ValueError('consecutive 60Hz measurements required; reset on new episode')
-        decision=self.scheduler.update(pose,float(time_s),hand_points=hand)
-        obj=np.r_[pose[:3,3],Rotation.from_matrix(pose[:3,:3]).as_quat()]
+        decision=self.scheduler.update(pose,float(time_s),hand_points=hand,
+            execution_ready=execution_ready,lost_control=lost_control)
+        obj=np.r_[pose[:3,3],Rotation.from_matrix(pose[:3,:3].copy()).as_quat()]
         self.history.append((float(time_s),obj,hand.copy()))
         tau=np.zeros((8,11,3),np.float32);interaction=interaction_valid=None
         valid=len(self.history)==7
