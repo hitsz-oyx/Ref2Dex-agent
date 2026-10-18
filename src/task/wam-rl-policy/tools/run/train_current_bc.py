@@ -35,7 +35,7 @@ def main():
     p.add_argument('--workers',type=int,default=2)
     p.add_argument('--max-records',type=int,default=0)
     p.add_argument('--resume-cache',action='store_true')
-    p.add_argument('--allow-shared-gpu',action='store_true',help='Only for verified project-owned GPU jobs')
+    p.add_argument('--allow-shared-gpu',action='store_true',help='Only for project-owned jobs or explicitly authorized shared allocation')
     p.add_argument('--init-current',type=Path)
     a=p.parse_args();out=a.output.resolve()
     if a.resume and a.init_current:raise ValueError('Choose resume or initialization')

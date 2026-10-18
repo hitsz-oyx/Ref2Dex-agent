@@ -49,3 +49,12 @@ best checkpoint，避免较差的继续训练覆盖父模型起点。PPO actor�
 权重迁移、PPO概率回放、原BC和tau合同10项测试通过；实际首条序列调度/历史构造通过。
 全量旧geometry中不足512点的对象全部被绑定dense overlay覆盖，无需删除对象。
 全量条件生成、继续训练、565维native执行和真实PPO训练尚待运行结果；不声称已完成。
+
+## 执行位置修订
+
+用户要求改为本地训练，并明确允许共享GPU。使用本地GPU6（3090 24GiB），
+不向其余卡派发本任务；已有monica任务不停止。环境graspenv Python/Torch详见运行manifest。
+远端流水线在WAIT_CURRENT_CACHE阶段已终止（PID2667797），未开始条件GPU推理/BC；
+本地直接复用既有current缓存，不重建。输出根
+`outputs/wam-rl-policy/full-scheduled-current-bc-20261018-local-r1/`，
+条件与训练子目录分别cache、fit。共享显存/吞吐实测后记录ETA。

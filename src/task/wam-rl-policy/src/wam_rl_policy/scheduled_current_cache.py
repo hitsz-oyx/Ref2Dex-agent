@@ -88,6 +88,11 @@ def prepare(args,out,write):
             old=np.load(base/(split+'-x.npy'),mmap_mode='r')
             for lo in range(0,len(old),16384):arrays[split][lo:lo+16384,:300]=old[lo:lo+16384]
             arrays[split][:,300:]=0;arrays[split].flush()
+        # Recopy immutable current states on resume: an interrupted initial
+        # allocation may have created the file before finishing its prefix.
+        old=np.load(base/(split+'-x.npy'),mmap_mode='r')
+        for lo in range(0,len(old),16384):arrays[split][lo:lo+16384,:300]=old[lo:lo+16384]
+        arrays[split].flush()
         for suffix in ('y.npy','tick.npy','seq.npy','index.json'):
             link=out/(split+'-'+suffix)
             if not link.exists():link.symlink_to(base/link.name)
