@@ -82,3 +82,12 @@ TRAIN-only在线探索，DEV只用于固定终点评估；固定原官方reward�
 `evaluate_scale.py`执行完整DEV/阶段面板，`run_scale_queue.py`监督有界读出队列。
 `train_current_bc.py`整理同拍标签并训练MLP；`--bc-kind mlp`连接相同native PPO。
 参见[规模Probe](docs/experiments/probes/P-20261016-shadow-scale-continuous.md)。
+# UniDexGrasp scheduled WAM executor（2026-10-18）
+
+用户指定以更新后的goal调度器、冻结WAM-v4和自训BC初始化的PPO推进。
+`scheduled_executor.py`提供单环境调度→完整v4 forward→world τ学生输入，以及保留BC
+权重/归一化的可训练Gaussian actor；C单独返回，首轮actor不消费C。
+`tools/audit/check_scheduled_executor.py`检查一份已有TRAIN状态上的真实前向，不执行动作。
+接口和实际PPO更新器工程检查不代表原生训练runner或物理闭环已完成。
+范围、数据准备和下一步见[整合协议](docs/research/2026-10-18-unidex-scheduled-executor.md)。
+
