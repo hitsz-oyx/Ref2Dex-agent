@@ -1,3 +1,11 @@
+## 2026-10-18 CPU校验与同步等待的第二轮优化完成
+
+保持160环境/PPO配置，GPU6/7短测合并版每轮5.20→4.63秒，吞吐再提高12%。
+双卡检查完成（4.73秒/轮、同步误差0），稳定窗口利用率约69%/76%。
+有限性检查仍全部执行，35项测试与GPU有效NaN拒绝检查通过。
+主六卡r3未切换，新选项默认关闭，GPU6/7已释放。证据见
+[官方PPO卡](../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261018-official-scheduled-mixed-ppo.md)。
+
 ## 2026-10-18 GPU6/7批量控制接口加速测试完成
 
 向量化GPU输入构造/τ转换与CPU批量Scheduler connector已实现为opt-in。

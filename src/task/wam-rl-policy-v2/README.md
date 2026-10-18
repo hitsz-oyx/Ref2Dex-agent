@@ -53,7 +53,7 @@ PPO.run/update/storage及原配置，增加BC均值/WAM观测和多卡同步。
 - `REF2DEX_BATCH_PIPELINE=all`：批量connector、GPU输入构造与tau转换；
   `legacy/tau/inputs/scheduler`用于单项对照。
 - `REF2DEX_DEEP_OPT=all`：进一步批量姿态验证/交互几何、合并WAM有限性检查与状态传输；
-  `cpu/sync/none`用于单项对照。配合`BATCH_PIPELINE=all`使用。
+  `cpu/sync/none`用于单项对照。配合`REF2DEX_BATCH_PIPELINE=all`使用。
 - `REF2DEX_PROFILE_PPO=1`记录CPU profile；`REF2DEX_PROFILE_CUDA=1`仅记录第4轮CUDA时间线，
   用于短时诊断，不用于正常训练计时。
 

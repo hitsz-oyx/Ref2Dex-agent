@@ -201,3 +201,25 @@ sync：process-local clean hooks保留所有masked finite谓词，在完整predi
 合并检查一次，context外仍原同步检查；把native pose/hand/goal打包成单次D2H，
 不传重复未使用的current300。all同时开启；none默认。共享WAM源文件不修改。
 各模式16轮/160环境，GPU6/7，900秒上限；进一步GPU预测/异常mask检查后计时。
+
+### CPU/同步进一步优化结果（完成）
+
+4个deep-opt-{none,cpu,sync,all}-20261018-r1均完成16轮、每rank320次Adam step；
+同160环境/16 TRAIN物体，剔除前2轮，平均每轮耗时分别5.204、4.872、5.084、4.633秒。
+合并相比上一版batch_pipeline=all耗时-10.97%、吞吐+12.32%；同步单项仅约2.3%，
+短时共享机器条件下不宣称其显著性。CPU部分是本轮主要收益来源。
+35项测试通过，含COUPLED→LOST、部分reset、NaN有效性/掩码和context退出恢复。
+GPU6真实归档3组×32样本检查通过，输入字段最大1.82e-12；tau差未超过该样本
+原WAM重复推理测得差异（record0为0.628mm，另两组0），每组有效NaN目标均被拒绝。
+
+CUDA第4轮trace对照：cudaStreamSynchronize 1875→1770次，CPU同步等待2.114→2.008秒，
+cudaMemcpyAsync 2306→2201次；并非全部同步已消除，也不能把等待时间全当GPU空转。
+trace位于batch-deeper-cuda-20261018-r{1,2}/rank-0/cuda-trace.json.gz，约9MiB/份。
+
+最终双卡deep-opt-pair-20261018-r1完成12轮、每rank240 Adam step，首末参数同步0、
+动作均值路径误差0；平均每轮4.730秒（上轮双卡5.399秒，非同时对照）。
+38个1Hz稳定窗口样本GPU6均值69.3%、GPU7均值76.0%，仍包含monica共享任务。
+GPU6/7本轮worker全部退出，回到已有347MiB占用。
+主r3保持84b59aa2冻结代码、仍运行（检查至第335轮），无自动切换。
+结果：建议后续有checkpoint时评估启用两个all选项；剩余同步及CPU状态机仍存在，
+不为追求利用率继续改rollout批量、WAM频率或检查语义。六卡收益仍需部署后测量。
