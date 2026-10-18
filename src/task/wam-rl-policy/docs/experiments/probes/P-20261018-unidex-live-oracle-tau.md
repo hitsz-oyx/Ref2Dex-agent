@@ -424,6 +424,30 @@ region; more holding DAgger on 482 would be fighting the teacher.  A longer
 
 Artifacts: `outputs/wam-rl-policy/P-20261018-unidex-hold-horizon-audit-r1/`.
 
+### 4-seed fork-data adaptation attempt (negative)
+
+DAgger packets were built for 453/471/482 from their archived 150-tick runs
+(`teacher_actions[0]` at replay-verified student states) and merged with the
+421 packet: 600 rows.  Two updates started from the fixed 421 student:
+
+* global fine-tune (600 rows x10, 2000 steps, lr 3e-4): BC L1 .0125 -> .0201;
+  on 453 the object was still on the table at tick 110 (lift -.069 m, goal
+  distance .280 m).
+* frozen-base zero-initialized residual (gain .05, 1000 steps; packet L1
+  .0747 -> .0578, mean correction .020): on 453 the object was never lifted
+  through tick 150 (lift -.075 m, goal distance .28 m).
+
+The pre-adaptation 453 student reached the goal at tick 131 (14 in-goal
+frames, last .0555 m).  Merging all three seeds' fork data globally, or
+applying an ungated residual from tick 0, changes the early approach enough
+to miss the grasp; it does not convert the reach into a hold.  The next
+version must freeze the base outside a late window and train/apply the
+residual only on late/hold states (e.g. tick >=100), so the approach is
+preserved.  This is a negative result for the naive multi-seed packet update,
+not for fork data itself.
+
+Artifacts: `outputs/wam-rl-policy/P-20261018-unidex-4seed-adapt-r1/`.
+
 ### Holding/recovery Decision: one additional adaptation initial state
 
 Following the user's instruction to continue, run

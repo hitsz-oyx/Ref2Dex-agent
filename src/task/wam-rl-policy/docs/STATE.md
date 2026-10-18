@@ -24,6 +24,17 @@ canonical action/prefix一致，τ和末次状态保存；仅证明接线，不�
 
 设计与后续范围见[整合协议](research/2026-10-18-unidex-scheduled-executor.md)。
 
+## 2026-10-18 4-seed fork adaptation 负结果：全局更新会破坏 approach
+
+把 453/471/482 的 150-tick fork packet 与 421 合并成 600 行，做了两种更新：
+10×/2000 步全局微调（BC L1 .0125→.0201，453 到 tick110 仍未抓起来）和冻结基底的
+零初始化 residual（packet L1 .0747→.0578，mean correction .020；453 到 tick150 仍
+未抬起）。而 pre-adaptation 的 453 在 tick131 曾进入目标区（14 帧，最后 .0555）。
+说明“把三个 seed 的 fork 数据全局混进去”会改坏 approach，不能把 reach 变成 hold。
+下一步 residual 必须 gated 到 late/hold 阶段（base 在 tick<100 完全不动，只在 late
+窗口训练/应用），先保住 grasp 再修 holding。产物
+`outputs/wam-rl-policy/P-20261018-unidex-4seed-adapt-r1/`。
+
 ## 2026-10-18 Active shuffled-τ 对照：状态匹配的 τ 内容是必要的
 
 在等 175,384 参数的零填充对照之后，补了 active shuffled-τ 对照：同 403 维架构、同

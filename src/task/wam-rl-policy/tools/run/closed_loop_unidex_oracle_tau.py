@@ -55,6 +55,8 @@ def main():
                    help='query teacher actions at student states without using tau')
     p.add_argument('--donor-tau', type=Path,
                    help='use one fixed tau for every tick and skip oracle queries')
+    p.add_argument('--residual', type=Path,
+                   help='zero-initialized residual adapter on a frozen base policy')
     p.add_argument('--wam-checkpoint', type=Path,
                    help='replace oracle with frozen scheduled v4; first six actions are zero')
     p.add_argument('--wam-cache', type=Path)
@@ -73,6 +75,8 @@ def main():
         setattr(args, key, getattr(args, key).resolve())
     if args.donor_tau:
         args.donor_tau = args.donor_tau.resolve()
+    if args.residual:
+        args.residual = args.residual.resolve()
     if args.output == Path('/tmp') or Path('/tmp') in args.output.parents:
         raise ValueError('outputs must remain in the project workspace')
     if 'float' not in np.__dict__:
@@ -173,6 +177,29 @@ def main():
     model.load_state_dict(checkpoint['state_dict'])
     mean = torch.tensor(checkpoint['mean'], dtype=torch.float32, device='cuda:0')
     std = torch.tensor(checkpoint['std'], dtype=torch.float32, device='cuda:0')
+    residual_model = None
+    residual_gain = 0.0
+    if args.residual:
+        adapter = torch.load(args.residual, map_location='cuda:0', weights_only=False)
+        if adapter['base_variant'] != args.variant:
+            raise ValueError('residual base variant mismatch')
+        checkpoint = dict(input_dim=adapter['input_dim'], hidden=adapter['hidden'],
+                          variant=adapter['base_variant'],
+                          pad_to=adapter.get('pad_to', 0),
+                          mean=adapter['base_mean'], std=adapter['base_std'])
+        model = torch.nn.Sequential(
+            torch.nn.Linear(checkpoint['input_dim'], checkpoint['hidden']), torch.nn.ELU(),
+            torch.nn.Linear(checkpoint['hidden'], checkpoint['hidden']), torch.nn.ELU(),
+            torch.nn.Linear(checkpoint['hidden'], 24)).to('cuda:0').eval()
+        model.load_state_dict(adapter['base_state_dict'])
+        residual_model = torch.nn.Sequential(
+            torch.nn.Linear(checkpoint['input_dim'] + 24, checkpoint['hidden']), torch.nn.ELU(),
+            torch.nn.Linear(checkpoint['hidden'], checkpoint['hidden']), torch.nn.ELU(),
+            torch.nn.Linear(checkpoint['hidden'], 24)).to('cuda:0').eval()
+        residual_model.load_state_dict(adapter['residual_state_dict'])
+        residual_gain = float(adapter['gain'])
+        mean = torch.tensor(checkpoint['mean'], dtype=torch.float32, device='cuda:0')
+        std = torch.tensor(checkpoint['std'], dtype=torch.float32, device='cuda:0')
 
     donor_tau_flat = None
     if args.donor_tau:
@@ -277,7 +304,14 @@ def main():
             if features.shape != (checkpoint['input_dim'],):
                 raise ValueError('student checkpoint input dimension mismatch')
             x = torch.tensor(features, dtype=torch.float32, device='cuda:0')
-            action = model(((x - mean) / std).reshape(1, -1)).clamp(-1, 1)
+            normalized = ((x - mean) / std).reshape(1, -1)
+            if residual_model is not None:
+                base_action = model(normalized).clamp(-1, 1)
+                residual_input = torch.cat([normalized, base_action], dim=1)
+                action = (base_action + residual_gain * torch.tanh(
+                    residual_model(residual_input))).clamp(-1, 1)
+            else:
+                action = model(normalized).clamp(-1, 1)
             if wam_bridge is not None and tick < 6:
                 action = torch.zeros_like(action)
             canonical = canonical_action(action)
@@ -335,6 +369,8 @@ def main():
         oracle_script=str(args.oracle_script),
         fork_failure=fork_failure, labels=bool(args.labels),
         donor_tau=str(args.donor_tau) if args.donor_tau else None,
+        residual=str(args.residual) if args.residual else None,
+        residual_gain=float(residual_gain),
         max_replay_error=max_replay_error,
         max_replay_tolerance=args.max_replay_error,
         # Corrected realtime task metric.  ``ever_success`` mirrors the
