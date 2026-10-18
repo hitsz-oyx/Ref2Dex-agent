@@ -86,5 +86,9 @@ or restart that run.
   that v4 output yet. The existing summary PPO path still uses `encode()`.
 - Scheduler goals are accepted as SE(3) point deltas, but the distribution match
   between scheduler local goals and real t+24 training goals has not been measured.
+- The current contract-fixed run still uses the pre-fix window filter manifests.
+  `rebuild_v4_window_filter_transition.py` can recheck only the old blocked
+  windows and write a new filter; a clean run should regenerate the recipe/stats
+  and start a new data identity rather than replacing filters under a live run.
 - C remains a parallel interaction head; it does not condition on a candidate
   action and cannot be used as a counterfactual action scorer.
