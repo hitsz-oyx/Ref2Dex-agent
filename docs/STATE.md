@@ -1,3 +1,19 @@
+## 2026-10-18 WAM-v4 真实512点与C监督修复通过，远端80k已启动
+
+九源目标几何均已通过真实512个独立点和单位法向审计；从原始CAD补采样1,078个不足对象，
+保留原32个flow query及v3数据/checkpoint。877个受影响的旧已筛窗口复查后恢复1个TRAIN窗，
+派生配方为3,218,740 TRAIN/545,459 DEV窗，继承v3 normalization，未重新拟合。
+C缺测mask、MCP语义、多卡独立分母及rank0验证误同步已修复；本地/远端18项测试通过。
+完整98.7M模型四卡/global512两步smoke完成梯度审计、DEV验证和checkpoint保存；
+这是工程资格，不是表征或机器人增益结论。
+
+代码992962ec、独立NAS目录`ptv3-shared-wam-v4-dense-20261018-r1`的
+`pretrain-nine-v4-dense512-cfix-warm80k-20261018-r1`已启动，远端GPU0/1/2/3、
+每卡batch128/loader workers2、v3 step80000仅模型初始化，C模块新初始化；
+supervisor2583130，80k新步数/7日/单run8GB预算。已完成step20和step1恢复点，loss2.8428、
+梯度有限；约.376步/秒，初估剩余59小时，物理显存每卡约7.6--7.9GiB。监督器每10秒监控进度和GPU，
+30分钟无更新则停止自己的进程组。见[实验卡](../src/task/ptv3-shared-wam-v4/docs/experiments/probes/P-20261017-wam-v4-interaction-head.md)。
+
 # 2026-10-16 官方 UniDexGrasp PPO 远端复现与 WAM 接线
 
 按用户要求使用远端 GPU 跑 pinned upstream PPO（commit `6c9e710b`）。fresh state-only

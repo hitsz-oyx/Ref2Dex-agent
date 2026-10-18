@@ -855,7 +855,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261017-wam-v4-interaction-head](../../src/task/ptv3-shared-wam-v4/docs/experiments/probes/P-20261017-wam-v4-interaction-head.md) | WAM-v4 interaction head architecture | 见原卡 | 见原卡 | probes/ENGINEERING |
+| [P-20261017-wam-v4-interaction-head](../../src/task/ptv3-shared-wam-v4/docs/experiments/probes/P-20261017-wam-v4-interaction-head.md) | WAM-v4 target-object interaction field | 见原卡 | 见原卡 | probes/RUNNING |
 
 ## HF-wam-motion-execution
 
@@ -1184,4 +1184,11 @@
 | [P-20261009-gpu-group-contract](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-gpu-group-contract.md) | Native GPU group role/layout contract | 见原卡 | 见原卡 | probes/见原卡 |
 | [P-20261009-gpu-group-value-noise](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-gpu-group-value-noise.md) | Native GPU synchronous group Value-noise calibration | 见原卡 | 见原卡 | probes/见原卡 |
 | [P-20261009-gpu-pipeline-threads1](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-gpu-pipeline-threads1.md) | GPU pipeline with one PhysX task thread | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261017-direct-tau-executor](../../src/task/trajectory-policy/docs/experiments/probes/P-20261017-direct-tau-executor.md) | P-20261017-direct-tau-executor | 见原卡 | 见原卡 | probes/UNPROMISING |
+| [P-20261017-gt-tau-new-sequence](../../src/task/trajectory-policy/docs/experiments/probes/P-20261017-gt-tau-new-sequence.md) | P-20261017-gt-tau-new-sequence | 见原卡 | 见原卡 | probes/UNPROMISING |
+| [P-20261018-absolute-plan-executor](../../src/task/trajectory-policy/docs/experiments/probes/P-20261018-absolute-plan-executor.md) | P-20261018-absolute-plan-executor | 见原卡 | 见原卡 | probes/UNCLEAR |
+| [P-20261018-direct-tau-dagger-pd](../../src/task/trajectory-policy/docs/experiments/probes/P-20261018-direct-tau-dagger-pd.md) | P-20261018-direct-tau-dagger-pd | 见原卡 | 见原卡 | probes/UNPROMISING |
+| [P-20261018-direct-tau-dagger](../../src/task/trajectory-policy/docs/experiments/probes/P-20261018-direct-tau-dagger.md) | P-20261018-direct-tau-dagger | 见原卡 | 见原卡 | probes/UNPROMISING |
+| [P-20261018-direct-tau-executor-r3](../../src/task/trajectory-policy/docs/experiments/probes/P-20261018-direct-tau-executor-r3.md) | P-20261018-direct-tau-executor-r3 | 见原卡 | 见原卡 | probes/UNPROMISING |
+| [P-20261018-unidex-live-oracle-tau](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261018-unidex-live-oracle-tau.md) | P-20261018-unidex-live-oracle-tau | 见原卡 | 见原卡 | probes/见原卡 |
 | [VAL-20260923-CM-EFFECT-PPO](validations/VAL-20260923-CM-EFFECT-PPO.md) | Validation: 动作条件 Cm 效应排序能否稳定改善 PPO？ | 见原卡 | 见原卡 | validations/见原卡 |

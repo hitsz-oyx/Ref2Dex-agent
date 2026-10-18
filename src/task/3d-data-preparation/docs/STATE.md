@@ -1,3 +1,26 @@
+## 2026-10-18 WAM-v4 真实 distinct512 几何派生产物已验收
+
+九源 canonical 几何审计发现 main3 的 252 个对象已有 512 个独立点，native 目标几何
+有 1,078 个不足（UniDex 1,074、TACO 2、HOT3D 1、DexYCB 1）。已从原始 CAD 三角面
+补采样到真实 512 点和单位法向，保留每个 native 对象原有 32 个 flow query；不再循环补齐。
+原 v3 payload、geometry、checkpoint 均保留。局部数据合同为
+`ref2dex.wam-v4-target-object.v3`，不是模型或实验版本号。
+
+远端派生入口为
+`/mnt/ugreen_nas/storage/oyx_storage/ptv3-shared-wam-v4-dense-20261018-r1/data/recipe-dense512-20261018-r1/`。
+2,780 个审计几何均满足 distinct512/unit-normal 合同；对补密后受影响的原已筛窗口复查
+TRAIN 635/DEV 242 个，恢复 1 个 TRAIN 窗口，原已保留集合不缩减。实际 TRAIN 九源和
+DEV 八源 mixed reader/collate 均通过；当前冻结 native 快照没有 source8 DEV，不伪造该面板。
+source probabilities 和 v3 TRAIN normalization 数值保持继承，未重新拟合统计。
+
+采样工具 `tools/run/prepare_v4_dense_surfaces.py`、远端配方工具
+`tools/run/prepare_v4_dense_recipe.py`、独立几何审计
+`tools/audit/audit_v4_surface_geometry.py`。本地 CAD 处理 52.92s/约12MiB，远端配方处理
+27.06s；均为纯几何 CPU 作业。Python 3.8.20/graspenv；代码 `992962ec`，相关测试本地和
+远端均 18 passed。真实数据回执在
+`outputs/ptv3-shared-wam-v4/dense512-remote-evidence-20261018-r1/data-result.json`，
+WAM-v4 实验卡记录四卡接口与后续训练。几何验收不构成机器人收益结论。
+
 ## 2026-10-15 DexYCB全10被试补齐已验收
 
 用户已授权补齐。原始1000段/72,746帧全量canonical已落盘，官方s1 700 TRAIN/100 DEV/200 TEST；清洗后699 TRAIN/100 DEV，严格准入3,096 TRAIN/382 DEV窗，TEST独立不参与拟合。subject10全部7,282标签文件与既有官方原始数组一致；复用CAD，无图像/MANO重新估计，无相机重复扩样。九源扩充配方本地和远端均完成，统计数值一致、其余源准入集合保持。当前80k冻结运行未改输入。详见[扩产记录](research/2026-10-15-dexycb-full-expansion.md)及v3当前状态。
