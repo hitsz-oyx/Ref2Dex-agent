@@ -71,8 +71,11 @@ def test_v4_model_only_warm_start_resets_optimizer_step_rng_and_selection(tmp_pa
     bad = dict(config); bad['point_width'] = 16
     with pytest.raises(ValueError, match='config mismatch: point_width'):
         initialize_from_v4(path, fresh, bad, stats)
-    with pytest.raises(ValueError, match='normalization statistics'):
-        initialize_from_v4(path, fresh, config, dict(recipe={}))
+    # A new recipe/window filter is allowed; changed normalizer arrays are not.
+    initialize_from_v4(path, fresh, config, dict(recipe={}))
+    changed = dict(stats); changed['hand'] = dict(mean=[[.1] * 3] * 24, std=[[1.] * 3] * 24)
+    with pytest.raises(ValueError, match='normalization arrays'):
+        initialize_from_v4(path, fresh, config, changed)
 
 
 def test_retention_keeps_historical_best_referenced_by_retained_checkpoints(tmp_path):

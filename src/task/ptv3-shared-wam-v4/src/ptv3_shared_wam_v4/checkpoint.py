@@ -68,6 +68,13 @@ def initialize_from_v3(path, model, config, stats):
                 new_parameters=sorted(set(target) - set(compatible)))
 
 
+def normalization_identity(stats):
+    """Normalizer arrays only; a new window filter/recipe is allowed."""
+    keys = ("schema", "split", "units", "fps", "history", "horizon", "source_ids",
+            "hand", "scene")
+    return {key: stats.get(key) for key in keys}
+
+
 def initialize_from_v4(path, model, config, stats):
     """Load a v4 checkpoint as model-only initialization for a NEW run.
 
@@ -78,8 +85,8 @@ def initialize_from_v4(path, model, config, stats):
     state = torch.load(Path(path), map_location="cpu", weights_only=False)
     if state.get("schema") != SCHEMA or state.get("stage") != "pretrain":
         raise ValueError("v4 pretraining checkpoint required for model-only warm start")
-    if state.get("stats") != stats:
-        raise ValueError("v4 warm start requires identical normalization statistics")
+    if normalization_identity(state.get("stats", {})) != normalization_identity(stats):
+        raise ValueError("v4 warm start requires identical normalization arrays")
     parent_config = state.get("config", {})
     for key, value in config.items():
         # Execution-only fields may differ; architecture and geometry may not.
