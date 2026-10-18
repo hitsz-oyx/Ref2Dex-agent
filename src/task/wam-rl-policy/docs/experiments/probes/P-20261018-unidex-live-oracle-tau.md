@@ -186,7 +186,12 @@ replay per query, which is a separate cost/engineering decision.
   set is underpowered.
 * Offline teacher-action identification is a sanity check, not closed-loop
   task success. It does not show that a closed-loop executor can hold or
-  place.
+  place. The oracle tau is taken on teacher states only, so recovery from
+  student drift is not tested.
+* `p1`/`p2` keep the previous action, which in this dataset is the teacher's
+  action and can leak object/contact information. In closed loop it would be
+  the student's own action, so this identification is conservative about
+  tau's benefit rather than optimistic.
 * The partial observation is a deliberate handicap. It is not the final WAM
   executor observation and its absolute L1 is not comparable to the native
   policy's closed-loop behavior.
