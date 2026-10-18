@@ -1,0 +1,229 @@
+"""Ordered SE(3) path goals from measured state; no WAM or policy dependency.
+
+The supplied path is a known instruction, not a prediction of live execution.
+Object-only paths do not specify grasp readiness, release, or mandatory dwell.
+Callers may supply readiness/failure observations and mandatory path indices.
+"""
+from dataclasses import dataclass
+
+import numpy as np
+from scipy.spatial.transform import Rotation
+
+
+def _pose(value):
+    value = np.asarray(value, dtype=np.float64)
+    if (value.shape != (4, 4) or not np.isfinite(value).all()
+            or not np.allclose(value[3], [0, 0, 0, 1], atol=1e-6)
+            or not np.allclose(value[:3, :3].T @ value[:3, :3], np.eye(3), atol=1e-5)
+            or not np.isclose(np.linalg.det(value[:3, :3]), 1, atol=1e-5)):
+        raise ValueError('finite proper SE(3) pose required')
+    return value.copy()
+
+
+def transform_points(pose, points):
+    return np.asarray(points) @ pose[:3, :3].T + pose[:3, 3]
+
+
+def interpolate_pose(first, last, fraction):
+    """Linear translation and shortest-arc SO(3), including pi rotations."""
+    fraction = float(fraction)
+    if not 0 <= fraction <= 1:
+        raise ValueError('interpolation fraction outside [0,1]')
+    result = np.eye(4)
+    delta = Rotation.from_matrix(first[:3, :3].T @ last[:3, :3]).as_rotvec()
+    result[:3, :3] = first[:3, :3] @ Rotation.from_rotvec(delta * fraction).as_matrix()
+    result[:3, 3] = (1-fraction)*first[:3, 3] + fraction*last[:3, 3]
+    return result
+
+
+def rigid_goal_delta(current_pose, goal_pose, object_points):
+    """Same-ID point displacement in the CURRENT object's fixed anchor frame."""
+    current, goal = _pose(current_pose), _pose(goal_pose)
+    points = np.asarray(object_points, dtype=np.float64)
+    if points.ndim != 2 or points.shape[1] != 3 or not np.isfinite(points).all():
+        raise ValueError('finite Nx3 object points required')
+    rotation = current[:3, :3].T @ goal[:3, :3]
+    translation = current[:3, :3].T @ (goal[:3, 3]-current[:3, 3])
+    return points @ rotation.T + translation - points
+
+
+@dataclass(frozen=True)
+class SchedulerConfig:
+    horizon_s: float = .8
+    milestone_spacing_m: float = .02
+    position_tolerance_m: float = .008
+    rotation_tolerance_rad: float = .12
+    point_tolerance_m: float = .008
+    lookahead_m: float = .025
+    preparation_lookahead_m: float = .01
+    recovery_lookahead_m: float = .008
+    max_goal_translation_m: float = .05
+    max_goal_rotation_rad: float = .35
+    max_goal_point_m: float = .05
+    recovery_enter_m: float = .04
+    recovery_exit_m: float = .015
+    final_settle_s: float = .2
+    stall_timeout_s: float = 8.
+    episode_timeout_s: float = 60.
+
+    def __post_init__(self):
+        if any(not np.isfinite(v) or v <= 0 for v in self.__dict__.values()):
+            raise ValueError('scheduler limits must be positive and finite')
+        if (self.milestone_spacing_m <= 2*self.point_tolerance_m
+                or self.recovery_exit_m >= self.recovery_enter_m
+                or self.preparation_lookahead_m > self.lookahead_m
+                or self.recovery_lookahead_m > self.lookahead_m):
+            raise ValueError('inconsistent scheduler spacing, hysteresis or lookahead')
+
+
+class OrderedGoalScheduler:
+    """One independent scheduler per environment; reset at episode boundaries.
+
+    Only the next ordered milestone can be confirmed. Local projection selects
+    a position WITHIN that segment and may retreat without undoing milestones.
+    Readiness=None explicitly means unknown, rather than certified grasping.
+    The module emits a goal, never executable robot commands.
+    """
+    def __init__(self, reference_poses, reference_times_s, object_points, *,
+                 config=None, mandatory_indices=()):
+        self.config = config or SchedulerConfig()
+        self.poses = np.stack([_pose(p) for p in reference_poses])
+        self.times = np.asarray(reference_times_s, dtype=np.float64).copy()
+        self.points = np.asarray(object_points, dtype=np.float64).copy()
+        if (len(self.poses) < 2 or self.times.shape != (len(self.poses),)
+                or not np.isfinite(self.times).all() or np.any(np.diff(self.times) <= 0)
+                or self.points.ndim != 2 or self.points.shape[1] != 3
+                or len(self.points) < 3 or not np.isfinite(self.points).all()
+                or np.linalg.matrix_rank(self.points-self.points.mean(0)) < 2):
+            raise ValueError('ordered timestamps and noncollinear same-ID object points required')
+        self.path_points = np.stack([transform_points(p, self.points) for p in self.poses])
+        steps = np.linalg.norm(np.diff(self.path_points, axis=0), axis=-1).mean(-1)
+        self.arc = np.r_[0., np.cumsum(steps)]
+        required = set(int(i) for i in mandatory_indices)
+        if any(i < 0 or i >= len(self.poses) for i in required):
+            raise ValueError('mandatory reference index outside path')
+        milestones = [0]
+        for i in range(1, len(self.poses)):
+            if i in required or self.arc[i]-self.arc[milestones[-1]] >= self.config.milestone_spacing_m:
+                milestones.append(i)
+        if milestones[-1] != len(self.poses)-1:
+            milestones.append(len(self.poses)-1)
+        self.milestones = np.asarray(milestones, dtype=np.int64)
+        self.reset()
+
+    def reset(self):
+        self.pointer = 0
+        self.start_time = self.last_time = self.last_progress_time = None
+        self.settle_since = None
+        self.initial_acquired = self.complete = self.recovering = False
+        self.terminal_reason = None
+
+    def _errors(self, actual, goal):
+        position = float(np.linalg.norm(actual[:3, 3]-goal[:3, 3]))
+        angle = float(Rotation.from_matrix(actual[:3, :3].T @ goal[:3, :3]).magnitude())
+        points = float(np.linalg.norm(transform_points(actual, self.points)-transform_points(goal, self.points), axis=-1).mean())
+        return position, angle, points
+
+    def _reached(self, actual, goal):
+        p, r, q = self._errors(actual, goal)
+        c = self.config
+        return p <= c.position_tolerance_m and r <= c.rotation_tolerance_rad and q <= c.point_tolerance_m
+
+    def _within_budget(self, actual, goal):
+        p, r, q = self._errors(actual, goal)
+        c = self.config
+        return p <= c.max_goal_translation_m and r <= c.max_goal_rotation_rad and q <= c.max_goal_point_m
+
+    def _at_arc(self, distance, first, last):
+        if distance <= self.arc[first]:
+            return self.poses[first].copy(), float(first)
+        i = min(int(np.searchsorted(self.arc, distance, side='left')), last)
+        i = max(i, first+1)
+        width = self.arc[i]-self.arc[i-1]
+        fraction = 0. if width <= 1e-12 else np.clip((distance-self.arc[i-1])/width, 0, 1)
+        return interpolate_pose(self.poses[i-1], self.poses[i], fraction), float(i-1+fraction)
+
+    def _bounded(self, actual, goal):
+        if self._within_budget(actual, goal):
+            return goal.copy()
+        low, high = 0., 1.
+        for _ in range(28):
+            middle = (low+high)/2
+            if self._within_budget(actual, interpolate_pose(actual, goal, middle)):
+                low = middle
+            else:
+                high = middle
+        return interpolate_pose(actual, goal, low)
+
+    def update(self, object_pose, time_s, *, execution_ready=None, lost_control=False):
+        actual, now, c = _pose(object_pose), float(time_s), self.config
+        if (not np.isfinite(now) or (self.last_time is not None and now <= self.last_time)
+                or (execution_ready is not None and not isinstance(execution_ready, (bool, np.bool_)))
+                or not isinstance(lost_control, (bool, np.bool_))):
+            raise ValueError('strictly increasing live time and optional boolean readiness required')
+        execution_ready = None if execution_ready is None else bool(execution_ready)
+        if self.start_time is None:
+            self.start_time = self.last_progress_time = now
+        self.last_time = now
+        pending = int(self.milestones[min(self.pointer+1, len(self.milestones)-1)])
+        if not self.initial_acquired and self._reached(actual, self.poses[0]):
+            self.initial_acquired = True
+            self.last_progress_time = now
+        # No clock advancement or nearest-frame jump is allowed to confirm a milestone.
+        if (self.terminal_reason is None and not self.complete and self.initial_acquired
+                and execution_ready is not False and not lost_control
+                and self._reached(actual, self.poses[pending])):
+            if self.pointer+1 == len(self.milestones)-1:
+                if self.settle_since is None:
+                    self.settle_since = now
+                if now-self.settle_since >= c.final_settle_s:
+                    self.pointer += 1
+                    self.complete = True
+                    self.last_progress_time = now
+            else:
+                self.pointer += 1
+                self.last_progress_time = now
+        else:
+            self.settle_since = None
+        first = int(self.milestones[self.pointer])
+        last = int(self.milestones[min(self.pointer+1, len(self.milestones)-1)])
+        if not self.initial_acquired:
+            first = last = 0
+        actual_points = transform_points(actual, self.points)
+        error = np.linalg.norm(self.path_points[first:last+1]-actual_points[None], axis=-1).mean(-1)
+        local = first+int(np.argmin(error))  # ties choose earliest, including static intervals
+        tracking_error = float(error[local-first])
+        self.recovering = bool(lost_control or not self.initial_acquired or
+            tracking_error > (c.recovery_exit_m if self.recovering else c.recovery_enter_m))
+        if not self.complete and self.terminal_reason is None:
+            if now-self.start_time >= c.episode_timeout_s:
+                self.terminal_reason = 'episode_deadline'
+            elif now-self.last_progress_time >= c.stall_timeout_s:
+                self.terminal_reason = 'no_confirmed_milestone'
+        if self.terminal_reason:
+            mode, reason, goal, index = 'TIMEOUT', self.terminal_reason, actual.copy(), float(local)
+        elif self.complete:
+            mode, reason, goal, index = 'COMPLETE', 'final_pose_settled', self.poses[-1].copy(), float(len(self.poses)-1)
+        else:
+            if self.recovering:
+                mode, reason, ahead = 'RECOVER', 'lost_control' if lost_control else 'outside_local_segment', c.recovery_lookahead_m
+            elif execution_ready is False:
+                mode, reason, ahead = 'PREPARE', 'execution_not_ready', c.preparation_lookahead_m
+            else:
+                mode, reason = 'TRACK', 'ordered_progress'
+                ahead = c.lookahead_m * max(.25, 1-tracking_error/c.recovery_enter_m)
+            goal, index = self._at_arc(min(self.arc[local]+ahead, self.arc[last]), local, last)
+        on_reference = self._within_budget(actual, goal)
+        if not on_reference:
+            goal = self._bounded(actual, goal)
+            mode = 'RECOVER' if mode not in ('TIMEOUT', 'COMPLETE') else mode
+            reason += ':bounded_connector_to_reference'
+        position, rotation, point_error = self._errors(actual, goal)
+        denominator = max(float(self.arc[-1]), 1e-12)
+        return dict(goal_pose=goal, goal_delta=rigid_goal_delta(actual, goal, self.points),
+            horizon_s=c.horizon_s, mode=mode, reason=reason, execution_ready=execution_ready,
+            confirmed_index=int(self.milestones[self.pointer]), projected_index=local,
+            target_reference_index=index, target_on_reference=on_reference,
+            confirmed_progress=float(self.arc[self.milestones[self.pointer]]/denominator) if self.arc[-1]>1e-12 else float(self.complete),
+            reference_error_m=tracking_error, goal_position_m=position, goal_rotation_rad=rotation,
+            goal_point_m=point_error, complete=self.complete, timed_out=self.terminal_reason is not None)

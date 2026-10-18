@@ -1,5 +1,11 @@
 # WAM-assisted robot RL
 
+2026-10-18 [独立goal调度器](docs/experiments/probes/P-20261018-goal-scheduler.md)：
+`OrderedGoalScheduler(reference_poses, reference_times_s, object_points)`逐环境保存有序进度，
+`update(object_pose, time_s, execution_ready=None, lost_control=False)`返回短目标SE(3)、
+当前物体坐标系的配对点delta、模式与选择原因。只做goal选择，不调用WAM或输出机器人动作。
+回放入口为`tools/audit/replay_goal_scheduler.py`，包含离线交互HTML；真实执行收益尚未验证。
+
 2026-10-18 [完整物体轨迹到WAM短目标的调度器调研](docs/research/2026-10-18-goal-scheduler-literature.md)：
 区分已知未来参考与真实未来oracle，核查既有短目标/进度接口，提出按状态推进的有界前视方案。
 目前仅为设计讨论，未实现调度器或启动新实验。

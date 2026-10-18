@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Goal 调度器 · 离线回放</title>
+<style>
+body{margin:24px auto;padding:0 18px;max-width:1400px;background:#111723;color:#e5eaf2;font:15px system-ui}h1{font-size:25px}p{line-height:1.7;color:#bac5d6}select,button,input{font:inherit;padding:7px;border-radius:6px;border:1px solid #53617b;background:#202b40;color:#eef3ff}select{max-width:100%}.controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap}#frame{flex:1;min-width:220px}.plots{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}canvas{width:100%;aspect-ratio:1;background:#182233;border:1px solid #33415a;border-radius:8px}.status{display:flex;flex-wrap:wrap;gap:9px;margin:16px 0}.status span{background:#202b40;padding:9px;border-radius:6px}#detail{white-space:pre-wrap;line-height:1.7;color:#c5d0e2}.blue{color:#77b8ff}.orange{color:#ffb45b}.green{color:#6de0b0}.pink{color:#ed8cbd}.gray{color:#a9b5c8}@media(max-width:800px){.plots{grid-template-columns:1fr}canvas{max-height:440px}}
+</style>
+<h1>Goal 调度器 · 离线几何回放</h1>
+<p>蓝色是已知完整参考，橙色是当前短目标，绿色是当前物体，粉色是按时钟前视 0.8 秒的目标，灰色是记录的手点。三个投影共同显示平移与旋转。<br>真实片段使用已有记录及受控延迟重放；恢复扰动是合成检查。这里没有运行 WAM、机器人策略或新物理仿真，完成标志仅表示有序参考位姿已达标。</p>
+<div class="controls"><label>片段 <select id="case"></select></label><button id="play">播放</button><input id="frame" type="range" min="0" max="1" value="0"><label>速度 <select id="speed"><option>0.25</option><option selected>0.5</option><option>1</option><option>2</option></select></label><span id="time"></span></div>
+<div class="status" id="status"></div>
+<div class="controls"><label><input type="checkbox" id="clock" checked>显示时钟目标</label><label><input type="checkbox" id="hand" checked>显示手点</label><label>缩放 <input id="zoom" type="range" min="0.5" max="4" step="0.1" value="1"></label></div>
+<div class="plots"><canvas id="xy" width="600" height="600" aria-label="XY俯视投影"></canvas><canvas id="xz" width="600" height="600" aria-label="XZ侧视投影"></canvas><canvas id="yz" width="600" height="600" aria-label="YZ侧视投影"></canvas></div>
+<p><span class="blue">● 参考与下一里程碑</span>　<span class="orange">● 状态调度目标</span>　<span class="green">● 当前物体</span>　<span class="pink">● 时钟目标</span>　<span class="gray">● 当前手点</span></p>
+<div id="detail"></div>
+<script>
+const DATA=__REPLAY_DATA__;
+const el=id=>document.getElementById(id);
+const selector=el('case'),slider=el('frame');
+DATA.forEach((c,i)=>{const option=document.createElement('option');option.value=i;option.textContent=c.name;selector.appendChild(option)});
+let playing=false,last=0,accum=0;
+function transform(p,q){return q.map(v=>[0,1,2].map(i=>p[i][0]*v[0]+p[i][1]*v[1]+p[i][2]*v[2]+p[i][3]))}
+function center(p){return [p[0][3],p[1][3],p[2][3]]}
+function render(){
+ const c=DATA[+selector.value],r=c.rows[+slider.value],k=+slider.value;
+ const actual=transform(r.object_pose,c.points),goal=transform(r.goal_pose,c.points),clock=transform(r.clock_goal_pose,c.points);
+ const path=c.reference.map(center),pending=c.milestones.find(i=>i>r.confirmed_index)??c.reference.length-1;
+ const bounds=path.concat(actual,goal,clock,r.hand||[]),mid=[0,1,2].map(d=>(Math.min(...bounds.map(p=>p[d]))+Math.max(...bounds.map(p=>p[d])))/2);
+ const span=Math.max(.12,...[0,1,2].map(d=>Math.max(...bounds.map(p=>p[d]))-Math.min(...bounds.map(p=>p[d]))))*1.25/(+el('zoom').value);
+ for(const [id,a,b] of [['xy',0,1],['xz',0,2],['yz',1,2]]){
+  const canvas=el(id),ctx=canvas.getContext('2d');ctx.clearRect(0,0,600,600);
+  const project=p=>[300+(p[a]-mid[a])*520/span,300-(p[b]-mid[b])*520/span];
+  function dots(points,color,radius){ctx.fillStyle=color;for(const p of points){const [x,y]=project(p);ctx.beginPath();ctx.arc(x,y,radius,0,Math.PI*2);ctx.fill()}}
+  ctx.strokeStyle='#76b9ff88';ctx.lineWidth=2;ctx.beginPath();path.forEach((p,i)=>{const [x,y]=project(p);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)});ctx.stroke();
+  dots([path[r.confirmed_index]],'#55ddaa',7);dots([path[pending]],'#77b8ff',7);
+  if(el('hand').checked&&r.hand)dots(r.hand,'#a9b5c8',4);
+  if(el('clock').checked)dots(clock,'#ed8cbd99',3);
+  dots(goal,'#ffb45b',4);dots(actual,'#6de0b0',3);
+  ctx.fillStyle='#dce6f4';ctx.font='18px system-ui';ctx.fillText(id.toUpperCase(),20,30);
+  ctx.font='14px system-ui';ctx.fillText(`视野 ${(span*100).toFixed(1)} cm`,20,575);
+ }
+ el('time').textContent=`${r.time_s.toFixed(2)} s · ${k+1}/${c.rows.length}`;
+ const stats=[r.mode,`已确认 ${(100*r.confirmed_progress).toFixed(1)}%`,`短目标 ${(1000*r.goal_point_m).toFixed(1)} mm`,`旋转 ${(r.goal_rotation_rad*180/Math.PI).toFixed(1)}°`,`准备状态 ${r.execution_ready===null?'未知':r.execution_ready?'可推进':'等待'}`];
+ el('status').replaceChildren(...stats.map(text=>{const node=document.createElement('span');node.textContent=text;return node}));
+ el('detail').textContent=`选择原因：${r.reason}\n参考索引：已确认 ${r.confirmed_index}，局部匹配 ${r.projected_index}，前视 ${r.target_reference_index.toFixed(2)} / ${c.reference.length-1}\n目标位于参考上：${r.target_on_reference?'是':'否（有界恢复连接段）'}；物理时域 ${r.horizon_s.toFixed(2)} s\n本片段结尾：有序位姿完成 ${c.summary.complete?'是':'否'}，超时 ${c.summary.timed_out?'是':'否'}\n数据来源：${c.metadata.kind}${c.metadata.environment===undefined?'':` / env ${c.metadata.environment}`}\n${c.metadata.scope||'合成几何行为检查'}`;
+}
+function choose(){slider.max=DATA[+selector.value].rows.length-1;slider.value=0;accum=0;render()}
+selector.addEventListener('change',choose);slider.addEventListener('input',render);
+['clock','hand','zoom'].forEach(id=>el(id).addEventListener('input',render));
+el('play').addEventListener('click',()=>{playing=!playing;el('play').textContent=playing?'暂停':'播放';last=0});
+function tick(ms){if(playing){if(last){const c=DATA[+selector.value],dt=c.rows.length>1?c.rows[1].time_s-c.rows[0].time_s:1/60;accum+=(ms-last)/1000*(+el('speed').value)/dt;const advance=Math.floor(accum);if(advance){accum-=advance;slider.value=Math.min(+slider.max,+slider.value+advance);render();if(+slider.value>=+slider.max){playing=false;el('play').textContent='播放'}}}last=ms}requestAnimationFrame(tick)}
+choose();requestAnimationFrame(tick);
+</script>
+</html>
