@@ -65,3 +65,9 @@ best checkpoint，避免较差的继续训练覆盖父模型起点。PPO actor�
 PyTorch峰值713MiB。检查仅覆盖一次batch，不声称所有状态批处理等价。
 全量生成接续运行，完成后自动进入50k BC；运行状态/吞吐见本地产物的
 `pipeline-status.json`、`cache/progress.json`，失败会阻止后续训练。
+
+用户质疑全量条件预计算的成本后，主动STOP结束本地流水线，已完成183条记录，
+可恢复缓存保留，未进入BC训练。现有全量current BC本身不依赖新增缓存；
+穷举每个状态的WAM条件是新增条件BC的方法选择，不是PPO warmstart的必要条件。
+实测约150行/秒；端到端包含CPU调度/输入构造、batch32完整WAM forward、逐记录flush，
+未做分项profiling，不能把全部耗时归因于GPU推理。
