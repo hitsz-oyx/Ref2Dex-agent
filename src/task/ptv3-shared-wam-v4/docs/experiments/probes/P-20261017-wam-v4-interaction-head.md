@@ -269,3 +269,29 @@ trajectory-policy v2 cards missing required schema/seed fields. The failing
 files have no diff from the pre-fix main55342ecd and were not rewritten as part
 of this WAM audit correction. The experiment index check passes; the focused
 implementation tests and real-data/runtime checks above are separate evidence.
+
+### Input performance inspection (2026-10-18)
+
+An engineering-only CPU profile used the pinned remote reader and actual
+recipe, deterministic `draw(128,170,240,rank=1)`, one thread, and the same
+16-sequence per-source cache as a training worker. No training process or
+configuration was changed. Raw script/log are in project
+`tmp/wam-v4-performance-20261018/`. Dataset initialization took8.81s
+(one-time). Constructing128 windows under cProfile took6.667s and collate
+.00793s. `interaction_field` cumulative5.400s (81% of sample construction),
+including NumPy voxel uniqueness/sorting; array argsort self-time3.364s.
+`numpy.load` cumulative.533s includes header/mapping work, so is not a pure
+storage-wait measurement. These nested times must not be added together.
+The probe measures input CPU costs, not total training stage percentages,
+and includes cProfile overhead and a different cache history from live workers.
+
+The live run reached220 updates at.34823 updates/s (~2.87s/update); the
+80k/global512 plan implies40.96M sampled windows with replacement. Eight live
+loader workers each consumed roughly96--97% of one CPU core. GPU power
+was about99--118W at the snapshot while utilization read100/0/100/100;
+this does not prove compute saturation because distributed waiting can also
+occupy GPU kernels. Together with the input profile, repeated online C label
+generation is a strong bottleneck candidate. GPU forward/backward and NCCL
+wall-time shares have not yet been measured. Periodic DEV is rank0-only
+(every1000 updates) while other ranks wait; the current early ETA has not
+passed its first periodic validation and excludes that recurring overhead.
