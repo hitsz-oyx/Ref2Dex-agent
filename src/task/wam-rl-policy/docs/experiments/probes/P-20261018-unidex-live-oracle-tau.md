@@ -5,7 +5,7 @@
 `stage`: Probe  
 `classification`: Decision  
 `code_branch`: `main`  
-`git_commit`: `1f1b66ec`  
+`git_commit`: `f731196c`  
 `run_id`: `unidex-serial-replay-r1`, `unidex-teacher-rollouts-r1`, `unidex-partial-obs-200tick-32seed-r1`  
 `runtime`: `/home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train` (Python 3.8, Torch 2.0.1+cu118), Isaac Gym at `/home2/wyy/isaac-gym`, local RTX 3090 GPU 0.
 
