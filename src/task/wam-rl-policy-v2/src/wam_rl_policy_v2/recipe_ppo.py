@@ -5,6 +5,22 @@ from torch import nn
 from .ppo import advantages,reduce,synchronize_gradients,apply_policy_action
 
 
+@torch.no_grad()
+def behavior_replay_error(actor, batch):
+    """Replay each measured tick at its original inference batch shape.
+
+    Flattening T*N changes CUDA GEMM reduction paths and can move the summed
+    24D log likelihood beyond the strict tolerance without a policy change.
+    Check both the actor replay and the stored behavior distribution.
+    """
+    maximum=torch.zeros((),device=batch['observation'].device)
+    for obs,latent,logp,mean,std in zip(batch['observation'],batch['latent'],batch['logp'],batch['mean'],batch['std']):
+        replay=actor.distribution(obs).log_prob(latent).sum(-1)
+        recorded=torch.distributions.Normal(mean,std).log_prob(latent).sum(-1)
+        maximum=torch.maximum(maximum,torch.maximum((replay-logp).abs().max(),(recorded-logp).abs().max()))
+    return float(reduce(maximum,'max'))
+
+
 def update_minibatches(actor,critic,batch,actor_optimizer,critic_optimizer,bc_weight,target_kl,epochs,minibatches,shuffle_generator=None):
     adv,returns=advantages(batch['reward'],batch['value'],batch['done'],batch['bootstrap'])
     obs=batch['observation'].flatten(0,1);latent=batch['latent'].flatten(0,1)
@@ -13,7 +29,7 @@ def update_minibatches(actor,critic,batch,actor_optimizer,critic_optimizer,bc_we
     adv=adv.flatten();moments=reduce(torch.stack((adv.double().mean(),adv.double().square().mean())))
     scale=(moments[1]-moments[0].square()).clamp_min(0).sqrt().clamp_min(1e-6)
     adv=((adv.double()-moments[0])/scale).float();returns=returns.flatten()
-    with torch.no_grad():replay=float(reduce((actor.distribution(obs).log_prob(latent).sum(-1)-old_logp).abs().max(),'max'))
+    replay=behavior_replay_error(actor,batch)
     if replay>1e-4:raise ValueError('Behavior latent log probability replay drift: '+str(replay))
     if len(obs)%minibatches:raise ValueError('Equal minibatch sizes required across ranks')
     steps=0;rejected=0;stop=False;reg=torch.zeros((),device=obs.device)

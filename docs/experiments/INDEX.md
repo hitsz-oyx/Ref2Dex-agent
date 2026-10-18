@@ -630,7 +630,7 @@
 | --- | --- | --- | --- | --- |
 | [P-20261018-scheduled-wam-bc](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261018-scheduled-wam-bc.md) | 调度WAM条件下的UniDex BC初始资格 | 见原卡 | 见原卡 | probes/COMPLETED |
 | [P-20261018-full-scheduled-current-bc](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261018-full-scheduled-current-bc.md) | 全量现有BC接入调度WAM | 见原卡 | 见原卡 | probes/COMPLETED |
-| [P-20261018-scheduled-batch-ppo](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261018-scheduled-batch-ppo.md) | Scheduled BC 的批量 PPO 试跑 | 见原卡 | 见原卡 | probes/PLANNED |
+| [P-20261018-scheduled-batch-ppo](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261018-scheduled-batch-ppo.md) | Scheduled BC 的批量 PPO 试跑 | 见原卡 | 见原卡 | probes/RUNNING |
 
 ## HF-shadow-bc-ppo
 

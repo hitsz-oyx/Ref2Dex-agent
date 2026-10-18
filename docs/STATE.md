@@ -2,7 +2,7 @@
 
 按用户要求，新565维 scheduled BC/PPO链路使用独立Task和Python包 `wam_rl_policy_v2`。
 已有全量缓存和BC checkpoint保持原路径复用；新输出写入 `outputs/wam-rl-policy-v2/`。
-批量PPO代码已实现，尚未启动试跑。见[新Task入口](../src/task/wam-rl-policy-v2/README.md)。
+批量PPO已从v2目录启动GPU6/16环境有界试跑，结果尚待完成。见[新Task入口](../src/task/wam-rl-policy-v2/README.md)。
 
 ## 2026-10-18 全量scheduled BC完成，native闭环与真实PPO更新接口通过
 

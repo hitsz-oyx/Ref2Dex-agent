@@ -45,7 +45,7 @@ def main():
  signal.signal(signal.SIGALRM,lambda *_:(_ for _ in ()).throw(TimeoutError('native loop deadline')));signal.alarm(a.seconds)
  commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
  manifest=dict(status='RUNNING',git_commit=commit,python=sys.executable,torch=torch.__version__,gpu=a.gpu,
-    seed=a.seed,ticks=a.ticks,episodes=a.episodes,policy=str(a.policy),scope='native interface engineering; not policy success validation')
+    seed=a.seed,ticks=a.ticks,episodes=a.episodes,envs=a.envs,ppo_updates=a.ppo_updates,policy=str(a.policy),scope='native interface engineering; not policy success validation')
  write_json(a.output/'manifest.json',manifest);started=time.monotonic();task=None
  try:
   vendor=ROOT/'third_party/UniDexGrasp2';assets=ROOT/'outputs/video-data-preparation/unidexgrasp-policy-assets-20261014-r1/assets'
@@ -99,6 +99,7 @@ def main():
     return dict(pose=object_poses(task.object_pose.detach().cpu().numpy()[:,None])[:,0],
       hand=hand.cpu().numpy().copy(),current=task.obs_buf.cpu().numpy().copy(),goal=task.goal_pos.cpu().numpy().copy())
    manifest.update(envs=a.envs,ppo_updates=a.ppo_updates,scope='bounded single-object continuous PPO pilot; not generalization validation')
+   write_json(a.output/'manifest.json',manifest)
    reports=run(task,batch_snapshot,sim_step,actor,runtime,a)
    manifest.update(status='COMPLETED',reports=reports,elapsed_s=time.monotonic()-started)
    return

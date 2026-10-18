@@ -13,7 +13,7 @@ seed_pool: debug
 seeds: [0]
 decision_changed_if_positive: expand the scheduled BC warmstart PPO to a training object panel
 decision_changed_if_negative: retain BC and repair continuous PPO before scaling
-status: PLANNED
+status: RUNNING
 run_id: scheduled-batch-ppo-20261018-r1
 ---
 
@@ -43,3 +43,12 @@ actor LR1e-5、critic LR1e-4、joint KL上限.01；前后各一次确定性均�
 
 批量历史的部分重置、合并推理、60Hz插值以及原控制合同/目标指标共4项测试通过。
 运行结果待记录。
+
+启动记录：代码03a696eb，GPU6/16环境，物体 bottle-109d55a137c042f5760315ac3bf2c13e
+确认属于TRAIN池。日志 `tmp/scheduled-batch-ppo-20261018-r1.log`，
+运行初期GPU约55–59%/3.6GiB，磁盘剩余149GiB。
+
+r1在第二次更新前被严格likelihood回放检查拦下(1.4687e-4)。固定checkpoint和
+归档565D输入的3秒复现：合并2880条重放误差1.1444e-4，按采集16条重放误差0。
+修正为逐采集tick批大小回放，同时独立核验存储Normal分布；阈值仍1e-4。
+21项测试通过；r1保留首个PPO端点，r2从同一BC重新开始完整试跑。
