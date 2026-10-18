@@ -19,9 +19,13 @@ def main():
  p.add_argument('--seconds',type=int,default=300);p.add_argument('--object-code',default=DEFAULT_OBJECT)
  p.add_argument('--scale',type=float,default=.08)
  p.add_argument('--ppo-smoke',action='store_true',help='One on-policy rollout and bounded PPO update; engineering only')
+ p.add_argument('--envs',type=int,default=1);p.add_argument('--ppo-updates',type=int,default=0)
  a=p.parse_args();a.output=a.output.resolve();a.policy=a.policy.resolve()
  if not 1<=a.episodes<=4 or not 1<=a.ticks<=180:raise ValueError('Bounded native probe required')
  if a.ppo_smoke and (a.episodes!=1 or a.ticks%4):raise ValueError('PPO smoke needs one episode and ticks divisible by4')
+ if not 1<=a.envs<=32 or not 0<=a.ppo_updates<=100:raise ValueError('Bounded batch pilot required')
+ if a.envs>1 and not a.ppo_updates:raise ValueError('Batched execution requires PPO pilot')
+ if a.ppo_updates and (a.ppo_smoke or a.ticks*a.envs%4):raise ValueError('Equal PPO minibatches required')
  if a.output.exists():raise ValueError('Fresh output required')
  a.output.mkdir(parents=True);(a.output/'tmp').mkdir()
  os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu),TMPDIR=str(a.output/'tmp'))
@@ -48,7 +52,7 @@ def main():
   sys.path.insert(0,str(vendor/'dexgrasp'));replay=load_replay_helpers()
   Task=replay.task_class(vendor,a.output)
   cfg=yaml.safe_load((vendor/'dexgrasp/cfg/shadow_hand_grasp.yaml').read_text())
-  cfg['env'].update(numEnvs=1,random_time=False,printNumSuccesses=False,object_code_dict={a.object_code:[a.scale]})
+  cfg['env'].update(numEnvs=a.envs,random_time=False,printNumSuccesses=False,object_code_dict={a.object_code:[a.scale]})
   cfg['env']['asset']['assetRoot']=str(assets);cfg['graphics_device_id']=-1
   sim=gymapi.SimParams();sim.dt=1/60;sim.num_client_threads=0;sim.use_gpu_pipeline=True
   sim.physx.solver_type=1;sim.physx.num_position_iterations=4;sim.physx.num_velocity_iterations=0
@@ -85,8 +89,19 @@ def main():
    from wam_rl_policy.recipe_ppo import update_minibatches
    torch.manual_seed(a.seed);critic=Critic(obs_dim=565,value_scale=100.).cuda()
   cache=ROOT/'outputs/shadow-finetune/policy-data-full-20261015-r1';snap=ROOT/'outputs/ptv3-shared-wam-v4/local-control-snapshot-20261018-r1'
-  runtime=V4Runtime(snap/'step12000-local.pt',[dict(object_code=a.object_code,scale=a.scale)],cache,dense_manifest=snap/'surface-manifest.json')
+  runtime=V4Runtime(snap/'step12000-local.pt',[dict(object_code=a.object_code,scale=a.scale)]*a.envs,cache,dense_manifest=snap/'surface-manifest.json')
   manifest['wam_step']=runtime.step
+  if a.ppo_updates:
+   from wam_rl_policy.scheduled_ppo_loop import run
+   def batch_snapshot():
+    rigid=task.rigid_body_states[:,ids];hand=rigid[:,:,:3].clone()
+    hand[:,6:]+=quat_apply(rigid[:,6:,3:7].reshape(-1,4),offsets.repeat(a.envs,1)).reshape(a.envs,5,3)
+    return dict(pose=object_poses(task.object_pose.detach().cpu().numpy()[:,None])[:,0],
+      hand=hand.cpu().numpy().copy(),current=task.obs_buf.cpu().numpy().copy(),goal=task.goal_pos.cpu().numpy().copy())
+   manifest.update(envs=a.envs,ppo_updates=a.ppo_updates,scope='bounded single-object continuous PPO pilot; not generalization validation')
+   reports=run(task,batch_snapshot,sim_step,actor,runtime,a)
+   manifest.update(status='COMPLETED',reports=reports,elapsed_s=time.monotonic()-started)
+   return
   summary=[];initial=[]
   for episode in range(a.episodes):
    for _ in range(2):
