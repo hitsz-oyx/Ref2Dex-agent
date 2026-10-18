@@ -1,3 +1,15 @@
+## 2026-10-18 全量scheduled BC完成，native闭环与真实PPO更新接口通过
+
+条件缓存全部完成，TRAIN1536897/DEV354761行经独立逐行合同审计通过。
+自训练BC继续50k步，best46000，DEV动作MAE0.0193933→0.0170210；改善不能单独归因于WAM，
+尚无matched state-only续训对照。checkpoint为
+`outputs/wam-rl-policy/full-scheduled-current-bc-20261018-local-r1/fit-fast/best.pt`。
+父BC扩展与新BC各两次96步native loop完成；新BC终态4.45/3.15cm，但仅末尾5/7帧达标，
+不称稳定保持。已记录每拍目标与48步后实测姿态；期间重规划，不能直接据此判定可达性。
+真实64步PPO工程更新通过概率回放、末态bootstrap和KL回滚，actor接受1步、critic4步；
+不是长期PPO训练或效果提升结论。后续推进批量rollout/持续PPO和控制对照。
+见[全量BC卡](../src/task/wam-rl-policy/docs/experiments/probes/P-20261018-full-scheduled-current-bc.md)。
+
 ## 2026-10-18 全量BC调度条件缓存五卡并行，正式Shadow控制接口落地
 
 复用已有全量UniDex筛选池（TRAIN1567/DEV388对象）和自训练BC step50000，冻结WAM

@@ -77,3 +77,11 @@ WAM预测C仍作为诊断/后续可选条件返回，当前565维actor不消费C
 模拟原地修改sink不能改写canonical日志。耗时12.30s，峰值417MiB。
 产物 `outputs/wam-rl-policy/full-scheduled-current-bc-20261018-local-r1/control-interface-smoke/`。
 另有25项相关接口/调度/动作/τ/分片测试通过。这些不是native物理成功证据。
+
+
+Native入口现已实现：`tools/run/closed_loop_scheduled_shadow.py`。
+原BC扩展与条件BC各完成两次96步；episode初态观测逐值一致、历史在reset后清空，
+canonical日志未被上游修改。`--ppo-smoke`完成64步真实on-policy rollout和一次受KL约束的更新，
+原始采样概率回放误差5.34e-5；截断从实际末态构造输入并bootstrap。
+这是single-env工程接口，尚非批量PPO训练器。0.8s端点指标期间存在重规划，不可直接
+解释为固定目标误差或目标可达性证书；还需训练后的闭环与对照实验。

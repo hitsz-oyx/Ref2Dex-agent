@@ -13,7 +13,7 @@ seed_pool: debug
 seeds: [0]
 decision_changed_if_positive: use full-data scheduled BC as the PPO warmstart candidate
 decision_changed_if_negative: retain full-data current BC and inspect scheduled conditioning before PPO
-status: RUNNING
+status: COMPLETED
 run_id: full-scheduled-current-bc-20261018-r1
 ---
 
@@ -120,3 +120,28 @@ reset初始300维观测逐值一致；actor均值相对父BC最大误差7.153e-7
 新增`--ppo-smoke`：同一native入口采样原始Gaussian动作，保存真实reward/done，
 截断从实际末态重新构造565维输入并bootstrap；单次4-minibatch PPO更新检验概率重放、
 actor/critic梯度与KL回滚，reward不改。属于工程资格，不是PPO效果实验。
+
+## 完成结果
+
+五卡条件缓存完成12456序列：TRAIN1536897行，DEV354761行。独立全量扫描确认
+所有输入有限、current300与原缓存逐值相同、history-valid和startup零tau逐行正确。
+结果`completion-audit.json`；原始split和标签未变，未丢弃对象。
+BC续训50k步耗时171.46s，best在46000；DEV动作MAE从0.0193933至0.0170210（下降12.23%），
+root0.0330182→0.0291519，fingers0.0148516→0.0129774。继续训练本身与WAM条件效果混杂，
+没有matched state-only续训对照，不能将改善归因于WAM。选择按既定DEV panel，无native选模。
+
+best checkpoint的native两次96步完成，终态4.454/3.151cm，最后仅5/7帧在5cm门槛内，
+最大抬升20.26/19.36cm；是单TRAIN对象的接口检查，不是稳定保持或泛化验证。
+`native-conditioned-r1/`保存完整测量、当前目标、tau、canonical/applied动作和reset证据。
+0.8s目标端点均值误差15.09/13.14cm：期间目标持续重规划，不能把该指标直接解释为
+固定目标跟踪失败或目标不可达，只说明局部目标和执行结果的监测链路已可用。
+
+`native-ppo-smoke-r1/`为父BC扩展起点的真实64步on-policy工程更新：
+behavior log-prob最大误差5.34e-5（通过既有1e-4门限）；actor接受1步、critic4步，
+2次候选回滚后actor lr2.5e-6，joint KL0.004803，first-layer最大变化2.503e-6。
+bootstrap来自实际末态；使用未修改原生reward。新critic explained variance为负，
+不声称价值学习完成或PPO改善。独立工程checkpoint不覆盖BC。
+
+结论：全量scheduled BC已具备后续PPO warmstart的接口资格；长程PPO和效果评估未完成。
+后续优先接批量原生rollout和持续训练，保留父BC/state-only对照；任务阶段/可达性保证
+仍不由本次接口资格推导。参考正式接口文档。
