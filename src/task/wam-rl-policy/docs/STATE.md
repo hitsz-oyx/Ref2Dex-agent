@@ -1,5 +1,26 @@
 # 当前状态
 
+## 2026-10-18 UniDex 单环境 serial replay 通过；partial-obs oracle-τ 主要改善平移
+
+[oracle-τ Probe](experiments/probes/P-20261018-unidex-live-oracle-tau.md) 先复刻了
+consequence-evaluator 的窄合同：1 env、fresh process、seed 421、100 tick，四个进程的
+`obs/q/dq/hand/object_pose/forces/dof_force/action/success` 逐 tick bitwise identical。
+8-env 不是 twin（同 seed 只有 env0 lift 0.091 m），所以后续只用单环境 fresh-process
+rollout，不用中途 restore。
+
+32 个 200-tick 单环境 teacher rollout（bottle，scale 0.08）中 10 个最终 success，得到
+6112 行；τ 取同一 rollout 的 teacher 未来 8 步手部 11 点。由于官方 teacher 是 300-D
+前馈 MLP，full-state 下 `state` vs `state+τ` 没有信息增益，因此改用 partial observation：
+`p1`=68D robot core，`p2`=139D robot+fingertip kinematics，均不含 object pose/vel 和
+contact force。32-seed 分组 CV 下，`p2_tau` val L1 `0.1046`，优于 `p2` `0.1302`、
+shuffle `0.1331` 和 full-state `0.1218`；wrist xyz 从 `0.1548` 降到 `0.0731`，但
+rotation 几乎不变（`0.2307→0.2226`）。success-only 10-seed 子集 xyz 增益一致
+（`0.1411→0.0607`），整体 L1 因 rotation/finger trade-off 只有边缘改善。
+
+当前判断：11-point 位置 τ 对平移/手指是可用的 plan interface，但没有携带 wrist
+orientation，不能据此回答 rotation；下一步要么在 executor 保留 object orientation，
+要么给 τ 加 orientation，再做闭环 serial-fork 验证。
+
 ## 2026-10-17 WAM runtime 修正 Probe：旧退化被实现问题混淆，修复后仍仅 UNCLEAR
 
 [runtime correction Probe](experiments/probes/P-20261017-wam-runtime-correction.md) 修正了
