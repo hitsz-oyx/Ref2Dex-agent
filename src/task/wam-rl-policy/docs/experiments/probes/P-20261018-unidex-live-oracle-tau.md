@@ -259,6 +259,27 @@ with tau removed, lifts to z=0.776 (0.082 m above start) around tick 108 and
 then drops; the tau arm lifts to 0.917 and holds 62 frames.  On this fixed
 seed, the live GT-tau conditioning is the differentiator, not DAgger alone.
 
+### Stage 2: held-out initial states (bottle)
+
+The current BC data covers successful seeds 421--452.  Seeds 453--484 were
+collected afterwards as a held-out teacher panel; 10/32 are successful
+(453, 463, 466, 468, 471, 472, 474, 478, 480, 482).  None of them is in the
+student's BC or DAgger data.
+
+Seed 453 (teacher lift 0.197 m, success first at tick 186) is the first
+held-out closed-loop check with the fixed network and DAgger recipe:
+
+| arm | final success | success frames (first) | max lift | final object x/y |
+|---|---|---|---|---|
+| tau+DAgger | 1 | 19 (131) | 0.181 m | (-0.031, 0.028) |
+| state-only+DAgger (tau packet) | 0 | 0 | 0.180 m | (-0.088, -0.058) |
+| teacher | 1 | 13 (186) | 0.197 m | (-0.010, -0.001) |
+
+The state-only control lifts just as high but ends 6--8 cm off the goal in
+x/y, outside the 5 cm success tolerance; the tau arm stays inside it and
+holds through the end.  This is one held-out seed; seeds 471 and 482 are
+running to estimate whether the effect is seed-specific.
+
 ## Interpretation
 
 1. **The oracle plan is usable for translation and fingers.** Adding tau
