@@ -280,6 +280,33 @@ x/y, outside the 5 cm success tolerance; the tau arm stays inside it and
 holds through the end.  This is one held-out seed; seeds 471 and 482 are
 running to estimate whether the effect is seed-specific.
 
+## 2026-10-18 audit caveat: action prefix and success frames
+
+The pinned `shadow_hand_grasp.py` rewrites `actions[:,0:3]` and `actions[:,3:6]`
+in place inside `pre_physics_step`. The original runner appended the action to
+`actions_history` **after** `sim_step`, so the saved prefix could contain the
+world-frame wrist command rather than the canonical command that was issued.
+The oracle then submitted that prefix as a canonical command, rotating the
+wrist twice. The current code saves the action before the step and passes a
+clone to the simulator; the manifest records
+`action_prefix_matches_executed`.
+
+This does not by itself prove that the historical run was affected: the card's
+`replay_error = 0` claim is inconsistent with the pinned mutation unless the
+runtime actually used an independent copy. The archived run must be checked by
+comparing `trajectory['action']` with `trajectory['action_prefix']`, and by
+confirming the actual vendor file used at run time. Until that check is done,
+do not treat the reported zero replay error as independent evidence that the
+prefix semantics were correct.
+
+The same card's `success_frames` was computed by summing the upstream
+`successes` tensor. That tensor is a cumulative "ever reached" flag, not a
+contiguous hold count. The corrected runner records realtime
+`goal_distance <= 0.05` frames, `longest_hold_frames`, `first_success_tick`,
+`final_success`, `success_frames_ever` and drop events. The sentence
+"holds 62 frames" should therefore be re-derived from the archived trajectory or
+from a rerun; it is not supported by the old aggregate alone.
+
 ## Interpretation
 
 1. **The oracle plan is usable for translation and fingers.** Adding tau
