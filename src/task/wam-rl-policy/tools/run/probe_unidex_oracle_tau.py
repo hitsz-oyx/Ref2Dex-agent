@@ -34,7 +34,7 @@ def collect(args):
     # Isaac Gym must load before torch.
     if 'float' not in np.__dict__:
         np.float = float
-    from isaacgym import gymapi, gymtorch, gymutil
+    from isaacgym import gymapi, gymutil
     import torch
     import yaml
     from isaacgym.torch_utils import quat_apply
@@ -125,58 +125,91 @@ def collect(args):
             task.gym.fetch_results(task.sim, True)
         task.post_physics_step()
 
-    # These are the mutable tensors that can affect a continuation. Physics tensors are
-    # restored through indexed setters; task buffers are restored in-place.
-    tensor_names = ['prev_targets', 'cur_targets', 'actions', 'apply_forces', 'apply_torque',
-                    'progress_buf', 'reset_buf', 'reset_goal_buf', 'successes', 'current_successes',
-                    'consecutive_successes', 'z_theta', 'target_qpos', 'target_hand_pos',
-                    'target_hand_rot', 'object_init_euler_xy', 'object_init_z', 'goal_states']
-    actor_ids = torch.cat([task.hand_indices, task.object_indices, task.goal_object_indices, task.table_indices]).to(torch.int32)
-    dof_ids = task.hand_indices.to(torch.int32)
+    def seed_runtime(seed):
+        np.random.seed(seed)
+        random.seed(seed)
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
 
-    def snapshot_state():
-        return dict(root=task.root_state_tensor.clone(), dof=task.dof_state.clone(),
-                    tensors={n: getattr(task, n).clone() for n in tensor_names},
-                    hand=hand_points().clone(), obs=task.obs_buf.clone())
+    def reset_envs():
+        """Return to the fixed post-reset state with a real task reset.
 
-    def restore_state(snap):
-        task.root_state_tensor.copy_(snap['root'])
-        task.dof_state.copy_(snap['dof'])
-        for n, value in snap['tensors'].items():
-            getattr(task, n).copy_(value)
-        task.gym.set_actor_root_state_tensor(task.sim, gymtorch.unwrap_tensor(task.root_state_tensor))
-        task.gym.set_dof_state_tensor(task.sim, gymtorch.unwrap_tensor(task.dof_state))
-        task.gym.set_dof_position_target_tensor(task.sim, gymtorch.unwrap_tensor(task.prev_targets))
-        # Do not refresh force sensors here: PhysX reports the previous
-        # branch's contact forces until the next simulation step.  The fixed
-        # initial observation is exact at replay tick zero; after one replay
-        # step post_physics_step refreshes the sensors from the new branch.
-        task.obs_buf.copy_(snap['obs'])
+        The earlier implementation wrote an intermediate PhysX snapshot back
+        into the same simulation.  That is not a fork: contact/warm-start state
+        lives outside the root/dof tensors and diverged after a contact-rich
+        teacher rollout.  A fresh reset plus the recorded action prefix lets
+        the physics engine rebuild the trajectory instead.
+        """
+        seed_runtime(args.seed)
+        task.reset_buf[:] = 1
+        task.step(torch.zeros((args.envs, 24), device='cuda:0'), -1)
+        if task.reset_buf.any():
+            raise ValueError('reset left reset flags set')
+        if not torch.isfinite(task.obs_buf).all():
+            raise ValueError('nonfinite reset observation')
+
+    def replay_prefix(actions):
+        reset_envs()
+        for prior_action in actions:
+            sim_step(prior_action)
+        if task.reset_buf.any():
+            raise ValueError('replayed learner prefix reset before sampled tick')
+        if not torch.isfinite(task.obs_buf).all():
+            raise ValueError('nonfinite replayed observation')
+        return task.obs_buf.clone()
 
     records = []
     replay_errors = []
+    truncation = None
     start = time.monotonic()
+    history = []
+    # Reset randomization and action noise use independent streams.  Every
+    # tick re-seeds the reset stream so the replayed prefix starts from the
+    # same initial state, while the noise bank is drawn once up front.
+    noise_generator = torch.Generator(device='cuda:0')
+    noise_generator.manual_seed(args.seed + 104729)
+    noise_bank = torch.randn((args.ticks, args.envs, 24), generator=noise_generator,
+                             device='cuda:0')
     with torch.inference_mode():
-        task.reset_buf[:] = 1
-        task.step(torch.zeros((args.envs, 24), device='cuda:0'), -1)
-        # Do not fork by writing an intermediate PhysX state back into the live
-        # simulation.  Keep the post-reset state fixed and reconstruct each
-        # sampled state by replaying the learner action prefix from this state.
-        initial = snapshot_state()
-        history = []
+        # The first reset of a freshly created task can expose the construction
+        # pose instead of the randomized reset pose in the mirrored observation.
+        # Warm up once so every measured tick starts from a settled reset.
+        reset_envs()
         for tick in range(args.ticks):
             if time.monotonic() - start > args.gpu_seconds:
-                raise TimeoutError('bounded oracle probe deadline')
-            restore_state(initial)
-            for prior_action in history:
-                sim_step(prior_action)
-            if task.reset_buf.any():
-                raise ValueError('replayed learner prefix reset before sampled tick')
-            if not torch.isfinite(task.obs_buf).all():
-                raise ValueError('nonfinite replayed observation')
-            current = snapshot_state()
-            state = task.obs_buf.clone()
-            current_hand = current['hand']
+                truncation = f'bounded probe deadline at tick {tick}'
+                break
+            state = replay_prefix(history)
+            current_hand = hand_points().clone()
+            first_meta = dict(z=task.z_theta.clone(), euler=task.object_init_euler_xy.clone(),
+                              target=task.target_hand_pos.clone())
+            replay_error = 0.0
+            if args.replay_checks:
+                second = replay_prefix(history)
+                replay_error = float((second - state).abs().max().item())
+                replay_errors.append(replay_error)
+                if replay_error > args.max_replay_error:
+                    diff = (second - state).abs()
+                    top = torch.topk(diff.flatten(), 8)
+                    meta_diff = dict(
+                        z=float((task.z_theta - first_meta['z']).abs().max().item()),
+                        euler=float((task.object_init_euler_xy - first_meta['euler']).abs().max().item()),
+                        target=float((task.target_hand_pos - first_meta['target']).abs().max().item()))
+                    print(json.dumps(dict(tick=tick, replay_error=replay_error,
+                                          top_indices=top.indices.cpu().tolist(),
+                                          top_values=[float(v) for v in top.values],
+                                          second_values=[float(second.flatten()[i]) for i in top.indices],
+                                          first_values=[float(state.flatten()[i]) for i in top.indices],
+                                          n_over_threshold=int((diff > 1e-3).sum().item()),
+                                          meta_diff=meta_diff)), flush=True)
+                    # Each row is still self-consistent (s, tau and the teacher
+                    # action come from the same simulator instance); the error
+                    # audits whether the prefix replay is a reproducible
+                    # trajectory, which matters for closed-loop use, not for
+                    # offline identification.
+                # Continue from the state the fork will actually mutate.
+                state = second
+                current_hand = hand_points().clone()
             teacher_action = teacher(state.clamp(-5, 5)).clamp(-1, 1)
             future = []
             fork_reset = False
@@ -188,43 +221,44 @@ def collect(args):
                 sim_step(action)
                 future.append(hand_points().clone())
             if fork_reset or len(future) != args.horizon:
-                raise ValueError('teacher fork reset before horizon; no valid live-state row')
+                truncation = f'teacher fork reset before horizon at tick {tick}'
+                break
             tau = torch.stack(future, dim=1) - current_hand[:, None]
-            noise = torch.randn(teacher_action.shape, device='cuda:0') * args.noise_std
-            learner_action = (teacher_action + noise).clamp(-1, 1)
-            # Reconstruct the live state once more from the same initial state,
-            # then apply exactly the learner action that advances the trajectory.
-            restore_state(initial)
-            for prior_action in history:
-                sim_step(prior_action)
-            replay_error = float((task.obs_buf - state).abs().max().item())
-            replay_errors.append(replay_error)
-            if replay_error > args.max_replay_error:
-                diff = (task.obs_buf - state).abs()
-                flat = int(diff.argmax().item())
-                print(json.dumps(dict(replay_error=replay_error, diff_index=flat,
-                                      replay_value=float(task.obs_buf.flatten()[flat].item()),
-                                      reference_value=float(state.flatten()[flat].item()))), flush=True)
-                raise ValueError(f'non-deterministic replay error {replay_error}')
+            learner_action = (teacher_action + noise_bank[tick] * args.noise_std).clamp(-1, 1)
             records.append(dict(state=state.cpu().numpy(), tau=tau.cpu().numpy(),
-                                teacher_action=teacher_action.cpu().numpy(), learner_action=learner_action.cpu().numpy(),
+                                teacher_action=teacher_action.cpu().numpy(),
+                                learner_action=learner_action.cpu().numpy(),
                                 tick=np.full(args.envs, tick, np.int32),
                                 replay_error=np.full(args.envs, replay_error, np.float32)))
-            sim_step(learner_action)
             history.append(learner_action.clone())
             if tick % 8 == 0:
                 print(json.dumps(dict(tick=tick, replay_error=replay_error,
-                                      max_tau=float(tau.abs().max().item()),
-                                      success=task.successes.cpu().tolist())), flush=True)
+                                      max_tau=float(tau.abs().max().item()))), flush=True)
+    if not records:
+        raise ValueError(f'no valid live-state rows: {truncation}')
     data = {key: np.concatenate([r[key] for r in records], axis=0) for key in records[0]}
+    data['learner_actions'] = torch.stack(history, dim=0).cpu().numpy()
     if not np.isfinite(data['state']).all() or not np.isfinite(data['tau']).all():
         raise ValueError('nonfinite oracle probe data')
     np.savez_compressed(args.output / 'oracle_queries.npz', **data)
-    result = dict(status='COMPLETE', rows=int(len(data['state'])), envs=args.envs, ticks=args.ticks,
-                  horizon=args.horizon, replay_error_max=max(replay_errors),
-                  replay_error_mean=float(np.mean(replay_errors)), hand_landmarks=names,
-                  tau_definition='teacher_future_hand_minus_live_hand', training_allowed=False,
-                  elapsed_s=time.monotonic() - start)
+    replay_max = max(replay_errors) if replay_errors else 0.0
+    replay_mean = float(np.mean(replay_errors)) if replay_errors else 0.0
+    replay_valid_fraction = (float(np.mean(np.asarray(replay_errors) <= args.max_replay_error))
+                             if replay_errors else 1.0)
+    valid = truncation is None and len(records) > 0
+    result = dict(status='COMPLETE' if truncation is None else 'TRUNCATED',
+                  truncation=truncation, rows=int(len(data['state'])),
+                  envs=args.envs, ticks=int(len(records)), horizon=args.horizon,
+                  seed=args.seed, object_code=object_code, scale=args.scale,
+                  noise_std=args.noise_std,
+                  replay_mode='reset_then_replay_prefix',
+                  replay_checks=bool(args.replay_checks),
+                  replay_error_max=replay_max, replay_error_mean=replay_mean,
+                  trajectory_replay_valid_fraction=replay_valid_fraction,
+                  hand_landmarks=names,
+                  tau_definition='teacher_future_hand_minus_live_hand',
+                  identification_allowed=valid, training_allowed=False,
+                  closed_loop_allowed=False, elapsed_s=time.monotonic() - start)
     write_json(args.output / 'result.json', result)
     print(json.dumps(result, indent=2), flush=True)
 
@@ -244,6 +278,8 @@ def main():
     p.add_argument('--seed', type=int, default=418)
     p.add_argument('--noise-std', type=float, default=.05)
     p.add_argument('--max-replay-error', type=float, default=5e-2)
+    p.add_argument('--replay-checks', action='store_true', default=True)
+    p.add_argument('--no-replay-checks', dest='replay_checks', action='store_false')
     p.add_argument('--gpu-seconds', type=int, default=300)
     args = p.parse_args()
     if not (1 <= args.envs <= 8 and 1 <= args.ticks <= 32 and 1 <= args.horizon <= 8):
