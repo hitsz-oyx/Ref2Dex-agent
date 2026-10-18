@@ -126,6 +126,46 @@ def _scaffold(hand: np.ndarray, valid: np.ndarray, origin: np.ndarray, policy: V
     return unique, counts
 
 
+def _query_voxel_counts_reference(cells, cell_counts, query_voxels):
+    """Original exact query path, retained for unsafe integer extents."""
+    merged, inverse = np.unique(
+        np.concatenate((cells, query_voxels.reshape(-1, 3))), axis=0, return_inverse=True)
+    lookup = np.zeros((len(merged), PART_DIM), np.float32)
+    lookup[inverse[:len(cells)]] = cell_counts
+    return lookup[inverse[len(cells):]].reshape(*query_voxels.shape[:-1], PART_DIM).sum(1)
+
+
+def _query_voxel_counts(cells, cell_counts, query_voxels):
+    """Query unique occupied cells using collision-free bounded int64 keys.
+
+    Sort only scaffold keys. Queries outside its bounding box are excluded
+    before subtraction/encoding, including extreme signed coordinates. Python
+    integer extent arithmetic detects overflow and retains the exact old path.
+    Neighbour order and the float32 sum are unchanged.
+    """
+    if not len(cells):
+        return np.zeros((len(query_voxels), PART_DIM), np.float32)
+    lower, upper = cells.min(0), cells.max(0)
+    spans = [int(hi) - int(lo) + 1 for lo, hi in zip(lower, upper)]
+    volume = spans[0] * spans[1] * spans[2]
+    if volume > np.iinfo(np.int64).max:
+        return _query_voxel_counts_reference(cells, cell_counts, query_voxels)
+    strides = np.array([spans[1] * spans[2], spans[2], 1], np.int64)
+    keys = ((cells - lower) * strides).sum(-1)
+    order = np.argsort(keys)
+    keys = keys[order]
+    flat = query_voxels.reshape(-1, 3)
+    inside = ((flat >= lower) & (flat <= upper)).all(-1)
+    ids = np.flatnonzero(inside)
+    query_keys = ((flat[inside] - lower) * strides).sum(-1)
+    positions = np.searchsorted(keys, query_keys)
+    present = positions < len(keys)
+    present[present] &= keys[positions[present]] == query_keys[present]
+    found = np.zeros((len(flat), PART_DIM), np.float32)
+    found[ids[present]] = cell_counts[order[positions[present]]]
+    return found.reshape(*query_voxels.shape[:-1], PART_DIM).sum(1)
+
+
 def interaction_field(hand_future: np.ndarray, hand_valid: np.ndarray,
                       object_future: np.ndarray, policy: V4SamplingPolicy = V4SamplingPolicy(),
                       origin: np.ndarray | None = None,
@@ -188,15 +228,7 @@ def interaction_field(hand_future: np.ndarray, hand_valid: np.ndarray,
                 continue
         cells, cell_counts = _scaffold(hand, hvalid, origin, policy)
         query_voxels = _voxel(obj, origin, policy.voxel_m)[:, None, :] + offsets[None, :, :]
-        # Merge scaffold and all query-neighbour voxels once, then gather the
-        # scaffold counts by inverse ID.  This preserves exact integer voxel
-        # occupancy while avoiding Q*27 Python dictionary lookups per frame.
-        merged, inverse = np.unique(
-            np.concatenate((cells, query_voxels.reshape(-1, 3)), axis=0),
-            axis=0, return_inverse=True)
-        lookup = np.zeros((len(merged), PART_DIM), np.float32)
-        lookup[inverse[:len(cells)]] = cell_counts
-        counts = lookup[inverse[len(cells):]].reshape(len(obj), len(offsets), PART_DIM).sum(1)
+        counts = _query_voxel_counts(cells, cell_counts, query_voxels)
         total = counts.sum(-1)
         contact = total > 0
         target[time, contact, 0] = 1.

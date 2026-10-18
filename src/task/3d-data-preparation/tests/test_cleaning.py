@@ -127,7 +127,11 @@ def test_frozen_pipeline_reads_both_splits_and_blocks_legacy_bypass(tmp_path, mo
     root = tmp_path/'native'
     root.mkdir()
     (root/'sequences').mkdir()
-    np.savez(root/'object.npz', **geometry())
+    dense = geometry()
+    dense['surface'] = np.concatenate((dense['surface'], np.column_stack((
+        np.linspace(.101, .2, 480), np.zeros((480, 2)))))).astype(np.float32)
+    dense['normals'] = np.tile([2*np.pi, 0, 0], (512, 1))
+    np.savez(root/'object.npz', **dense)
     rows = []
     for split in ('train', 'dev'):
         np.savez(root/'sequences'/(split+'.npz'), **sequence())
@@ -147,6 +151,24 @@ def test_frozen_pipeline_reads_both_splits_and_blocks_legacy_bypass(tmp_path, mo
         PoseMeshWindows(output, 'train', engineering=True)
     ds = CleanPoseMeshWindows(output, 'train', engineering=True)
     sample = ds[0]
+    from dataclasses import asdict
+    from pose_mesh_data.v4_data import V4NativeWindows
+    from pose_mesh_data.v4_windows import v4_pose_mesh_sample
+    v4 = V4NativeWindows(output, 'train')
+    record = sample.provenance
+    expected = v4_pose_mesh_sample(ds._sequence(record.row), [ds.geometry['test']],
+        record.tick, record.target_slot, record.source_id,
+        [record.source_id, record.row, record.tick], record.profile)
+    actual = v4[0]
+    assert actual.pop('provenance') == asdict(record)
+    for key in expected:
+        np.testing.assert_array_equal(actual[key], expected[key])
+    # The optimized path still checks the full target horizon on cache hits.
+    seq = v4.base._sequence(record.row)
+    seq['object_pose_valid'][record.tick+2, record.target_slot] = False
+    with pytest.raises(ValueError, match='horizon'):
+        v4[0]
+    seq['object_pose_valid'][record.tick+2, record.target_slot] = True
     batch = clean_collate([sample])
     assert batch['training_allowed'] is False and batch['provenance'][0].clock_verified
     assert batch['model_inputs']['source_id'].tolist() == [8]
@@ -166,10 +188,14 @@ def test_frozen_pipeline_reads_both_splits_and_blocks_legacy_bypass(tmp_path, mo
         f.write(b'changed')
     with pytest.raises(ValueError, match='changed'):
         ds[0]
+    with pytest.raises(ValueError, match='changed'):
+        v4[0]
     with (output/'windows.npz').open('ab') as f:
         f.write(b'changed-index')
     with pytest.raises(ValueError, match='window index changed'):
         ds[0]
+    with pytest.raises(ValueError, match='window index changed'):
+        v4[0]
     # Final budget failure must not publish a readable COMPLETED manifest.
     failed = output.parent/'clean-test-final-budget-failure'
     monkeypatch.setattr(clean_native_corpus, 'footprint', lambda root:

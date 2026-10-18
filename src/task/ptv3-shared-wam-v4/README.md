@@ -41,3 +41,25 @@ historical best score/step/checkpoint is inherited, and the initial baseline
 participates in selection. `--resume-reviewed-subset` is unsupported and fails
 before loading data. Historical checkpoints remain readable for audit, but
 legacy objective checkpoints cannot silently resume the corrected objective.
+
+The exact integer voxel lookup sorts occupied scaffold cells only. Bounds and
+int64 overflow checks preserve the original lookup as a fallback; voxel origin,
+hand semantics, neighbour order and label arithmetic are unchanged. Native
+windows construct the v4 view directly through the cleaned reader's frozen
+checks/provenance and reuse prepared canonical geometry. Fixed DEV inputs are
+cached in CPU memory (256MiB cap) at the configured microbatch size; use
+`--no-dev-cache` to compare the streaming path. TRAIN and DEV filter file digests
+are recorded in provenance and checked on future resumes. Older checkpoints
+without those digests are bound at the first continuation; this cannot prove
+their historical filter content.
+
+`--profile-steps N` (0--2000, default0) records input wait and CUDA event times
+for transfer, forward+loss, backward and optimizer at normal logging boundaries.
+There is no extra per-stage synchronization. CUDA stage times include stream
+waiting and collectives; input wait can overlap device work and the numbers must
+not be treated as additive CPU/GPU utilization percentages. Periodic validation
+and checkpoint wall time are also logged. The bounded engineering tool
+`tools/audit/benchmark_input_pipeline.py` compares full real-reader fields against
+the original implementation, or uses the same checkpoint/RNG/sample sequence
+to compare reference/optimized input and workers2/4 with real CUDA/DDP updates.
+Benchmark updates write no checkpoints and do not enter research model selection.

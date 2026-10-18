@@ -94,13 +94,17 @@ class CleanPoseMeshWindows(PoseMeshWindows):
             raise ValueError('frozen window index changed after cleaning')
 
     def __getitem__(self, index):
+        return self.build_window(index)
+
+    def build_window(self, index, sample_factory=pose_mesh_sample):
+        """Keep frozen checks/provenance while allowing a derived tensor view."""
         self._check_index()
         sequence_id, tick = self.index[index]
         row = self.meta['sequences'][sequence_id]
         sequence = self._sequence(sequence_id)
         if not sequence['object_pose_valid'][tick+1:tick+25, row['target_slot']].all():
             raise ValueError('filtered target horizon no longer valid')
-        sample = pose_mesh_sample(sequence, [self.geometry[k] for k in row['objects']], tick,
+        sample = sample_factory(sequence, [self.geometry[k] for k in row['objects']], tick,
             row['target_slot'], row['source_id'], [sequence_id, tick], row['profile'])
         active = tuple(int(i) for i in np.flatnonzero(sequence['object_pose_valid'][tick-3:tick+1].all(0)))
         observed = sequence.get('observed_frame',np.ones(len(sequence['time']),bool))

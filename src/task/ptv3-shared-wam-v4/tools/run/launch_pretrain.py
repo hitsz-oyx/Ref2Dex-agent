@@ -30,6 +30,8 @@ def main():
     p.add_argument('--output',type=Path,required=True)
     p.add_argument('--gpus',default='1,3')
     p.add_argument('--loader-workers',type=int,default=2)
+    p.add_argument('--profile-steps',type=int,default=0)
+    p.add_argument('--no-dev-cache',action='store_true')
     p.add_argument('--detach',action='store_true')
     p.add_argument('--stop-after',type=int)
     p.add_argument('--resume',type=Path)
@@ -87,7 +89,9 @@ def main():
         command=[sys.executable,'-m','torch.distributed.run','--standalone','--nnodes=1',
             '--nproc_per_node='+str(len(gpus)),str(TASK/'tools/run/train_pretrain.py'),
             '--config',str(a.config.resolve()),'--recipe',str(a.recipe.resolve()),'--output',str(out),
-            '--artifact-root',str(artifacts),'--loader-workers',str(a.loader_workers)]
+            '--artifact-root',str(artifacts),'--loader-workers',str(a.loader_workers),
+            '--profile-steps',str(a.profile_steps)]
+        if a.no_dev_cache:command+=['--no-dev-cache']
         if a.resume:command+=['--resume',str(a.resume.resolve())]
         if a.init_v3:command+=['--init-v3',str(a.init_v3.resolve())]
         if a.resume_learning_rate_drop:command+=['--resume-learning-rate-drop']

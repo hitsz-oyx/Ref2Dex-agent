@@ -5,6 +5,9 @@ from pathlib import Path
 import multiprocessing
 import os
 import tempfile
+import time
+import hashlib
+import json
 import numpy as np
 from torch.utils.data import Dataset, DataLoader
 
@@ -63,13 +66,19 @@ class NineWindows(Dataset):
         excluded = excluded_indices(recipe, split, len(self.blocked))
         self.blocked[excluded] = True
         filter_path = None
+        self.window_filter_sha256 = None
         if recipe:
             filter_path = recipe.get('window_filter_manifests', {}).get(split)
             if filter_path is None:
                 filter_path = recipe.get('window_filter_manifest')
         if filter_path:
             path = Path(filter_path)
-            manifest = __import__('json').loads(path.read_text())
+            payload = path.read_bytes()
+            self.window_filter_sha256 = hashlib.sha256(payload).hexdigest()
+            expected = recipe.get('window_filter_sha256', {}).get(split)
+            if expected is not None and expected != self.window_filter_sha256:
+                raise ValueError('window filter SHA-256 mismatch')
+            manifest = json.loads(payload)
             if (manifest.get('schema') != 'ref2dex.wam-v4-window-filter.v1'
                     or manifest.get('split') != split
                     or manifest.get('total_windows') != len(self.blocked)
@@ -145,6 +154,31 @@ class NineWindows(Dataset):
 
 def collate(samples):
     return dict(model_inputs=v4_collate([s[0] for s in samples]), provenance=[s[1] for s in samples])
+
+
+class DevInputCache:
+    """Bounded CPU tensors for exactly one frozen panel and microbatch size."""
+    def __init__(self, dataset, panel, microbatch_size, max_bytes=256*2**20):
+        if microbatch_size < 1:
+            raise ValueError('positive DEV cache microbatch required')
+        started = time.monotonic()
+        self.panel = {sid: tuple(map(int, ids)) for sid, ids in panel.items()}
+        self.microbatch_size, self.batches, self.bytes = microbatch_size, {}, 0
+        for sid, ids in self.panel.items():
+            rows = []
+            for first in range(0, len(ids), microbatch_size):
+                inputs = collate([dataset[i] for i in ids[first:first+microbatch_size]])['model_inputs']
+                self.bytes += sum(v.numel()*v.element_size() for v in inputs.values())
+                if self.bytes > max_bytes:
+                    raise ValueError('bounded DEV CPU cache budget exceeded')
+                rows.append(inputs)
+            self.batches[sid] = rows
+        self.build_seconds = time.monotonic() - started
+
+    def source_batches(self, sid, indices, microbatch_size):
+        if self.microbatch_size != microbatch_size or self.panel[sid] != tuple(map(int, indices)):
+            raise ValueError('DEV cache panel/order/microbatch mismatch')
+        return self.batches[sid]
 
 
 class Steps:

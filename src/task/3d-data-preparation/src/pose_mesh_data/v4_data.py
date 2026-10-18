@@ -13,7 +13,7 @@ import torch
 from torch.utils.data import Dataset
 
 from .v4_interaction import V4SamplingPolicy, fixed_subset, resampled_subset
-from .v4_windows import v4_pose_mesh_sample
+from .v4_windows import v4_pose_mesh_sample, prepare_v4_geometry
 
 
 def _goal_windows_class():
@@ -123,23 +123,22 @@ class V4NativeWindows(Dataset):
         # would only meet the 512 tensor shape by repeating existing points.
         target_keys = {row['objects'][row['target_slot']] for row in self.base.meta['sequences']
                        if row['split'] == split and row.get('clock_verified') is True}
-        for key in target_keys:
-            resampled_subset(self.base.geometry[key]['surface'], policy.surface_points, name=key)
+        self.prepared_geometry = {key: prepare_v4_geometry(self.base.geometry[key], policy)
+                                  for key in target_keys}
         self.policy = policy
 
     def __len__(self):
         return len(self.base)
 
+    def _make_sample(self, sequence, geometries, tick, target_slot, source_id, sample_id, profile):
+        row = self.base.meta['sequences'][int(sample_id[0])]
+        return v4_pose_mesh_sample(sequence, geometries, tick, target_slot, source_id,
+            [source_id, int(sample_id[0]), tick], profile, self.policy,
+            prepared_geometry=self.prepared_geometry[row['objects'][target_slot]])
+
     def __getitem__(self, index):
-        window = self.base[index]
-        row = self.base.meta['sequences'][window.provenance.row]
-        sample = v4_pose_mesh_sample(
-            self.base._sequence(window.provenance.row),
-            [self.base.geometry[k] for k in row['objects']],
-            window.provenance.tick, window.provenance.target_slot,
-            window.provenance.source_id,
-            [window.provenance.source_id, window.provenance.row, window.provenance.tick],
-            window.provenance.profile, self.policy)
+        window = self.base.build_window(index, self._make_sample)
+        sample = window.model_inputs
         sample["provenance"] = asdict(window.provenance)
         return sample
 

@@ -12,7 +12,8 @@ from torch import nn
 import torch.distributed as dist
 from .paths import ROOT, TASK, SCHEMA
 from .model import SharedWAMV4
-from .data import NineWindows, collate, loader
+from .data import NineWindows, DevInputCache, collate, loader
+from .performance import StepTimings
 from .checkpoint import (atomic_json, save_checkpoint, load_checkpoint, restore_optimizer,
     initialize_from_v3,
     checkpoint_alias, prune_recovery_checkpoints, directory_bytes, git_commit,
@@ -59,17 +60,17 @@ def gradient_audit(model, batch, config):
 
 
 @torch.no_grad()
-def evaluate(model, dataset, panel, config, device, microbatch_size=None):
+def evaluate(model, dataset, panel, config, device, microbatch_size=None, input_cache=None):
     was_training=model.training
     devices=[device.index if device.index is not None else torch.cuda.current_device()] if device.type=='cuda' else []
     with torch.random.fork_rng(devices=devices):
         try:
-            return _evaluate(model,dataset,panel,config,device,microbatch_size)
+            return _evaluate(model,dataset,panel,config,device,microbatch_size,input_cache)
         finally:
             model.train(was_training)
 
 
-def _evaluate(model, dataset, panel, config, device, microbatch_size=None):
+def _evaluate(model, dataset, panel, config, device, microbatch_size=None, input_cache=None):
     model.eval()
     reports = {}
     microbatch_size = microbatch_size or config.get('validation_microbatch_size', 8)
@@ -79,9 +80,11 @@ def _evaluate(model, dataset, panel, config, device, microbatch_size=None):
         totals, components = {}, {}
         if not len(indices):
             raise ValueError('nonempty source DEV panel required')
-        for first in range(0,len(indices),microbatch_size):
-            samples = indices[first:first+microbatch_size]
-            batch = to_device(collate([dataset[int(i)] for i in samples])['model_inputs'],device)
+        batches = (input_cache.source_batches(sid,indices,microbatch_size) if input_cache else
+            (collate([dataset[int(i)] for i in indices[first:first+microbatch_size]])['model_inputs']
+             for first in range(0,len(indices),microbatch_size)))
+        for cpu_batch in batches:
+            batch = to_device(cpu_batch,device)
             with torch.autocast(device.type,dtype=torch.bfloat16,enabled=config['amp']):
                 pred = model(batch)
                 parts = loss_components(pred,batch,config,model.normalizer,reduction_dtype=torch.float64)
@@ -115,6 +118,8 @@ def main():
     p.add_argument('--resume-learning-rate-drop',action='store_true')
     p.add_argument('--stop-after',type=int)
     p.add_argument('--loader-workers',type=int,default=2)
+    p.add_argument('--profile-steps',type=int,default=0)
+    p.add_argument('--no-dev-cache',action='store_true')
     p.add_argument('--experiment-card',type=Path,default=TASK/'docs/experiments/probes/P-20261017-wam-v4-interaction-head.md')
     a=p.parse_args()
     if a.resume_reviewed_subset:
@@ -141,6 +146,8 @@ def main():
     if config['hand_weight']!=1 or config['scene_weight']!=1:
         raise ValueError('initial nine-source recipe retains hand/scene coefficients 1:1')
     world,rank,local=[int(os.environ.get(k,v)) for k,v in [('WORLD_SIZE','1'),('RANK','0'),('LOCAL_RANK','0')]]
+    if not 0 <= a.profile_steps <= 2000:
+        p.error('--profile-steps must be between0 and2000')
     parent=load_checkpoint(a.resume) if a.resume else None
     if parent:
         validate_resume_contract(parent,config,stats,world)
@@ -161,6 +168,9 @@ def main():
     train=NineWindows(recipe['main3_root'],recipe['native_root'],'train',recipe)
     dev=NineWindows(recipe['main3_root'],recipe['native_root'],'dev',recipe)
     panel=dev.panel(config['validation_samples']//len(dev.counts),config['validation_seed'])
+    filters={split:dataset.window_filter_sha256 for split,dataset in [('train',train),('dev',dev)]}
+    if parent and parent['provenance'].get('window_filter_sha256',filters) != filters:
+        raise ValueError('resume window filter SHA-256 mismatch')
     model=SharedWAMV4(stats,config)
     warm_start=None
     if a.init_v3:
@@ -172,6 +182,9 @@ def main():
     provenance=dict(task=TASK.name,git_commit=git_commit(),code_root=str(ROOT),
         experiment_id=experiment['experiment_id'],run_id=out.name,branch=experiment['branch'],
         world_size=world,recipe=str(a.recipe.resolve()),data_identity=data_identity(stats),
+        window_filter_sha256=filters, loader_workers=a.loader_workers,
+        input_implementation='exact-int64-voxel-lookup.v1',
+        historical_filter_binding=bool(parent and 'window_filter_sha256' in parent['provenance']),
         objective_semantics=OBJECTIVE_SEMANTICS,evaluation_semantics=EVALUATION_SEMANTICS,initialization=(
             'common v3 model weights; structured C head fresh'
             if warm_start else 'all weights from scratch'),
@@ -221,8 +234,16 @@ def main():
                 optimizer_steps=sorted({int(v['step'].item()) for v in optimizer.state.values() if 'step' in v})))
             if not restored:raise ValueError('per-rank RNG restore failed')
         wrapped=nn.parallel.DistributedDataParallel(model,device_ids=[local],gradient_as_bucket_view=True) if world>1 else model
+        dev_cache=None
         if rank==0:
-            baseline=evaluate(model,dev,panel,config,device)
+            if not a.no_dev_cache:
+                dev_cache=DevInputCache(dev,panel,config.get('validation_microbatch_size',8))
+                atomic_json(out/'dev-cache.json',dict(bytes=dev_cache.bytes,
+                    build_seconds=dev_cache.build_seconds,microbatch_size=dev_cache.microbatch_size,
+                    panel=dev_cache.panel,window_filter_sha256=filters))
+            baseline_started=time.monotonic()
+            baseline=evaluate(model,dev,panel,config,device,input_cache=dev_cache)
+            atomic_json(out/'baseline-timing.json',dict(evaluation_seconds=time.monotonic()-baseline_started))
             curve.append(dict(step=first,**baseline))
             atomic_json(out/'curve.json',curve)
             selection,baseline_best=consider_selection(parent.get('selection') if parent else None,
@@ -262,24 +283,36 @@ def main():
         batches=loader(train,config,rank,first+1,target,a.loader_workers)
         torch.cuda.empty_cache();torch.cuda.reset_peak_memory_stats()
         logged=time.monotonic();logged_step=first
-        for step,bound in enumerate(batches,first+1):
+        timing=StepTimings(a.profile_steps)
+        batches=iter(batches)
+        for step in range(first+1,target+1):
+            timing.before_batch()
+            bound=next(batches)
+            timing.after_batch()
             batch=to_device(bound['model_inputs'],device,non_blocking=True)
+            timing.mark(1)
             drawn.update(str(p['source_id']) for p in bound['provenance'])
             # Linear warmup avoids a large normalized-target jump at startup.
             rates=apply_learning_rates(optimizer,config,step)
             optimizer.zero_grad(set_to_none=True)
             with torch.autocast('cuda',dtype=torch.bfloat16,enabled=config['amp']):
                 pred=wrapped(batch);loss,terms=forecast_loss(pred,batch,config,model.normalizer,distributed=True)
+            timing.mark(2)
             if not torch.isfinite(loss):raise ValueError('nonfinite TRAIN loss')
             loss.backward()
+            timing.mark(3)
             norm=torch.nn.utils.clip_grad_norm_(model.parameters(),config['clip_grad'])
             if not torch.isfinite(norm) or norm<=0:raise ValueError('nonfinite/zero TRAIN gradient')
             optimizer.step()
+            timing.mark(4)
+            validation_seconds=checkpoint_seconds=0.
             checkpoint_due=step==1 or step%config['checkpoint_interval']==0 or step==target
             new_best=False
             if step%config['validation_interval']==0 or step==target:
                 if rank==0:
-                    report=evaluate(model,dev,panel,config,device)
+                    validation_started=time.monotonic()
+                    report=evaluate(model,dev,panel,config,device,input_cache=dev_cache)
+                    validation_seconds=time.monotonic()-validation_started
                     curve.append(dict(step=step,**report));atomic_json(out/'curve.json',curve)
                     selection,new_best=consider_selection(selection,report['objective'],step,
                         out/('step%d.pt'%step),out.name)
@@ -288,6 +321,7 @@ def main():
                 if world>1:dist.broadcast_object_list(decision,src=0)
                 new_best=decision[0]
             if checkpoint_due or new_best:
+                checkpoint_started=time.monotonic()
                 states=[None]*world
                 rng=dict(torch=torch.get_rng_state(),cuda=torch.cuda.get_rng_state())
                 if world>1:dist.all_gather_object(states,rng)
@@ -301,6 +335,7 @@ def main():
                     files.append(path.name);files=prune_recovery_checkpoints(out,files,config)
                     atomic_json(out/'checkpoint_files.json',files)
                 if world>1:dist.barrier()
+                checkpoint_seconds=time.monotonic()-checkpoint_started
             if step==1 or step%config['log_interval']==0 or step==target:
                 term_names=('hand','scene','interaction','contact','part')
                 values=torch.stack([loss.detach()]+[terms[k].detach() for k in term_names])
@@ -311,6 +346,11 @@ def main():
                 if world>1:
                     dist.all_reduce(values);values/=world
                 torch.cuda.synchronize()
+                local_timing=timing.summary()
+                timing_rows=[None]*world
+                if a.profile_steps:
+                    if world>1:dist.all_gather_object(timing_rows,local_timing)
+                    else:timing_rows=[local_timing]
                 elapsed=time.monotonic()-started
                 rate=(step-logged_step)/(time.monotonic()-logged)
                 if rank==0:
@@ -318,6 +358,8 @@ def main():
                         terms={k:float(values[i+1]) for i,k in enumerate(term_names)},
                         rank_denominators=all_counts,objective_semantics=OBJECTIVE_SEMANTICS,
                         grad_norm=float(norm),elapsed_s=elapsed,updates_per_s=rate,
+                        timing_by_rank=timing_rows if any(timing_rows) else None,
+                        validation_seconds=validation_seconds,checkpoint_seconds=checkpoint_seconds,
                         eta_seconds=(config['updates']-step)/rate,local_samples_per_s=rate*config['batch_size'],
                         global_batch=world*config['batch_size'],world_size=world,
                         peak_allocated_mib=torch.cuda.max_memory_allocated()/2**20,

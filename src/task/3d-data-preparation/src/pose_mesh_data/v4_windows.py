@@ -17,18 +17,8 @@ def _normal_transform(normals, pose):
     return normals @ pose[:3, :3].T
 
 
-def v4_pose_mesh_sample(sequence, geometries, tick, target_slot, source_id, sample_id,
-                        profile, policy=V4SamplingPolicy()):
-    """Create a target-only 512/32/128 sample without modifying source arrays."""
-    if not 3 <= tick < len(sequence['time']) - 24:
-        raise ValueError('H4/K24 outside sequence')
-    window = slice(tick - 3, tick + 25)
-    if (sequence['segment'][window] != sequence['segment'][tick]).any():
-        raise ValueError('window crosses reset/gap segment')
-    poses, known = sequence['object_poses'], sequence['object_pose_valid']
-    if target_slot not in np.flatnonzero(known[tick - 3:tick + 1].all(0)) or not known[tick + 24, target_slot]:
-        raise ValueError('observed target and endpoint pose must be known')
-    geometry = geometries[target_slot]
+def prepare_v4_geometry(geometry, policy=V4SamplingPolicy()):
+    """Validate/select immutable canonical geometry once per native object."""
     source_surface, source_normals = np.asarray(geometry['surface']), np.asarray(geometry['normals'])
     if (source_surface.ndim != 2 or source_surface.shape[1:] != (3,)
             or source_normals.shape != source_surface.shape):
@@ -42,6 +32,25 @@ def v4_pose_mesh_sample(sequence, geometries, tick, target_slot, source_id, samp
     interaction, interaction_ids = resampled_subset(source_surface, INTERACTION_POINTS, name='interaction queries')
     interaction_normals = source_normals[interaction_ids].astype(np.float32, copy=True)
     interaction_normals /= np.linalg.norm(interaction_normals, axis=-1, keepdims=True).clip(1e-8)
+
+    return surface, normals, flow, interaction, interaction_normals
+
+
+def v4_pose_mesh_sample(sequence, geometries, tick, target_slot, source_id, sample_id,
+                        profile, policy=V4SamplingPolicy(), *, prepared_geometry=None):
+    """Create a target-only 512/32/128 sample without modifying source arrays."""
+    if not 3 <= tick < len(sequence['time']) - 24:
+        raise ValueError('H4/K24 outside sequence')
+    window = slice(tick - 3, tick + 25)
+    if (sequence['segment'][window] != sequence['segment'][tick]).any():
+        raise ValueError('window crosses reset/gap segment')
+    poses, known = sequence['object_poses'], sequence['object_pose_valid']
+    if target_slot not in np.flatnonzero(known[tick - 3:tick + 1].all(0)) or not known[tick + 24, target_slot]:
+        raise ValueError('observed target and endpoint pose must be known')
+    geometry = geometries[target_slot]
+    if prepared_geometry is None:
+        prepared_geometry = prepare_v4_geometry(geometry, policy)
+    surface, normals, flow, interaction, interaction_normals = prepared_geometry
 
     anchor = np.linalg.inv(poses[tick, target_slot])
     observed = anchor @ poses[tick - 3:tick + 1, target_slot]

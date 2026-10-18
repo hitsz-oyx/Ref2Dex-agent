@@ -130,3 +130,32 @@ def test_dev_objective_and_model_ranking_ignore_microbatch_and_order(monkeypatch
             assert values == pytest.approx(reference, rel=1e-7, abs=1e-7)
             assert scores[0]['sources']['0']['metrics']['interaction/part_ce']['unit'] == 'nats'
     assert reference == pytest.approx([.9227453, 1.6258998], rel=1e-6)
+
+
+def test_fixed_dev_cpu_cache_preserves_objective_rng_and_avoids_reader(monkeypatch):
+    b, p = objective_fixture()
+    b['sample_id'] = torch.arange(8)
+    b['goal_object_slot'] = torch.zeros(8, dtype=torch.long)
+    b['start_object_points'] = b['scene_points'][:, 0].clone()
+    rows = [{k:v[i] for k,v in b.items()} for i in range(8)]
+    def fake_collate(samples):
+        return dict(model_inputs={k:torch.stack([r[k] for r in samples]) for k in samples[0]})
+    monkeypatch.setattr(training, 'collate', fake_collate)
+    from ptv3_shared_wam_v4 import data
+    monkeypatch.setattr(data, 'collate', fake_collate)
+    panel={'0':list(range(8))}; c=dict(config(),amp=False,validation_microbatch_size=2)
+    m=FixedPredictions(p['interaction_logits'].detach())
+    reference=training.evaluate(m,rows,panel,c,torch.device('cpu'))
+    cache=data.DevInputCache(rows,panel,2)
+    class FailReader:
+        def __getitem__(self, index):
+            raise AssertionError('cached DEV re-entered reader')
+    before=torch.get_rng_state().clone()
+    cached=training.evaluate(m,FailReader(),panel,c,torch.device('cpu'),input_cache=cache)
+    assert cached == reference
+    assert torch.equal(before,torch.get_rng_state())
+    assert cache.bytes > 0 and cache.build_seconds >= 0
+    with pytest.raises(ValueError,match='panel/order/microbatch'):
+        training.evaluate(m,rows,{'0':list(reversed(range(8)))},c,torch.device('cpu'),input_cache=cache)
+    with pytest.raises(ValueError,match='budget'):
+        data.DevInputCache(rows,panel,2,max_bytes=1)
