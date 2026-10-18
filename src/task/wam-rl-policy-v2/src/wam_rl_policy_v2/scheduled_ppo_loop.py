@@ -8,9 +8,18 @@ import numpy as np
 import torch
 from .batched_scheduled_inputs import BatchedScheduledInputs
 from .goal_scheduler import OrderedGoalScheduler
-from .ppo import Critic
+from .ppo import Critic,reduce,distributed_ready
+import torch.distributed as distributed
 from .recipe_ppo import update_minibatches
 from .control_contracts import scheduled_conditioning_contract
+
+
+@torch.no_grad()
+def parameter_sync_error(module):
+    flat=torch.cat([p.detach().flatten() for p in module.parameters()])
+    reference=flat.clone()
+    if distributed_ready():distributed.broadcast(reference,src=0)
+    return float(reduce((flat-reference).abs().max(),'max'))
 
 
 def run(task,snapshot,sim_step,actor,runtime,args):
@@ -20,12 +29,24 @@ def run(task,snapshot,sim_step,actor,runtime,args):
     actor_opt=torch.optim.Adam(actor.parameters(),lr=1e-5)
     critic_opt=torch.optim.Adam(critic.parameters(),lr=1e-4)
     generator=torch.Generator(device=device).manual_seed(args.seed)
+    offset=0
+    if args.rl_checkpoint:
+        packet=torch.load(args.rl_checkpoint,map_location=device,weights_only=False)
+        if packet.get('schema')!='ref2dex.scheduled-shadow-ppo.v1' or packet.get('conditioning')!=scheduled_conditioning_contract():
+            raise ValueError('Scheduled PPO checkpoint contract mismatch')
+        actor.load_state_dict(packet['actor']);critic.load_state_dict(packet['critic'])
+        actor_opt.load_state_dict(packet['actor_optimizer']);critic_opt.load_state_dict(packet['critic_optimizer'])
+        offset=int(packet['update'])
+    if distributed_ready():
+        for module in (actor,critic):
+            for parameter in module.parameters():distributed.broadcast(parameter.data,src=0)
     reports=[]
     for update in range(args.ppo_updates+2):
-        if (args.output/'STOP').exists():break
+        stop=(args.output/'STOP').exists() or (args.output.parent/'STOP').exists()
+        if bool(reduce(torch.tensor(float(stop),device=device),'max')):raise InterruptedError('STOP requested')
         if shutil.disk_usage(args.output).free<20*2**30:raise RuntimeError('20GiB disk floor')
         evaluation=update in (0,args.ppo_updates+1)
-        seed=args.seed if evaluation else args.seed+update
+        seed=args.seed+args.rank*10000+(0 if evaluation else offset+update)
         for _ in range(2):
             random.seed(seed);np.random.seed(seed);torch.manual_seed(seed);torch.cuda.manual_seed_all(seed)
             task.reset_buf[:]=1;task.step(torch.zeros((n,24),device=device),-1)
@@ -59,15 +80,23 @@ def run(task,snapshot,sim_step,actor,runtime,args):
         d=np.stack(distances);near=d<.05;longest=np.zeros(n,int);streak=np.zeros(n,int)
         for step in near:
             streak=np.where(step,streak+1,0);longest=np.maximum(longest,streak)
-        report=dict(update=update,evaluation=evaluation,seed=seed,transitions=n*args.ticks,
+        report=dict(update=offset+update,rank=args.rank,world_size=args.world_size,evaluation=evaluation,seed=seed,transitions=n*args.ticks,
             final_distance_mean_m=float(d[-1].mean()),final_within_5cm=float(near[-1].mean()),
             longest_within_5cm_frames=longest.tolist(),max_lift_m=np.max(heights,axis=0).tolist(),
             reward_mean=float(batch['reward'].mean()),elapsed_s=time.monotonic()-started,
             peak_mib=torch.cuda.max_memory_allocated()/2**20)
+        aggregate=reduce(torch.tensor([report['final_distance_mean_m'],report['final_within_5cm'],report['reward_mean']],device=device))
+        report['global_metrics']=dict(zip(('final_distance_mean_m','final_within_5cm','reward_mean'),aggregate.cpu().tolist()))
+        report['global_transitions']=n*args.ticks*args.world_size
         if not evaluation:
             report['ppo']=update_minibatches(actor,critic,batch,actor_opt,critic_opt,bc_weight=0.,
                 target_kl=.01,epochs=2,minibatches=4,shuffle_generator=generator)
             if report['ppo']['actor_steps']==0:raise RuntimeError('No accepted actor update')
+        checkpoint_due=not evaluation and (update==1 or update==args.ppo_updates or update%args.save_every==0)
+        if checkpoint_due:
+            report['actor_sync_error']=parameter_sync_error(actor)
+            report['critic_sync_error']=parameter_sync_error(critic)
+            if report['actor_sync_error'] or report['critic_sync_error']:raise RuntimeError('Distributed model divergence')
         reports.append(report)
         with (args.output/'progress.jsonl').open('a') as f:f.write(json.dumps(report)+'\n')
         print(json.dumps(report),flush=True)
@@ -75,9 +104,9 @@ def run(task,snapshot,sim_step,actor,runtime,args):
             np.savez_compressed(args.output/('baseline.npz' if update==0 else 'final-evaluation.npz'),
                 distances=d,initial_observation=first['current'],max_lift=np.max(heights,axis=0))
         # Save unique endpoints, never overwrite BC or an earlier checkpoint.
-        if not evaluation and update in (1,args.ppo_updates):
+        if checkpoint_due and args.rank==0:
             torch.save(dict(schema='ref2dex.scheduled-shadow-ppo.v1',actor=actor.state_dict(),critic=critic.state_dict(),
                 actor_optimizer=actor_opt.state_dict(),critic_optimizer=critic_opt.state_dict(),
-                update=update,bc_source=str(args.policy),conditioning=scheduled_conditioning_contract()),
-                args.output/('ppo-update-%d.pt'%update))
+                update=offset+update,world_size=args.world_size,resume_semantics='model and optimizer; fresh measured episodes',bc_source=str(args.policy),conditioning=scheduled_conditioning_contract()),
+                args.output/('ppo-update-%d.pt'%(offset+update)))
     return reports

@@ -6,7 +6,7 @@ not evidence that the spatial scheduler certifies reachability.
 import argparse,json,os,random,signal,subprocess,sys,time
 from pathlib import Path
 import numpy as np
-TASK=Path(__file__).resolve().parents[2];ROOT=TASK.parents[2]
+TASK=Path(__file__).resolve().parents[2];ROOT=Path(os.environ.get("REF2DEX_RUN_ROOT",TASK.parents[2])).resolve()
 sys.path.insert(0,str(TASK/'src'))
 from native_helpers import DEFAULT_OBJECT,load_replay_helpers,write_json
 
@@ -20,12 +20,20 @@ def main():
  p.add_argument('--scale',type=float,default=.08)
  p.add_argument('--ppo-smoke',action='store_true',help='One on-policy rollout and bounded PPO update; engineering only')
  p.add_argument('--envs',type=int,default=1);p.add_argument('--ppo-updates',type=int,default=0)
+ p.add_argument('--official-ppo',action='store_true')
+ p.add_argument('--object-manifest',type=Path);p.add_argument('--rl-checkpoint',type=Path)
+ p.add_argument('--rank',type=int,default=0);p.add_argument('--world-size',type=int,default=1)
+ p.add_argument('--rendezvous',default='tcp://127.0.0.1:29671')
+ p.add_argument('--save-every',type=int,default=20)
  a=p.parse_args();a.output=a.output.resolve();a.policy=a.policy.resolve()
  if not 1<=a.episodes<=4 or not 1<=a.ticks<=180:raise ValueError('Bounded native probe required')
  if a.ppo_smoke and (a.episodes!=1 or a.ticks%4):raise ValueError('PPO smoke needs one episode and ticks divisible by4')
- if not 1<=a.envs<=32 or not 0<=a.ppo_updates<=100:raise ValueError('Bounded batch pilot required')
+ if not 1<=a.envs<=32 or not 0<=a.ppo_updates<=(10000 if a.official_ppo else 100):raise ValueError('Bounded batch pilot required')
  if a.envs>1 and not a.ppo_updates:raise ValueError('Batched execution requires PPO pilot')
  if a.ppo_updates and (a.ppo_smoke or a.ticks*a.envs%4):raise ValueError('Equal PPO minibatches required')
+ if not 1<=a.world_size<=6 or not 0<=a.rank<a.world_size or a.save_every<1:raise ValueError('Bounded distributed rank required')
+ if a.object_manifest:a.object_manifest=a.object_manifest.resolve()
+ if a.rl_checkpoint:a.rl_checkpoint=a.rl_checkpoint.resolve()
  if a.output.exists():raise ValueError('Fresh output required')
  a.output.mkdir(parents=True);(a.output/'tmp').mkdir()
  os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu),TMPDIR=str(a.output/'tmp'))
@@ -45,14 +53,17 @@ def main():
  signal.signal(signal.SIGALRM,lambda *_:(_ for _ in ()).throw(TimeoutError('native loop deadline')));signal.alarm(a.seconds)
  commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
  manifest=dict(status='RUNNING',git_commit=commit,python=sys.executable,torch=torch.__version__,gpu=a.gpu,
-    seed=a.seed,ticks=a.ticks,episodes=a.episodes,envs=a.envs,ppo_updates=a.ppo_updates,policy=str(a.policy),scope='native interface engineering; not policy success validation')
+    rank=a.rank,world_size=a.world_size,object_manifest=str(a.object_manifest),resume=str(a.rl_checkpoint),seed=a.seed,ticks=a.ticks,episodes=a.episodes,envs=a.envs,ppo_updates=a.ppo_updates,policy=str(a.policy),scope='native interface engineering; not policy success validation')
  write_json(a.output/'manifest.json',manifest);started=time.monotonic();task=None
  try:
   vendor=ROOT/'third_party/UniDexGrasp2';assets=ROOT/'outputs/video-data-preparation/unidexgrasp-policy-assets-20261014-r1/assets'
   sys.path.insert(0,str(vendor/'dexgrasp'));replay=load_replay_helpers()
   Task=replay.task_class(vendor,a.output)
   cfg=yaml.safe_load((vendor/'dexgrasp/cfg/shadow_hand_grasp.yaml').read_text())
-  cfg['env'].update(numEnvs=a.envs,random_time=False,printNumSuccesses=False,object_code_dict={a.object_code:[a.scale]})
+  from wam_rl_policy_v2.mixed_objects import read_objects,bind_environment_objects
+  objects=read_objects(a.object_manifest,a.envs) if a.object_manifest else [dict(object_code=a.object_code,scale=a.scale)]
+  cfg['env'].update(numEnvs=a.envs,random_time=a.official_ppo,printNumSuccesses=False,
+    object_code_dict={r['object_code']:[r['scale']] for r in objects})
   cfg['env']['asset']['assetRoot']=str(assets);cfg['graphics_device_id']=-1
   sim=gymapi.SimParams();sim.dt=1/60;sim.num_client_threads=0;sim.use_gpu_pipeline=True
   sim.physx.solver_type=1;sim.physx.num_position_iterations=4;sim.physx.num_velocity_iterations=0
@@ -60,6 +71,8 @@ def main():
   gymutil.parse_sim_config(cfg['sim'],sim)
   work=assets.parent/'dexgrasp';work.mkdir(exist_ok=True);os.chdir(work)
   task=Task(cfg,sim,gymapi.SIM_PHYSX,'cuda',0,True)
+  env_objects=bind_environment_objects(task,objects)
+  write_json(a.output/'env-objects.json',env_objects)
   if not np.isclose(sim.dt*task.control_freq_inv,1/60):raise ValueError('Native control frequency is not60Hz')
   names=['robot0:palm','robot0:thhub','robot0:ffknuckle','robot0:mfknuckle','robot0:rfknuckle','robot0:lfknuckle',
          'robot0:thdistal','robot0:ffdistal','robot0:mfdistal','robot0:rfdistal','robot0:lfdistal']
@@ -89,17 +102,24 @@ def main():
    from wam_rl_policy_v2.recipe_ppo import update_minibatches
    torch.manual_seed(a.seed);critic=Critic(obs_dim=565,value_scale=100.).cuda()
   cache=ROOT/'outputs/shadow-finetune/policy-data-full-20261015-r1';snap=ROOT/'outputs/ptv3-shared-wam-v4/local-control-snapshot-20261018-r1'
-  runtime=V4Runtime(snap/'step12000-local.pt',[dict(object_code=a.object_code,scale=a.scale)]*a.envs,cache,dense_manifest=snap/'surface-manifest.json')
+  runtime=V4Runtime(snap/'step12000-local.pt',env_objects,cache,dense_manifest=snap/'surface-manifest.json')
   manifest['wam_step']=runtime.step
   if a.ppo_updates:
-   from wam_rl_policy_v2.scheduled_ppo_loop import run
+   if a.official_ppo:
+    from wam_rl_policy_v2.official_bridge import run
+   else:
+    from wam_rl_policy_v2.scheduled_ppo_loop import run
    def batch_snapshot():
     rigid=task.rigid_body_states[:,ids];hand=rigid[:,:,:3].clone()
     hand[:,6:]+=quat_apply(rigid[:,6:,3:7].reshape(-1,4),offsets.repeat(a.envs,1)).reshape(a.envs,5,3)
     return dict(pose=object_poses(task.object_pose.detach().cpu().numpy()[:,None])[:,0],
       hand=hand.cpu().numpy().copy(),current=task.obs_buf.cpu().numpy().copy(),goal=task.goal_pos.cpu().numpy().copy())
-   manifest.update(envs=a.envs,ppo_updates=a.ppo_updates,scope='bounded single-object continuous PPO pilot; not generalization validation')
+   manifest.update(envs=a.envs,ppo_updates=a.ppo_updates,scope='official UniDex PPO with scheduled565 BC/WAM' if a.official_ppo else 'custom truncated PPO pilot')
    write_json(a.output/'manifest.json',manifest)
+   if a.world_size>1:
+    import torch.distributed as dist
+    from datetime import timedelta
+    dist.init_process_group('nccl',init_method=a.rendezvous,rank=a.rank,world_size=a.world_size,timeout=timedelta(seconds=300))
    reports=run(task,batch_snapshot,sim_step,actor,runtime,a)
    manifest.update(status='COMPLETED',reports=reports,elapsed_s=time.monotonic()-started)
    return
@@ -176,6 +196,7 @@ def main():
  except BaseException as error:manifest.update(status='FAILED',error=repr(error));raise
  finally:
   write_json(a.output/'manifest.json',manifest);signal.alarm(0)
+  if torch.distributed.is_initialized():torch.distributed.destroy_process_group()
   if task is not None:task.gym.destroy_sim(task.sim)
 
 if __name__=='__main__':main()

@@ -8,6 +8,7 @@ SE(3) goal delta.  This module owns that boundary and keeps the summary
 """
 from __future__ import annotations
 
+import os
 import hashlib
 import io
 import json
@@ -16,7 +17,7 @@ import sys
 import numpy as np
 import torch
 
-TASK_ROOT = Path(__file__).resolve().parents[2]  # src/task/wam-rl-policy
+TASK_ROOT = Path(os.environ['REF2DEX_RUN_ROOT'])/'src/task/wam-rl-policy-v2' if 'REF2DEX_RUN_ROOT' in os.environ else Path(__file__).resolve().parents[2]  # src/task/wam-rl-policy
 _DATA_SRC = TASK_ROOT.parent / "3d-data-preparation" / "src"
 _VIDEO_SRC = TASK_ROOT.parent / "video-data-preparation" / "src"
 _SHADOW_SRC = TASK_ROOT.parent / "shadow-finetune" / "src"

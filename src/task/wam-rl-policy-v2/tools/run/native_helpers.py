@@ -13,7 +13,7 @@ import time
 import numpy as np
 
 DEFAULT_OBJECT = 'core/bottle-109d55a137c042f5760315ac3bf2c13e'
-REPLAY = Path(__file__).resolve().parents[3] / 'video-data-preparation/tools/run/replay_unidexgrasp.py'
+REPLAY = Path(os.environ.get('REF2DEX_RUN_ROOT',Path(__file__).resolve().parents[5])) / 'src/task/video-data-preparation/tools/run/replay_unidexgrasp.py'
 
 
 def write_json(path, value):
