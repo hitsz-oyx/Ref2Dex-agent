@@ -75,3 +75,29 @@ def test_full_current_bc_ppo_initialization_preserves_mean():
     action=actor.distribution(obs).sample()
     before=actor.distribution(obs).log_prob(action).sum(-1).detach()
     assert torch.equal(before,actor.distribution(obs).log_prob(action).sum(-1))
+
+
+def test_current_bridge_preserves_startup_and_measured_history():
+    from wam_rl_policy.scheduled_executor import ScheduledCurrentExecutorInputs
+    points=np.random.RandomState(1).randn(32,3)*.01
+    poses=np.repeat(np.eye(4)[None],2,0);poses[1,2,3]=.1
+    scheduler=OrderedGoalScheduler(poses,[0,2],points)
+    class Runtime:
+        geometry=[(None,None,points)]
+        device=torch.device('cpu')
+        calls=0
+        def batch(self,objects,hands,**kwargs):
+            self.objects=objects;self.calls+=1;return kwargs
+        def predict(self,batch):return batch
+        def tau_for_student(self,prediction,pose):return np.ones((8,11,3),np.float32)*.01
+        def interaction_for_executor(self,prediction):return None,None
+    runtime=Runtime();bridge=ScheduledCurrentExecutorInputs(runtime,scheduler)
+    current=np.arange(300,dtype=np.float32)
+    for t in range(7):
+        row=bridge.observation(current,np.eye(4),np.zeros((11,3)),t/60)
+        np.testing.assert_array_equal(row['observation'][:300],current)
+        assert row['history_valid']==(t==6)
+        assert row['observation'][-1]==float(t==6)
+    assert runtime.calls==1 and runtime.objects.shape==(1,4,7)
+    bridge.reset()
+    assert not bridge.observation(current,np.eye(4),np.zeros((11,3)),0)['history_valid']

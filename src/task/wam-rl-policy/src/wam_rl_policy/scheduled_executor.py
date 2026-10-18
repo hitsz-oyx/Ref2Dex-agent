@@ -115,3 +115,44 @@ teacher's future measured path. Rebuild the scheduler for a new task goal.
         return dict(observation=student_features(p2, 'p2_tau', tau=tau),
                     tau=tau, interaction=interaction, interaction_valid=valid,
                     scheduler=decision)
+
+
+class ScheduledCurrentExecutorInputs:
+    """Full-current BC input at every measured tick, including startup.
+
+    One instance per environment. Reset on every episode; no simulator state
+    or teacher futures are substituted for the seven-frame measured history.
+    """
+    def __init__(self,runtime,scheduler):
+        from collections import deque
+        if len(runtime.geometry)!=1 or not np.array_equal(runtime.geometry[0][2],scheduler.points):
+            raise ValueError('one environment with identical flow queries required')
+        self.runtime,self.scheduler=runtime,scheduler
+        self.history=deque(maxlen=7)
+
+    def reset(self):
+        self.history.clear();self.scheduler.reset()
+
+    def observation(self,current,pose,hand,time_s):
+        from scipy.spatial.transform import Rotation
+        current,pose,hand=map(np.asarray,(current,pose,hand))
+        if (current.shape!=(300,) or pose.shape!=(4,4) or hand.shape!=(11,3)
+                or not all(np.isfinite(v).all() for v in (current,pose,hand)) or not np.isfinite(time_s)):
+            raise ValueError('finite current300, pose4x4, hand11x3 and time required')
+        if self.history and not np.isclose(time_s-self.history[-1][0],1/60,atol=1e-6,rtol=0):
+            raise ValueError('consecutive 60Hz measurements required; reset on new episode')
+        decision=self.scheduler.update(pose,float(time_s),hand_points=hand)
+        obj=np.r_[pose[:3,3],Rotation.from_matrix(pose[:3,:3]).as_quat()]
+        self.history.append((float(time_s),obj,hand.copy()))
+        tau=np.zeros((8,11,3),np.float32);interaction=interaction_valid=None
+        valid=len(self.history)==7
+        if valid:
+            rows=list(self.history)[::2]
+            batch=self.runtime.batch(np.stack([r[1] for r in rows])[None],
+                np.stack([r[2] for r in rows])[None],goal_delta=decision['goal_delta'][None])
+            precision=torch.autocast('cuda',dtype=torch.bfloat16) if self.runtime.device.type=='cuda' else nullcontext()
+            with precision:prediction=self.runtime.predict(batch)
+            tau=self.runtime.tau_for_student(prediction,pose)
+            interaction,interaction_valid=self.runtime.interaction_for_executor(prediction)
+        return dict(observation=np.r_[current,tau.reshape(-1),float(valid)].astype(np.float32),
+            tau=tau,history_valid=valid,scheduler=decision,interaction=interaction,interaction_valid=interaction_valid)
