@@ -45,6 +45,8 @@ def main():
     p.add_argument('--seed', type=int, required=True)
     p.add_argument('--ticks', type=int, default=120)
     p.add_argument('--horizon', type=int, default=8)
+    p.add_argument('--labels', action='store_true',
+                   help='query teacher actions at student states without using tau')
     p.add_argument('--max-replay-error', type=float, default=5e-2)
     p.add_argument('--object-code', default=DEFAULT_OBJECT)
     p.add_argument('--scale', type=float, default=.08)
@@ -159,8 +161,9 @@ def main():
             obs_np = task.obs_buf[0].cpu().numpy().astype(np.float32)
             features = p2_from_obs(obs_np)
             tau_np = None
+            teacher_action_np = np.zeros((24,), np.float32)
             replay_error = 0.0
-            if args.variant == 'p2_tau':
+            if args.variant == 'p2_tau' or args.labels:
                 query_dir = oracle_root / f'tick-{tick:03d}'
                 query_dir.mkdir(parents=True, exist_ok=True)
                 prefix = (np.stack(actions_history, axis=0) if actions_history
@@ -194,7 +197,9 @@ def main():
                     break
                 with np.load(query_dir / 'tau.npz') as query:
                     tau_np = query['tau'].reshape(-1).astype(np.float32)
-                features = np.concatenate([features, tau_np])
+                    teacher_action_np = query['teacher_actions'][0].astype(np.float32)
+                if args.variant == 'p2_tau':
+                    features = np.concatenate([features, tau_np])
             x = torch.tensor(features, dtype=torch.float32, device='cuda:0')
             action = model(((x - mean) / std).reshape(1, -1)).clamp(-1, 1)
             records.append(dict(
@@ -203,6 +208,7 @@ def main():
                 object_pose=task.root_state_tensor[task.object_indices, 0:13][0].cpu().numpy(),
                 success=np.float32(task.successes[0].item()),
                 replay_error=np.float32(replay_error),
+                teacher_action=teacher_action_np,
                 tau=(tau_np.reshape(args.horizon, 11, 3) if tau_np is not None
                      else np.zeros((0,), np.float32))))
             sim_step(action)
@@ -225,7 +231,8 @@ def main():
         variant=args.variant, seed=args.seed, ticks=int(len(records)),
         horizon=args.horizon, policy=str(args.policy),
         oracle_script=str(args.oracle_script),
-        fork_failure=fork_failure, max_replay_error=max_replay_error,
+        fork_failure=fork_failure, labels=bool(args.labels),
+        max_replay_error=max_replay_error,
         max_replay_tolerance=args.max_replay_error,
         final_success=float(success[-1]), max_success=float(success.max()),
         max_lift_m=float(lift.max()),

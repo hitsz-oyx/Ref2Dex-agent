@@ -220,6 +220,33 @@ BC does not hold the object.  The drop coincides with a rotation/finger
 divergence, consistent with BC covariate shift and with the offline rotation
 gap; it is not evidence that the live tau is wrong.
 
+### DAgger iteration 1 (tau arm)
+
+The first closed-loop run is also a DAgger packet: every oracle query already
+replayed the student state and saved the teacher's eight-step action sequence,
+so its first row is the teacher action at that student state.  The packet has
+150 rows; the student action L1 against those labels is 0.234 (xyz 0.117,
+rotation 0.388, fingers 0.228).
+
+Fine-tuning from the BC checkpoint with the packet oversampled 10x (2000 steps,
+lr 3e-4) reduces the BC L1 from 0.0180 to 0.0125 and the DAgger L1 from 0.266
+to 0.0073.  The rerun with the same seed and 150 ticks reaches:
+
+| metric | value |
+|---|---|
+| final official success | 1 |
+| success frames | 62 |
+| max lift above start | 0.219 m |
+| object z at tick 100 / 149 | 0.914 / 0.915 m |
+| hand-vs-teacher at ticks 60 / 100 / 149 | 0.014 / 0.015 / 0.016 m |
+| action L1 vs teacher | 0.071 (xyz 0.079, rot 0.129, fingers 0.060) |
+| fork replay error | 0.0 all ticks |
+
+DAgger fixes the covariate shift cleanly: the tau student now grasps, lifts
+0.219 m and holds through the end of the episode.  The state-only DAgger
+control (same packet size, same fine-tuning schedule, same seed) is required
+before attributing this success to tau rather than to DAgger alone.
+
 ## Interpretation
 
 1. **The oracle plan is usable for translation and fingers.** Adding tau
