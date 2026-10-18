@@ -53,11 +53,20 @@ def main():
                    help='explicit reset deadline; zero preserves the vendor configuration')
     p.add_argument('--labels', action='store_true',
                    help='query teacher actions at student states without using tau')
+    p.add_argument('--wam-checkpoint', type=Path,
+                   help='replace oracle with frozen scheduled v4; first six actions are zero')
+    p.add_argument('--wam-cache', type=Path)
+    p.add_argument('--wam-dense-manifest', type=Path)
     p.add_argument('--max-replay-error', type=float, default=5e-2)
     p.add_argument('--object-code', default=DEFAULT_OBJECT)
     p.add_argument('--scale', type=float, default=.08)
     p.add_argument('--gpu-seconds', type=int, default=1800)
     args = p.parse_args()
+    if args.wam_checkpoint:
+        if args.variant != 'p2_tau' or args.labels or not args.wam_cache or not args.wam_dense_manifest:
+            p.error('scheduled WAM requires p2_tau, cache, dense manifest and no oracle labels')
+        for key in ('wam_checkpoint', 'wam_cache', 'wam_dense_manifest'):
+            setattr(args, key, getattr(args, key).resolve())
     for key in ('subset', 'vendor', 'assets', 'policy', 'output', 'oracle_script'):
         setattr(args, key, getattr(args, key).resolve())
     if args.output == Path('/tmp') or Path('/tmp') in args.output.parents:
@@ -167,10 +176,25 @@ def main():
     records = []
     max_replay_error = 0.0
     fork_failure = None
+    wam_bridge = None
+    measured_objects, measured_hands = [], []
+    wam_seconds = []
     started = time.monotonic()
     with torch.inference_mode():
         reset_envs()
         reset_envs()
+        if args.wam_checkpoint:
+            from wam_rl_policy.wam_v4_runtime import V4Runtime, object_poses
+            from wam_rl_policy.goal_scheduler import OrderedGoalScheduler
+            from wam_rl_policy.scheduled_executor import ScheduledV4ExecutorInputs
+            runtime = V4Runtime(args.wam_checkpoint,
+                [dict(object_code=args.object_code, scale=args.scale)], args.wam_cache,
+                dense_manifest=args.wam_dense_manifest, device='cuda:0')
+            initial = object_poses(task.root_state_tensor[task.object_indices, :7].cpu().numpy())[0]
+            target = initial.copy(); target[:3, 3] = task.goal_pos[0].cpu().numpy()
+            scheduler = OrderedGoalScheduler([initial, target], [0., 2.],
+                runtime.geometry[0][2], interaction_points=runtime.geometry[0][0])
+            wam_bridge = ScheduledV4ExecutorInputs(runtime, scheduler)
         for tick in range(args.ticks):
             if time.monotonic() - started > args.gpu_seconds:
                 raise TimeoutError('closed-loop deadline')
@@ -180,7 +204,21 @@ def main():
             tau_np = None
             teacher_action_np = np.zeros((24,), np.float32)
             replay_error = 0.0
-            if args.variant == 'p2_tau' or args.labels:
+            if wam_bridge is not None:
+                measured_objects.append(task.root_state_tensor[task.object_indices, :7][0].cpu().numpy().copy())
+                measured_hands.append(hand_points()[0].cpu().numpy().copy())
+                pose = object_poses(measured_objects[-1])
+                if tick < 6:
+                    scheduler.update(pose, tick/60, hand_points=measured_hands[-1])
+                    tau_np = np.zeros(264, np.float32)
+                else:
+                    begin = time.monotonic()
+                    inputs = wam_bridge.observation(np.stack(measured_objects[-7:]),
+                        np.stack(measured_hands[-7:]), np.arange(tick-6, tick+1)/60,
+                        pose, features)
+                    tau_np = inputs['tau'].reshape(-1)
+                    wam_seconds.append(time.monotonic()-begin)
+            elif args.variant == 'p2_tau' or args.labels:
                 query_dir = oracle_root / f'tick-{tick:03d}'
                 query_dir.mkdir(parents=True, exist_ok=True)
                 prefix = (np.stack(actions_history, axis=0) if actions_history
@@ -225,6 +263,8 @@ def main():
                 raise ValueError('student checkpoint input dimension mismatch')
             x = torch.tensor(features, dtype=torch.float32, device='cuda:0')
             action = model(((x - mean) / std).reshape(1, -1)).clamp(-1, 1)
+            if wam_bridge is not None and tick < 6:
+                action = torch.zeros_like(action)
             canonical = canonical_action(action)
             records.append(dict(
                 tick=np.int32(tick), obs=obs_np, action=canonical[0].cpu().numpy(),
@@ -258,6 +298,8 @@ def main():
         realtime_distance.append(goal_distance())
     trajectory = {key: np.stack([r[key] for r in records], axis=0)
                   for key in records[0] if key != 'tau'}
+    if wam_bridge is not None:
+        trajectory['tau'] = np.stack([r['tau'] for r in records])
     trajectory['action_prefix'] = np.stack(actions_history, axis=0)
     # Preserve the raw terminal measurement, since normal records precede
     # each action. This makes the final realtime metric independently auditable.
@@ -294,9 +336,16 @@ def main():
         max_lift_m=float(lift.max()),
         action_prefix_matches_executed=prefix_matches_action,
         elapsed_s=time.monotonic() - started,
+        wam_checkpoint=str(args.wam_checkpoint) if args.wam_checkpoint else None,
+        plan_source='scheduled_wam_v4' if wam_bridge is not None else 'oracle',
+        startup='six zero commands, measured history only' if wam_bridge is not None else 'native',
+        wam_forward_seconds=wam_seconds,
         note=('Student actions only. The oracle process is queried for tau and '
               'never supplies an executed action. realtime_success uses the '
               'current goal distance; success_ever is the upstream cumulative flag.'))
+    if wam_bridge is not None:
+        manifest['note'] = ('Frozen scheduled WAM hand tau; no oracle queries or teacher actions. '
+            'Existing GT-tau BC is an integration diagnostic, not a WAM-conditioned trained policy.')
     write_json(args.output / 'manifest.json', manifest)
     print(json.dumps(manifest, indent=2), flush=True)
 

@@ -624,6 +624,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261005-rolling-oracle-control](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-rolling-oracle-control.md) | Ref14_1: executed Rolling GT-Y Oracle Control | PROMISING on the predeclared 32-anchor gate: baseline 23/32, actual | Execute same-current-state rolling oracle before any new predictor, long-Y, execution forecasting or PPO. | probes/PROMISING |
 
+## HF-scheduled-wam-executor
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261018-scheduled-wam-bc](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261018-scheduled-wam-bc.md) | 调度WAM条件下的UniDex BC初始资格 | 见原卡 | 见原卡 | probes/PLANNED |
+
 ## HF-shadow-bc-ppo
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
@@ -1198,5 +1204,5 @@
 | [P-20261018-direct-tau-dagger-pd](../../src/task/trajectory-policy/docs/experiments/probes/P-20261018-direct-tau-dagger-pd.md) | P-20261018-direct-tau-dagger-pd | 见原卡 | 见原卡 | probes/UNPROMISING |
 | [P-20261018-direct-tau-dagger](../../src/task/trajectory-policy/docs/experiments/probes/P-20261018-direct-tau-dagger.md) | P-20261018-direct-tau-dagger | 见原卡 | 见原卡 | probes/UNPROMISING |
 | [P-20261018-direct-tau-executor-r3](../../src/task/trajectory-policy/docs/experiments/probes/P-20261018-direct-tau-executor-r3.md) | P-20261018-direct-tau-executor-r3 | 见原卡 | 见原卡 | probes/UNPROMISING |
-| [P-20261018-unidex-live-oracle-tau](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261018-unidex-live-oracle-tau.md) | P-20261018-unidex-live-oracle-tau | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261018-unidex-live-oracle-tau](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261018-unidex-live-oracle-tau.md) | P-20261018-unidex-live-oracle-tau | 见原卡 | mark this particular packet-plus-update expansion UNPROMISING and | probes/见原卡 |
 | [VAL-20260923-CM-EFFECT-PPO](validations/VAL-20260923-CM-EFFECT-PPO.md) | Validation: 动作条件 Cm 效应排序能否稳定改善 PPO？ | 见原卡 | 见原卡 | validations/见原卡 |

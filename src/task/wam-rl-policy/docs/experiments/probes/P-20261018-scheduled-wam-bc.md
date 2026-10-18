@@ -1,0 +1,46 @@
+---
+schema: ref2dex.probe.v2
+probe_id: P-20261018-scheduled-wam-bc
+experiment_id: P-20261018-scheduled-wam-bc
+date: 2026-10-18
+task: wam-rl-policy
+branch: main
+git_commit: recorded-in-run-manifest
+claim_id: C1
+hypothesis_family: HF-scheduled-wam-executor
+probe_index_in_family: 1
+seed_pool: debug
+seeds: [0]
+decision_changed_if_positive: qualify actual scheduled-WAM BC as a candidate for native execution smoke before PPO
+decision_changed_if_negative: inspect conditioning distribution and supervision before scaling policy training
+status: PLANNED
+run_id: scheduled-wam-bc-20261018-r1
+---
+
+# 调度WAM条件下的UniDex BC初始资格
+
+Class: Decision。旧GT-τ BC在一个Camera实测状态、当前WAM预测条件下有6/24通道
+超出动作范围；该单点不是机器人失败证据。当前最便宜的判别是固定WAM，检查实际
+部署条件下BC能否在独立raw episode的动作标签上拟合，避免直接扩大失配的PPO。
+
+固定修复版v4 step12000；九源预训练不改。缓存
+`outputs/shadow-finetune/policy-data-full-20261015-r1`的Camera TRAIN记录7222/7223
+拟合，7319/7320作为内部开发；两组raw episode分别为episode00/01。对象相同，因此
+不声称对象泛化，内部开发也不是全局DEV/TEST。移植小包后ID映射0/1→train、2/3→dev。
+每记录按时间均匀选32个合法当前状态，合计128行；调度器每60Hz实测帧更新，H4来自
+过去7帧的0/2/4/6，路径来自初态与任务goal，不来自未来轨迹。检查canonical action与
+下一拍观测previous-action一致。只有TRAIN拟合归一化。
+
+403→256→256→24 ELU网络从随机初始化做1000步BC，Adam1e-3，seed0，固定末步
+checkpoint，不按开发曲线选择。报告TRAIN/内部dev L1、dev动作裁剪比例及条件来源。
+此阶段只为接口与可拟合性资格，不据此宣称抓取收益；若dev裁剪仍>=10%，或dev L1
+不优于TRAIN动作均值常量，先诊断而不扩大PPO。即使通过，仍须真实闭环smoke。
+
+远端本项目GPU0短时共享，graspenv Python3.8.20 / Torch2.0.1+cu118；预算600秒、
+输出<=1GiB、空盘>=20GiB。不修改/停止主WAM训练。产物在既有NAS的
+`tmp/local-control-snapshot-20261018-r1/bc-probe/`，小证据同步到本地
+`outputs/wam-rl-policy/scheduled-wam-bc-20261018-r1/`。运行前固定提交。
+
+Limitations: 仅一个对象、两个raw episodes，成功终点筛选缓存不等于稳定保持数据。
+teacher历史没有覆盖原生driver的前6步零动作初始化，也没有学生偏离分布。若后续
+执行失败，须分别检查启动与保持；离线正向不能直接授权长预算PPO。

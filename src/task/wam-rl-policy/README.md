@@ -90,4 +90,3 @@ TRAIN-only在线探索，DEV只用于固定终点评估；固定原官方reward�
 `tools/audit/check_scheduled_executor.py`检查一份已有TRAIN状态上的真实前向，不执行动作。
 接口和实际PPO更新器工程检查不代表原生训练runner或物理闭环已完成。
 范围、数据准备和下一步见[整合协议](docs/research/2026-10-18-unidex-scheduled-executor.md)。
-
