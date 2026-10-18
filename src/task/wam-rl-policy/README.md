@@ -1,5 +1,12 @@
 # WAM-assisted robot RL
 
+调度决策审阅：`outputs/wam-rl-policy/interaction-goal-scheduler-20261018-r2/decision-review/review.html`。
+3D右侧逐帧解释进度确认、局部匹配、前视选择和输出约束；下方参考位置轴包含旋转，
+与回放时间轴分开。提供六个合成／真实情形跳转，保留Clock10Hz卡住的失败。
+观测来自固定记录，goal未驱动物体；当前仍是可运行的独立候选模块，未验证WAM→RL闭环。
+用`build_goal_scheduler_viewer.py --run <replay目录> --cache <几何缓存> --output <新展示目录>`
+可从已有回放构建展示，不覆盖原始数据或旧页面。
+
 2026-10-18 [手物历史条件的调度与3D审阅](docs/experiments/probes/P-20261018-interaction-goal-scheduler.md)：
 修复慢速误超时、低频错过里程碑及goal整段跳变，新增因果hand11/物体随动代理。
 弱proxy只影响短目标，不作为几何进度硬门；显式外部准备/失败信号仍可暂停确认。
