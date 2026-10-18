@@ -47,7 +47,7 @@ def object_specs(args):
 def task_class(vendor, output):
     """Preserve upstream physics while fixing heterogeneous aggregate capacity."""
     source_path = vendor/'dexgrasp/tasks/shadow_hand_grasp.py'
-    source = source_path.read_text()
+    source = source_path.read_text(encoding='utf-8')
     replacements = {
         'max_agg_bodies = self.num_shadow_hand_bodies * 1 + 2 * self.num_object_bodies + 1':
             'max_agg_bodies = self.num_shadow_hand_bodies + 2 * max(self.gym.get_asset_rigid_body_count(a) for scales in object_asset_dict.values() for a in scales.values()) + 1\n        self._pilot_aggregate_bodies = max_agg_bodies',
@@ -59,7 +59,7 @@ def task_class(vendor, output):
             raise ValueError('pinned aggregate allocation source changed')
         source = source.replace(old, new)
     dest = output/'tmp/shadow_hand_grasp_capacity.py'
-    dest.write_text(source)
+    dest.write_text(source, encoding='utf-8')
     write_json(output/'upstream-runtime-patch.json',dict(source=str(source_path),copy=str(dest),
         replacements=replacements,reason='reserve capacity for largest loaded object, not last object',
         physics_parameters_changed=False,collision_geometry_changed=False))
