@@ -149,3 +149,10 @@ scheduler（独立状态机+批量28次connector求解）、all。默认legacy�
 所有run保存源码副本，模式写入curve。WAM完整forward不变，不启用hand-only。
 GPU6已通过输入字段、tau与CPU基线比较；部分reset、越界mask和完整scheduler状态对照通过。
 WAM输入浮点容差2e-6，tau1e-7，scheduler1e-8；尚待端到端结果。
+
+GPU真实归档3组×32样本检查：输入字段最大差1.82e-12，valid/mask相同。
+record0原始完整forward两次最大tau差0.00062823m，candidate相对reference差相同；
+record100/1000重复与candidate均0。不能宣称WAM推理逐位确定；优化未扩大本次测得波动。
+见batch-pipeline-all-20261018-r1/archived-input-audit.json。
+全部模式单卡检查后，再在GPU6/7跑all模式双rank160环境×12轮，900秒上限，
+检查实际梯度/参数同步与设备观测路径，不切换六卡主训练。
