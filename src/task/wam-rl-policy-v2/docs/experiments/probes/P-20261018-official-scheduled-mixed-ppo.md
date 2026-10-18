@@ -92,3 +92,11 @@ run_id: official-scheduled-mixed-20261018-r2；从同一完整scheduled BC重新
 环境graspenv Python3.8/Torch2.4.1+cu121，固定运行源码副本和commit。
 hand-only优化真实GPU等价性检查失败，max差0.00050056m，原因待查；
 正式运行已恢复完整runtime.predict，不使用该优化，不放宽检查阈值。
+
+## 预留卡性能诊断（用户授权）
+
+用户明确授权使用剩余GPU测试提高利用率。主run固定源码不变。
+纯工程计时：GPU6单rank160环境/16物体/12iteration，900秒上限，
+REF2DEX_PROFILE_PPO=1输出cProfile分解；后续最多GPU6/7对照，总诊断预算30分钟。
+目标区分CPU组装/scheduler、WAM计算、同步等待，优化决策以端到端吞吐及语义一致性为准。
+所有输出独立v2目录，不覆盖主训练或BC，测试完释放预留卡。

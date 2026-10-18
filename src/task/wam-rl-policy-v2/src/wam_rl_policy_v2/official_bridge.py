@@ -185,9 +185,16 @@ def run(task,snapshot,sim_step,actor,runtime,args):
                 config=cfg,conditioning=scheduled_conditioning_contract(),bc_source=str(args.policy),
                 resume_semantics='model/optimizer; fresh native episodes'),dest)
     ppo.save=save
+    profiler=None
+    if os.environ.get('REF2DEX_PROFILE_PPO')=='1':
+        import cProfile
+        profiler=cProfile.Profile();profiler.enable()
     try:
         ppo.run(num_learning_iterations=args.ppo_updates,log_interval=args.save_every)
         if state['optimizer_steps']!=args.ppo_updates*20:raise ValueError('Official optimizer count changed')
         (args.output/'learning-audit.json').write_text(json.dumps(dict(status='PASS',**state),indent=2)+'\n')
         return [state]
-    finally:ppo.writer.close()
+    finally:
+        if profiler is not None:
+            profiler.disable();profiler.dump_stats(str(args.output/'collection-profile.pstats'))
+        ppo.writer.close()
