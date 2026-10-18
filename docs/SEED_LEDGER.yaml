@@ -547,3 +547,9 @@ allocations:
     seed_pool: probe
     diagnostic_sampling_seed: 214
     reuse_reason: TRAIN-bank/DEV-panel diagnostic only; parent model seed170 unchanged, no new model fit
+
+  P-20261018-wam-v4-scale-1024:
+    seed_pool: probe
+    model_and_training_seed: 170
+    fixed_DEV_panel_seed: 171
+    reuse_reason: matched capacity-scale arm reuses the nine-source pretraining seed and DEV panel; not an independent replication
