@@ -213,7 +213,8 @@ class OrderedGoalScheduler:
                 mode, reason = 'TRACK', 'ordered_progress'
                 ahead = c.lookahead_m * max(.25, 1-tracking_error/c.recovery_enter_m)
             goal, index = self._at_arc(min(self.arc[local]+ahead, self.arc[last]), local, last)
-        on_reference = True
+        # TIMEOUT emits an explicit hold at the live pose, not a reference goal.
+        on_reference = mode != 'TIMEOUT'
         if not self._within_budget(actual, goal):
             if self._within_budget(actual, self.poses[local]):
                 # A large rotation ahead is a NORMAL reason to shorten the

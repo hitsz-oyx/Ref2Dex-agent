@@ -43,7 +43,7 @@ function render(){
  el('time').textContent=`${r.time_s.toFixed(2)} s · ${k+1}/${c.rows.length}`;
  const stats=[r.mode,`已确认 ${(100*r.confirmed_progress).toFixed(1)}%`,`短目标 ${(1000*r.goal_point_m).toFixed(1)} mm`,`旋转 ${(r.goal_rotation_rad*180/Math.PI).toFixed(1)}°`,`准备状态 ${r.execution_ready===null?'未知':r.execution_ready?'可推进':'等待'}`];
  el('status').replaceChildren(...stats.map(text=>{const node=document.createElement('span');node.textContent=text;return node}));
- el('detail').textContent=`选择原因：${r.reason}\n参考索引：已确认 ${r.confirmed_index}，局部匹配 ${r.projected_index}，前视 ${r.target_reference_index.toFixed(2)} / ${c.reference.length-1}\n目标位于参考上：${r.target_on_reference?'是':'否（有界恢复连接段）'}；物理时域 ${r.horizon_s.toFixed(2)} s\n本片段结尾：有序位姿完成 ${c.summary.complete?'是':'否'}，超时 ${c.summary.timed_out?'是':'否'}\n数据来源：${c.metadata.kind}${c.metadata.environment===undefined?'':` / env ${c.metadata.environment}`}\n${c.metadata.scope||'合成几何行为检查'}`;
+ el('detail').textContent=`选择原因：${r.reason}\n参考索引：已确认 ${r.confirmed_index}，局部匹配 ${r.projected_index}，前视 ${r.target_reference_index.toFixed(2)} / ${c.reference.length-1}\n目标位于参考上：${r.target_on_reference?'是':'否（保持当前状态或恢复连接段）'}；物理时域 ${r.horizon_s.toFixed(2)} s\n本片段结尾：有序位姿完成 ${c.summary.complete?'是':'否'}，超时 ${c.summary.timed_out?'是':'否'}\n数据来源：${c.metadata.kind}${c.metadata.environment===undefined?'':` / env ${c.metadata.environment}`}\n${c.metadata.scope||'合成几何行为检查'}`;
 }
 function choose(){slider.max=DATA[+selector.value].rows.length-1;slider.value=0;accum=0;render()}
 selector.addEventListener('change',choose);slider.addEventListener('input',render);

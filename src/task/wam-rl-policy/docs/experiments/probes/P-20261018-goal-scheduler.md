@@ -14,7 +14,7 @@ seeds: [0]
 decision_changed_if_positive: keep ordered state-based scheduling as a candidate for later frozen-WAM and physical execution checks
 decision_changed_if_negative: fix progress, rotation, timeout or recovery semantics before any policy experiment
 status: RUNNING
-run_id: goal-scheduler-replay-20261018-r2
+run_id: goal-scheduler-replay-20261018-r3
 ---
 
 # 独立有序物体轨迹调度器：几何工程 Probe
@@ -34,7 +34,7 @@ Class: Blocker / engineering smoke。用户最新明确先只实现 goal schedul
   末端需持续达标，停滞和总时限明确返回 TIMEOUT，不能跳过难点或永久等待。
 - `horizon_s=.8` 只声明下游希望实现短目标的物理时域，不认证可达性；参考速度允许变化。
   此模块不支持必须保持原时间戳、必须等待/释放或冲击速度等额外任务合同。
-- 合成：静止准备后抬升、往返重复姿态、纯旋转、外部注入侧向偏离。
+- 合成：静止准备后抬升、往返重复姿态、纯旋转、外部注入侧向偏离、持续未准备的超时。
 - 真实记录：既有 `shadow-value-scale1-32obj-20261016-r1/rank00/last-episode.npz`。
   按终点位移确定性选择4个不同TRAIN物体（非代表性/随机面板，不按success筛选），
   每个比较原速度和0.6秒起始延迟+半速重放。物体和手使用同一记录帧，参考在开始时已知。
@@ -58,7 +58,9 @@ Python3 / NumPy / SciPy / Matplotlib，实际版本写入 manifest。纯几何�
 纯旋转因短目标角度上限而频繁误标RECOVER；已修正为沿原参考缩短前视，只有真正需要
 离开参考作连接时才标恢复。r1保留，不以它的模式统计作为最终结果。
 
-10项针对性单测已通过，r2固定代码后重放；尚不代表真实执行或完整参考任务成功。
+r2固定代码05616c34重放12片段通过，6.46秒；纯旋转不再误标恢复。随后将TIMEOUT
+返回的live-pose hold明确标为非参考目标，并增加可视化超时片段。r3为最终重放，
+10项针对性单测已通过；尚不代表真实执行或完整参考任务成功。
 
 ## Limitations / future evidence
 

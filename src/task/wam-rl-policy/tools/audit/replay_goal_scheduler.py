@@ -69,7 +69,7 @@ def replay(name, reference, ref_time, points, observed, live_time, *,
 def synthetic_cases():
     points = np.array([[.05, 0, 0], [-.05, 0, 0], [0, .05, 0], [0, -.05, 0], [0, 0, .05], [0, 0, -.05]])
     result = []
-    for kind in ('prepare_lift', 'out_and_back', 'rotation', 'recovery'):
+    for kind in ('prepare_lift', 'out_and_back', 'rotation', 'recovery', 'stalled'):
         n = 181
         ref = np.repeat(np.eye(4)[None], n, axis=0)
         if kind == 'rotation':
@@ -79,11 +79,15 @@ def synthetic_cases():
         else:
             ref[40:, 2, 3] = np.linspace(0, .15, n-40)
         indices = np.r_[np.zeros(30, int), np.arange(n), np.full(20, n-1)]
+        if kind == 'stalled':
+            indices = np.zeros(541, int)
         actual = ref[indices].copy()
         ready = np.ones(len(indices), bool)
         lost = np.zeros(len(indices), bool)
         if kind == 'prepare_lift':
             ready[:65] = False
+        if kind == 'stalled':
+            ready[:] = False
         if kind == 'recovery':
             actual[110:125, 1, 3] += .12
             lost[110:125] = True

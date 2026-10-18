@@ -43,6 +43,7 @@ def test_reference_clock_never_advances_a_delayed_object_and_timeout_is_explicit
         assert result['goal_position_m'] <= .021
     result = s.update(ref[0], 8.1)
     assert result['mode'] == 'TIMEOUT' and not result['complete']
+    assert not result['target_on_reference']
     np.testing.assert_allclose(result['goal_pose'], ref[0])
 
 
