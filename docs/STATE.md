@@ -10,6 +10,13 @@ action mismatches. This admits only a small 421/686 actor/critic collector
 shape smoke; reward calibration and long PPO training remain unvalidated.
 See [task-reward bridge card](../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261020-inspire-task-reward-bridge.md).
 
+A measured PPO actor/critic shape smoke then loaded both real BC checkpoints at
+421/686 dimensions, generated a causal 6-by-2 transition batch, and completed a
+finite update with behavior log-prob replay error `0` and retained KL about
+`1.1e-9` ([shape-smoke manifest](../outputs/wam-rl-policy-v2/inspire-measured-ppo-shape-smoke-20261020-r2/manifest.json)).
+This only qualifies the offline collector boundary; an online collector must
+still record actual next-state bootstrap and terminal behavior before PPO.
+
 ## 2026-10-20 WAM-v2 measured BC paired audit and Current421 closed-loop contract pass
 
 Following the teacher-rollout correction, Current421 BC `inspire-current421-bc-20261020-r1` completed 50k updates on GPU6; best DEV command MAE was 0.038258 at step3000 and final was 0.055811, so only the best checkpoint is retained downstream. A fresh spatial WAM tau cache from the same-execution goals completed with two workers on GPU6/7: 53,042 TRAIN and 5,799 DEV rows passed workspace validity out of 60,529 admitted rows. Scheduled686 BC `inspire-scheduled686-bc-20261020-r1` completed 50k updates; best DEV command MAE was 0.036683 at step1000 and final was 0.052845. On the 5,693 active-and-valid common DEV rows, Current421 command MAE was 0.036321 and Scheduled686 was 0.036683, so tau has no stable offline advantage in this probe. Current421 completed 300 deterministic native controls over two fixed TRAIN motions: both environments stayed ACQUIRE/progress0. Scheduled686 completed the same 300 controls with 596 valid tau observations; airplane stayed ACQUIRE/progress0 and alarmclock reached TRACK but stayed progress0. Native physical248/PD/episode checks passed in both arms. A paired action-scale audit found teacher/current/scheduled absolute means 0.19095/0.18532/0.18784, so the policies are not output-collapsed; the zero-progress result is a closed-loop generalization/conditioning problem. The adapters are operational, but no long PPO run is admitted until a measured TaskReward/critic bridge is specified and a bounded smoke demonstrates it preserves this contract.

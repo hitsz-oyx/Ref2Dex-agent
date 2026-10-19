@@ -41,7 +41,18 @@ or a PPO improvement, and it does not justify a long PPO run yet.
 
 ## Next decision
 
-Run a small actor/critic and collector shape smoke against the 421/686
-observation contracts and the recorded reward transition, checking finite
-advantages, synchronized parameter shapes, behavior log-prob consistency, and
-bootstrap at the measured terminal boundary before any multi-hour PPO training.
+A bounded actor/critic and collector shape smoke was run from commit
+`7cf9f41d` as
+`outputs/wam-rl-policy-v2/inspire-measured-ppo-shape-smoke-20261020-r2/`.
+Both real BC checkpoints loaded at their declared 421/686 dimensions and
+12-action boundary. A 6-by-2 causal transition batch produced finite actor and
+critic updates; behavior log-prob replay error was `0`, retained KL was about
+`1.1e-9`, and both updates accepted one actor step. The fresh critic's initial
+bootstrap was finite (zero from its zero-initialized output head). This qualifies
+the collector shape for a future online PPO smoke, while reward calibration,
+native bootstrap at a real terminal, critic quality, and any PPO improvement
+remain unvalidated.
+
+The next blocker is an online collector smoke that records the actual next
+measured state and terminal boundary through the native host. Do not start
+multi-hour PPO from the offline shape result alone.
