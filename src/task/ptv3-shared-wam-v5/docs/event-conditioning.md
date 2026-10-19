@@ -77,6 +77,36 @@ Do not claim success from total loss alone or from a wrong-event-only test.
 
 The engineering-resume revision is independent. Event-conditioned production
 training is not yet activated; no future-event payload has been inserted into
-the currently frozen training data or model. The code supports the optional
-interface, but data sidecars, named optimizer expansion, conditioned continuation
-and effect validation remain before an event-conditioned training run.
+the currently frozen training data or model.
+
+## Preparation implementation
+
+`event_labels.py` and `tools/run/prepare_events.py` produce immutable candidate
+sidecars from each frozen row's own contact_path. No new contact distances,
+geometry, normalization or window/sampling changes are introduced. At least3
+queries above.8 establish proximity; fewer than3 above.5 establish clearance.
+Confirm3 valid observations, keep hysteresis-band state, reset on missing
+observations, and do not fabricate an onset at the recording's left boundary.
+Known NONE requires a fully observed K24 plus confirmation margin. Far events
+keep their actual time; censored tails/gaps remain unknown.
+
+HOI4D uses its real even-frame observations (3 observations span5 WAM frames),
+leaving synthetic odd-frame conditions unknown. Event deltas remain30Hz.
+Candidate manifests have training_allowed=false pending annotation inspection.
+The source-diverse panel, full census and limitations are tracked in the
+[event preparation card](experiments/probes/P-20261019-wam-v5-event-preparation.md).
+
+`EventV5Windows` is a separate probe reader that requires a complete sidecar
+bound to its parent. Its15% TRAIN condition dropout uses an independent
+seed/step/rank stream; original source, stratum and window choices are retained,
+and spawn workers reopen bounded mmap caches. Direct DEV indexing has no
+dropout. This reader is not silently substituted into production training.
+
+`event_migration.py` maps original AdamW group positions through parameter
+names, preserves every original state/moment/step and group setting, and
+leaves only event_goal parameters fresh. Tests compare the next original
+parameter update exactly. `audit_event_migration.py` verifies this against a
+real checkpoint and can save a separate candidate payload. Its candidate
+schema deliberately cannot pass generic strict resume: the new event recipe
+identity and an explicit migration entry still need binding before launch.
+Conditioned continuation and event-effect validation remain outstanding.

@@ -5,7 +5,7 @@ experiment_id: P-20261019-wam-v5-event-preparation
 date: 2026-10-19
 task: ptv3-shared-wam-v5
 branch: main
-git_commit: pending
+git_commit: f68057ee
 claim_id: C1
 hypothesis_family: HF-v5-planned-proximity-events
 probe_index_in_family: 1
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [177]
 decision_changed_if_positive: prepare complete candidate event sidecars and an explicit checkpoint expansion before a conditioned continuation probe
 decision_changed_if_negative: revise annotations before any event-conditioned optimization
-status: PLANNED
+status: RUNNING
 run_id: event-panel-20261019-r1
 ---
 
@@ -76,4 +76,11 @@ K24 normalization,768 backbone and21-joint tau remain unchanged.
 
 ## Results
 
-Pending panel and complete preparation. No event-conditioning gain claimed.
+The fixed144-sequence panel completed in7.42s on remote Python3.8.20/NumPy
+with8 CPU workers, using f68057ee. All9 sources have CONTACT onsets. Sampled
+Shadow has17 CONTACT/1 RELEASE; sampled DexYCB16 CONTACT/0 RELEASE, so source
+imbalance and recording boundaries require reporting rather than synthetic
+release labels. HOI4D yields35 CONTACT/33 RELEASE using observed even frames.
+The full39526-sequence candidate census was launched from the same frozen
+code, PID3058882, output `data/events-candidate-20261019-r1`. No training
+model/data configuration has changed. No event-conditioning gain claimed.
