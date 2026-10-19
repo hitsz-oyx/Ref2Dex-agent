@@ -52,9 +52,15 @@ def main():
         frames = np.clip([tick-6, tick, tick+6], 0, len(joints)-1)
         anchors = np.linalg.inv(poses[frames, slot])
         points = np.einsum('fij,fhpj->fhpi', anchors[:, :3, :3], joints[frames])+anchors[:, None, None, :3, 3]
+        dense = (load_array(hand/'surface_offsets.npy', mmap_mode='r')[frames].astype(np.float32)
+                 +joints[frames, :, None, 0, :])
+        dense = np.einsum('fij,fhpj->fhpi', anchors[:, :3, :3], dense)+anchors[:, None, None, :3, 3]
+        dense_valid = load_array(hand/'surface_valid.npy', mmap_mode='r')[frames]
+        confidence = load_array(Path(row['contact_path'])/'contact.npy', mmap_mode='r')[frames, slot]
         prefix = 's{}_'.format(sid)
         examples.update({prefix+'hand': points, prefix+'valid': valid[frames],
-                         prefix+'frames': frames, prefix+'event': event})
+                         prefix+'surface': dense, prefix+'surface_valid': dense_valid,
+                         prefix+'contact': confidence, prefix+'frames': frames, prefix+'event': event})
     value = dict(timelines=timelines, sensitivity=sensitivity, parent=str(a.manifest),
                  events=str(a.events), scope='transition-enriched diagnostic examples, not a population estimate')
     (a.output/'panel.json').write_text(json.dumps(value)+'\n')

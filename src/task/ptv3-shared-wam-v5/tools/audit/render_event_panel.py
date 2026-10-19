@@ -36,13 +36,19 @@ def main():
         for r,sid in enumerate((0,4,10)):
             obj=data['s{}_object'.format(sid)]; hands=data['s{}_hand'.format(sid)]
             valid=data['s{}_valid'.format(sid)]; frames=data['s{}_frames'.format(sid)]; event=data['s{}_event'.format(sid)]
-            allpoints=np.concatenate((obj, hands[valid])); center=np.median(obj,0)
-            radius=max(.06,float(np.quantile(np.linalg.norm(allpoints-center,axis=-1),.95)))
+            surface=data['s{}_surface'.format(sid)]; sv=data['s{}_surface_valid'.format(sid)]
+            contact=data['s{}_contact'.format(sid)]
+            allpoints=np.concatenate((obj, hands[valid], surface[sv].reshape(-1,3)))
+            low,high=allpoints.min(0),allpoints.max(0);center=(low+high)/2
+            radius=max(.06,float((high-low).max()/2)*1.05)
             for c in range(3):
                 ax=fig.add_subplot(3,3,r*3+c+1,projection='3d')
                 ax.scatter(*obj[::4].T,s=2,color='.6',alpha=.4)
+                near=contact[c]>=.8
+                ax.scatter(*obj[near].T,s=4,color='#00843d',alpha=.8)
                 for hand in range(2):
                     points=hands[c,hand]; mask=valid[c,hand]
+                    if sv[c,hand]: ax.scatter(*surface[c,hand,::4].T,s=1,color=['#2166ac','#b2182b'][hand],alpha=.2)
                     ax.scatter(*points[mask].T,s=9,color=['#2166ac','#b2182b'][hand])
                     for finger in range(5):
                         ids=[0]+list(range(1+4*finger,5+4*finger))
