@@ -1,3 +1,7 @@
+## 2026-10-20 WAM-v2 measured Current421/Scheduled686 BC probes complete
+
+Following the teacher-rollout correction, Current421 BC `inspire-current421-bc-20261020-r1` completed 50k updates on GPU6; best DEV command MAE was 0.038258 at step3000 and final was 0.055811, so only the best checkpoint is retained for downstream work. A fresh spatial WAM tau cache from the same-execution goals completed with two workers on GPU6/7: 53,042 TRAIN and 5,799 DEV rows passed workspace validity out of 60,529 admitted rows. Scheduled686 BC `inspire-scheduled686-bc-20261020-r1` completed 50k updates; best DEV command MAE was 0.036683 at step1000 and final was 0.052845. These are offline action metrics only; no closed-loop success or event-conditioned WAM claim exists yet. Next route is paired closed-loop evaluation with the two best checkpoints, then PPO bridge integration.
+
 ## 2026-10-20 用户选择继续WAM-v6，四卡切换完成并定位异常目标
 
 v5 after-v6-probe-r3已正常保存/停止15723。v6从自己已学事件的16136完整checkpoint严格恢复，
