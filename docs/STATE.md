@@ -1,3 +1,11 @@
+## 2026-10-19 执行边界修复与原生回归通过
+
+新增corrected reset初始化隔离、position_only目标、最终/曾保持及失守指标、PPO checkpoint
+外部条件绑定和显式迁移；共同workspace协议可用于匹配对照。45项测试通过。
+GPU6/7单卡及双卡错开reset的官方PPO+WAM回归通过，参数同步误差0；新checkpoint正常
+加载/续训，16场景实际评估输出新指标。主六卡r4继续使用原冻结代码，未切换或覆盖checkpoint。
+这是工程修复验证，尚无新成功率或WAM净收益结论。[详情](../src/task/wam-rl-policy-v2/docs/research/2026-10-19-execution-boundaries.md)。
+
 ## 2026-10-19 Preview4官方专家获取受阻
 
 用户授权仅评估对应物体专家。官方专家包浏览页及两种下载入口均404，作者fork无替代地址；

@@ -50,5 +50,23 @@ common_workspace，native无需调用WAM预测就执行相同当前物体anchor�
 
 回归覆盖单环境结束时其他环境连续执行、初始化动作/样本隔离、真实terminal return保留、
 位置目标旋转、保持后失守、workspace失败、legacy身份拒绝和显式迁移。
-真实官方PPO+WAM仿真通过tools/audit/check_episode_boundaries.py验证，结果待本次工程
-smoke完成后补充；这是接口验证，不是成功率、收敛或WAM净收益实验。
+真实官方PPO+WAM仿真通过tools/audit/check_episode_boundaries.py验证：
+
+- 单卡16环境、32步、4轮/80次optimizer更新：强制env0在tick8终止，tick9为排除的
+  零动作初始化，tick10的策略动作来自新回合；其他环境历史连续。
+- 双卡各16环境/4轮：分别强制1个和2个环境reset，80次更新/卡，参数同步误差0。
+- 双卡错开reset：rank0在tick8结束1个环境，rank1在tick16结束2个环境，分别覆盖
+  “只有一张卡过滤样本”的两种方向；80次更新/卡，参数同步误差0，均正常退出。
+- 新checkpoint正常加载，身份差异为空；从累计4轮续训至6轮，新增40次optimizer更新。
+- 实际evaluate入口完成16个首回合，optimizer_steps=0，输出v2指标字段；加载身份差异为空。
+
+45项Task测试通过，含优化/标量位置scheduler等价与共同workspace在startup的对齐。
+双卡错开验证修复了mask存在性不同导致collective数量不一致的潜在死锁，故新masked
+storage无论本rank有无初始化样本都走同一minibatch同步入口。
+运行环境graspenv、PyTorch2.4.1+cu121、IsaacGym Preview4；GPU6/7每worker≤300s，
+共享的monica任务未修改；验证结束后无本任务GPU进程。主六卡r4冻结版本未改。
+汇总：`outputs/wam-rl-policy-v2/control-boundaries-20261019-r1/summary.json`。
+这是接口验证，不是成功率、收敛或WAM净收益实验。
+
+实现提交eb5f4007、2d9f4986、f55b5fbe。运行身份和实际执行命令见各manifest/process.json。
+此次新建工程checkpoint只位于独立smoke目录，不覆盖原训练checkpoint。
