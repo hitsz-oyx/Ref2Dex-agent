@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [246]
 decision_changed_if_positive: train the full-data task-conditioned BC and official PPO under the repaired contract
 decision_changed_if_negative: repair the first observation or native replay mismatch before further PPO scaling
-status: RUNNING
+status: COMPLETED
 run_id: inspire-task7-fit-20261019-r1
 ---
 
@@ -57,4 +57,43 @@ PPO若工程检查通过，继续全局原48h截止与10000更新上限、滚动
 产物：outputs/wam-rl-policy-v2/inspire-task7-bc-20261019-r1/cache/、
 outputs/wam-rl-policy-v2/inspire-task7-fit-20261019-r1/、
 outputs/wam-rl-policy-v2/inspire-task-audit-20261019-r1/。
-83项Task测试通过（准备阶段）。未有新版BC/PPO成功率结论。
+实现提交45eb9837，BC冻结该提交；后续Shadow KL接线/重放审计提交53150deb。
+85项Task测试通过。全量task字段准入检查通过：660序列、165677命令均有限，
+50物体各前20拍的真实BatchedInspireInputs与离线task字段最大误差0；该检查不运行神经网络。
+
+两阶段BC均已完成50000更新，单GPU0约309秒。current最佳DEV MAE0.03892193；
+同一800行物体均衡DEV选择面板上，零扩展初始化与条件best均为0.03892196，
+选择初始current扩展点，tau/valid权重为零，但新增task权重保留。
+这没有优于旧312输入的离线MAE0.03850862，不能称局部任务输入已改善抓取或WAM已有收益。
+
+原命令重放三条TRAIN的2环境结果：第一拍PD/初态q/hand/物体位置误差均0；
+cup/apple/cube前8拍物体最大误差分别3.05/28/1.27µm，手点约3.72/2.72/4.51mm；
+全程物体误差分别60.3mm/2.877m/83.4mm。因此只通过短程接口检查，长程动力学分歧仍记录。
+进一步恢复cup原采集的16环境、批成员、seed120和fixed motion配置，重放所有16环境
+共同可用的158拍：目标cup的q、手点、物体位置和PD目标全前缀误差均为0。
+这是原canonical控制链可复现的证据，不证明不同采样/批配置的长期轨迹必然一致；
+不能仅凭2环境漂移判定动作映射错误，也不能把16环境结果称为BC抓取成功。
+
+原生工程检查inspire-task7-native-check-20261019-r1已完成：冻结53150deb，
+64环境、50物体、4次官方PPO更新、80次optimizer step，2048交互；错开reset通过，
+动作episode错配、PD目标误差、动作均值误差、logprob回放误差均0。
+在线共享TF32对完整FP32最大tau差0.564mm，低于1mm门槛。
+该检查只有3个终止（含2个强制reset），0任务成功，不能作为效果评估或长训起点。
+
+新BC确定性首回合r2：50 TRAIN物体/64环境、300控制拍、0 optimizer step；
+52个已结束回合中0任务成功、0最终高度保持、11个workspace失败，12个首回合尚未结束。
+不能将其写为完整64回合成功率。r3将上限延长为1200控制拍，补齐完整回合；
+使用GPU0/1、最多1200秒，不改变策略、输入或任务判定。这是是否继续扩大训练的Decision，
+当前保持旧六卡停止，不凭工程通过重开万轮长训。
+BC评估r1在启动时因未显式传--updates 0被拒绝，0物理步/0优化；正确重启为r2，
+保留失败manifest，不将其计入评估。
+
+r3完整评估已完成，484控制拍覆盖全部64首回合、50 TRAIN物体，0优化更新；
+全部记录的初态字段与r2逐位一致。任务成功0/64、workspace失败17/64，
+最终无越界高度保持1/64，不能把该高度代理写成完整路径任务成功。
+结果与初态核对保存于`inspire-task7-bc-eval-20261019-r3/summary.json`。
+决定：输入/在线/原生PPO工程检查通过，但新版BC仍非可靠控制底座，
+保持旧六卡停止，暂不启动584合同的万轮训练；先定位BC闭环与任务条件的信息充分性。
+task7解决明确的局部物体指令缺失，不保证相同物体任务下不同抓取/操作意图均可辨识。
+未恢复手参考，未改变官方gamma/nsteps/noise数值，未进行Shadow KL匹配续训，
+不将单seed TRAIN小面板、离线MAE或tau权重变化升级为WAM净收益结论。

@@ -93,6 +93,28 @@ Inspire冻结WAM使用FP32：真实输入的bf16 batch64/single差超过1mm，FP
 新Inspire训练修正上游adaptive KL与其平方scale_tril分布的失配；采样分布及官方其他PPO
 超参保留，优化合同与旧checkpoint迁移单独记录，详见后期退化诊断实验卡。
 
+上述577维为旧冻结运行合同。ref1审计后，当前Inspire合同升级为
+`physical312 + world tau264 + valid1 + local task7 = 584`；current BC为319维。
+task7包含当前物体坐标系的局部目标平移3、旋转向量3及已确认路径进度1，
+从H4启动前即提供，无WAM分支也使用完全相同的任务字段；不输入手部参考。
+物理列、tau列及valid索引保持，新增task放在577:584。两阶段BC与在线推理
+统一构造和归一化；current→scheduled只将新增tau/valid权重置零，保留task权重。
+BC/PPO/conditioning使用v2 schema；旧577 checkpoint不能按普通resume加载。
+
+`prepare_inspire_task_cache.py`在不可变全量物理/tau缓存上追加约4.64MiB任务字段，
+不重新计算神经缓存；`check_inspire_task_fields.py`检查全量准入及50物体的离线/在线一致性。
+完整660条序列、589 TRAIN/71 DEV、网络容量和两阶段各50000步不变。
+路径奖励改为局部目标误差及正进度增量，删除静止贴路径的持续正偏置；
+失败代价52.5由保留gamma=.96及负奖励界限推导。成功要求有序完成后实际SE3终点
+持续1秒且未越界，ever事件、最终到达、最终保持和高度代理分别记录。
+这是输入、奖励与成功合同的新实验，不能与旧PPO972直接拼接成连续学习曲线。
+[任务输入修订及验证](docs/experiments/probes/P-20261019-inspire-task-contract.md)。
+
+Shadow通用入口也显式提供`--adaptive-kl actual|legacy`：scheduled默认actual，
+原生官方评估默认legacy；六卡启动器默认actual。优化合同写入checkpoint，
+旧checkpoint缺失字段按legacy解释；改变训练合同需显式migration reason。
+保留官方采样分布及其他PPO超参；修复接线不等于已证明KL解释了全部后期退化。
+
 Inspire吞吐选项由`launch_inspire_mixed_ppo.py`显式指定：
 `--wam-executor-mode hand_shared_tf32 --wam-batch 256`保留FP32几何编码，
 仅共享Transformer的矩阵乘法允许TF32，读取相同的手轨迹头，省去执行器不用的scene/C读出。
