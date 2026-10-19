@@ -53,7 +53,7 @@ class Extractor:
             ids = np.load(folder/('frame_ids.npy' if sid==0 else 'source_frame_ids.npy'))
             out = blank(len(ids))
             if sid==0:
-                with (MAIN/'oakink2-wm30-k24-20261006/download'/(job['source_sequence']+'.pkl')).open('rb') as f:
+                with (MAIN/'oakink2-wm30-k24-20261006/download/anno_preview'/(job['source_sequence']+'.pkl')).open('rb') as f:
                     raw = pickle.load(f)
                 out['center_wrist'] = np.array(True)
                 for i, fid in enumerate(ids):
@@ -190,9 +190,11 @@ class Extractor:
             hp = PREP/'hoi4d-hand-native-20261014-r1/sequences'/(job['source_sequence'].replace('/','__')+'.npz')
             with np.load(hp,allow_pickle=False) as z:
                 lookup = {int(v):i for i,v in enumerate(z['native_frame_id'])}
-                order = [lookup[int(v)] for v in ids]
-                params = z['native_mano_camera'][order]
-                valid = z['hand_valid'][order]
+                params=np.zeros((len(ids),2,61),np.float32)
+                valid=np.zeros((len(ids),2,21),bool)
+                for i,fid in enumerate(ids):
+                    if int(fid) in lookup:
+                        k=lookup[int(fid)];params[i]=z['native_mano_camera'][k];valid[i]=z['hand_valid'][k]
             out = blank(len(ids))
             out['pose'],out['betas'],out['transl'] = params[...,:48],params[...,48:58],params[...,58:61]
             out['parameter_valid'] = valid.all(-1) & np.isfinite(params).all(-1)
@@ -209,6 +211,7 @@ def main():
     p.add_argument('--seconds',type=int,default=21600)
     p.add_argument('--sources',default='0,1,2,5,6,8,9,10,4')
     p.add_argument('--limit-per-source',type=int)
+    p.add_argument('--retry-unavailable',action='store_true')
     a=p.parse_args()
     a.output.mkdir(parents=True,exist_ok=True)
     for sub in ('packets','records'):(a.output/sub).mkdir(exist_ok=True)
@@ -223,7 +226,8 @@ def main():
         if sid not in sources or (a.limit_per_source and counts.get(sid,0)>=a.limit_per_source):continue
         if time.monotonic()-started>a.seconds or (a.output/'STOP').exists() or shutil.disk_usage(a.output).free<20*2**30:break
         record=a.output/'records'/(key+'.json')
-        if record.exists():continue
+        previous=json.loads(record.read_text()) if record.exists() else None
+        if previous and (previous['status']=='READY' or not a.retry_unavailable):continue
         try:
             packet=extractor.packet(job)
             pending=a.output/'packets'/(key+'.part.npz')
@@ -232,6 +236,7 @@ def main():
             row=dict(status='READY',source_id=sid,key=key,packet='packets/'+key+'.npz')
         except Exception as e:
             row=dict(status='UNAVAILABLE',source_id=sid,key=key,reason=type(e).__name__+': '+str(e))
+        if previous:row['previous_failure']=previous
         atomic_json(record,row);ledger[key]=row;counts[sid]=counts.get(sid,0)+1
         if len(ledger)%10==0 or len(ledger)<=9:
             progress=dict(status='RUNNING',pid=os.getpid(),processed=len(ledger),counts=counts,
