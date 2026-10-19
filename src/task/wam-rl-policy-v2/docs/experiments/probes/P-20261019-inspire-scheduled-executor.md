@@ -37,3 +37,10 @@ DExplore Inspire真实物理闭环。用户授权在Shadow评估后尝试，使�
 原生执行复用collect_rl660_batch的初始化、capture和动作/PD审计，不更改vendor；
 新adapter不得用官方teacher接管学生失败。记录动作、实测hand/object、原生contact、
 终态/曾抬升与tracking，不能仅用物体z上升宣布稳定抓取。
+
+### 正控制与首个分流
+
+小球teacher300拍已完成，但最大抬升仅2.7mm、held0，未通过正控制；不把该任务失败
+算作WAM负结果，也不拟合此失败示教。追加最多一个已知历史正控制TRAIN任务
+s3_airplane_lift（542控制拍），若其teacher也失败则停止原生试跑并记录前提未满足。
+这次任务选择修订先于BC拟合和学生评估，不扩展为物体搜索。
