@@ -1,3 +1,14 @@
+## 2026-10-19 事件goal迁出WAM-v6，四卡持续试跑后恢复v5
+
+用户创建ptv3-shared-wam-v6以隔离事件条件训练和v5回退，并明确选择试跑后恢复v5。
+d37e2320新增独立model/package/schema/recipe/训练入口；v5模型和生产配置未改。
+48项v5/v6测试通过。v5正常保存/停止于15120；完整权重、564份optimizer state、RNG与elapsed
+显式迁入v6，只新增50304参数。真实首步15121完成，事件分支梯度/权重已非零。
+当前controller3068448执行8+1000+8更新及DEV/保存/恢复检查，之后恢复原v5的15120状态。
+试跑尚未完成，未声称长期稳定或事件收益；资源和进度见
+[v6状态](../src/task/ptv3-shared-wam-v6/docs/STATE.md)、
+[实验卡](../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261019-wam-v6-event-continuation.md)。
+
 ## 2026-10-19 统一TaskSpec与实测执行接口第一批通过，Inspire长训继续停止
 
 新增TaskSpec、ACQUIRE/TRACK/RELEASE、task10、两机器人adapter和同轮力采集接口；

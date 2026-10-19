@@ -891,6 +891,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261019-wam-v5-event-preparation](../../src/task/ptv3-shared-wam-v5/docs/experiments/probes/P-20261019-wam-v5-event-preparation.md) | Planned CONTACT/RELEASE data preparation | v2 candidate39526 sequences complete;32768 inherited draws98.7% annotated; real step10049 weights/564 optimizer states preserved, nine-sourc | keep current production training unchanged; proceed next to an explicitly bound short event-conditioned continuation, not a new long run yet | probes/COMPLETED |
 
+## HF-v6-event-training-readiness
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261019-wam-v6-event-continuation](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261019-wam-v6-event-continuation.md) | Four-GPU v6 event-goal continuation readiness | 见原卡 | 见原卡 | probes/RUNNING |
+
 ## HF-video-data-readiness
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

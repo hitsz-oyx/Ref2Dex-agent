@@ -5,6 +5,12 @@
 再决定teacher/loss。用户现明确要求停scale、启动四卡v5；完整缓存已完成，四rank启动检查通过。
 原768运行从头训练，现按用户授权修复工程合同后从10049末步续训；不加入C→PPO、重定向或CEDex抓取数据。
 
+当前临时安排：按用户要求迁出事件goal到独立[v6](../../ptv3-shared-wam-v6/README.md)，
+本v5运行已正常保存/停止于15120，checkpoint与optimizer/RNG完整保留。
+v6四卡有界持续试跑后，将从同一个v5的15120状态恢复；用户明确选择不把v6直接替换为主训练。
+本Task的模型/配置/生产入口未改，试跑与回退记录在
+[v6实验卡](../../ptv3-shared-wam-v6/docs/experiments/probes/P-20261019-wam-v6-event-continuation.md)。
+
 ## 本次审查（真实checkpoint2000，训练继续）
 
 [batch/训练合同审计](experiments/probes/P-20261019-wam-v5-batch-audit.md)确认动态Hilbert深度

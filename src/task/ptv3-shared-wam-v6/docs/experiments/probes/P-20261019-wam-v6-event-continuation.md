@@ -5,7 +5,7 @@ experiment_id: P-20261019-wam-v6-event-continuation
 date: 2026-10-19
 task: ptv3-shared-wam-v6
 branch: main
-git_commit: pending
+git_commit: d37e2320
 claim_id: C1
 hypothesis_family: HF-v6-event-training-readiness
 probe_index_in_family: 1
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [170,171]
 decision_changed_if_positive: retain v6 as a ready candidate for a separately chosen event-conditioned long run
 decision_changed_if_negative: fix the isolated v6 migration or training path before any event-conditioned scale-up
-status: PLANNED
+status: RUNNING
 run_id: event-continuation-readiness-20261019-r1
 ---
 
@@ -84,4 +84,14 @@ and80k stability are not certified by this bounded check.
 
 ## Results
 
-Pending local gate and real four-GPU execution.
+Local v5+v6 suite:48 tests passed in19.72s, including actual model forward
+equality after expansion, unchanged inputs/sampling, spawn data loading,
+strict recipe/batch rejection and uninterrupted-versus-resumed v6 entrypoint
+equality. Scoped static/seed/link checks pass. Full repository gate remains
+blocked by six existing trajectory-policy cards missing v2 metadata.
+
+Frozen d37e2320 archived both v5 shared primitives and v6 under remote
+`code-d37e2320/`. The independent v6 recipe is frozen/admitted with original
+TRAIN3218740/DEV545459 and original stats. Controller launched; four-GPU
+outcomes and verified v5 restoration pending. No event-conditioning benefit
+or80k stability is claimed.
