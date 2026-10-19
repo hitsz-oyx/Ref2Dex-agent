@@ -866,6 +866,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261015-v2-stage-grasp](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-v2-stage-grasp.md) | WAM-v2 微调阶段的实际抓取 Probe | COMPLETED；27组物理及最终独立审计全部完成。9阶段预测τ→R均held0；GTτ→R最好8k飞机27帧/杯子19帧，未达held45，局部UNPROMISING。 | 用户要求直接拿保留的微调权重沿用旧Task物理评估；不再延长训练。 | probes/UNPROMISING |
 
+## HF-v5-contact-definition
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261019-v5-contact-definition-audit](../../src/task/ptv3-shared-wam-v5/docs/experiments/probes/P-20261019-v5-contact-definition-audit.md) | v5 contact prevalence and normal-direction audit | pending actual remote audit; no teacher or loss decision yet. | implement and run these audits before changing the production C definition. | probes/PLANNED |
+
 ## HF-video-data-readiness
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

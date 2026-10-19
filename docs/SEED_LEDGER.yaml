@@ -25,6 +25,10 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261019-v5-contact-definition-audit:
+    seed_pool: probe
+    diagnostic_sampling_seed: 177
+    reuse_reason: bounded TRAIN-only geometry diagnostic; no model fit, validation, or policy evaluation
   P-20261019-inspire-shadow-parity:
     seed_pool: probe
     training_seed: 246

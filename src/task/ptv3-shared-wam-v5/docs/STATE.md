@@ -3,6 +3,17 @@
 用户授权先准备远端数据、同步实现v5；需要GPU时可短暂停已确认的远端WAM训练并立即恢复。
 代码在main，独立Task，不替换v4模型、缓存或训练权重。
 
+## 当前决策：先审计数据与C
+
+按[ref1](user/ref1.md)，先运行[contact定义Probe](experiments/probes/P-20261019-v5-contact-definition-audit.md)：
+全量有效cache的分source contact比例，以及至多324个TRAIN帧/物体的法线方向候选比较。
+先看结果与可视化，再决定teacher或BCE；保持原17通道C、21点τ/K24逐horizon归一化，
+不加入C→PPO、重定向或CEDex抓取数据。法线尚未跨source验证向外，离散MANO/Shadow
+采样密度误差也尚未统一，不把候选变化幅度直接当正确性证据。
+
+已增加独立审计工具，13项v5测试通过。新检查确认手缓存39526/39526完成、隔离0；
+contact仍生成，完整数据与审计结论以对应运行状态为准。
+
 ## 已完成
 
 - 21点τ、778手表面输入、2048物体/接触查询、16部位+C概率头；PTv3候选网格5mm。

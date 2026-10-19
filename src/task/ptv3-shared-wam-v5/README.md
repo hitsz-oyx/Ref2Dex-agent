@@ -40,6 +40,33 @@ joint or actual robot collision-link semantics. Contact supervision is masked
 if an expected hand lacks reconstructed geometry, and on synthetic HOI4D
 midpoints. Missing geometry never creates negative labels.
 
+Following [the user proposal](docs/user/ref1.md), the next decision is restricted
+to data and C. Before changing the teacher or BCE, run the two independent audits
+in [the contact-definition probe](docs/experiments/probes/P-20261019-v5-contact-definition-audit.md):
+
+- `tools/audit/audit_contact_prevalence.py` streams completed caches and reports
+  per-source P(c>0), P(c>0.25), P(c>0.5), soft mass, valid denominators and16-part
+  positive counts. It also counts TRAIN/DEV K24 label appearances under uniform
+  windows within source. This latter view does not apply the motion-stratum or
+  source sampler; it must not be presented as the exact optimizer distribution.
+  `--watch` waits for newly completed caches within a declared deadline and
+  publishes explicit partial coverage until every planned sequence is audited.
+- `tools/audit/audit_contact_normals.py` compares a bounded, TRAIN-only panel
+  with half uniform and half contact-enriched valid frames. Its candidate adds
+  a backside penalty using existing object normals; it is explicitly not a
+  CEDex reproduction. Baseline regeneration must exactly match cached labels.
+  Reports include invalid normals, changed queries and a nearby opposing-face
+  proxy; selected3D comparisons are saved as PNG/NPZ for visual review.
+
+Object normals are not yet certified outward on every source/CAD. Discrete
+MANO vertices and robot primitive samples also retain different surface-density
+errors. These are teacher limitations to inspect, not evidence that a new
+formula is correct. A low positive rate (e.g. below2%) is a trigger to examine
+balanced BCE against the actual sampler, not an automatic loss switch. Merely
+increasing uniform surface sample count does not itself reduce positive fraction.
+The audits keep the17-channel C contract, joint21 horizon normalization, model,
+existing labels, and PPO unchanged. No CEDex grasp data is admitted.
+
 Tau and C remain parallel predictions of the observed state and goal. There is
 no trajectory/contact consistency loss or embodiment-specific retargeting in
 this implementation. BC/RL executors have not been ported to joint21 here.
