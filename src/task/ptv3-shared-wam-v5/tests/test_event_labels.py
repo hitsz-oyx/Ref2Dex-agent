@@ -58,8 +58,21 @@ def test_hoi4d_uses_observed_even_frames_but_preserves_30hz_timing():
     a = annotate_events(enter, enter, valid, observation_stride=2)
     assert a['transitions'].tolist() == [[40, 0, 1]]
     assert a['event_delta_steps'][0, 0] == 40
-    assert not a['event_valid'][1::2].any()
+    assert a['event_valid'][1, 0] and a['event_delta_steps'][1, 0] == 39
+    assert a['state'][1, 0] == -1 and not valid[1, 0]  # no fabricated C/state
+    assert a['event_type'][39, 0] == 1 and a['event_delta_steps'][39, 0] == 1
     valid[20, 0] = False
     b = annotate_events(enter, enter, valid, observation_stride=2)
     assert b['event_type'][0, 0] == 0  # no event looked up across missing observation
     assert not b['event_valid'][0, 0]  # censored before K24
+    assert not b['event_valid'][19:22].any()  # no bridging an invalid real frame
+
+
+def test_hoi4d_query_after_current_onset_uses_the_next_event_not_negative_delta():
+    enter = np.zeros((120, 1), np.uint16); enter[40:60:2] = 4
+    valid = np.zeros((120, 1), bool); valid[::2] = True
+    a = annotate_events(enter, enter, valid, observation_stride=2)
+    assert a['event_type'][40, 0] == 1 and a['event_delta_steps'][40, 0] == 0
+    assert a['event_type'][41, 0] == 2 and a['event_delta_steps'][41, 0] == 19
+    assert a['event_type'][61, 0] == 0 and a['event_delta_steps'][61, 0] == 0
+    assert not a['event_valid'][-1, 0]  # no unobserved right neighbour

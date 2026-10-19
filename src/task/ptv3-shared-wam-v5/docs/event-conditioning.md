@@ -90,8 +90,15 @@ observations, and do not fabricate an onset at the recording's left boundary.
 Known NONE requires a fully observed K24 plus confirmation margin. Far events
 keep their actual time; censored tails/gaps remain unknown.
 
-HOI4D uses its real even-frame observations (3 observations span5 WAM frames),
-leaving synthetic odd-frame conditions unknown. Event deltas remain30Hz.
+HOI4D uses its real even-frame observations (3 observations span5 WAM frames).
+Between two adjacent known real observations, the event table may be queried
+at the synthetic odd-frame time: use the right packet with delta+1 for a real
+future event, or NONE with delta0. Do not fabricate a contact measurement or
+state there. A missing real observation, unknown state or censored right packet
+prevents that query. Event deltas remain30Hz. This matters because inherited
+HOI4D windows are anchored on odd ticks; first-pass frame coverage alone hid
+that all sampled HOI4D event conditions were unknown. The v2 annotation schema
+records this explicit time-query contract; v1 remains diagnostic evidence only.
 Candidate manifests have training_allowed=false pending annotation inspection.
 The source-diverse panel, full census and limitations are tracked in the
 [event preparation card](experiments/probes/P-20261019-wam-v5-event-preparation.md).

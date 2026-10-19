@@ -1,7 +1,7 @@
 """Offline proximity-event annotations. No spatial search or online lookahead."""
 import numpy as np
 
-EVENT_LABEL_SCHEMA = 'ref2dex.wam-v5-proximity-events.v1'
+EVENT_LABEL_SCHEMA = 'ref2dex.wam-v5-proximity-events.v2'
 DEFAULT_PROTOCOL = dict(enter_confidence=.8, leave_confidence=.5, min_queries=3,
                         persistence=3, horizon=24, hz=30)
 OBSERVATION_STRIDE_BY_SOURCE = {10: 2}  # HOI4D odd midpoints have no contact teacher.
@@ -60,6 +60,19 @@ def annotate_events(enter_count, leave_count, valid, protocol=None, observation_
             result[name][::2] = values*2 if name == 'event_delta_steps' else values
         result['transitions'] = coarse['transitions'].copy()
         result['transitions'][:, 0] *= 2
+        # Scheduler annotations can be queried between two real observations;
+        # this does not synthesize a proximity measurement/state or C target.
+        # Onsets remain quantized to even observed frames. Require both ends
+        # of this one-observation interval known, and the right future packet
+        # uncensored. Never carry across a missing observed frame.
+        odd = np.arange(1, len(valid)-1, 2)
+        bridge = ((coarse['state'][:-1] >= 0) & (coarse['state'][1:] >= 0)
+                  & valid[odd-1] & valid[odd+1] & coarse['event_valid'][1:])
+        for name in ('event_type', 'event_delta_steps', 'event_valid'):
+            right = result[name][odd+1].copy()
+            if name == 'event_delta_steps':
+                right += (result['event_type'][odd+1] != 0)
+            result[name][odd] = np.where(bridge, right, 0)
         return result
     return _annotate(enter_count, leave_count, valid, p, p['horizon'])
 

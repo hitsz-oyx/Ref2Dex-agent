@@ -58,6 +58,7 @@ def prepare_one(job):
                    source_id=row['source_id'], contact_meta_identity=row['contact_meta_identity'],
                    objects=row['objects'], shape=list(v.shape), protocol=protocol, counts=counts,
                    observation_stride=stride,
+                   synthetic_frame_events='time-query between adjacent known real observations; C/state remain masked',
                    persistence_sensitivity=sensitivity)
     write(pending/'meta.json', summary)
     if target.exists():
@@ -92,7 +93,7 @@ def main():
     else: selected = rows
     started = time.time(); protocol = dict(DEFAULT_PROTOCOL)
     run = dict(schema=EVENT_LABEL_SCHEMA, run_id=a.output.name, git_commit=a.git_commit,
-               work_version='v5.proximity-event-candidate.v1', pid=os.getpid(), protocol=protocol,
+               work_version='v5.proximity-event-candidate.v2', pid=os.getpid(), protocol=protocol,
                manifest=str(a.manifest.resolve()), parent_manifest_identity=metadata_identity(a.manifest),
                workers=a.workers, seconds=a.seconds, seed=a.seed, python=sys.version, numpy=np.__version__,
                device='CPU streaming cached confidences; no neural forward or KNN',
@@ -130,6 +131,7 @@ def main():
             parent_manifest=str(a.manifest.resolve()), parent_manifest_identity=run['parent_manifest_identity'],
             protocol=protocol, sequences=done, sources=sources, git_commit=a.git_commit,
             observation_stride_by_source=OBSERVATION_STRIDE_BY_SOURCE,
+            synthetic_frame_events='time-query between adjacent known real observations; C/state remain masked',
             scope='complete candidate census' if not a.per_source else 'source-diverse diagnostic panel',
             full_parent_sequences=len(rows), limitation='surface proximity, any-hand union; not force contact')
         manifest['identity'] = identity(manifest)
