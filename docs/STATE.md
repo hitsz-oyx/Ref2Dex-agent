@@ -1,11 +1,12 @@
-## 2026-10-19 事件goal迁出WAM-v6，四卡持续试跑后恢复v5
+## 2026-10-20 WAM-v6四卡续训检查通过，按用户选择恢复v5
 
-用户创建ptv3-shared-wam-v6以隔离事件条件训练和v5回退，并明确选择试跑后恢复v5。
-d37e2320新增独立model/package/schema/recipe/训练入口；v5模型和生产配置未改。
-48项v5/v6测试通过。v5正常保存/停止于15120；完整权重、564份optimizer state、RNG与elapsed
-显式迁入v6，只新增50304参数。真实首步15121完成，事件分支梯度/权重已非零。
-当前controller3068448执行8+1000+8更新及DEV/保存/恢复检查，之后恢复原v5的15120状态。
-试跑尚未完成，未声称长期稳定或事件收益；资源和进度见
+独立事件goal Task冻结d37e2320，实际完成8+1000+8更新至16136，DEV/完整checkpoint/恢复均通过，
+四rank参数签名一致；564份原optimizer state到16136、新4份到1016，4份RNG及24步归一化保持。
+稳态约1.115更新/s、allocated峰值18.81GiB；最新DEV handEPE33.167mm，关事件为33.285mm，
+仅同模型诊断，尚无匹配训练对照或事件净收益结论。末步局部loss尖峰对应批次发现8.925m物体目标
+位移异常，保留证据待上游追查，未静默过滤数据。
+v6已停止并保留checkpoint；v5原ac951370从自己的15120恢复为after-v6-probe-r3，
+已核验15260、四卡100%、约1.116更新/s。v5不消费v6更新。
 [v6状态](../src/task/ptv3-shared-wam-v6/docs/STATE.md)、
 [实验卡](../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261019-wam-v6-event-continuation.md)。
 

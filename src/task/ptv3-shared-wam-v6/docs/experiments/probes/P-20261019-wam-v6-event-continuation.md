@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [170,171]
 decision_changed_if_positive: retain v6 as a ready candidate for a separately chosen event-conditioned long run
 decision_changed_if_negative: fix the isolated v6 migration or training path before any event-conditioned scale-up
-status: RUNNING
+status: COMPLETED
 run_id: event-continuation-readiness-20261019-r1
 ---
 
@@ -92,6 +92,59 @@ blocked by six existing trajectory-policy cards missing v2 metadata.
 
 Frozen d37e2320 archived both v5 shared primitives and v6 under remote
 `code-d37e2320/`. The independent v6 recipe is frozen/admitted with original
-TRAIN3218740/DEV545459 and original stats. Controller launched; four-GPU
-outcomes and verified v5 restoration pending. No event-conditioning benefit
-or80k stability is claimed.
+TRAIN3218740/DEV545459 and original stats. Controller and final checkpoint audit completed on2026-10-20. Actual phases:
+
+| Phase | Updates | Final step | Loop seconds | Peak allocated GiB |
+| --- | ---: | ---: | ---: | ---: |
+| Initial recovery | 8 | 15128 | 103.227 | 17.928 |
+| Sustained | 1000 | 16128 | 1052.253 | 18.814 |
+| Resume recovery | 8 | 16136 | 101.596 | 18.101 |
+
+All phases covered nine TRAIN sources, wrote complete checkpoints and had equal
+four-rank parameter signatures. Event branch gradients were nonzero and output
+weights changed. Audit368feea9 verified564 original optimizer states at16136,
+4 new states at1016,4 RNG payloads, strict effective batch128/global512/world4
+binding, retained migration provenance and exact original horizon-normalizer
+buffers. This is1016 new updates, not16136 event-training updates.
+
+Sustained forward+loss258.096ms/backward596.526ms/optimizer29.566ms; steady
+throughput about1.115 updates/s versus original v5 about1.118. Physical GPU
+memory about25–30GiB and utilization predominantly90–100%. These are operational
+observations with different overheads, not a matched performance experiment.
+
+| Fixed DEV step | Objective | Hand EPE mm | Trajectory score mm | Unknown-event hand EPE mm |
+| --- | ---: | ---: | ---: | ---: |
+| 15129 | 1.290095 | 33.637805 | 17.250517 | 33.633622 |
+| 16000 | 1.283868 | 33.644315 | 17.164916 | 33.738737 |
+| 16129 | 1.286467 | 33.167013 | 17.007955 | 33.285051 |
+
+Trajectory score is the predefined mean of short-horizon, root-relative and
+contact-phase macro errors; it is not overall hand EPE. Latest conditional
+versus unknown hand difference is−0.118mm. No matched unconditioned training arm
+was run: continuation improvement cannot be attributed to event conditioning.
+Full80k stability and robot success are not established.
+
+At16128 rank0 local last_loss was26.098196; the last regular cross-rank log
+at16120 was0.799613, resumed16129 was0.745433, final local16136 was0.752968.
+Do not equate a local result field with a global logged loss. Exact rank0 draw
+inspection found source4 sample[29384,0,35] with maximum future object
+ displacement8.92525m and normalized scene-target mean-square2974.711; batch
+mean24.011. This strongly suggests a target-outlier explanation but is not an
+exact per-term model-forward attribution. The outlier is in inherited targets,
+not introduced by the event overlay. Its upstream sequence should be traced
+before a separate data-admission decision; no data was filtered during this run.
+
+User-requested v5 restoration completed using original frozen ac951370 and its
+own step015120.pt, optimizer/RNG/config/data/budget unchanged. Active run is
+pretrain-nine-v5-width768-after-v6-probe-20261019-r3; it was verified RUNNING
+beyond stop at15260, rate1.116 updates/s, global512, four GPUs100% utilized.
+v6 is stopped; all trial checkpoints and selection candidates are retained.
+No v6 updates were consumed by baseline v5.
+
+Remote controller report: outputs/ptv3-shared-wam-v6/event-continuation-readiness-20261019-r1/report.json.
+Remote checkpoint audit: outputs/ptv3-shared-wam-v6/event-continuation-audit-20261019-r1/summary.json.
+Final v6 checkpoint: resume-recovery/step016136.pt under the controller directory.
+Objective-best: sustained/step016000.pt; trajectory-best: resume-recovery/step016129.pt.
+Small local report copies and target-outlier receipt:
+outputs/ptv3-shared-wam-v6/event-continuation-readiness-20261019-r1/remote-audit/.
+Decision: retain ready v6 checkpoints; keep v5 running pending a separate long-run choice.
