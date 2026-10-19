@@ -147,3 +147,9 @@ GPU7纯物理各256环境，48h/3GiB上限，滚动最近3份及每500轮/最终
 验证：完整Task测试54项通过，另16项含CUDA输入/τ/Shadow回归通过。根verify仍被
 6张既存trajectory-policy实验卡的39项v2元数据错误阻挡，与本次Inspire修改无关；
 未改写这些历史卡片或用户的CAMPAIGN变更。
+
+长训ppo-r1已实际启动，冻结88b4c445；第21轮正常完成（恢复20轮+新增1轮），
+均值/logprob回放误差0，GPU6/7分别约4.4/8.3GiB显存，GPU0–5空闲。
+首轮因H4冷启动为12.69s collection，ETA以此前steady16.1s/轮估计，不用首轮短时外推。
+运行状态见outputs/wam-rl-policy-v2/inspire-shadow-parity-20261019-ppo-r1/process.json，
+逐轮记录在policy/curve.jsonl；累计iteration、workspace失败与路径成功继续分别记录。
