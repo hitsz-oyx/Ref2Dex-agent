@@ -54,6 +54,7 @@ def main():
     from wam_rl_policy_v2.inspire_shadow import current_state, tau_world
     from wam_rl_policy_v2.inspire_state_codec import unpack_state
     from wam_rl_policy_v2.measured_policy import MeasuredInspirePolicy
+    from wam_rl_policy_v2.measured_reward_bridge import MeasuredRewardTracker, reward_features
     from wam_rl_policy_v2.robot_adapter import InspireAdapter
     from wam_rl_policy_v2.task_runtime import TaskController
     from wam_rl_policy_v2.teacher_dataset import TeacherRolloutCorpus
@@ -109,6 +110,8 @@ def main():
         previous = np.zeros((len(sequences), 12), np.float32); decision_count = np.zeros(len(sequences), np.int64)
         tau_valid_count = 0; force_valid_count = 0
         latest_decisions = [None] * len(sequences); terminal_records = {}
+        reward_trackers = [MeasuredRewardTracker() for _ in sequences]
+        reward_totals = np.zeros(len(sequences), np.float64); reward_last_parts = [None] * len(sequences)
 
         def observe_and_predict(snapshot):
             nonlocal tau_valid_count, force_valid_count
@@ -123,10 +126,23 @@ def main():
                 result = contexts[index].observe(pose, hand, np.asarray(snapshot["objects"], dtype=np.float32)[index, 7:13], now,
                     contact_forces=contact, force_valid=contact_valid, supported=None)
                 decision = result["decision"]
+                features = reward_features(
+                    pose, hand, points[index], decision,
+                    np.asarray(snapshot["objects"], dtype=np.float32)[index, 7:13], contact
+                )
+                reward_value = 0.0
+                if reward_trackers[index].previous_decision is None:
+                    reward_trackers[index].initialize(decision, features)
+                elif not reward_trackers[index].reward.terminal:
+                    reward_value, reward_last_parts[index] = reward_trackers[index].step(
+                        decision, features, previous[index]
+                    )
+                    reward_totals[index] += reward_value
                 latest_decisions[index] = dict(
                     phase=int(decision.phase), path_progress=float(decision.path_progress),
                     task_complete=bool(decision.task_complete), terminated=bool(decision.terminated),
                     failure_reason=decision.failure_reason,
+                    reward=float(reward_value),
                 )
                 if decision.terminated and index not in terminal_records:
                     terminal_records[index] = latest_decisions[index]
@@ -169,11 +185,13 @@ def main():
             state.update(status="RUNNING", controls_completed=control + 1, tau_valid_observations=int(tau_valid_count),
                          force_valid_observations=int(force_valid_count), scheduler_decisions=decision_count.tolist(),
                          latest_decisions=latest_decisions, terminal_records=terminal_records, elapsed_s=time.monotonic() - started)
+            state["reward_totals"] = reward_totals.tolist(); state["reward_last_parts"] = reward_last_parts
             write(a.output / "progress.json", state)
         send(connection, dict(op="close")); receive(connection)
         state.update(status="COMPLETED", controls_completed=a.controls, tau_valid_observations=int(tau_valid_count),
                      force_valid_observations=int(force_valid_count), scheduler_decisions=decision_count.tolist(),
                      latest_decisions=latest_decisions, terminal_records=terminal_records, elapsed_s=time.monotonic() - started,
+                     reward_totals=reward_totals.tolist(), reward_last_parts=reward_last_parts,
                      task_success_claim=False, scope="bounded Scheduled686 spatial-tau online adapter only")
     except BaseException as error:
         state.update(status="FAILED", error=repr(error), elapsed_s=time.monotonic() - started); raise
