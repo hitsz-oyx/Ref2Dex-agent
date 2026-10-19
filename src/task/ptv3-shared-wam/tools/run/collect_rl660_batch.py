@@ -14,13 +14,24 @@ import sys
 import time
 
 TASK = Path(__file__).resolve().parents[2]
-ROOT = TASK.parents[2]
+ROOT = Path(os.environ.get('REF2DEX_RUN_ROOT',TASK.parents[2])).resolve()
 NATIVE = ROOT / 'third_party/DExplore/dexplore'
 OLD = ROOT / 'src/task/consequence-evaluator'
 TRAJECTORY = ROOT / 'src/task/trajectory-policy'
 RUNTIME = Path('/home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train')
 OFFICIAL = Path('/home2/wyy/oyx_ws/_external/dexplore_official_v120/checkpoint/inspire.pth')
 FULL_ASSETS = Path('/home2/wyy/oyx_ws/dexplore/dexplore/data/assets')
+
+
+def check_gpu_occupancy(gpu,allow_monica_sharing=False):
+    occupied=subprocess.check_output(['nvidia-smi','-i',str(gpu),'--query-compute-apps=pid','--format=csv,noheader'],text=True).strip()
+    if occupied:
+        owners=[subprocess.check_output(['ps','-o','user=','-p',pid.strip()],text=True).strip() for pid in occupied.splitlines()]
+        usage=subprocess.check_output(['nvidia-smi','-i',str(gpu),'--query-gpu=utilization.gpu,memory.used','--format=csv,noheader,nounits'],text=True)
+        utilization,memory=[int(value.strip()) for value in usage.strip().split(',')]
+        if not allow_monica_sharing or any(owner!='monica' for owner in owners) or utilization>25 or memory>1024:
+            raise RuntimeError('assigned GPU occupied outside authorized light monica sharing: '+occupied)
+    return occupied
 
 
 def hold_terminal_references(task, lengths):
@@ -53,14 +64,7 @@ def main():
             or not 1 <= len(names) <= 32 or len(set(names)) != len(names)
             or Path(sys.prefix).resolve() != RUNTIME.resolve()):
         raise ValueError('fresh local output, 1..32 unique motions and pinned runtime required')
-    occupied = subprocess.check_output(['nvidia-smi','-i',str(args.gpu),
-        '--query-compute-apps=pid','--format=csv,noheader'],text=True).strip()
-    if occupied:
-        owners=[subprocess.check_output(['ps','-o','user=','-p',pid.strip()],text=True).strip() for pid in occupied.splitlines()]
-        usage=subprocess.check_output(['nvidia-smi','-i',str(args.gpu),'--query-gpu=utilization.gpu,memory.used','--format=csv,noheader,nounits'],text=True)
-        utilization,memory=[int(value.strip()) for value in usage.strip().split(',')]
-        if not args.allow_monica_sharing or any(owner!='monica' for owner in owners) or utilization>25 or memory>1024:
-            raise RuntimeError('assigned GPU occupied outside authorized light monica sharing: '+occupied)
+    occupied=check_gpu_occupancy(args.gpu,args.allow_monica_sharing)
     source = ROOT/'data/processed_data/inspire_rl_object_dexplore'
     source_meta = json.loads((source/'manifest.json').read_text())
     geometric = Path(source_meta['source_geometric_root'])

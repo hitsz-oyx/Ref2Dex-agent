@@ -191,3 +191,19 @@ Inspire新增的力/shape列仅为格式fixture，零扩展使这些列尚不改
 这些无关历史卡。索引检查另有并行WAM-v5新增实验卡尚待生成的差异，不属于本轮新卡。
 本轮未新增experiment ID或消耗validation seed。所有资源任务均已结束，GPU归还，
 本轮四个run目录合计约3.8MiB，无模型checkpoint新增；数据/指标不足不升级为方法结论。
+
+
+### 用户纠正：任务必须来自teacher rollout，先启动六卡补全数据
+
+此前将DExplore训练参考reference_obj/reference_current当作本任务指令是本轮实现错误。
+新TaskSpec/goal应由checkpoint teacher在同轮物理执行所得object rollout构造，计划交互
+标签也应从rollout实测证据离线提取；训练参考只允许留作teacher内部与诊断，不作为目标
+或质量筛选依据。此前0/660不再用于阻止该任务路线，它反映的是错误目标定义。
+
+run_id=inspire-teacher-rollout-20261019-r1。先用现有官方teacher采集器、GPU0–5并行，
+每批16环境，完整660序列，继承原589 TRAIN/71 DEV序列划分，seed120+batch_index。
+同轮保存q/dq、DOF力18及有效位、全部body状态/接触力、object状态/接触力、hand11、
+canonical/applied动作与PD目标、原始tick、512点CAD几何；不拼接旧执行的力。
+冻结采集器源码，2小时/4GB输出预算、20GiB磁盘保护，GPU6/7不启本任务。
+原始采集先保留，完成后按既有物理/rollout审计筛选与标记，不按reference误差或旧scheduler
+超时裁剪teacher动作，不启动PPO。先启动采集进程，再修正任务构造与新的字段准入。

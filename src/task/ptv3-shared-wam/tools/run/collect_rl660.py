@@ -10,7 +10,7 @@ import sys
 import time
 
 TASK = Path(__file__).resolve().parents[2]
-ROOT = TASK.parents[2]
+ROOT = Path(os.environ.get('REF2DEX_RUN_ROOT',TASK.parents[2])).resolve()
 RUNTIME = '/home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train/bin/python'
 
 
@@ -20,13 +20,15 @@ def write(path,value):
     temporary.replace(path)
 
 
-def recover_batches(out, batches, seed, capture_current=False):
+def recover_batches(out, batches, seed, capture_current=False, capture_force=False):
     """Reuse only complete, owned batch receipts; partial attempts stay intact."""
     recovered, completed, controller = set(), [], None
     for receipt_path in sorted((out/'batches').glob('*/manifest.json')):
         receipt = json.loads(receipt_path.read_text())
         if receipt.get('status') != 'COMPLETED':
             continue
+        if capture_force and receipt.get('force_contract',{}).get('schema')!='ref2dex.inspire-measured-forces.v1':
+            raise ValueError('resume receipt lacks same-execution measured force contract')
         if capture_current and (not receipt.get('capture_current_observation')
                 or receipt.get('observation_contract',{}).get('dimension') != 721
                 or not receipt.get('observation_contract',{}).get('live_future_invariance_passed')):
@@ -63,14 +65,18 @@ def main():
     p.add_argument('--detach',action='store_true')
     p.add_argument('--resume',action='store_true')
     p.add_argument('--capture-current-observation',action='store_true')
+    p.add_argument('--capture-dof-force',action='store_true')
+    p.add_argument('--allow-monica-sharing',action='store_true')
     p.add_argument('--split-from',type=Path)
     p.add_argument('--artifact-budget-bytes',type=int,default=4_000_000_000)
     a = p.parse_args()
+    if a.capture_dof_force and not a.capture_current_observation:raise ValueError('force capture requires current measured states')
     out = a.output.resolve()
     gpus = a.gpus.split(',')
     allowed = [ROOT/'outputs/ptv3-shared-wam']
     if a.capture_current_observation:
         allowed.append(ROOT/'outputs/ptv3-shared-wam-v2')
+    if a.capture_dof_force:allowed.append(ROOT/'outputs/wam-rl-policy-v2')
     if ((out.exists() != a.resume) or not any(p in out.parents for p in allowed)
             or not 1 <= len(gpus) <= 6 or len(set(gpus)) != len(gpus)
             or not all(g.isdigit() for g in gpus) or not 1<=a.batch_size<=32
@@ -94,6 +100,7 @@ def main():
                 or previous['status'] != 'FAILED' or previous['seed'] != a.seed):
             raise ValueError('only failed owned corpus with unchanged seed can resume')
         if (previous.get('capture_current_observation',False) != a.capture_current_observation
+                or previous.get('capture_dof_force',False)!=a.capture_dof_force
                 or previous.get('inherited_split') != inherited_split):
             raise ValueError('resume must preserve input contract and split')
         attempt = len(previous.get('resume_history',[]))+1
@@ -106,6 +113,8 @@ def main():
             '--artifact-budget-bytes',str(a.artifact_budget_bytes)]
         if a.capture_current_observation:
             command.append('--capture-current-observation')
+        if a.capture_dof_force:command.append('--capture-dof-force')
+        if a.allow_monica_sharing:command.append('--allow-monica-sharing')
         if a.split_from:
             command.extend(['--split-from',str(a.split_from.resolve())])
         if a.resume:
@@ -117,9 +126,8 @@ def main():
         write(scratch/'launch.json',dict(pid=process.pid,command=command))
         print(json.dumps(dict(supervisor_pid=process.pid,scratch=str(scratch))),flush=True)
         return
-    for gpu in gpus:
-        if subprocess.check_output(['nvidia-smi','-i',gpu,'--query-compute-apps=pid','--format=csv,noheader'],text=True).strip():
-            raise RuntimeError('assigned GPU occupied: '+gpu)
+    from collect_rl660_batch import check_gpu_occupancy
+    allowed_occupants={gpu:set(map(int,check_gpu_occupancy(gpu,a.allow_monica_sharing).split())) for gpu in gpus}
     if shutil.disk_usage(ROOT).free < 20*1024**3:
         raise RuntimeError('less than20GiB filesystem headroom')
     source = ROOT/'data/processed_data/inspire_rl_object_dexplore'
@@ -136,6 +144,8 @@ def main():
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         split_policy='complete sequence; stratified by object, 10% dev with at least one per object')
     manifest.update(capture_current_observation=a.capture_current_observation,
+        capture_dof_force=a.capture_dof_force,allow_monica_sharing=a.allow_monica_sharing,
+        task_goal_source='same_execution_teacher_object_rollout' if a.capture_dof_force else 'legacy',
         inherited_split=inherited_split,artifact_budget_bytes=a.artifact_budget_bytes,
         split_from=str(a.split_from.resolve()) if a.split_from else None)
     batches = [names[i:i+a.batch_size] for i in range(0,len(names),a.batch_size)]
@@ -144,7 +154,7 @@ def main():
     if previous is not None:
         if previous['source_membership'] != str(source.resolve()):
             raise ValueError('source membership changed during resume')
-        reused,completed,controller = recover_batches(out,batches,a.seed,a.capture_current_observation)
+        reused,completed,controller = recover_batches(out,batches,a.seed,a.capture_current_observation,a.capture_dof_force)
         if a.capture_current_observation and 'observation_contract' in previous:
             manifest['observation_contract'] = previous['observation_contract']
         if controller is not None:
@@ -185,6 +195,8 @@ def main():
                     '--seed',str(a.seed+index),'--seconds','900']
                 if a.capture_current_observation:
                     command.append('--capture-current-observation')
+                if a.capture_dof_force:command.append('--capture-dof-force')
+                if a.allow_monica_sharing:command.append('--allow-monica-sharing')
                 log = (scratch/('batch%03d.log'%index)).open('x')
                 process = subprocess.Popen(command,cwd=ROOT,stdin=subprocess.DEVNULL,
                     stdout=log,stderr=subprocess.STDOUT,start_new_session=True,
@@ -199,6 +211,11 @@ def main():
                 receipt = json.loads((folder/'manifest.json').read_text())
                 if receipt['status']!='COMPLETED':
                     raise ValueError('incomplete batch receipt')
+                if a.capture_dof_force:
+                    contract=receipt.get('force_contract',{})
+                    if contract.get('schema')!='ref2dex.inspire-measured-forces.v1':raise ValueError('missing measured forces')
+                    if manifest.get('force_contract',contract)!=contract:raise ValueError('force contract changed')
+                    manifest['force_contract']=contract
                 if a.capture_current_observation:
                     contract = receipt.get('observation_contract',{})
                     if (not receipt.get('capture_current_observation') or contract.get('dimension') != 721
@@ -219,7 +236,7 @@ def main():
             for gpu,(process,_,_,_) in active.items():
                 consumers = set(map(int,subprocess.check_output(['nvidia-smi','-i',gpu,
                     '--query-compute-apps=pid','--format=csv,noheader'],text=True).split()))
-                if consumers-{process.pid}:
+                if consumers-{process.pid}-allowed_occupants[gpu]:
                     raise RuntimeError('foreign GPU process appeared on assigned GPU'+gpu)
             new_count = len(completed)-initial_completed
             row = dict(status='RUNNING',completed_sequences=len(completed),target=660,
@@ -260,16 +277,20 @@ def main():
             capture_complete=True,
             records=sorted(completed,key=lambda r:r['sequence']),elapsed_s=prior_elapsed+time.monotonic()-started)
         import numpy as np
-        manifest['max_reference_error_m'] = .1
+        manifest['max_reference_error_m'] = None if a.capture_dof_force else .1
+        if a.capture_dof_force:manifest.update(admission_pending=True,admission_policy='measured rollout audit; no training-reference distance gate')
         for record in manifest['records']:
             with np.load(out/record['path']/'trajectory.npz') as data:
                 error = np.linalg.norm(data['obj'][:,:3,3]-data['reference_obj'][:,:3,3],axis=-1)
             count = len(error)-24
+            if a.capture_dof_force:
+                record.update(raw_windows=count,raw_commands=len(error)-1)
+                continue
             peak = np.maximum.reduce([error[i:i+count] for i in range(25)])
             ticks = np.flatnonzero(np.isfinite(peak) & (peak<=.1))
             record.update(raw_windows=count,admitted_windows=len(ticks),
                 admitted_ticks=ticks.tolist(),excluded_windows=count-len(ticks))
-        manifest['admitted_windows'] = sum(r['admitted_windows'] for r in manifest['records'])
+        manifest['admitted_windows'] = sum(r.get('admitted_windows',0) for r in manifest['records'])
         write(out/'manifest.json',manifest)
         write(out/'progress.json',dict(status='COMPLETED',completed_sequences=660,elapsed_s=manifest['elapsed_s']))
     except BaseException as error:
