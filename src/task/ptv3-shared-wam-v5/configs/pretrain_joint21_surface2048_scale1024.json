@@ -1,7 +1,7 @@
 {
   "schema": "ref2dex.ptv3-shared-wam.v5",
   "validation_microbatch_size": 8,
-  "interaction_encoding": "object-centric-surface-contact16.v5",
+  "interaction_encoding": "object-centric-surface-contact16-local-id.v5",
   "interaction_dim": 17,
   "goal_encoding": "current-point-horizon-delta.v1",
   "task_conditioning": "shared-scene-hand-goal.v1",

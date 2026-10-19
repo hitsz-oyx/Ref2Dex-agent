@@ -12,8 +12,9 @@ import numpy as np
 TASK=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(TASK/'src'))
 from ptv3_shared_wam_v5.preparation import reconstruct,load_base,validate_alignment
-from ptv3_shared_wam_v5.contracts import DATA_SCHEMA,JOINT_NAMES,PART_NAMES
+from ptv3_shared_wam_v5.contracts import DATA_SCHEMA,JOINT_NAMES,PART_NAMES,HAND_RECONSTRUCTION
 from ptv3_shared_wam_v5.storage import read_json,load_array
+from ptv3_shared_wam_v5.cache_contract import bind_cache,metadata_identity,array_identity,validate_binding
 
 
 @lru_cache(maxsize=1)
@@ -58,6 +59,7 @@ def prepare(job,packet,a):
     for key,value in arrays.items():
         dest=pending/(key+'.npy');np.save(dest,value);dest.chmod(0o664)
     meta=dict(schema=DATA_SCHEMA,status='COMPLETED',key=job['key'],source_id=job['source_id'],
+        reconstruction=HAND_RECONSTRUCTION,cache_contract=a.cache_contract['identity'],payload_identity=array_identity(arrays),
         frames=len(joints),surface_frames=int(vvalid.sum()),joint_frames=int(jvalid.all(-1).sum()),
         alignment_max_error_m=error,surface_quantization_max_error_m=quantization_error,
         objects=job['objects'],windows=job['windows'],window_counts=job['window_counts'],
@@ -77,18 +79,38 @@ def main():
     p.add_argument('--device',default='cpu');p.add_argument('--seconds',type=int,default=21600)
     p.add_argument('--threads',type=int,default=2);p.add_argument('--limit',type=int)
     p.add_argument('--retry-failed',action='store_true')
+    p.add_argument('--reuse-human-hands',type=Path)
     p.add_argument('--git-commit',required=True)
     a=p.parse_args()
     if not 1<=a.seconds<=86400 or not 1<=a.threads<=8:p.error('bounded runtime/threads required')
     import torch
     torch.set_num_threads(a.threads)
     a.output.mkdir(parents=True,exist_ok=True)
+    import trimesh
+    a.cache_contract=bind_cache(a.output,'hand',dict(protocol=HAND_RECONSTRUCTION,
+        plan=metadata_identity(a.plan),packets=str(a.packets.resolve()),mano_root=str(a.mano_root.resolve()),
+        shadow_asset_sha256=__import__('hashlib').sha256(a.shadow_asset.read_bytes()).hexdigest(),
+        trimesh=trimesh.__version__,torch=torch.__version__,numpy=np.__version__,
+        inherited_human_root=str(a.reuse_human_hands.resolve()) if a.reuse_human_hands else None,
+        inherited_human_run=metadata_identity(a.reuse_human_hands/'run-manifest.json') if a.reuse_human_hands else None))
     for sub in ('sequences','records'):(a.output/sub).mkdir(exist_ok=True)
     # This is task-owned generated metadata, never an original raw asset.
     a.plan.chmod(0o664)
     jobs=read_json(a.plan)['jobs'];started=time.monotonic();processed=0
+    if a.reuse_human_hands:
+        for job in jobs:
+            if job['source_id']==4:continue
+            key=job['key'];origin=a.reuse_human_hands/'sequences'/key;record=a.reuse_human_hands/'records'/(key+'.json')
+            if read_json(record)['status']!='COMPLETED' or not (origin/'meta.json').exists():raise ValueError('human inheritance incomplete: '+key)
+            for old,new in [(origin,a.output/'sequences'/key),(record,a.output/'records'/(key+'.json'))]:
+                if not new.exists():new.symlink_to(old.resolve(),target_is_directory=old.is_dir())
     records={p.stem:read_json(p) for p in (a.output/'records').glob('*.json')}
     if a.retry_failed:records={k:r for k,r in records.items() if r['status']=='COMPLETED'}
+    for key,record in records.items():
+        if record['status']=='COMPLETED':
+            folder=a.output/'sequences'/key
+            validate_binding(folder,read_json(folder/'meta.json'),a.cache_contract,
+                a.reuse_human_hands/'sequences' if a.reuse_human_hands else None)
     write(a.output/'run-manifest.json',dict(schema='ref2dex.wam-v5-preparation-run.v1',git_commit=a.git_commit,
         run_id=a.output.name,work_version=DATA_SCHEMA,plan=str(a.plan),packets=str(a.packets),
         seconds=a.seconds,threads=a.threads,device=a.device,python=sys.version,torch=torch.__version__,
@@ -124,6 +146,7 @@ def main():
                     with load_array(a.packets/record['packet'],allow_pickle=False) as z:packet={k:z[k] for k in z.files}
                 existing=a.output/'sequences'/key/'meta.json'
                 result=read_json(existing) if existing.exists() else prepare(job,packet,a)
+                validate_binding(existing.parent,result,a.cache_contract)
                 record=dict(status='COMPLETED',**{k:result[k] for k in ('source_id','frames','joint_frames','surface_frames','alignment_max_error_m')})
             except Exception as e:
                 record=dict(status='QUARANTINED',source_id=job['source_id'],reason=type(e).__name__+': '+str(e))

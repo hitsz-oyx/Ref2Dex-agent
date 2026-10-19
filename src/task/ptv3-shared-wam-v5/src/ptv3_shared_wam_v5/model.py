@@ -5,7 +5,7 @@ from torch.utils.checkpoint import checkpoint
 
 from . import paths
 from .contracts import SCHEMA, HORIZON, C_DIM
-INTERACTION_ENCODING = "object-centric-surface-contact16.v5"
+INTERACTION_ENCODING = "object-centric-surface-contact16-local-id.v5"
 from .normalization import HorizonNormalizer
 C_HORIZON = HORIZON
 
@@ -83,6 +83,7 @@ class SharedWAMV5(nn.Module):
         edge_width = int(config.get("interaction_edge_width", 64))
         self.interaction_edge_width = edge_width
         self.interaction_query = mlp(6, edge_width)
+        self.interaction_local_project = nn.Linear(point_width, edge_width)
         self.interaction_object_project = nn.Linear(head, edge_width)
         self.interaction_hand_project = nn.Linear(width, edge_width)
         self.interaction_context_project = nn.Linear(width, edge_width)
@@ -164,6 +165,15 @@ class SharedWAMV5(nn.Module):
         interaction_points = clean(interaction_points, query_valid)
         interaction_normals = clean(interaction_normals, query_valid)
         q = self.interaction_query(torch.cat((interaction_points, interaction_normals), -1))
+        # Single target object; reader binds C query IDs to the same CAD points
+        # as geometry.xyz. No search/interpolation or future labels enter here.
+        if interaction_points.shape[1]!=1 or interaction_points.shape[2]!=batch['xyz'].shape[1]:
+            raise ValueError('C local readout requires one target and identical surface query IDs')
+        if not torch.equal(interaction_points[:,0],clean(batch['xyz'],query_valid[:,0])):
+            raise ValueError('C surface point order differs from geometry point IDs')
+        local_valid=geometry['point_valid'].bool()&query_valid[:,0]
+        local=self.interaction_local_project(clean(geometry['point_features'],local_valid))
+        q=q+torch.where(local_valid[...,None],local,0.)[:,None]
         object_context = self._masked_mean(object_latent, point_valid, dim=2).unsqueeze(2).unsqueeze(3)
         hand_tokens = shared[:, offset:offset + 42]
         hand_context = self._masked_mean(hand_tokens, batch["start_hand_valid"].flatten(1)).unsqueeze(1).unsqueeze(1).unsqueeze(1)

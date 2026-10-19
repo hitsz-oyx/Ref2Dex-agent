@@ -5,7 +5,7 @@ experiment_id: P-20261019-v5-contact-definition-audit
 date: 2026-10-19
 task: ptv3-shared-wam-v5
 branch: main
-git_commit: pending
+git_commit: e3f7db18
 claim_id: C1
 hypothesis_family: HF-v5-contact-definition
 probe_index_in_family: 1
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [177]
 decision_changed_if_positive: inspect balanced BCE for scarce positives or normal-aware teacher for localized backside errors before v5 training
 decision_changed_if_negative: retain the current distance-only teacher and unweighted contact BCE
-status: PLANNED
+status: RUNNING
 run_id: contact-audit-20261019-r1
 ---
 
@@ -37,7 +37,7 @@ Work version `v5.contact-prevalence-normal-candidate.v1`.
 The remote root is
 `/mnt/ugreen_nas/storage/oyx_storage/ptv3-shared-wam-v5-20261019-r1/`.
 Inputs are the existing `data/plan/plan.json`, `data/hands/`, `data/contacts/`
-and `data/geometry/manifest.json`. No held-out TEST is read.
+and `data/manifest.json` (geometry assets under `data/geometry/`). No held-out TEST is read.
 
 Prevalence: stream all completed sequence caches in bounded16-frame chunks,
 exclude invalid frame/object labels, accumulate counts and soft confidence by
@@ -101,6 +101,40 @@ STOP/deadline/free NAS<20GiB. Outputs stay in separate run directories under
 `outputs/contact-audit-20261019-r1/` of the remote root; no label overwrite.
 Per-run manifests record code commit, runtime versions, PID and actual inputs.
 
-Result: pending actual remote audit; no teacher or loss decision yet.
+## Upstream correctness repair prompted by ref1_1
 
-Decision: implement and run these audits before changing the production C definition.
+The [additional audit](../../user/ref1_1.md) identified candidate blockers;
+the actual remote environment confirms Trimesh4.12.2 capsules already have
+Z bounds[-28,+28]mm for radius8mm/half-length20mm. The old extra translation
+moves these to[-48,+8]mm. Both source4 input surfaces and downstream C are
+affected despite aligned joints. Old contact generation stopped at4547
+sequences; the old finalizer and prevalence watcher stopped gracefully.
+Source4 must be rebuilt into fresh `data/hands-r2`/`data/contacts-r2` before
+interpreting its normal audit. Human geometry/labels are explicitly inherited,
+not universally regenerated. No model training is launched by this repair.
+
+The initial normal attempt failed before comparison because --geometry pointed
+at the assets subdirectory instead of the registry parent. Corrected input
+run `normals-r2` finished324 samples in16.38s including figures, baseline
+regeneration matching cached labels. On this enriched panel, suppression>.1
+affected3.29–13.43% of queries by source; this is not negligible, but neither
+outward winding nor correctness is proved. Source4 numbers are invalid for
+the repaired teacher. Retain examples as diagnostics and rerun on repaired
+inputs. Do not automatically enable normal penalties or BCE balancing.
+
+Engineering fixes also align H4 admission with the reader; bind immutable
+cache runs to protocol/upstream dependencies; reject PARTIAL CAD; expose same-ID
+PTv3 features to C; add fine-grained DEV metrics; implement checkpoint retention
+and the hand-in-PTv3 switch. Array digests are computed at new-cache publication,
+not every training batch; metadata/contract checks do not claim detection of
+manual payload edits in an otherwise immutable run. Old human inheritance has
+explicit scope. Global-only C architecture/config cannot resume as local-ID C.
+
+Result: remote capsule blocker confirmed and repair required; preliminary normal differences warrant review, not immediate teacher changes.
+
+Decision: repair Shadow geometry, refreeze with exact H4 admission, rerun both audits; keep distance-only teacher/BCE until corrected evidence is available.
+
+Verification limitation: repository-wide `tools/verify.py --changed` also
+validates historical cards and currently fails on missing v2 metadata in six
+pre-existing trajectory-policy cards. New v5 unit tests and diff checks run
+separately; unrelated historical cards are not rewritten here.

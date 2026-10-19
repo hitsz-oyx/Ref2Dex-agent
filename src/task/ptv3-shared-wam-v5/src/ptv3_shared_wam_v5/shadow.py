@@ -20,6 +20,19 @@ def local_pose(node):
     return t
 
 
+def centered_capsule(radius, half_length):
+    """MJCF capsule center is its cylinder midpoint, across Trimesh versions."""
+    import trimesh
+    mesh=trimesh.creation.capsule(radius=radius,height=2*half_length,count=[12,12])
+    mesh.vertices[:,2]-=mesh.bounds[:,2].mean()
+    expected=radius+half_length
+    if not np.allclose(mesh.bounds[:,2],[-expected,expected],rtol=1e-5,atol=1e-7):
+        raise ValueError('capsule bounds disagree with recorded MJCF dimensions')
+    if np.abs(mesh.vertices[:,:2]).max()>radius+1e-7:
+        raise ValueError('capsule radius disagrees with recorded MJCF dimensions')
+    return mesh
+
+
 class ShadowSurface:
     def __init__(self,asset):
         self.root=ET.parse(asset).getroot().find('body')
@@ -40,8 +53,7 @@ class ShadowSurface:
                 size=vector(geom,'size','');kind=geom.get('type')
                 if kind=='box':mesh=trimesh.creation.box(extents=size*2)
                 elif kind=='capsule':
-                    mesh=trimesh.creation.capsule(radius=size[0],height=2*size[1],count=[12,12])
-                    mesh.vertices[:,2]-=size[1]
+                    mesh=centered_capsule(size[0],size[1])
                 elif kind=='sphere':mesh=trimesh.creation.icosphere(subdivisions=2,radius=size[0])
                 else:raise ValueError('unsupported recorded collision geometry: '+str(kind))
                 transform=local_pose(geom);mesh.apply_transform(transform)

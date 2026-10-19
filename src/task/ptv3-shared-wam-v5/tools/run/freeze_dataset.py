@@ -11,6 +11,8 @@ sys.path.insert(0,str(TASK/'src'))
 from ptv3_shared_wam_v5.contracts import DATA_SCHEMA,INPUT_SEMANTICS,LABEL_SEMANTICS,STATS_SCHEMA,SAMPLING_SEMANTICS
 from ptv3_shared_wam_v5.data import V5Windows
 from ptv3_shared_wam_v5.storage import read_json,load_array
+from ptv3_shared_wam_v5.window_contract import history_admitted
+from ptv3_shared_wam_v5.cache_contract import metadata_identity,validate_binding
 
 
 def main():
@@ -22,6 +24,13 @@ def main():
     p.add_argument('--moments-per-source',type=int,default=128)
     p.add_argument('--git-commit',required=True);a=p.parse_args()
     plan=read_json(a.plan);geo=read_json(a.geometry/'manifest.json')
+    if geo.get('status')!='COMPLETED' or geo.get('failures'):raise ValueError('complete geometry registry required')
+    hc=read_json(a.hands/'cache-contract.json');cc=read_json(a.contacts/'cache-contract.json')
+    if (cc['inputs']['hand_cache']!=hc['identity'] or cc['inputs']['hands']!=str(a.hands.resolve())
+            or cc['inputs']['geometry_manifest']!=metadata_identity(a.geometry/'manifest.json')):
+        raise ValueError('contact upstream binding differs from requested hands/geometry')
+    legacy_hands=hc['inputs'].get('inherited_human_root')
+    legacy_contacts=Path(legacy_hands).parent/'contacts' if legacy_hands else None
     keys={r['key'] for r in geo['objects']};sequences=[];counts={};indices={'train':[],'dev':[]};pending=[]
     inherited={};strata={'train':[],'dev':[]}
     # Read the frozen original category assignments; never infer motion strata
@@ -38,7 +47,11 @@ def main():
         sid=job['source_id'];key=job['key'];folder=a.hands/'sequences'/key;cf=a.contacts/key
         if a.max_sequences_per_source and counts.get(sid,0)>=a.max_sequences_per_source:continue
         if not (folder/'meta.json').exists() or not (cf/'meta.json').exists():pending.append(key);continue
-        jv=load_array(folder/'joint_valid.npy',mmap_mode='r');usable=jv.any((1,2))
+        hm=read_json(folder/'meta.json');cm=read_json(cf/'meta.json')
+        validate_binding(folder,hm,hc,Path(legacy_hands)/'sequences' if legacy_hands else None)
+        validate_binding(cf,cm,cc,legacy_contacts)
+        if cm.get('hand_identity') and cm['hand_identity']!=metadata_identity(folder/'meta.json'):raise ValueError('stale contact hand binding')
+        jv=load_array(folder/'joint_valid.npy',mmap_mode='r')
         row_index=len(sequences);selected={};selected_strata={}
         for split,relative in job['windows'].items():
             rows=load_array(a.plan.parent/relative)
@@ -47,7 +60,7 @@ def main():
                 name=job['objects'][int(slot)];gkey=f's{sid}:{name}' if sid<3 else name
                 if gkey not in keys:valid[rows[:,0]==slot]=False
             ticks=rows[:,1]
-            for lag in (0,1,2,3):valid &= usable[ticks-lag]
+            valid &= history_admitted(jv,ticks)
             rows=rows[valid]
             if len(rows):
                 selected[split]=np.column_stack((np.full(len(rows),row_index),rows)).astype(np.int32)
@@ -62,7 +75,8 @@ def main():
                     if main3['sources'][sid]['kind']=='native':category-=1
                 selected_strata[split]=category
         if not selected:pending.append(key);continue
-        sequences.append(dict(key=key,source_id=sid,path=str(folder.resolve()),contact_path=str(cf.resolve()),objects=job['objects']))
+        sequences.append(dict(key=key,source_id=sid,path=str(folder.resolve()),contact_path=str(cf.resolve()),objects=job['objects'],
+            hand_meta_identity=metadata_identity(folder/'meta.json'),contact_meta_identity=metadata_identity(cf/'meta.json')))
         counts[sid]=counts.get(sid,0)+1
         for split,rows in selected.items():indices[split].append(rows);strata[split].append(selected_strata[split])
     if a.require_complete and pending:raise ValueError(f'{len(pending)} sequences still unavailable; no full manifest published')
@@ -79,6 +93,9 @@ def main():
         source_ids=sorted(counts),source_probabilities={str(s):plan['source_probabilities'][str(s)] for s in counts},
         pending_sequences=len(pending),base_plan=str(a.plan.resolve()),
         strata=stratum_paths,sampling_semantics=SAMPLING_SEMANTICS,
+        cache_bindings=dict(hands=str(a.hands/'cache-contract.json'),hand_identity=hc['identity'],
+            contacts=str(a.contacts/'cache-contract.json'),contact_identity=cc['identity'],
+            geometry_identity=metadata_identity(a.geometry/'manifest.json')),
         limitation='Surface proximity is not simulator/measured physical contact. Synthetic midpoint contact labels are masked.')
     manifest_path=a.output/'manifest.json';manifest_path.write_text(json.dumps(manifest,indent=2)+'\n')
     manifest_path.chmod(0o664)

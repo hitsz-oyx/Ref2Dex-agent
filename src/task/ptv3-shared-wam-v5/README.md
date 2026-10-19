@@ -131,6 +131,16 @@ checkpointed256-query chunks to bound activations; equivalence and gradients
 are tested. Losses use separate global DDP denominators for joint motion,
 motion-weighted object flow, contact BCE and positive-contact part CE.
 
+The contact head now also reads the PTv3 feature of the **same object point ID**
+for each of its2048 queries. This retains the256-token shared trunk and adds no
+spatial search. The encoding identity is `object-centric-surface-contact16-local-id.v5`;
+old global-only checkpoints cannot silently resume into this architecture.
+DEV reports separate root/root-relative, old11/new10, fingertips, contact-phase,
+per-horizon hand/flow errors, contact MAE in broad/core proximity bands, and a
+16-part confusion matrix. Contact phase is a whole-object horizon diagnostic,
+not a per-hand attribution; confidence1 approximates the3mm band after float16
+quantization. These diagnostics do not add new losses.
+
 `tools/run/train_pretrain.py --smoke --steps 8 --batch-size 64` runs bounded
 real-data AdamW updates and writes timing/results only, with no model checkpoint.
 It requires explicit `--config`, `--manifest`, `--stats`, `--output` and
@@ -147,7 +157,39 @@ independent resume watchdog, and restores training in `finally`.
 
 Each training/smoke run uses a fresh output directory. `--resume` reads the
 previous checkpoint into a new directory so checkpoint rotation only touches
-files created by the current run.
+files created by the current run. First-step and configured milestone
+checkpoints are protected from recent-checkpoint rotation. `hand_in_ptv3=false`
+now excludes both joint and surface points from geometry aggregation; the
+explicit hand branch remains separately controlled.
+
+## Verified data correction from ref1_1
+
+The [second user audit](docs/user/ref1_1.md) was checked against the actual remote
+environment. Trimesh4.12.2 capsules are already centered: the previous extra
+half-length translation did shift Shadow surfaces. The corrected constructor
+centers using measured local bounds and validates MJCF radius/length. FK joints
+alone could not detect this surface error. Old Shadow surfaces/contacts remain
+diagnostic artifacts and are excluded from the repaired recipe.
+
+Repair writes `data/hands-r2/` and `data/contacts-r2/`; unchanged human sequences
+and completed human contacts are explicitly inherited by symlink. Source4 is
+always rebuilt. The actual geometry registry is **`data/manifest.json`**, with
+NPZ assets under `data/geometry/`; tools take `--geometry .../data`.
+H4 admission now uses a shared predicate requiring a persistent semantic joint
+across all four history frames, identical to the reader. Final indices and
+TRAIN moments are recomputed after repair.
+
+Cache runs carry reconstruction/dependency/upstream contracts and refuse
+incompatible resume. New arrays receive a publication-time payload identity;
+contact also binds hand metadata and geometry payload identities. Frozen
+recipes and readers pin upstream contracts and per-sequence metadata. Explicit
+legacy inheritance is limited to human caches from the controlled old run.
+No per-batch array hashing is added: direct manual mutation of immutable array
+files without updating metadata is outside this lightweight guarantee. Full
+payload rescanning is not claimed. Partial geometry registries are rejected.
+Continuous triangle/primitive teacher distances, per-hand C attribution,
+joint/surface voxel separation and v4 model-only initialization remain separate
+follow-up decisions; this change does not assume their benefit.
 
 `tools/run/finalize_preparation.py` waits for hand/contact stages and freezes the
 final manifest and TRAIN statistics automatically. Incomplete inputs remain

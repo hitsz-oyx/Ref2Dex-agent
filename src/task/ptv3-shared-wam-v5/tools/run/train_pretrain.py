@@ -23,6 +23,8 @@ from ptv3_shared_wam_v5.contracts import SCHEMA,INPUT_SEMANTICS,LABEL_SEMANTICS
 from ptv3_shared_wam_v5.data import V5Windows,collate
 from ptv3_shared_wam_v5.model import SharedWAMV5
 from ptv3_shared_wam_v5.storage import read_json
+from ptv3_shared_wam_v5.checkpoints import checkpoint_due,retained_steps
+from ptv3_shared_wam_v5.metrics import forecast_metrics,merge_metrics,summarize_metrics
 from ptv3_shared_wam_v5.objectives import forecast_loss,loss_components,OBJECTIVE_SEMANTICS
 from ptv3_shared_wam_v4.objectives import normalized_components,combine_components
 
@@ -46,7 +48,7 @@ def evaluate(model,dataset,config,device):
     with torch.inference_mode():
         for sid,pool in dataset.pools.items():
             chosen=rng.choice(pool,min(len(pool),config.get('validation_samples',32)),replace=False)
-            components=None;hand_sum=hand_count=0
+            components=None;hand_sum=hand_count=0;diagnostics={}
             for start in range(0,len(chosen),config.get('validation_microbatch_size',8)):
                 batch=collate([dataset[int(i)] for i in chosen[start:start+config.get('validation_microbatch_size',8)]])
                 batch={k:v.to(device) for k,v in batch.items()}
@@ -58,8 +60,10 @@ def evaluate(model,dataset,config,device):
                 mask=batch['trajectory_valid']&batch['start_hand_valid'][:,None]
                 error=(prediction['trajectory']-torch.where(mask[...,None],batch['trajectory_target'],0.)).norm(dim=-1)
                 hand_sum+=float(torch.where(mask,error,0.).sum())*1000;hand_count+=int(mask.sum())
+                merge_metrics(diagnostics,forecast_metrics(prediction,batch))
             loss,terms=combine_components(normalized_components(components,distributed=False),config)
             sources[sid]=dict(objective=float(loss),hand_epe_mm=hand_sum/max(hand_count,1),
+                metrics=summarize_metrics(diagnostics),
                 components={k:float(v) for k,v in terms.items()})
     model.train(was_training)
     return dict(status='COMPLETED',sources=sources,source_macro_objective=float(np.mean([v['objective'] for v in sources.values()])))
@@ -158,7 +162,7 @@ def main():
             if world>1:dist.barrier()
             if rank==0:write(a.output/f'dev-step{step:06d}.json',evaluate(model,dev,config,device))
             if world>1:dist.barrier()
-        if not a.smoke and (step==last or step%config['checkpoint_interval']==0):
+        if not a.smoke and checkpoint_due(step,last,config):
             rng=dict(python=random.getstate(),numpy=np.random.get_state(),torch=torch.get_rng_state(),
                      cuda=torch.cuda.get_rng_state() if device.startswith('cuda') else None)
             states=[None]*world
@@ -172,7 +176,9 @@ def main():
                 pending.replace(target)
                 checkpoints_written+=1
                 recent=sorted(a.output.glob('step*.pt'))
-                for old in recent[:-config.get('checkpoint_keep_recent',2)]:old.unlink()
+                protected=retained_steps([int(f.stem[4:]) for f in recent],config)
+                for old in recent:
+                    if int(old.stem[4:]) not in protected:old.unlink()
                 if sum(f.stat().st_size for f in a.output.iterdir() if f.is_file())>config['artifact_budget_bytes']:
                     raise RuntimeError('owned v5 artifact budget exceeded')
     if device.startswith('cuda'):torch.cuda.synchronize()

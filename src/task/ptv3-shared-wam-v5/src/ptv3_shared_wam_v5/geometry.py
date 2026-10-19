@@ -32,7 +32,7 @@ class DenseJointGeometry(JointGeometry):
         df = self.surface_encoder(values/self.surface_scale) + self.surface_part(part)
         df = df + self.surface_side.weight[None, :, None]
         xyz = torch.cat((sx, jx, dx.flatten(1, 2)), 1)
-        valid = torch.cat((sv, hand_valid, dv.flatten(1)), 1)
+        valid = torch.cat((sv, hand_valid & self.joint, dv.flatten(1) & self.joint), 1)
         features = torch.cat((sf, hand_encoding, df.flatten(1, 2)), 1)
         count, joints = sv.shape[1], hand_encoding.shape[1]
         is_hand = torch.zeros_like(valid)
@@ -52,4 +52,5 @@ class DenseJointGeometry(JointGeometry):
             packed[valid] = encoded.feat[inverse]
         scene, mask = self._sample_tokens(torch.cat((packed[:, :count], sx), -1), sv)
         return dict(tokens=scene[..., :self.width], xyz=scene[..., self.width:], mask=mask,
-                    hand=packed[:, count:count+joints], voxel_count=len(unique))
+                    hand=packed[:, count:count+joints], voxel_count=len(unique),
+                    point_features=packed[:, :count],point_valid=sv)

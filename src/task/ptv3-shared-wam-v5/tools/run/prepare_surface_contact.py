@@ -13,6 +13,7 @@ sys.path.insert(0,str(TASK/'src'))
 from ptv3_shared_wam_v5.preparation import surface_contact
 from ptv3_shared_wam_v5.contracts import LABEL_SEMANTICS
 from ptv3_shared_wam_v5.storage import read_json,load_array
+from ptv3_shared_wam_v5.cache_contract import bind_cache,metadata_identity,array_identity,validate_binding,identity
 
 
 def write(path,value):
@@ -20,7 +21,7 @@ def write(path,value):
     path.chmod(0o664)
 
 
-def prepare(folder,meta,geometries,output):
+def prepare(folder,meta,geometries,output,contract):
     joints=load_array(folder/'joints.npy',mmap_mode='r')
     offsets=load_array(folder/'surface_offsets.npy',mmap_mode='r')
     valid=load_array(folder/'surface_valid.npy',mmap_mode='r')
@@ -56,6 +57,9 @@ def prepare(folder,meta,geometries,output):
     for name,value in [('contact',confidence),('part',labels),('valid',cv)]:
         dest=pending/(name+'.npy');np.save(dest,value);dest.chmod(0o664)
     result=dict(status='COMPLETED',key=meta['key'],source_id=meta['source_id'],label_semantics=LABEL_SEMANTICS,
+        cache_contract=contract['identity'],hand_identity=metadata_identity(folder/'meta.json'),
+        geometry_identities={name:geometries[f"s{meta['source_id']}:{name}" if meta['source_id']<3 else name]['identity'] for name in meta['objects']},
+        payload_identity=array_identity(dict(contact=confidence,part=labels,valid=cv)),
         valid_object_frames=int(cv.sum()),total_object_frames=int(cv.size),
         positive_queries=int((confidence[cv]>.25).sum()),
         description='Nearest reconstructed hand-surface vertex proximity, radius3mm, exponential10mm falloff, cutoff33mm. Not measured physical contact.',
@@ -71,18 +75,23 @@ def main():
     p.add_argument('--output',type=Path,required=True);p.add_argument('--seconds',type=int,default=21600)
     p.add_argument('--git-commit',required=True);a=p.parse_args()
     a.output.mkdir(parents=True,exist_ok=True);start=time.monotonic();done=set();records={};geometries=None
+    hc=read_json(a.hands/'cache-contract.json');geometry=read_json(a.geometry/'manifest.json')
+    if geometry.get('status')!='COMPLETED' or geometry.get('failures'):raise ValueError('complete object geometry registry required')
+    geometries={}
+    for row in geometry['objects']:
+        with load_array(a.geometry/row['path'],allow_pickle=False) as z:values={k:z[k] for k in z.files}
+        values['identity']=array_identity(values);geometries[row['key']]=values
+    contract=bind_cache(a.output,'contact',dict(protocol=LABEL_SEMANTICS,
+        hands=str(a.hands.resolve()),hand_cache=hc['identity'],
+        geometry=str(a.geometry.resolve()),geometry_manifest=metadata_identity(a.geometry/'manifest.json'),
+        geometry_payloads=identity({k:v['identity'] for k,v in geometries.items()})))
+    legacy_hands=hc['inputs'].get('inherited_human_root')
+    legacy_contacts=Path(legacy_hands).parent/'contacts' if legacy_hands else None
     write(a.output/'run-manifest.json',dict(git_commit=a.git_commit,run_id=a.output.name,
         work_version=LABEL_SEMANTICS,hands=str(a.hands),geometry=str(a.geometry),device='CPU offline KD-tree; absent from model',
         seconds=a.seconds,min_free_gib=20,pid=os.getpid(),python=sys.version))
     while time.monotonic()-start<a.seconds and not (a.output/'STOP').exists():
         if shutil.disk_usage(a.output).free<20*2**30:break
-        if geometries is None:
-            if not (a.geometry/'manifest.json').exists():
-                write(a.output/'progress.json',dict(status='WAITING_GEOMETRY',pid=os.getpid(),elapsed_s=time.monotonic()-start))
-                time.sleep(10);continue
-            manifest=read_json(a.geometry/'manifest.json');geometries={}
-            for row in manifest['objects']:
-                with load_array(a.geometry/row['path'],allow_pickle=False) as z:geometries[row['key']]={k:z[k] for k in z.files}
         changed=False
         folders=sorted((a.hands/'sequences').iterdir())
         priority=[]
@@ -93,8 +102,17 @@ def main():
         for folder in ordered:
             if folder.name in done or '.partial' in folder.name or not (folder/'meta.json').exists():continue
             key=folder.name;meta=read_json(folder/'meta.json')
+            validate_binding(folder,meta,hc,Path(legacy_hands)/'sequences' if legacy_hands else None)
+            if legacy_contacts and meta['source_id']!=4 and not (a.output/key).exists() and (legacy_contacts/key/'meta.json').exists():
+                # Explicit unchanged human-only inheritance. Never reuse Shadow labels.
+                old=read_json(legacy_contacts/key/'meta.json')
+                if old['label_semantics']!=LABEL_SEMANTICS:raise ValueError('legacy human label semantics differ')
+                (a.output/key).symlink_to((legacy_contacts/key).resolve(),target_is_directory=True)
             existing=a.output/key/'meta.json'
-            result=read_json(existing) if existing.exists() else prepare(folder,meta,geometries,a.output)
+            result=read_json(existing) if existing.exists() else prepare(folder,meta,geometries,a.output,contract)
+            validate_binding(existing.parent,result,contract,legacy_contacts)
+            if result.get('hand_identity') and result['hand_identity']!=metadata_identity(folder/'meta.json'):
+                raise ValueError('contact cache refers to a different hand surface')
             records[key]=result;done.add(key);changed=True
             progress=dict(status='RUNNING',pid=os.getpid(),sequences=len(done),
                 valid_object_frames=sum(r['valid_object_frames'] for r in records.values()),

@@ -7,6 +7,8 @@ import torch
 from torch.utils.data import Dataset
 from .contracts import DATA_SCHEMA,INPUT_SEMANTICS,LABEL_SEMANTICS,SAMPLING_SEMANTICS
 from .storage import read_json,load_array
+from .window_contract import history_joint_valid
+from .cache_contract import metadata_identity
 
 
 def transform(points,pose):
@@ -28,7 +30,7 @@ def sample_window(sequence,geometry,contact,tick,slot,source_id,sample_id):
     rel=anchor@poses
     joints=sequence['joints'][window]@anchor[:3,:3].T+anchor[:3,3]
     jvalid=sequence['joint_valid'][window]
-    start_valid=jvalid[:4].all(0)
+    start_valid=history_joint_valid(sequence['joint_valid'],tick)
     if not start_valid.any():raise ValueError('no observed joint21 history')
     dense=(sequence['surface_offsets'][tick-3:tick+1].astype(np.float32)
            +sequence['joints'][tick-3:tick+1,:,None,0,:])
@@ -73,6 +75,14 @@ class V5Windows(Dataset):
         self.index=load_array(self.meta['indices'][split],mmap_mode='r')
         self.cache=OrderedDict();self.cache_size=cache_size;self.geometry_cache=OrderedDict()
         geometry=read_json(self.meta['geometry_manifest'])
+        bindings=self.meta.get('cache_bindings')
+        if bindings:
+            if (read_json(bindings['hands'])['identity']!=bindings['hand_identity']
+                    or read_json(bindings['contacts'])['identity']!=bindings['contact_identity']
+                    or metadata_identity(self.meta['geometry_manifest'])!=bindings['geometry_identity']):
+                raise ValueError('frozen dataset upstream cache changed')
+        elif not self.meta.get('engineering_subset'):
+            raise ValueError('full v5 data requires explicit upstream cache bindings')
         self.geometry={r['key']:r for r in geometry['objects']}
         self.geometry_root=Path(self.meta['geometry_manifest']).parent
         source_ids=np.array([r['source_id'] for r in self.meta['sequences']])[self.index[:,0]]
@@ -92,6 +102,9 @@ class V5Windows(Dataset):
     def _sequence(self,seq_id):
         if seq_id not in self.cache:
             row=self.meta['sequences'][seq_id];folder=Path(row['path']);cf=Path(row['contact_path'])
+            if self.meta.get('cache_bindings') and (metadata_identity(folder/'meta.json')!=row['hand_meta_identity']
+                    or metadata_identity(cf/'meta.json')!=row['contact_meta_identity']):
+                raise ValueError('sequence metadata changed after freezing')
             seq={p.stem:load_array(p,mmap_mode='r') for p in folder.glob('*.npy')}
             contact={p.stem:load_array(p,mmap_mode='r') for p in cf.glob('*.npy')}
             self.cache[seq_id]=(seq,contact);self.cache.move_to_end(seq_id)

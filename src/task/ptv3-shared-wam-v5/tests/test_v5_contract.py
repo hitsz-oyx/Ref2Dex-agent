@@ -19,7 +19,8 @@ class Geometry(nn.Module):
     def __init__(self,width):super().__init__();self.project=nn.Linear(width,width)
     def forward(self,batch,hand,valid):
         tokens=self.project(hand.mean(1,keepdim=True).expand(-1,4,-1))
-        return dict(tokens=tokens,xyz=hand.new_zeros(len(hand),4,3),mask=torch.ones(len(hand),4,dtype=torch.bool),hand=hand)
+        return dict(tokens=tokens,xyz=hand.new_zeros(len(hand),4,3),mask=torch.ones(len(hand),4,dtype=torch.bool),hand=hand,
+                    point_features=hand.mean(1,keepdim=True).expand(-1,batch['xyz'].shape[1],-1),point_valid=batch['point_valid'])
 
 
 def config():
