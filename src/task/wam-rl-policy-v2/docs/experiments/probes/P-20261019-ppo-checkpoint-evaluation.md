@@ -57,3 +57,23 @@ goal、完整root state最大差异全为0。该差异与首次sim buffer初始�
 继续既定10000轮预算，后续用相同协议评估后期checkpoint。
 最终产物见r3/comparison.json、initial-state-audit.json、step-*/evaluation.json。
 前两轮不匹配结果不用于训练趋势。GPU6/7测试结束释放，主训练保持运行。
+
+## 后期平台期追加 Probe（2026-10-19）
+
+用户授权GPU6/7评估最近轮数，run_id=late-checkpoint-eval-20261019-r1。
+Decision：若8000→最新快照的成功/最终稳定保持仍有>=5个百分点改善，继续既定训练；
+若两者均变化≤3个百分点，视为本面板平台期迹象，在10000预算终点复核而不自动加预算。
+若退化或不确定，记录逐场景胜负和不确定性，不宣称全局收敛。
+最低可判别协议：5500/7000/8000/8483四个固定checkpoint，各16 TRAIN物体×16场景=256，
+seed246，确定性动作、首回合200步、0更新。重新评估5500，不将历史64场景率混入本面板。
+checkpoint先复制到独立inputs，避免活动训练轮转删除最新快照。固定WAM12000与本地几何，
+显式legacy reset/se3_pose/原WAM workspace终止；未把新接口修复混入收敛比较。
+复用当前官方PPO评估入口，仅增加终态指标记录；历史未绑定checkpoint显式记录迁移说明。
+CPU独立reset RNG、预热、canonical table协议保持一致；逐字段保存并核对初态。
+新增ever_held60/final_held60/drop_after_hold/final_task_success/final_stable_success和终止原因。
+
+graspenv/PyTorch2.4.1+cu121/IsaacGym Preview4。每worker≤900s、总≤2400s、输出≤4GiB，
+低于20GiB磁盘余量停止；GPU6/7已有monica低占用任务沿用用户授权共享，不改其进程。
+按long-running-tasks技能监控；不录像、不生成训练cache、不保存新训练checkpoint。
+启动器tools/run/evaluate_ppo_checkpoints.py冻结代码并保存所有命令、PID、资源和输出身份。
+四条件初态不匹配则不作为严格配对趋势；不更改主训练，单seed TRAIN Probe不能证明泛化。
