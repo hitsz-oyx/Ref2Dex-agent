@@ -119,3 +119,11 @@ GPU0–3最多4个评估worker，GPU6/7的Inspire长训保持运行，GPU4/5空�
 每worker≤900秒、总≤2400秒、产物≤4GiB、磁盘余量<20GiB停止，环境graspenv/Torch2.4.1+
 Isaac Preview4。复用同一原生评估器，launcher只扩展GPU配置与多面板任务命名，不改策略或reward。
 产物：outputs/wam-rl-policy-v2/full-plateau-eval-20261019-r1/。
+
+初态预审：panel0仅250/256场景在四轮间完全一致，差异集中6个环境，object actor的root
+位置与pose逐行一致，root数组确认每环境hand/object/goal/table四actor的连续布局。
+为避免丢弃整个32物体子面板，将匹配粒度细化为单场景：只保留四checkpoint所有5字段及
+四actor root、对象身份均完全相同的场景交集，规则不读取策略成败。所有轮次共享同一交集，
+并保留768场景原始计数作敏感性描述。报告实际保留数及对象覆盖，低于90%场景或丢失任何
+训练物体则不使用完整面板平台判据。没有声称修复底层reset/PhysX初始化差异。
+配对bootstrap按object cluster重采样、按保留场景数量加权，避免将同物体环境当独立物体。
