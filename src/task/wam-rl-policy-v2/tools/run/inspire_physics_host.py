@@ -175,7 +175,11 @@ def main():
                         audit['steps']+=1
                     else:raise ValueError('unknown native operation')
                     send(connection,dict(state=packet()))
-                    if audit['steps']%128==0:save()
+                    if audit['steps']%128==0:
+                        # This counts motion initializations, not completed or
+                        # successful trajectories; keep coverage visible live.
+                        audit['motion_visits']=task._motion_sampler.visits.cpu().tolist()
+                        save()
             audit.update(status='COMPLETED',elapsed_s=time.monotonic()-started,
                 motion_visits=task._motion_sampler.visits.cpu().tolist())
             save();task.gym.destroy_sim(task.sim)
