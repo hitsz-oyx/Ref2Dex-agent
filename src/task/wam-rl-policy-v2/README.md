@@ -107,6 +107,9 @@ Inspire吞吐选项由`launch_inspire_mixed_ppo.py`显式指定：
 减少浮点列表编解码；不使用pickle，逐字段检查dtype/shape/长度/有限性。
 原JSON列表的hand float64运算在adapter中显式保留，回归检查观测/reward/done逐位一致。
 该选项同样记录在inference身份，切换需要显式performance migration。
+原生reset沿用立即FK观测，indexed root/DOF setter合并到下一次pre-physics各提交一次，
+避免首次simulate前重复reset违反Isaac张量接口限制；索引owner保留至simulate之后。
+提交协议也写入inference身份，旧checkpoint须显式performance migration。
 
 旧`inspire_scheduled_probe.py`/`inspire_executor.py`是已归档的current986/小型单序列工程试跑，
 不作为全量路线的BC或PPO入口；其失败结果不代表上述完整Shadow配方。

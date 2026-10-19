@@ -295,3 +295,29 @@ setters应在两次simulate间各调用一次、C++不持有Python引用。优�
 没有按时长sleep掩盖竞态，也不修改共享consequence reset或旧冻结运行。
 reset提交协议写入inference身份，显式migration记录。回归测试覆盖首次重复reset、
 子集并集、每步setter计数与传给Gym的索引owner生命周期。拟从同一339重复完整入口。
+
+
+### 优化实际生效与当前续训
+
+r4/dd694523从同一339 checkpoint开启packed+一次reset setter提交；当前已到360，
+首步崩溃未重现，六rank均实际运行≥168控制步，并保存official-iteration-360.pt。
+各rank模型同步、均值/logprob回放、原生PD误差及跨回合动作错配均0；
+最新物理128步审计的setter提交次数106–110，符合每个simulate前至多一次。
+六卡首个真实256批τ数值偏差0.200–0.372mm，周期门槛仍为1mm。
+79项测试再次通过；所有源码已提交，运行使用独立冻结副本，不热改旧实验。
+
+无其他模型争抢的运行窗口：旧r1 iteration210–229整轮18.56207s，
+新r4 iteration345–360整轮9.35754s，约1.98365倍，1313.17全局env-steps/s；
+预计从360到10000约25.06h。两段训练窗口非相同策略/物理轨迹，属于运行吞吐观测，
+不是学习效果配对；固定输入模型微基准提供独立速度证据。
+最终60秒GPU0–5平均利用率66.5/70.4/71.6/67.4/70.7/59.4%，均值67.67%，
+显存12,204–12,718MiB；相对初始30秒均值63.82%有所提高，窗口长度不同，不作显著性结论。
+GPU6/7仅原有他人轻量进程，未占用；原始48小时总预算扣除已用时间后继续，未重启预算。
+剩余主要开销为WAM约5.7–6s/轮、CPU scheduler约1.5s/轮；物理RPC约0.48s，
+indexed reset约0.35–0.4s。未通过额外空计算提高利用率，也未改PPO超参/环境数或重训BC。
+
+当前活跃：outputs/wam-rl-policy-v2/inspire-mixed6-20261019-r4/；
+总对照与完整数值：outputs/wam-rl-policy-v2/inspire-throughput-20261019-r1/throughput-comparison.json。
+Isaac接口依据为随安装的/home2/wyy/isaac-gym/isaacgym/docs/programming/tensors.html，
+Tensor Lifetime与Limitations两节；修复只在Inspire进程，不修改该外部安装或共享reset模块。
+这次结果仅为工程提速与执行合同验证，不代表Inspire抓取/完整路径成功率改善。

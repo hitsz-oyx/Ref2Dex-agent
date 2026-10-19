@@ -1,3 +1,22 @@
+## 2026-10-19 Inspire在线吞吐约提升两倍，优化版六卡续训中
+
+用户授权调优后，旧mixed6-r1在300、r2在339完整保存并停止；当前为
+`inspire-mixed6-20261019-r4`，冻结dd694523，从339续训，已通过360轮滚动保存。
+GPU0–5仍为1536环境/同一同步策略、50物体/589 TRAIN；原48h总截止不延长。
+共享Transformer单独允许TF32、读取同一hand head、batch256；几何及PPO精度不变。
+参考路径初始化批量校验，无损数组传输替换浮点JSON列表；公式、数据、动作和频率保持。
+实际稳定窗口18.562→9.358秒/轮，约1.98倍、1313 env-steps/s；到10000剩余约25h。
+短时GPU样本六卡均值约64%→68%，各卡59–72%、显存约12GiB；不保证持续满载。
+剩余主要为WAM约5.7–6s及CPU scheduler约1.5s/轮，物理RPC已降到约0.5s。
+50 TRAIN物体400真实H4，采用方案最大τ差0.428mm、batch/single0.239mm；
+六卡在线首批≤0.373mm、同步/回放/PD误差0，79项测试通过。
+
+packed的首个r3试跑在首个物理步触发PhysX非法访问、0优化更新；发现并修复首次模拟前
+重复indexed setter及索引owner生命周期缺口：逻辑reset/FK仍立即生效，setter合并在
+pre-physics提交一次，无隐藏物理步。修复后相同339 checkpoint实际运行≥168控制步通过；
+这支持修复必要性，不声称已证明先前崩溃的唯一底层原因。推理/传输/reset提交身份和迁移均记录。
+[协议及结果](../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-inspire-shadow-parity.md)。
+
 ## 2026-10-19 Inspire已改为六卡混合训练，发现KL校准缺陷
 
 按用户请求停止旧GPU6/7两卡训练，保留iteration161。新inspire-mixed6-20261019-r1
