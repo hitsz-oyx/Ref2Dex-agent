@@ -1,6 +1,5 @@
 """Inspect completed real checkpoint counters, DEV and baseline restoration."""
 import argparse
-import hashlib
 import json
 from pathlib import Path
 import statistics
@@ -25,9 +24,11 @@ def main():
     final=Path(report['v6_final_checkpoint']);final.chmod(0o664)
     saved=torch.load(final,map_location='cpu',weights_only=False)
     manifest=read_json(a.run/'resume-recovery/run-manifest.json')
-    command=read_json(a.run/'run-manifest.json')
     recipe=manifest['event_recipe'];stats=read_json(recipe['stats'])
     model=SharedWAMV6(stats,saved['config'])
+    if any(not torch.equal(value,saved['model'][name]) for name,value in model.state_dict().items()
+           if name.startswith('normalizer.')):
+        raise ValueError('original horizon normalization buffers changed')
     groups=_group_names(model,saved['config']);counters={'original':set(),'event':set()};state_count={'original':0,'event':0}
     for (_,names),group in zip(groups,saved['optimizer']['param_groups']):
         if len(names)!=len(group['params']):raise ValueError('optimizer position/name mismatch')
@@ -65,7 +66,7 @@ def main():
         baseline_step=report['baseline_step'],v6_final_step=saved['step'],new_updates=expected_new,
         optimizer_states=state_count,optimizer_steps={k:sorted(v) for k,v in counters.items()},
         four_rng_payloads=True,strict_v6_resume_binding=binding,
-        migration_provenance_retained=True,dev=devs,phases=report['phases'],
+        migration_provenance_retained=True,original_horizon_normalization_exact=True,dev=devs,phases=report['phases'],
         restored_v5=dict(path=str(restore),git_commit=restored_manifest['git_commit'],progress=restored_progress),
         python=sys.version,torch=torch.__version__,device='CPU checkpoint/record inspection only',
         limitations=['bounded1000-update stability, not80k guarantee','no matched unconditioned training arm; event-drop DEV is diagnostic, not causal efficacy','GPU step timing and wall throughput include different overheads; not a matched performance benchmark'])
