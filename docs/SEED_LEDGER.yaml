@@ -25,6 +25,10 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261019-wam-dense-point-throughput:
+    seed_pool: probe
+    training_seed: 176
+    reuse_reason: throwaway timing updates on a frozen real-geometry fixture; no model selection or validation claim
   P-20261016-official-unidex-ppo:
     seed_pool: probe
     training_seed: 245
