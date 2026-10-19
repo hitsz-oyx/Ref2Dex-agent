@@ -65,3 +65,13 @@ DExplore 官方 PPO 入口为 `third_party/DExplore/dexplore/run.py` → `build_
 
 上述 986 维合同、adapter、v4 IPC server 和 PPO 注入目前尚未存在，是当前工程工作；不是已经能执行的现成命令。现有 collector 的可运行命令可验证原生 runtime/data，但它只重放官方 teacher，不满足本次方法，故不以 teacher 重放替代新方法的 smoke。
 
+## 后续原生 teacher 首动作差异：只读核查
+
+主代理随后新增 `tools/run/inspire_native_peer.py`，以原 collector 的源码适配复用初始化、记录和 PD 审计，同时加入 WAM IPC/replay/teacher 三角色及 PhysicalGeometry/TableSupport 测量。主代理报告：单环境 `s3_airplane_lift` 新 teacher 首动作与旧 batch013 的同序列差异很大，但初始 q/hand/object/current721、参考及权重身份匹配；旧 canonical command replay 在当前单环境有保持，teacher 没有。这里仅审查调用链，未另跑 GPU，未独立复现该行为数值。
+
+核查结果：**尚未定位确定的新 wrapper 错误**。teacher 分支 `super().get_action(obs,is_deterministic)` 正常到 DexplorePlayerContinuous → CommonPlayer（取 `obs_dict['obs']`）→ legacy PpoPlayerContinuous；确定性布尔参数位置正确，没有递归或重复包装。`restore()` 仅在 socket/replay 时跳过，teacher 仍 strict 加载 model、external RMS、AMP RMS。原 collector 和包装都调用 `install_legacy_player_compat()`，将 CommonPlayer 的 `_preproc_obs` 替换成当前固定 legacy BasePlayer 版本；该版本实际做一次 external RMS。RMS 在构造时 eval，load_state_dict 不改变 eval 状态。源码未显示此次新包装造成重复或遗漏归一化。
+
+`PhysicalGeometry`/`TableSupport` 构造和 measure 中没有发现写 actor observation、模型权重或刚体 tensor 的操作；表面采样用局部 NumPy RNG。此静态检查不能排除底层运行时副作用。`git diff 362e18ac..HEAD` 对原 collector、兼容 helper、CommonPlayer、DexplorePlayer、base task 的相关文件为空，即这些调用链没有在旧 batch013 采集后发生可见源码改动。
+
+当前关键证据缺口是**实际送 teacher 的 raw1442 和 normalized1442**。匹配 current721 不能单独替代这一对照，因为 teacher 使用 delta1+delta16；旧16行与新1行推理也应明确记录，在输入完全相同前不把首动作差异归因物理噪声或批大小。旧真实1442 已在 `outputs/ptv3-shared-wam-v2/full-teacher-cache-20261015-r1/train-full.npy`，可根据 manifest、train-sequence.npy、train-tick.npy 定位该序列 tick0。`ptv3-shared-wam-v2/tools/run/prepare_full_teacher_data.py` 有从同执行 body_state/reference_current 重建 delta0/1/16 的纯函数路径，旧缓存生产曾对 teacher action 做 <=2e-4 的重放门控。最小下一步应保存新 teacher 首次 raw/norm1442 对比旧行，再比较相同输入下 batch1/16/64 的 model 输出；在此之前不宣称已找到原因。
+

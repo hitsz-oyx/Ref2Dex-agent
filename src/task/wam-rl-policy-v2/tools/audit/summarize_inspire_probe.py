@@ -35,7 +35,7 @@ def main():
             if not path.exists():continue
             name=str(sequence.parents[1].relative_to(a.output))
             result,data=measured_outcome(path)
-            result['source_initial_exact']={k:bool(np.array_equal(source[k][0],data[k][0])) for k in ('q','hand','obj','native_current_obs')}
+            result['source_initial_exact']=({k:bool(np.array_equal(source[k][0],data[k][0])) for k in ('q','hand','obj','native_current_obs')} if sequence.name==a.source.name else None)
             results[name]=result;traces[name]=data
     packet=dict(scope='single TRAIN sequence engineering; BC rollout is not PPO/generalization evidence',runs=results)
     (a.output/'outcomes.json').write_text(json.dumps(packet,indent=2)+'\n')

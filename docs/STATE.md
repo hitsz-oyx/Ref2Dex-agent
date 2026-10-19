@@ -1,3 +1,17 @@
+## 2026-10-19 后期PPO评估与Inspire初次自主闭环
+
+GPU6/7完成5500/7000/8000/8483各256场景评估。5500/7000/8483完整初态逐位一致；
+8000初态不同，仅作诊断。有效组原生曾成功202/208/219，最终稳定146/161/163。
+7000→8483保持仅+0.8pp，成功仍+4.3pp；不能确认收敛，继续既定10000终点，不扩预算。
+[评估卡](../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-ppo-checkpoint-evaluation.md)。
+
+DExplore Inspire新current986/30Hz/command12接口已完成实际WAM80000+空间scheduler+BC原生闭环：
+542拍、539拍真实预测τ、canonical动作/PD审计通过；单TRAIN飞机BC最大抬升6.1cm、保持代理0，
+尚未成功抓取保持。官方DExplore PPO尚未接入（0更新），不将其称整套流程成功。
+当前reactive teacher未复现旧批量采集，旧canonical重放可曾保持120拍但最终失守；差异仍待定位。
+未生成全量缓存，GPU0–5主训练未改。
+[Inspire实验卡](../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-inspire-scheduled-executor.md)。
+
 ## 2026-10-19 WAM密集点计时完成，主训练已恢复
 
 独立4090/1024宽度/bf16：batch128下当前GPU训练步0.790s；778手表面+2048物体、
