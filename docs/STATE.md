@@ -1,3 +1,15 @@
+## 2026-10-19 WAM密集点计时完成，主训练已恢复
+
+独立4090/1024宽度/bf16：batch128下当前GPU训练步0.790s；778手表面+2048物体、
+5mm编码且保留紧凑tau为0.893s，C查询增至2048后0.954s（较当前+20.8%），
+峰值allocated16.64GiB。完整778点共享token/轨迹在batch64为1.86–1.89s，
+同batch基线0.452s，慢约4.1倍；batch128在保留主训练显存的额度内训练OOM。
+这是四个真实GRAB窗口的GPU驻留计时，不含全量输入/DDP，不构成效果提升证据。
+主1024训练检查时已恢复到resume16k运行；本次经用户授权暂停累计4分20秒，
+每轮均恢复，未改主模型/数据/config或写benchmark checkpoint。
+最终检查同一组PID已推进至17560步，四卡98–99%利用率、约10.5GiB/卡。
+[计算可行性Probe](../src/task/ptv3-shared-wam-v4/docs/experiments/probes/P-20261019-wam-dense-point-throughput.md)。
+
 ## 2026-10-19 远端WAM状态与contact/voxel数据检查
 
 768宽度已完成80k；1024宽度因旧8GB运行产物guard在写step15000时退出，

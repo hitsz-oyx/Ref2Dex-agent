@@ -632,6 +632,7 @@
 | [P-20261018-full-scheduled-current-bc](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261018-full-scheduled-current-bc.md) | 全量现有BC接入调度WAM | 见原卡 | 见原卡 | probes/COMPLETED |
 | [P-20261018-official-scheduled-mixed-ppo](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261018-official-scheduled-mixed-ppo.md) | 六卡混合物体：复用官方 PPO + 自训练 BC + WAM-v4 | 见原卡 | 见原卡 | probes/RUNNING |
 | [P-20261018-scheduled-batch-ppo](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261018-scheduled-batch-ppo.md) | Scheduled BC 的批量 PPO 试跑 | 见原卡 | 见原卡 | probes/COMPLETED |
+| [P-20261019-inspire-scheduled-executor](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-inspire-scheduled-executor.md) | P-20261019-inspire-scheduled-executor | 见原卡 | 见原卡 | probes/RUNNING |
 | [P-20261019-native-ppo-comparison](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-native-ppo-comparison.md) | P-20261019-native-ppo-comparison | 见原卡 | 见原卡 | probes/COMPLETED |
 | [P-20261019-ppo-checkpoint-evaluation](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-ppo-checkpoint-evaluation.md) | P-20261019-ppo-checkpoint-evaluation | 见原卡 | 见原卡 | probes/COMPLETED |
 | [P-20261019-wam-final-swap](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-wam-final-swap.md) | P-20261019-wam-final-swap | 见原卡 | 见原卡 | probes/COMPLETED |
@@ -887,7 +888,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261019-wam-dense-point-throughput](../../src/task/ptv3-shared-wam-v4/docs/experiments/probes/P-20261019-wam-dense-point-throughput.md) | WAM-v4 dense hand/object point throughput | 见原卡 | 见原卡 | probes/RUNNING |
+| [P-20261019-wam-dense-point-throughput](../../src/task/ptv3-shared-wam-v4/docs/experiments/probes/P-20261019-wam-dense-point-throughput.md) | WAM-v4 dense hand/object point throughput | at fixed batch128, dense geometry at5mm costs13.1% more per GPU update; | prioritize778-point observed hand geometry and2048 object surface | probes/PROMISING |
 
 ## HF-wam-interaction-head
 
