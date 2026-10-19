@@ -16,6 +16,7 @@ from ptv3_shared_wam_v5.contracts import LABEL_SEMANTICS
 
 def write(path,value):
     tmp=path.with_suffix('.json.part');tmp.write_text(json.dumps(value,indent=2,allow_nan=False)+'\n');tmp.replace(path)
+    path.chmod(0o664)
 
 
 def prepare(folder,meta,geometries,output):
@@ -47,7 +48,8 @@ def prepare(folder,meta,geometries,output):
     pending=output/(meta['key']+'.partial')
     if pending.exists():pending=output/(meta['key']+f'.partial-{os.getpid()}')
     pending.mkdir()
-    for name,value in [('contact',confidence),('part',labels),('valid',cv)]:np.save(pending/(name+'.npy'),value)
+    for name,value in [('contact',confidence),('part',labels),('valid',cv)]:
+        dest=pending/(name+'.npy');np.save(dest,value);dest.chmod(0o664)
     result=dict(status='COMPLETED',key=meta['key'],source_id=meta['source_id'],label_semantics=LABEL_SEMANTICS,
         valid_object_frames=int(cv.sum()),total_object_frames=int(cv.size),
         positive_queries=int((confidence[cv]>.25).sum()),

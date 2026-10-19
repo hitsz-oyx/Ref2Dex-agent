@@ -16,6 +16,7 @@ from ptv3_shared_wam_v5.contracts import DATA_SCHEMA,JOINT_NAMES,PART_NAMES
 
 def write(path,value):
     pending=path.with_suffix('.json.part');pending.write_text(json.dumps(value,indent=2,allow_nan=False)+'\n');pending.replace(path)
+    path.chmod(0o664)
 
 
 def prepare(job,packet,a):
@@ -47,7 +48,8 @@ def prepare(job,packet,a):
         surface_offsets=quantized,surface_valid=vvalid,surface_parts=parts,
         object_poses=np.asarray(base['object_poses'],np.float32),object_pose_valid=base['object_pose_valid'],
         observed_frame=base['observed_frame'],expected_hand_presence=presence)
-    for key,value in arrays.items():np.save(pending/(key+'.npy'),value)
+    for key,value in arrays.items():
+        dest=pending/(key+'.npy');np.save(dest,value);dest.chmod(0o664)
     meta=dict(schema=DATA_SCHEMA,status='COMPLETED',key=job['key'],source_id=job['source_id'],
         frames=len(joints),surface_frames=int(vvalid.sum()),joint_frames=int(jvalid.all(-1).sum()),
         alignment_max_error_m=error,surface_quantization_max_error_m=quantization_error,
