@@ -67,10 +67,11 @@ def main():
         if a.prepared_cache:
             import sys
             sys.path.insert(0,str(frozen/'src'))
-            from wam_rl_policy_v2.inspire_shadow import CONTRACT
+            from wam_rl_policy_v2.inspire_shadow import CONTRACT,bc_admission
             prepared=a.prepared_cache.resolve();meta=json.loads((prepared/'manifest.json').read_text())
             if meta.get('task_status')!='COMPLETED' or meta.get('scheduled_status')!='COMPLETED' or meta.get('conditioning')!=CONTRACT or len(meta['sequences'])!=660:
                 raise ValueError('full660 completed explicit-task cache required')
+            for split in ('train','dev'):bc_admission(prepared,split,True)
             (out/'cache').symlink_to(prepared,target_is_directory=True)
             state['stage']='CURRENT_TASK_BC';save()
             current=start('current','current-bc',['--cache',str(out/'cache'),'--gpu',str(model_gpu)]);wait([current])
@@ -81,12 +82,13 @@ def main():
             import numpy as np
             import sys
             sys.path.insert(0,str(frozen/'src'))
-            from wam_rl_policy_v2.inspire_shadow import CONTRACT,INPUT_DIM
+            from wam_rl_policy_v2.inspire_shadow import CONTRACT,INPUT_DIM,BC_ADMISSION
             prior=a.current_run.resolve();cache=out/'cache';cache.mkdir()
             current_meta=json.loads((prior/'current-bc/manifest.json').read_text())
             if current_meta['status']!='COMPLETED' or current_meta['steps']!=50000 or current_meta.get('conditioning')!=CONTRACT:raise ValueError('completed full-data task-conditioned current BC required')
+            if current_meta.get('training_admission')!=BC_ADMISSION:raise ValueError('current BC needs task-active admission')
             meta=json.loads((prior/'cache/manifest.json').read_text())
-            for name in ['stats.npz','dev-panel.npy','geometries','surface-manifest.json']+[s+'-'+k+'.npy' for s in ('train','dev') for k in ('x','y','tick','seq','task')]:
+            for name in ['stats.npz','dev-panel.npy','geometries','surface-manifest.json']+[s+'-'+k+'.npy' for s in ('train','dev') for k in ('x','y','tick','seq','task','task-active')]:
                 (cache/name).symlink_to(prior/'cache'/name)
             meta.update(conditioning=CONTRACT,scheduled_status='PENDING',current_cache_source=str(prior/'cache'))
             (cache/'manifest.json').write_text(json.dumps(meta,indent=2)+'\n')

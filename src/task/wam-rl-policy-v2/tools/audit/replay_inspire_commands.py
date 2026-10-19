@@ -23,7 +23,7 @@ def main():
     if a.output.exists():raise ValueError('fresh replay output required')
     a.output.mkdir(parents=True);meta=json.loads((a.cache/'manifest.json').read_text())
     row=next(r for r in meta['sequences'] if r['sequence']==a.sequence and r['split']=='train')
-    with np.load(Path(row['source'])/'trajectory.npz') as z:gt={k:z[k].copy() for k in ['q','dq','hand','obj','action','applied','pd_targets']}
+    with np.load(Path(row['source'])/'trajectory.npz') as z:gt={k:z[k].copy() for k in ['q','dq','hand','obj','velocity','native_current_obs','action','applied','pd_targets']}
     actions=None;target=None;envs=2;seed=246
     if a.match_collection_batch:
         batch_file=Path(row['source']).parents[1]/'manifest.json';batch=json.loads(batch_file.read_text())
@@ -52,9 +52,14 @@ def main():
         hello=receive(connection);state=unpack_state(hello['state'])
         def error(t,state):
             obj=np.asarray(state['objects']);hand=np.asarray(state['hand']);q=np.asarray(state['q'])
-            if target is not None:obj=obj[target:target+1];hand=hand[target:target+1];q=q[target:target+1]
+            dq=np.asarray(state['dq']);physical=np.asarray(state['physical'])
+            if target is not None:
+                obj=obj[target:target+1];hand=hand[target:target+1];q=q[target:target+1]
+                dq=dq[target:target+1];physical=physical[target:target+1]
             rotation=Rotation.from_matrix(gt['obj'][t,:3,:3].T @ Rotation.from_quat(obj[:,3:7]).as_matrix()).magnitude()
             return dict(tick=t,q_max=float(np.abs(q-gt['q'][t]).max()),q_rmse=float(np.sqrt(np.square(q-gt['q'][t]).mean())),
+                dq_max=float(np.abs(dq-gt['dq'][t]).max()),physical248_max=float(np.abs(physical-gt['native_current_obs'][t,9:257]).max()),
+                object_velocity_max=float(np.abs(obj[:,7:13]-gt['velocity'][t]).max()),
                 object_position_max_m=float(np.linalg.norm(obj[:,:3]-gt['obj'][t,:3,3],axis=-1).max()),
                 object_rotation_max_rad=float(rotation.max()),hand_mean_m=float(np.linalg.norm(hand-gt['hand'][t],axis=-1).mean()))
         report['initial']=error(0,state);save()

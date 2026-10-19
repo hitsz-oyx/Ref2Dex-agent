@@ -177,30 +177,33 @@ def conditions(a):
 
 def train(a):
     import torch
-    from wam_rl_policy_v2.inspire_shadow import CURRENT_DIM,CURRENT_INPUT_DIM,INPUT_DIM,CONTRACT,CURRENT_SCHEMA,SCHEMA,expanded_model,initialize_scheduled,bc_inputs,bc_stats
+    from wam_rl_policy_v2.inspire_shadow import CURRENT_DIM,CURRENT_INPUT_DIM,INPUT_DIM,CONTRACT,CURRENT_SCHEMA,SCHEMA,BC_ADMISSION,expanded_model,initialize_scheduled,bc_inputs,bc_stats,bc_admission
     root=a.output;root.mkdir();meta=json.loads((a.cache/'manifest.json').read_text());scheduled=a.stage=='scheduled'
     if scheduled and meta['scheduled_status']!='COMPLETED':raise ValueError('complete WAM conditions required')
     torch.manual_seed(a.seed);torch.set_num_threads(2);torch.backends.cuda.matmul.allow_tf32=True
     if meta.get('task_status')!='COMPLETED' or meta.get('conditioning')!=CONTRACT:raise ValueError('complete explicit-task cache required')
+    admission={s:bc_admission(a.cache,s,scheduled) for s in ('train','dev')}
     data={s:dict(x=torch.as_tensor(bc_inputs(a.cache,s,scheduled),device='cuda'),y=torch.as_tensor(np.load(a.cache/f'{s}-y.npy'),device='cuda')) for s in ('train','dev')}
     stats=bc_stats(a.cache,scheduled)
     model=expanded_model(scheduled).cuda()
     for key,value in stats.items():getattr(model,key).copy_(torch.as_tensor(value,device='cuda'))
     if scheduled:
         if not a.parent:raise ValueError('current BC parent required')
-        parent=torch.load(a.parent,map_location='cpu',weights_only=False);initialize_scheduled(model,parent)
+        parent=torch.load(a.parent,map_location='cpu',weights_only=False)
+        if parent['config'].get('training_admission')!=BC_ADMISSION:raise ValueError('current BC parent has a different task admission contract')
+        initialize_scheduled(model,parent)
         for k,v in stats.items():
             if not torch.equal(getattr(model,k).cpu(),torch.as_tensor(v)):raise ValueError('parent normalization mismatch')
     optimizer=torch.optim.AdamW(model.parameters(),lr=3e-4,weight_decay=1e-5)
-    include=np.load(a.cache/'train-include.npy') if scheduled else np.ones(len(data['train']['x']),bool)
+    include=admission['train']
     all_rows=np.flatnonzero(include);ticks=np.load(a.cache/'train-tick.npy');early=all_rows[ticks[all_rows]<4]
-    dev_include=np.load(a.cache/'dev-include.npy') if scheduled else np.ones(len(data['dev']['x']),bool)
+    dev_include=admission['dev']
     panel=np.load(a.cache/'dev-panel.npy');panel=panel[dev_include[panel]]
     if not len(early) or not len(panel):raise ValueError('startup and DEV coverage required')
     rng=np.random.default_rng(a.seed+1);best=float('inf');started=time.monotonic();curve=[]
     manifest=dict(schema=SCHEMA if scheduled else CURRENT_SCHEMA,status='RUNNING',git_commit=a.commit,
         input_dim=INPUT_DIM if scheduled else CURRENT_INPUT_DIM,action_dim=12,conditioning=CONTRACT,steps=a.steps,batch=2048,
-        source_cache=str(a.cache),train_rows=len(all_rows),source_train_rows=len(include),dev_panel_rows=len(panel),
+        source_cache=str(a.cache),train_rows=len(all_rows),source_train_rows=len(include),dev_panel_rows=len(panel),training_admission=BC_ADMISSION,
         source_sequences=meta['splits'],params=sum(p.numel() for p in model.parameters()),hidden_dims=[1024,1024,512,512],activation='elu',
         optimizer='AdamW',lr=3e-4,weight_decay=1e-5,loss='TRAIN-standardized independent-command L1',
         sampler='half startup <4 native30Hz ticks (=8/60s), half full admitted TRAIN',normalization='TRAIN-only std floor .05; tau fixed .05m',

@@ -16,6 +16,7 @@ TASK_SLICE=slice(LEGACY_INPUT_DIM,INPUT_DIM)
 TASK_SCALE=np.array([.05]*3+[.35]*3+[1.],np.float32)
 CURRENT_SCHEMA='ref2dex.inspire-shadow-current-bc.v2'
 SCHEMA='ref2dex.inspire-shadow-scheduled-bc.v2'
+BC_ADMISSION='ref2dex.inspire-task-active-bc.v1'
 CONTRACT=dict(schema='ref2dex.inspire-shadow-conditioning.v2',robot_id='dexplore.inspire.v1',
     input_dim=INPUT_DIM,current_dim=CURRENT_DIM,action_dim=12,native_action_dim=18,
     hidden_dims=[1024,1024,512,512],activation='elu',native_hz=30,wam_hz=30,
@@ -54,6 +55,23 @@ def bc_inputs(cache,split,scheduled):
         if not np.array_equal(values[:,TASK_SLICE],task):raise ValueError('stored task condition differs')
         return values
     raise ValueError('physical/tau cache does not match explicit task layout')
+
+
+def bc_admission(cache,split,scheduled):
+    """No policy action exists at or after an online scheduler timeout."""
+    import json
+    from pathlib import Path
+    cache=Path(cache);meta=json.loads((cache/'manifest.json').read_text())
+    if meta.get('task_admission',{}).get('schema')!=BC_ADMISSION:
+        raise ValueError('task-active BC admission required; rebuild task fields in a fresh cache')
+    active=np.load(cache/f'{split}-task-active.npy')
+    if active.dtype!=np.bool_ or active.shape!=(meta['splits'][split]['commands'],):
+        raise ValueError('invalid task-active BC admission mask')
+    if scheduled:
+        workspace=np.load(cache/f'{split}-include.npy')
+        if workspace.dtype!=np.bool_ or workspace.shape!=active.shape:raise ValueError('invalid WAM admission mask')
+        active=active&workspace
+    return active
 
 
 def bc_stats(cache,scheduled):

@@ -43,7 +43,7 @@ def main():
     import numpy as np
     import torch
     from trajectory_policy.wam_ipc import send,receive,peer_pid
-    from wam_rl_policy_v2.inspire_shadow import CONTRACT,SCHEMA,CURRENT_DIM,TAU_SLICE,TASK_SLICE,VALID_INDEX,LEGACY_INPUT_DIM,expanded_model,initialize_scheduled
+    from wam_rl_policy_v2.inspire_shadow import CONTRACT,SCHEMA,CURRENT_DIM,TAU_SLICE,TASK_SLICE,VALID_INDEX,LEGACY_INPUT_DIM,BC_ADMISSION,expanded_model,initialize_scheduled
     from wam_rl_policy_v2.inspire_ppo_bridge import RemoteInspireEnv,make_shadow_ppo,REWARD_CONTRACT,TASK_SUCCESS_CONTRACT
     from wam_rl_policy_v2.wam_v4_runtime import V4Runtime
     from wam_rl_policy_v2.execution_identity import validate_execution
@@ -62,6 +62,8 @@ def main():
         packet=torch.load(a.bc,map_location='cpu',weights_only=False)
         if packet['config']['conditioning']!=CONTRACT or packet['config'].get('engineering_current_expansion'):
             raise ValueError('full-data scheduled BC with current contract required')
+        if not a.evaluate and not a.resume and packet['config'].get('training_admission')!=BC_ADMISSION:
+            raise ValueError('fresh PPO requires BC trained with task-active admission; historical BC remains evaluation-only')
     listener=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);listener.settimeout(300);listener.bind(str(a.socket));listener.listen(1)
     state=dict(status='WAITING_NATIVE',git_commit=os.environ.get('REF2DEX_CODE_COMMIT') or subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         python=sys.executable,torch=torch.__version__,gpu=a.gpu,seed=a.seed,conditioning=CONTRACT,

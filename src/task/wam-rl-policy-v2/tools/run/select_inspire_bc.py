@@ -16,13 +16,15 @@ def main():
     a.output.mkdir();os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu),TMPDIR=str(ROOT/'tmp/inspire-shadow-tests'))
     import numpy as np
     import torch
-    from wam_rl_policy_v2.inspire_shadow import SCHEMA,CONTRACT,CURRENT_DIM,TAU_SLICE,expanded_model,initialize_scheduled,bc_inputs
+    from wam_rl_policy_v2.inspire_shadow import SCHEMA,CONTRACT,CURRENT_DIM,TAU_SLICE,BC_ADMISSION,expanded_model,initialize_scheduled,bc_inputs,bc_admission
     torch.set_num_threads(2);torch.backends.cuda.matmul.allow_tf32=True
     parent=torch.load(a.current,map_location='cpu',weights_only=False)
     candidate=torch.load(a.scheduled,map_location='cpu',weights_only=False)
+    if any(p['config'].get('training_admission')!=BC_ADMISSION for p in (parent,candidate)):
+        raise ValueError('current and scheduled BC must use the task-active admission contract')
     baseline=expanded_model(True);baseline.x_scale[TAU_SLICE]=.05;initialize_scheduled(baseline,parent)
     fitted=expanded_model(True);fitted.load_state_dict(candidate['model'],strict=True)
-    panel=np.load(a.cache/'dev-panel.npy');valid=np.load(a.cache/'dev-include.npy');panel=panel[valid[panel]]
+    panel=np.load(a.cache/'dev-panel.npy');valid=bc_admission(a.cache,'dev',True);panel=panel[valid[panel]]
     x=torch.tensor(bc_inputs(a.cache,'dev',True)[panel],device='cuda');y=torch.tensor(np.load(a.cache/'dev-y.npy',mmap_mode='r')[panel],device='cuda')
     metrics={}
     with torch.inference_mode():
