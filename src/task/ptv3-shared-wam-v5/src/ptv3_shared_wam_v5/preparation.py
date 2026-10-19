@@ -55,6 +55,9 @@ def reconstruct(packet, mano_root, device='cpu', chunk_size=128):
             chosen=ids[start:start+chunk_size]
             pose=packet['pose'][chosen,side]
             hp=packet['pca_pose'][chosen,side] if pca else pose[:,3:]
+            # smplx disables PCA at45 components, whereas DexYCB's manopth
+            # convention still applies the full45-component basis.
+            if pca==45:hp=(hp@model.np_hand_components).astype(np.float32)
             with torch.no_grad():
                 result=model(global_orient=torch.tensor(pose[:,:3],device=device),
                     hand_pose=torch.tensor(hp,device=device),
@@ -80,6 +83,10 @@ def reconstruct(packet, mano_root, device='cpu', chunk_size=128):
         vv=np.zeros((count,2),bool);vv[::2]=valid;vv[1::2]=valid[:-1]&valid[1:]
         valid=vv;jv=np.broadcast_to(valid[...,None],joints.shape[:-1]).copy()
     if 'native_joints' in packet:
+        shared=valid[...,None]&packet['native_joint_valid']
+        if shared.any():
+            error=float(np.abs(joints[shared]-packet['native_joints'][shared]).max())
+            if error>5e-5:raise ValueError(f'native21 and reconstructed surface convention mismatch: {error:.8f}m')
         joints=packet['native_joints'].astype(np.float32)
         jv=packet['native_joint_valid'].copy()
     if not np.isfinite(joints[jv]).all() or not np.isfinite(verts[valid]).all():

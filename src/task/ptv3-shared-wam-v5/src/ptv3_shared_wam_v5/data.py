@@ -74,8 +74,8 @@ class V5Windows(Dataset):
         geometry=json.loads(Path(self.meta['geometry_manifest']).read_text())
         self.geometry={r['key']:r for r in geometry['objects']}
         self.geometry_root=Path(self.meta['geometry_manifest']).parent
-        self.pools={str(s):np.flatnonzero(np.asarray([self.meta['sequences'][int(i)]['source_id'] for i in self.index[:,0]])==s)
-                    for s in self.meta['source_ids']}
+        source_ids=np.array([r['source_id'] for r in self.meta['sequences']])[self.index[:,0]]
+        self.pools={str(s):np.flatnonzero(source_ids==s) for s in self.meta['source_ids']}
         self.pools={k:v for k,v in self.pools.items() if len(v)}
 
     def __len__(self):return len(self.index)

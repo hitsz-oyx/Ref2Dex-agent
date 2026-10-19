@@ -161,6 +161,11 @@ class Extractor:
             rawfolder = matches[0]
             meta = yaml.safe_load((rawfolder/'meta.yml').read_text())
             side = 0 if meta['mano_sides'][0]=='right' else 1
+            calibration=ROOT/'data/raw_data/DexYCB/raw/calibration'/('mano_'+meta['mano_calib'][0])/'mano.yml'
+            beta=np.asarray(yaml.safe_load(calibration.read_text())['betas'],np.float32)
+            out['betas'][:,side]=beta
+            out['pca']=np.array(45);out['flat_mean']=np.array(False)
+            out['pca_pose']=np.zeros((n,2,45),np.float32)
             joints = np.zeros((n,2,21,3),np.float32)
             jv = np.zeros((n,2,21),bool)
             for i,fid in enumerate(base['native_frame_id']):
@@ -173,16 +178,20 @@ class Extractor:
                 valid &= bool(base['hand_valid'][i,side].all())
                 joints[i,side] = jp
                 jv[i,side] = valid
+                out['pose'][i,side,:3]=pose[:3]
+                out['pca_pose'][i,side]=pose[3:48]
+                out['transl'][i,side]=pose[48:51]
+                out['parameter_valid'][i,side]=valid.all()
             out['native_joints'], out['native_joint_valid'] = joints,jv
-            # Native joint21 is authoritative. MANO is not admitted until the
-            # source's PCA/shape/translation convention is separately checked.
         elif sid==9:
             camera = base['native_camera_to_world']
             jp = base['native_joints_camera']
             out['native_joints'] = np.einsum('nij,nhpj->nhpi',camera[:,:3,:3],jp)+camera[:,None,None,:3,3]
             out['native_joint_valid'] = np.broadcast_to(base['hand_valid'].all(-1)[...,None],(n,2,21)).copy()
-            # Preserve native MANO for a later audited surface adapter.
-            out['native_mano_camera'] = base['native_mano_camera']
+            raw=base['native_mano_camera']
+            out['pose'],out['transl'],out['betas']=raw[...,4:52],raw[...,1:4],raw[...,52:62]
+            out['parameter_valid']=base['native_mano_available']&base['hand_valid'].all(-1)
+            out['world']=camera
         elif sid==10:
             native = Path(job['source_row']['native_source_path'])
             with np.load(native,allow_pickle=False) as z:
@@ -212,6 +221,7 @@ def main():
     p.add_argument('--sources',default='0,1,2,5,6,8,9,10,4')
     p.add_argument('--limit-per-source',type=int)
     p.add_argument('--retry-unavailable',action='store_true')
+    p.add_argument('--upgrade-native-surfaces',action='store_true')
     a=p.parse_args()
     a.output.mkdir(parents=True,exist_ok=True)
     for sub in ('packets','records'):(a.output/sub).mkdir(exist_ok=True)
@@ -227,13 +237,16 @@ def main():
         if time.monotonic()-started>a.seconds or (a.output/'STOP').exists() or shutil.disk_usage(a.output).free<20*2**30:break
         record=a.output/'records'/(key+'.json')
         previous=json.loads(record.read_text()) if record.exists() else None
-        if previous and (previous['status']=='READY' or not a.retry_unavailable):continue
+        upgrade=a.upgrade_native_surfaces and sid in (8,9) and (previous or {}).get('surface_adapter')!='native-mano-v1'
+        if previous and not upgrade and (previous['status']=='READY' or not a.retry_unavailable):continue
         try:
             packet=extractor.packet(job)
-            pending=a.output/'packets'/(key+'.part.npz')
+            filename=key+('-surface-v1' if sid in (8,9) else '')+'.npz'
+            pending=a.output/'packets'/(filename+'.part.npz')
             np.savez_compressed(pending,**packet)
-            pending.replace(a.output/'packets'/(key+'.npz'))
-            row=dict(status='READY',source_id=sid,key=key,packet='packets/'+key+'.npz')
+            pending.replace(a.output/'packets'/filename)
+            row=dict(status='READY',source_id=sid,key=key,packet='packets/'+filename)
+            if sid in (8,9):row['surface_adapter']='native-mano-v1'
         except Exception as e:
             row=dict(status='UNAVAILABLE',source_id=sid,key=key,reason=type(e).__name__+': '+str(e))
         if previous:row['previous_failure']=previous

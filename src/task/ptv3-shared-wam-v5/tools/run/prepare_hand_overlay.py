@@ -93,6 +93,7 @@ def main():
             source_record=a.packets/'records'/(key+'.json')
             if not source_record.exists():continue
             record=json.loads(source_record.read_text())
+            if job['source_id'] in (8,9) and record.get('surface_adapter')!='native-mano-v1':continue
             if record['status']=='READY' and not (a.packets/record['packet']).exists():continue
             found=True
             try:
