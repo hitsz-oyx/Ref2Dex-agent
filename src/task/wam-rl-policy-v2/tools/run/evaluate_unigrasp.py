@@ -204,9 +204,11 @@ def main():
                 f.write(json.dumps(dict(elapsed_s=elapsed,gpu=usage))+'\n')
             time.sleep(10)
         code=child.wait()
-    manifest.update(status='COMPLETED' if code==0 else 'FAILED',exit_code=code,elapsed_s=time.monotonic()-started)
+    has_result=(args.output/'evaluation.json').is_file()
+    manifest.update(status='COMPLETED' if code==0 and has_result else 'FAILED',exit_code=code,elapsed_s=time.monotonic()-started)
+    if code==0 and not has_result:manifest['stop_reason']='upstream exited without evaluation result'
     write(args.output/'manifest.json',manifest)
-    if code:raise SystemExit(code)
+    if code or not has_result:raise SystemExit(code or 1)
 
 
 if __name__=='__main__': main()
