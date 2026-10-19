@@ -111,7 +111,7 @@ def main():
                     quarantined=sum(r['status']!='COMPLETED' for r in records.values()),
                     elapsed_s=time.monotonic()-started,checked_at=time.time(),last_key=key,last_record=record)
                 write(a.output/'progress.json',progress);print(json.dumps(progress),flush=True)
-            if (a.limit and processed>=a.limit) or time.monotonic()-started>a.seconds:break
+            if (a.limit and processed>=a.limit) or time.monotonic()-started>a.seconds or (a.output/'STOP').exists():break
         if a.limit and processed>=a.limit:status='BOUNDED_COMPLETE';break
         if len(records)==len(jobs):status='COMPLETED' if all(r['status']=='COMPLETED' for r in records.values()) else 'PARTIAL';break
         if not found:

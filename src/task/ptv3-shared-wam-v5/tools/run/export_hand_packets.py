@@ -231,10 +231,12 @@ def main():
     jobs=sorted(plan['jobs'],key=lambda j:(sources.index(j['source_id']) if j['source_id'] in sources else 999,j['key']))
     first=[next(j for j in jobs if j['source_id']==sid) for sid in sources if any(j['source_id']==sid for j in jobs)]
     ordered=first+[j for j in jobs if j not in first]
+    stopped=False
     for job in ordered:
         sid=job['source_id'];key=job['key']
         if sid not in sources or (a.limit_per_source and counts.get(sid,0)>=a.limit_per_source):continue
-        if time.monotonic()-started>a.seconds or (a.output/'STOP').exists() or shutil.disk_usage(a.output).free<20*2**30:break
+        if time.monotonic()-started>a.seconds or (a.output/'STOP').exists() or shutil.disk_usage(a.output).free<20*2**30:
+            stopped=True;break
         record=a.output/'records'/(key+'.json')
         previous=json.loads(record.read_text()) if record.exists() else None
         upgrade=a.upgrade_native_surfaces and sid in (8,9) and (previous or {}).get('surface_adapter')!='native-mano-v1'
@@ -256,7 +258,8 @@ def main():
                 ready=sum(r['status']=='READY' for r in ledger.values()),elapsed_s=time.monotonic()-started,
                 python=sys.version,device='CPU annotation extraction; no neural inference')
             atomic_json(a.output/'progress.json',progress);print(json.dumps(progress),flush=True)
-    atomic_json(a.output/'export-finished.json',dict(status='FINISHED',processed=len(ledger),counts=counts,elapsed_s=time.monotonic()-started))
+    atomic_json(a.output/('export-stopped.json' if stopped else 'export-finished.json'),
+        dict(status='STOPPED' if stopped else 'FINISHED',processed=len(ledger),counts=counts,elapsed_s=time.monotonic()-started))
 
 
 if __name__=='__main__':main()
