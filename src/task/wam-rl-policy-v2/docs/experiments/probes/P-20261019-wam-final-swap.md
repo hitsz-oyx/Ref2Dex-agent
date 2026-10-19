@@ -34,3 +34,9 @@ workspace_failures=0，optimizer_steps=0。与此前同配置结果存在几例�
 本次应使用同期对照，不以历史79.7%作为固定真值。新模型未评估：bound manifest
 权限000，需要所有者提供可读副本。权重正在下载；完成后后台CPU加载验证写入
 outputs/ptv3-shared-wam-v4/local-control-final-20261019-r1/download-status.json。
+
+用户随后明确授权仅替换checkpoint、沿用现有本地geometry。新增仅评估可用的
+--allow-wam-geometry-replacement，显式记录训练绑定摘要与实际manifest摘要，
+不修改checkpoint，不关闭本地payload/32query/512surface有效性检查。
+结果仅解释为“固定本地几何下直接换权重”，不是严格复现远端几何的部署。
+有效run_id=wam-final-swap-20261019-r2；同时重跑旧权重对照。

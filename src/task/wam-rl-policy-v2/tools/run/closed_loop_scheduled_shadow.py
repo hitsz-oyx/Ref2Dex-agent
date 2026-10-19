@@ -24,6 +24,7 @@ def main():
  p.add_argument('--evaluate',action='store_true',help='Deterministic first-episode evaluation; no optimizer updates')
  p.add_argument('--object-manifest',type=Path);p.add_argument('--rl-checkpoint',type=Path)
  p.add_argument('--wam-checkpoint',type=Path);p.add_argument('--wam-surface-manifest',type=Path)
+ p.add_argument('--allow-wam-geometry-replacement',action='store_true',help='Evaluation only: explicitly substitute the local geometry manifest')
  p.add_argument('--rank',type=int,default=0);p.add_argument('--world-size',type=int,default=1)
  p.add_argument('--rendezvous',default='tcp://127.0.0.1:29671')
  p.add_argument('--save-every',type=int,default=20)
@@ -31,6 +32,7 @@ def main():
  if not 1<=a.episodes<=4 or not 1<=a.ticks<=180:raise ValueError('Bounded native probe required')
  if a.ppo_smoke and (a.episodes!=1 or a.ticks%4):raise ValueError('PPO smoke needs one episode and ticks divisible by4')
  if not 1<=a.envs<=(256 if a.official_ppo else 32) or not 0<=a.ppo_updates<=(10000 if a.official_ppo else 100):raise ValueError('Bounded batch pilot required')
+ if a.allow_wam_geometry_replacement and not a.evaluate:raise ValueError('Geometry replacement is evaluation-only')
  if a.evaluate and (not a.official_ppo or not a.rl_checkpoint or a.ppo_updates or a.world_size!=1):raise ValueError('Evaluation requires official checkpoint, single rank and zero updates')
  if a.envs>1 and not (a.ppo_updates or a.evaluate):raise ValueError('Batched execution requires PPO pilot')
  if a.ppo_updates and (a.ppo_smoke or a.ticks*a.envs%4):raise ValueError('Equal PPO minibatches required')
@@ -114,8 +116,10 @@ def main():
   cache=ROOT/'outputs/shadow-finetune/policy-data-full-20261015-r1';snap=ROOT/'outputs/ptv3-shared-wam-v4/local-control-snapshot-20261018-r1'
   wam_checkpoint=a.wam_checkpoint or snap/'step12000-local.pt'
   wam_surface=a.wam_surface_manifest or snap/'surface-manifest.json'
-  runtime=V4Runtime(wam_checkpoint,env_objects,cache,dense_manifest=wam_surface)
-  manifest.update(wam_checkpoint=str(wam_checkpoint),wam_surface_manifest=str(wam_surface))
+  runtime=V4Runtime(wam_checkpoint,env_objects,cache,dense_manifest=wam_surface,
+    allow_geometry_replacement=a.allow_wam_geometry_replacement)
+  manifest.update(wam_checkpoint=str(wam_checkpoint),wam_surface_manifest=str(wam_surface),
+    wam_geometry_identity=runtime.geometry_identity)
   manifest['wam_step']=runtime.step
   if a.ppo_updates or a.evaluate:
    if a.official_ppo:

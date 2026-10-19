@@ -247,7 +247,8 @@ class V4Runtime:
     """Load one v4 checkpoint and expose explicit online inference modes."""
 
     def __init__(self, checkpoint, env_objects, cache, *, dense_manifest=None,
-                 dense_sha256=None, device="cuda:0", model_factory=None):
+                 dense_sha256=None, device="cuda:0", model_factory=None,
+                 allow_geometry_replacement=False):
         packet = torch.load(Path(checkpoint), map_location="cpu", weights_only=False)
         if packet.get("schema") != V4_SCHEMA:
             raise ValueError("v4 runtime requires ref2dex.ptv3-shared-wam.v4")
@@ -255,7 +256,14 @@ class V4Runtime:
         self.step = int(packet.get("step", 0))
         recipe = self.stats.get('recipe', {})
         bound_digest = recipe.get('surface_geometry_sha256')
-        if bound_digest is not None:
+        self.geometry_identity = dict(checkpoint_bound_sha256=bound_digest,
+            replacement_authorized=bool(allow_geometry_replacement))
+        if allow_geometry_replacement:
+            if dense_manifest is None:
+                raise ValueError('Explicit local manifest required for geometry replacement')
+            dense_sha256 = hashlib.sha256(Path(dense_manifest).read_bytes()).hexdigest()
+            self.geometry_identity['actual_manifest_sha256'] = dense_sha256
+        if bound_digest is not None and not allow_geometry_replacement:
             if dense_sha256 is not None and dense_sha256 != bound_digest:
                 raise ValueError('checkpoint and online dense geometry identities differ')
             dense_sha256 = bound_digest
