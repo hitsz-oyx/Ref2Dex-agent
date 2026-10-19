@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [246]
 decision_changed_if_positive: continue training if fixed-panel performance improves
 decision_changed_if_negative: investigate plateau or regression before increasing training budget
-status: COMPLETED
+status: RUNNING
 run_id: checkpoint-eval-20261019-r3
 ---
 
@@ -100,3 +100,22 @@ graspenv/PyTorch2.4.1+cu121/IsaacGym Preview4。每worker≤900s、总≤2400s�
 单条件仿真评估150–152s；GPU6/7活跃期约98–100%、约6.8GiB（含原共享任务）。
 未改主训练、未新增训练checkpoint。产物：late-checkpoint-eval-20261019-r1下
 comparison.json、initial-state-audit.json、checkpoint-trend.png及各step结果。
+
+## 10000终点、全部96物体的平台期复核
+
+用户追加评估六卡混合训练是否到平台。r4已正常完成10000轮。Decision：若末段仍有
+≥5pp改善，不把当前预算终点当收敛；若8500→10000与9500→10000的原生曾成功和
+最终稳定保持均变化≤3pp，作为本TRAIN面板平台迹象，暂不扩大训练预算。
+同时检查以物体为cluster的配对区间是否仍允许≥5pp收益，不宣称全局收敛或WAM净增益。
+
+最低可判别追加：run_id=full-plateau-eval-20261019-r1，7000/8500/9500/10000四checkpoint，
+实际六rank全部96 TRAIN物体，每物体8场景=768场景/轮；分为3个32物体×256环境子面板。
+固定seed246、确定性首回合200步、0 optimizer更新，保留原WAM12000、SE3/legacy/workspace
+任务合同。新建32物体只读资产视图，不修改旧rank资产；checkpoint复制固定后评估。
+逐面板核对obs/pose/hand/goal/完整root和env对象身份，未匹配组不得用作严格配对趋势。
+该面板与此前16物体×16场景不同，不直接混用此前成功率。
+
+GPU0–3最多4个评估worker，GPU6/7的Inspire长训保持运行，GPU4/5空闲，满足预留两卡；
+每worker≤900秒、总≤2400秒、产物≤4GiB、磁盘余量<20GiB停止，环境graspenv/Torch2.4.1+
+Isaac Preview4。复用同一原生评估器，launcher只扩展GPU配置与多面板任务命名，不改策略或reward。
+产物：outputs/wam-rl-policy-v2/full-plateau-eval-20261019-r1/。
