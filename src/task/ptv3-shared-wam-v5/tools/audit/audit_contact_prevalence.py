@@ -15,6 +15,7 @@ from ptv3_shared_wam_v5.contact_audit import (
     AUDIT_VERSION, SOURCE_NAMES, empty_counts, add_counts, contact_counts, describe_counts, future_exposure)
 from ptv3_shared_wam_v5.contracts import LABEL_SEMANTICS
 from ptv3_shared_wam_v5.storage import read_json, load_array
+from ptv3_shared_wam_v5.window_contract import history_admitted
 
 
 def write(path, value):
@@ -23,7 +24,7 @@ def write(path, value):
     pending.replace(path); path.chmod(0o664)
 
 
-def sequence_counts(job, plan_root, contacts, check):
+def sequence_counts(job, plan_root, contacts, check, hands=None):
     folder = contacts/job['key']; meta = read_json(folder/'meta.json')
     if (meta['label_semantics'] != LABEL_SEMANTICS or meta['key'] != job['key']
             or meta['source_id'] != job['source_id']):
@@ -33,8 +34,13 @@ def sequence_counts(job, plan_root, contacts, check):
     parts = load_array(folder/'part.npy', mmap_mode='r')
     if c.shape != valid.shape+(2048,) or valid.dtype != np.bool_ or parts.shape != c.shape:
         raise ValueError('unexpected contact cache shape/dtype')
-    exposures = {split: future_exposure(load_array(plan_root/path), len(c), c.shape[1])
-                 for split, path in job['windows'].items()}
+    jv = load_array(hands/'sequences'/job['key']/'joint_valid.npy', mmap_mode='r') if hands else None
+    exposures = {}; rejected = {}
+    for split, path in job['windows'].items():
+        rows = load_array(plan_root/path)
+        keep = history_admitted(jv, rows[:,1]) if jv is not None else np.ones(len(rows), bool)
+        rejected[split] = int((~keep).sum())
+        exposures[split] = future_exposure(rows[keep], len(c), c.shape[1])
     totals = {name: empty_counts() for name in ('cached_frames', 'train_uniform_windows', 'dev_uniform_windows')}
     for start in range(0, len(c), 16):
         check()
@@ -45,24 +51,28 @@ def sequence_counts(job, plan_root, contacts, check):
     if totals['cached_frames']['object_frames'] != meta['valid_object_frames']:
         raise ValueError('contact validity disagrees with metadata')
     return dict(key=job['key'], source_id=job['source_id'], views=totals,
-                masked_object_frames=int(valid.size-valid.sum()))
+                masked_object_frames=int(valid.size-valid.sum()), h4_rejected_windows=rejected)
 
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     for name in ('plan', 'contacts', 'output'): p.add_argument('--'+name, type=Path, required=True)
+    p.add_argument('--hands', type=Path, help='Defaults to bound contact upstream; required for exact repaired H4 admission')
     p.add_argument('--git-commit', required=True); p.add_argument('--watch', action='store_true')
     p.add_argument('--seconds', type=int, default=10800)
     a = p.parse_args()
     if a.seconds <= 0: p.error('positive runtime required')
     a.output.mkdir(parents=True, exist_ok=False)
     started = time.monotonic(); plan = read_json(a.plan)
+    if a.hands is None and (a.contacts/'cache-contract.json').exists():
+        a.hands = Path(read_json(a.contacts/'cache-contract.json')['inputs']['hands'])
     expected = Counter(j['source_id'] for j in plan['jobs'])
     manifest = dict(work_version=AUDIT_VERSION, git_commit=a.git_commit, run_id=a.output.name,
                     pid=os.getpid(), plan=str(a.plan.resolve()), contacts=str(a.contacts.resolve()),
                     seconds=a.seconds, min_free_gib=20, max_output_mib=128,
                     python=sys.version, numpy=np.__version__, device='CPU cache reductions; no model inference',
                     label_semantics=LABEL_SEMANTICS)
+    manifest.update(hands=str(a.hands.resolve()) if a.hands else None, h4_admission_applied=a.hands is not None)
     write(a.output/'run-manifest.json', manifest)
     done = set(); sources = {}; last_write = 0
 
@@ -80,7 +90,8 @@ def main():
         value = dict(status=status, reason=reason, work_version=AUDIT_VERSION, sequences=len(done),
             expected_sequences=len(plan['jobs']), elapsed_s=time.monotonic()-started, checked_at=time.time(),
             sources=rows, scope='Full cached valid frame/object/query counts on admitted TRAIN/DEV sequences; no TEST.',
-            window_exposure='TRAIN/DEV K24 labels counted with repeated appearances, uniform windows within source. Source probabilities and motion-stratum weights are NOT applied.',
+            h4_admission_applied=a.hands is not None,
+            window_exposure='TRAIN/DEV K24 labels counted with repeated appearances, uniform windows within source. Source probabilities and motion-stratum weights are NOT applied. Without hands, only original plan admission is represented.',
             limitation='Source rates and coverage must be read together. Partial caches can be biased. No automatic BCE/teacher change.')
         write(a.output/'summary.json', value)
         print(json.dumps({k: value[k] for k in ('status', 'sequences', 'expected_sequences', 'elapsed_s')}), flush=True)
@@ -99,10 +110,12 @@ def main():
                     if key in done or key not in available: continue
                     check()
                     if not (a.contacts/key/'meta.json').exists(): continue
-                    row = sequence_counts(job, a.plan.parent, a.contacts, check)
+                    row = sequence_counts(job, a.plan.parent, a.contacts, check, a.hands)
                     source = sources.setdefault(job['source_id'], dict(sequences=0, masked_object_frames=0,
+                        h4_rejected_windows=dict(train=0, dev=0),
                         views={k: empty_counts() for k in row['views']}))
                     source['sequences'] += 1; source['masked_object_frames'] += row['masked_object_frames']
+                    for split, count in row['h4_rejected_windows'].items(): source['h4_rejected_windows'][split] += count
                     for view, counts in row['views'].items(): add_counts(source['views'][view], counts)
                     log.write(json.dumps(row, separators=(',', ':'))+'\n'); log.flush()
                     done.add(key); changed = True
