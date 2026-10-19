@@ -45,6 +45,7 @@ def main():
     p.add_argument('--gpu',type=int,default=7);p.add_argument('--seed',type=int,default=246)
     p.add_argument('--seconds',type=int,default=1800);p.add_argument('--motions',type=int,default=0)
     p.add_argument('--object-manifest',type=Path)
+    p.add_argument('--state-transport',choices=['json','packed'],default='json')
     a=p.parse_args();a.cache=a.cache.resolve();a.output=a.output.resolve();a.socket=a.socket.resolve()
     if a.output.exists() or ROOT/'outputs/wam-rl-policy-v2' not in a.output.parents or not 2<=a.envs<=256:
         raise ValueError('fresh bounded native host required')
@@ -66,6 +67,7 @@ def main():
     from trajectory_policy.wam_shadow import NATIVE_LINKS
     from trajectory_policy.pd_retargeter import pd_from_action
     from trajectory_policy.wam_ipc import send,receive,peer_pid
+    from wam_rl_policy_v2.inspire_state_codec import pack_state
     if torch.__version__!='2.0.1+cu118':raise ValueError('pinned native Torch2.0.1 required')
     torch.set_num_threads(2);torch.manual_seed(a.seed);np.random.seed(a.seed)
     meta=json.loads((a.cache/'manifest.json').read_text());records=[r for r in meta['sequences'] if r['split']=='train']
@@ -105,6 +107,7 @@ def main():
         policy='none; Shadow PPO in remote process',native_ref_observation_consumed=False,
         native_ref_reward_used=False,native_ref_termination_used=False,source_sequences=len(files),
         source_sequence_names=[r['sequence'] for r in records],source_object_names=sorted({r['object'] for r in records}),
+        state_transport=a.state_transport,
         indexed_resets=0,steps=0,episode_action_mismatches=0,maximum_pd_error=0.)
     def save():
         (a.output/'manifest.json').write_text(json.dumps(audit,indent=2)+'\n')
@@ -143,11 +146,14 @@ def main():
             names=task.gym.get_actor_rigid_body_names(task.envs[0],task.humanoid_handles[0]);hand_ids=[names.index(x) for x in NATIVE_LINKS]
             episodes=np.zeros(a.envs,np.int64)
             def packet():
+                packet_started=time.perf_counter()
                 bodies=task._rigid_body_state.view(a.envs,-1,13)
                 objects=task._target_states.clone();sign=torch.where(objects[:,6:7]<0,-1.,1.);objects[:,3:7]*=sign
                 values=dict(q=task._dof_pos,dq=task._dof_vel,physical=physical248(task),objects=objects,hand=bodies[:,hand_ids,:3],tick=task.progress_buf)
-                result={k:v.cpu().tolist() for k,v in values.items()}
+                result=(pack_state({k:v.cpu().numpy() for k,v in values.items()}) if a.state_transport=='packed'
+                        else {k:v.cpu().tolist() for k,v in values.items()})
                 result.update(episodes=episodes.tolist(),sequences=[Path(task.motion_file[i]).name for i in task.data_id.cpu().tolist()])
+                audit['last_packet_build_s']=time.perf_counter()-packet_started
                 return result
             connection=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);connection.settimeout(min(180,a.seconds));connection.connect(str(a.socket))
             if peer_pid(connection)!=a.server_pid:raise ValueError('wrong policy peer')
@@ -168,7 +174,9 @@ def main():
                     if op=='reset':
                         selected=np.asarray(command['ids'],np.int64)
                         if len(selected)!=len(np.unique(selected)) or (selected<0).any() or (selected>=a.envs).any():raise ValueError('invalid indexed reset')
+                        reset_started=time.perf_counter()
                         task.reset(torch.as_tensor(selected,device=task.device));episodes[selected]+=1
+                        audit['last_reset_s']=time.perf_counter()-reset_started
                         audit['indexed_resets']+=len(selected)
                     elif op=='step':
                         if command['episodes']!=episodes.tolist():
@@ -176,9 +184,10 @@ def main():
                         action=torch.tensor(command['action'],device=task.device,dtype=torch.float32)
                         if action.shape!=(a.envs,18) or not torch.isfinite(action).all() or action.abs().max()>1.00001:raise ValueError('finite canonical18 action required')
                         original_action=action.clone();expected=pd_from_action(action,task._dof_pos,task._pd_action_offset,task._pd_action_scale)
-                        task.step(action.clone())
+                        physics_started=time.perf_counter();task.step(action.clone())
                         pd_error=float((expected-actual_pd).abs().max());audit['maximum_pd_error']=max(audit['maximum_pd_error'],pd_error)
                         if not torch.equal(action,original_action) or not torch.equal(captured,action) or pd_error>1e-6:raise ValueError('canonical/PD corruption')
+                        audit['last_physics_and_pd_check_s']=time.perf_counter()-physics_started
                         audit['steps']+=1
                     else:raise ValueError('unknown native operation')
                     send(connection,dict(state=packet()))

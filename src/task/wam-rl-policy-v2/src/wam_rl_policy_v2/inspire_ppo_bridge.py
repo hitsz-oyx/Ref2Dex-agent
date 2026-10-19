@@ -38,7 +38,8 @@ def shadow_path_reward(objects,hands,actions,initial_z,decisions,previous_progre
 class RemoteInspireEnv:
     def __init__(self,connection,hello,cache,runtime,*,reset_probe=False):
         from gym import spaces
-        self.connection=connection;self.runtime=runtime;self.cache=Path(cache);self.native=hello['state'];self.audit=hello['audit']
+        from .inspire_state_codec import unpack_state
+        self.connection=connection;self.runtime=runtime;self.cache=Path(cache);self.native=unpack_state(hello['state']);self.audit=hello['audit']
         self.num_envs=len(self.native['q']);self.num_environments=self.num_envs;self.num_observations=INPUT_DIM
         self.num_actions=12;self.num_states=0;self.rl_device=str(runtime.device)
         self.observation_space=spaces.Box(-np.inf,np.inf,shape=(INPUT_DIM,),dtype=np.float32)
@@ -68,7 +69,10 @@ class RemoteInspireEnv:
 
     def rpc(self,op,**values):
         from trajectory_policy.wam_ipc import send,receive
-        send(self.connection,dict(op=op,**values));return receive(self.connection)
+        from .inspire_state_codec import unpack_state
+        send(self.connection,dict(op=op,**values));packet=receive(self.connection)
+        if 'state' in packet:packet['state']=unpack_state(packet['state'])
+        return packet
 
     def _refresh(self,indices,reset=False):
         indices=list(indices);n=self.num_envs
@@ -82,7 +86,9 @@ class RemoteInspireEnv:
                 self.max_lift[i]=0;self.lift_streak[i]=0;self.longest_lift[i]=0;self.lift_dropped[i]=False
         goals=np.stack([self.references[s][-1,:3,3] for s in self.native['sequences']])
         current=current_state(self.native['q'],self.native['dq'],self.native['physical'],objects,goals,self.previous)
-        result=self.inputs.observation(current,poses,np.asarray(self.native['hand']),np.asarray(self.native['tick']),indices=indices)
+        # JSON lists originally promoted measured hand coordinates to float64.
+        # Preserve that arithmetic for lossless packed float32 transport too.
+        result=self.inputs.observation(current,poses,np.asarray(self.native['hand'],np.float64),np.asarray(self.native['tick']),indices=indices)
         self.observations[indices]=result['observation'][indices];self.workspace[indices]=result['workspace_invalid'][indices]
         for i in indices:self.decisions[i]=result['scheduler'][i]
         return objects
@@ -108,7 +114,7 @@ class RemoteInspireEnv:
         # startup-only call. Report the actual full-environment policy tick.
         self.input_timings=dict(self.inputs.timings)
         refreshed=time.perf_counter()
-        reward,self.progress=shadow_path_reward(objects,np.asarray(self.native['hand']),canonical,self.initial_z,self.decisions,self.progress)
+        reward,self.progress=shadow_path_reward(objects,np.asarray(self.native['hand'],np.float64),canonical,self.initial_z,self.decisions,self.progress)
         complete=np.array([d['complete'] for d in self.decisions]);self.ever_complete|=complete
         timed_out=np.array([d['timed_out'] for d in self.decisions])
         horizon=np.array([len(self.references[s])+30 for s in self.native['sequences']])

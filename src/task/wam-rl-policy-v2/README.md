@@ -103,6 +103,10 @@ Inspire吞吐选项由`launch_inspire_mixed_ppo.py`显式指定：
 参考路径初始化批量验证相同SE3条件并保持路径数组逐位一致。
 `tools/audit/benchmark_inspire_inference.py`提供50 TRAIN物体的固定H4计时/精度检查；
 在线日志的`rollout_timings`区分物理RPC、WAM、scheduler、indexed reset及传输。
+`--state-transport packed`将原生float32/int状态以有界原始字节/base64嵌入原JSON帧，
+减少浮点列表编解码；不使用pickle，逐字段检查dtype/shape/长度/有限性。
+原JSON列表的hand float64运算在adapter中显式保留，回归检查观测/reward/done逐位一致。
+该选项同样记录在inference身份，切换需要显式performance migration。
 
 旧`inspire_scheduled_probe.py`/`inspire_executor.py`是已归档的current986/小型单序列工程试跑，
 不作为全量路线的BC或PPO入口；其失败结果不代表上述完整Shadow配方。

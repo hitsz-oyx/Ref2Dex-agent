@@ -262,3 +262,21 @@ TF32仅包围共享Transformer调用，异常和正常返回均恢复；PPO math
 70项Task测试通过，新增批量参考验证、precision作用域异常恢复及真实adapter门槛反例。
 固定输入与计时产物：outputs/wam-rl-policy-v2/inspire-throughput-20261019-r1/，当前约77MiB；
 不生成视频，不修改外部数据，保留两张卡。拟从iteration300用新冻结版本续训，在线比较整轮耗时。
+
+
+第一阶段已从iteration300续为inspire-mixed6-20261019-r2，冻结6f14ad6c。
+最初稳定窗口整轮约10.8–11.1s，对原无争抢18.56s约1.7倍；首轮六rank同步误差0、
+均值/logprob回放0，各卡实际状态的TF32与完整FP32最大偏差0.247–0.313mm。
+40秒GPU采样为60.7/54.1/57.1/57.2/52.0/56.0%，约56.2%，没有将吞吐增加误报成
+nvidia-smi利用率上升。WAM计算变快后，CPU scheduler/物理RPC/reset占比增大。
+新rollout分解典型为WAM5.7–5.9s、scheduler1.55–1.65s、物理RPC1.24–1.40s，
+另有indexed reset1.1–1.4s；后者含再次传输全量状态。
+
+第二阶段工程决策：是否用完全无损的数组打包减少跨运行时浮点JSON开销？
+实际字段形状/数值的256环境CPU微计时30重复，列表JSON往返77.30ms、1,646,714bytes；
+原始float32/int字节/base64嵌入现有有界JSON帧5.68ms、458,820bytes，约13.6倍。
+保留原frame上限、peer PID认证及私有socket；不在wire使用pickle，检查dtype/shape/长度/有限性。
+新codec跨原生NumPy1.23.5与模型NumPy1.24.4逐字段逐位通过；原列表造成的hand float64
+运算在adapter显式保持，实际RemoteInspireEnv的观测/reward/done严格rtol=atol=0通过。
+78项Task测试通过。默认JSON，新模式显式--state-transport packed并写入推理身份。
+拟在下一次完整更新边界保存r2后继续启用packed，算法/采样/物理/任务保持。

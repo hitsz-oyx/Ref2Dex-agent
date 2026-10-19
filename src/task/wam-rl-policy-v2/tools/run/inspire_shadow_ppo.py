@@ -28,6 +28,7 @@ def main():
     p.add_argument('--rendezvous');p.add_argument('--stop-file',type=Path);p.add_argument('--save-every',type=int,default=20)
     p.add_argument('--wam-executor-mode',choices=['full_fp32','hand_fp32','hand_shared_tf32'],default='full_fp32')
     p.add_argument('--wam-batch',type=int,default=128);p.add_argument('--performance-migration-reason')
+    p.add_argument('--state-transport',choices=['json','packed'],default='json')
     a=p.parse_args();a.output=a.output.resolve();a.cache=a.cache.resolve();a.socket=a.socket.resolve()
     if a.output.exists() or ROOT/'outputs/wam-rl-policy-v2' not in a.output.parents or not 0<=a.updates<=10000:raise ValueError('fresh bounded Task output required')
     if a.current_parent and (a.updates>4 or a.resume):raise ValueError('expanded current BC is engineering-only, max4 updates')
@@ -73,6 +74,7 @@ def main():
         connection,_=listener.accept();connection.settimeout(300);hello=receive(connection)
         if hello.get('schema')!='ref2dex.inspire-shadow-rpc.v1':raise ValueError('wrong native protocol')
         state['native_peer_pid']=peer_pid(connection)
+        if hello['audit'].get('state_transport','json')!=a.state_transport:raise ValueError('native state transport mismatch')
         objects=[dict(object_code='dexplore/'+s.split('_')[1],scale=1) for s in hello['state']['sequences']]
         runtime=V4Runtime(meta['wam'],objects,a.cache,dense_manifest=a.cache/'surface-manifest.json',allow_geometry_replacement=True)
         runtime.executor_batch=a.wam_batch;runtime.executor_inference_mode=a.wam_executor_mode
@@ -84,7 +86,7 @@ def main():
             task_goal='ordered full object SE3 path',task_reward='shadow_approach_with_ordered_path_tracking.v1',
             scheduler=env.inputs.schedulers[0].config.__dict__,source=str(a.cache),
             reset='explicit_indexed_reset_then_observation_then_policy.v1',native_controller=hello['audit']['controller'],native_dt=hello['audit']['native_dt_s'],
-            inference=env.inputs.performance_contract())
+            inference=dict(env.inputs.performance_contract(),state_transport=a.state_transport))
         if a.world_size>1:
             import torch.distributed as dist
             from datetime import timedelta
@@ -106,6 +108,11 @@ def main():
             prior=saved.get('execution_identity')
             if prior is not None and 'inference' not in prior:
                 prior=dict(prior,inference=dict(identity['inference'],mode='full_fp32',batch=128,shared_transformer_math='fp32'))
+            elif prior is not None:
+                prior=dict(prior,inference=dict(prior['inference']))
+                prior['inference'].setdefault('state_transport','json')
+            if saved.get('execution_identity') is not None and 'inference' not in saved['execution_identity']:
+                prior['inference']['state_transport']='json'
             migration=validate_execution(prior,identity,evaluating=a.evaluate,migration_reason=a.performance_migration_reason)
             if migration['changed'] and migration['differences']!=['inference']:
                 raise ValueError('performance migration may change only inference execution settings')
@@ -172,7 +179,7 @@ def main():
                 value_loss=float(metrics[1]),surrogate_loss=float(metrics[2]),
                 effective_std=float(ppo.actor_critic.log_std.exp().square().mean()),lr=ppo.step_size,
                 input_timings=env.input_timings,rollout_timings=env.rollout_timing_totals(),
-                inference=env.inputs.performance_contract(),inference_audits=env.inputs.inference_audits,
+                inference=identity['inference'],inference_audits=env.inputs.inference_audits,
                 tau_input_weight_norm=float(ppo.actor_critic.actor.net[0].weight[:,CURRENT_DIM:-1].detach().norm()),
                 completed_episodes=int(counts[0]),ordered_path_successes=int(counts[1]),
                 ever_held1s=int(counts[2]),final_held1s=int(counts[3]),workspace_failures=int(counts[4]),
