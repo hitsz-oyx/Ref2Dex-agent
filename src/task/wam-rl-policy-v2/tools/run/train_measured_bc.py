@@ -70,7 +70,9 @@ def main():
     out = a.output.resolve()
     if ROOT / "outputs/wam-rl-policy-v2" not in out.parents:
         raise ValueError("Task output required")
-    if out.exists() or not 1 <= a.batch <= 8192 or a.steps != 50000:
+    if out.exists() and any(out.iterdir()):
+        raise ValueError("fresh bounded Current421 run required")
+    if not 1 <= a.batch <= 8192 or a.steps != 50000:
         raise ValueError("fresh bounded Current421 run required")
     if not 60 <= a.seconds <= 28800:
         raise ValueError("bounded wall-clock budget required")
