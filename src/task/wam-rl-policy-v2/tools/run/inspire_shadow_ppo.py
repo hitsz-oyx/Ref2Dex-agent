@@ -134,7 +134,7 @@ def main():
             if state['optimizer_steps']!=a.updates*20:raise ValueError('Shadow optimizer cadence changed')
         state.update(status='COMPLETED',elapsed_s=time.monotonic()-started)
         write(a.output/'reset-audit.json',env.reset_audits)
-        write(a.output/'learning-audit.json',dict(status='PASS',**state))
+        write(a.output/'learning-audit.json',dict(state,status='PASS'))
         env.rpc('close')
     except BaseException as error:
         state.update(status='FAILED',error=repr(error));raise
