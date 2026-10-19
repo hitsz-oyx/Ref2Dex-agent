@@ -13,7 +13,10 @@ def vector(node,key,default):
 def local_pose(node):
     t=np.eye(4);t[:3,3]=vector(node,'pos','0 0 0')
     if 'quat' in node.attrib:t[:3,:3]=Rotation.from_quat(vector(node,'quat','')[ [1,2,3,0] ]).as_matrix()
-    elif 'euler' in node.attrib:t[:3,:3]=Rotation.from_euler('xyz',vector(node,'euler','')).as_matrix()
+    elif 'euler' in node.attrib:t[:3,:3]=Rotation.from_euler('XYZ',vector(node,'euler','')).as_matrix()
+    elif 'axisangle' in node.attrib:
+        value=vector(node,'axisangle','');axis=value[:3]/np.linalg.norm(value[:3])
+        t[:3,:3]=Rotation.from_rotvec(axis*value[3]).as_matrix()
     return t
 
 
