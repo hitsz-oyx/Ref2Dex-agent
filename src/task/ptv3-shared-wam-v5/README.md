@@ -127,8 +127,9 @@ file in a stage output requests a reversible stop; completed data is retained.
   src/task/ptv3-shared-wam-v5/tests
 ```
 
-The1024-width config is
-`configs/pretrain_joint21_surface2048_scale1024.json`. The contact head uses
+The current768-width/12-head/12-layer config is
+`configs/pretrain_joint21_surface2048.json`; the earlier1024-width config is
+retained at `configs/pretrain_joint21_surface2048_scale1024.json`. The contact head uses
 checkpointed256-query chunks to bound activations; equivalence and gradients
 are tested. Losses use separate global DDP denominators for joint motion,
 motion-weighted object flow, contact BCE and positive-contact part CE.

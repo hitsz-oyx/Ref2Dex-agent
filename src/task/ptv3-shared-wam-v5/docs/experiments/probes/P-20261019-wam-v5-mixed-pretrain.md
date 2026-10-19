@@ -5,7 +5,7 @@ experiment_id: P-20261019-wam-v5-mixed-pretrain
 date: 2026-10-19
 task: ptv3-shared-wam-v5
 branch: main
-git_commit: 395ab290
+git_commit: 6334e1ea
 claim_id: C1
 hypothesis_family: HF-v5-nine-source-learnability
 probe_index_in_family: 1
@@ -61,7 +61,7 @@ the admitted data/statistics, four GPUs, local128/global512, seeds170/171 and
 80k bound are retained. Start from scratch because tensor shapes differ;
 preserve the1024 run and its final controlled-stop checkpoint. This is another
 run of the same learning Probe, not a new independent replication or a matched
-trained-width comparison. Until the new run is checked, its launch is pending.
+trained-width comparison. Its actual startup result is recorded below.
 
 - One synchronous DDP model on remote GPUs0/1/2/3, local batch128/global512,
   eight loader workers/rank, two intraop threads/rank, bounded reader caches.
@@ -114,7 +114,7 @@ No checkpoint was written or used to initialize sustained training. The parent
 experiment remains a learning Probe, while this startup check is engineering.
 Remote evidence: `outputs/ddp-startup-20261019-r1/`.
 
-## Sustained run startup result
+## Initial1024 run startup result (subsequently stopped)
 
 All39526 hand/contact sequences completed, with16250070 valid object frames;
 16-worker contact completion took879.79s without changing the teacher. The
@@ -147,9 +147,36 @@ Remote receipt: `outputs/pretrain-nine-v5-20261019-r1-startup-report.json`.
 Local evidence: `outputs/ptv3-shared-wam-v5/pretrain-nine-v5-20261019-r1/`
 contains `startup-report.json` and `ddp-smoke-result.json` (not tracked).
 
-Result: full-data four-GPU mixed pretraining has started, with real updates,
-published recoverable checkpoints and a completed first DEV evaluation.
+## User-directed768 replacement
 
-Decision: continue the authorized80k bounded run and use later fixed DEV
-panels to assess learning; keep the teacher/loss and v4 scale job unchanged
-in their current states (v4 stopped, v5 normal-aware/balanced variants disabled).
+The1024 run stopped normally at869 updates, status STOPPED, with complete
+`step000869.pt` (1993176330 bytes) plus earlier protected outputs retained.
+No forced kill was needed. All four GPUs were released before the new launch.
+The transition receipt is the old run's `user-stop-width768.json`.
+
+The768 run uses frozen6334e1ea, supervisor3033996/torchrun3034138, fresh run
+`outputs/ptv3-shared-wam-v5/pretrain-nine-v5-width768-20261019-r1/`.
+Launch receipt: `outputs/pretrain-nine-v5-width768-20261019-r1-launch.json`.
+Environment remains graspenv/Python3.8.20/Torch2.0.1+cu118 on four4090 GPUs.
+Config JSON/attention64-dimensional heads/K24 normalization invariants passed;
+only shared width1024→768 and shared heads16→12 changed.
+
+The768 startup report reached120 updates, RUNNING, finite loss4.68079 and all
+nine training sources sampled. The first DEV panel completed (macro objective
+5.1287846535 over the same eight available DEV sources), with `best.pt` and
+complete step1/20 checkpoints (1185762378/1185762570 bytes) published.
+Updates60–120 took0.888529s/update; all four GPUs100%, memory24163–28199MiB,
+rank0 peak allocated18.482GiB. Pure remaining updates estimate19.715h; allowing
+periodic DEV/checkpoint overhead, initial80k estimate21–23h. The recent-window
+update time is about23% below the earlier1024 window, but these short windows
+are not a matched performance experiment or evidence of final accuracy.
+Remote evidence: `outputs/pretrain-nine-v5-width768-20261019-r1-startup-report.json`;
+local copy: `outputs/ptv3-shared-wam-v5/pretrain-nine-v5-width768-20261019-r1/startup-report.json`.
+
+Result: the1024 run is preserved and stopped; the requested768 replacement
+has passed120 actual updates, first DEV and checkpoint publication on the same
+admitted full-data recipe.
+
+Decision: continue the768 authorized80k bounded run and
+use fixed DEV panels to assess learning. The stopped869-update1024 run does
+not answer whether either width has better final accuracy.

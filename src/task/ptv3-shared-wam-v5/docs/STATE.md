@@ -7,8 +7,8 @@
 
 ## 当前四卡训练协议
 
-[训练Probe](experiments/probes/P-20261019-wam-v5-mixed-pretrain.md)使用冻结395ab290代码，
-1024宽/12层、每卡128/全局512、8 workers/rank、bf16/TF32、两组LR1e-4、500步warmup、
+[训练Probe](experiments/probes/P-20261019-wam-v5-mixed-pretrain.md)按用户要求改为冻结6334e1ea代码，
+768宽/12头/12层、每卡128/全局512、8 workers/rank、bf16/TF32、两组LR1e-4、500步warmup、
 80k更新上限。沿用v4九源概率/运动分层及seed170，DEV固定seed171/256窗口每源，
 第20步首次验证、之后每1000步；首步/里程碑/最优/停止末步保存。
 
@@ -16,9 +16,13 @@
 含实际optimizer/DEV/非周期STOP保存及CPU逐位resume一致性。CUDA逐位resume仍未验证。
 当前已停止scale并保留39000完整checkpoint；旧launcher因own-STOP记FAILED是用户停止语义。
 新全量recipe已冻结并准入，TRAIN3218740/DEV545459窗口全部保留；21点归一化重算1152个TRAIN窗口。
-`pretrain-nine-v5-20261019-r1`已实际运行，supervisor3028892/torchrun3029034，
-启动报告已到280更新，首轮DEV和step1/20 checkpoint落盘；四卡100%、约24–30GiB/卡。
-最近稳定窗口约1.15s/update，80k含验证/存盘初估27–30h；仍在500步warmup，无效果结论。
+原1024运行`pretrain-nine-v5-20261019-r1`已通过own STOP正常结束于869步，
+完整`step000869.pt`（1993176330 bytes）、首步/20步及best产物保留。
+新`pretrain-nine-v5-width768-20261019-r1`已运行，supervisor3033996/torchrun3034138；
+宽度/头数是唯一配置差异，从头训练并沿用完整recipe/统计，不加载1024权重或optimizer。
+启动报告已到120步，九源均采样，step1/20及best已落盘、首轮DEV完成。
+60–120步约0.889s/update，四卡100%、24163–28199MiB/卡；80k含验证/存盘初估21–23h。
+短窗更新耗时比旧1024约少23%，不是严格匹配性能实验；尚无效果结论。
 
 ## 当前实现与已确认修复
 
@@ -59,7 +63,7 @@ batch128/4 workers完成8步AdamW，九源均出现，loss/梯度有限。GPU前
 | 修复手表面 | `data/hands-r2/progress.json`，39526完成；6471人手继承，33055 Shadow重建 |
 | 修复接触 | `data/contacts-r2/progress.json`，39526完成；parallel3025527已收尾 |
 | 训练准入冻结 | `outputs/finalize-training-20261019-r1/progress.json`，COMPLETED；recipe/统计已准入 |
-| 四卡长训 | `outputs/ptv3-shared-wam-v5/pretrain-nine-v5-20261019-r1/process.json`及`progress.json` |
+| 四卡长训 | `outputs/ptv3-shared-wam-v5/pretrain-nine-v5-width768-20261019-r1/process.json`及`progress.json` |
 | 全量比例审计 | `outputs/contact-audit-20261019-r2/prevalence-r3/summary.json`，PID3021191 |
 | 修复后法线小审计 | `outputs/contact-audit-20261019-r2/normals/summary.json`及六组PNG/NPZ |
 | GPU/修复证据 | `outputs/surface-repair-20261019-r2/`，gpu-smoke及matched-shadow-validation.json |
@@ -69,7 +73,10 @@ batch128/4 workers完成8步AdamW，九源均出现，loss/梯度有限。GPU前
 完整产物保留；比例审计5小时/128MiB，空闲NAS<20GiB或STOP停止。
 原`data/hands`中的Shadow、`data/contacts`和旧finalizer保留作诊断证据；旧contact已停止在4547条。
 初始工程9测试/18.94GiB记录对应旧全局C读出及旧Shadow表面，不能替代当前验证。
-新长训启动证据在远端`outputs/pretrain-nine-v5-20261019-r1-startup-report.json`。
+旧1024启动证据在远端`outputs/pretrain-nine-v5-20261019-r1-startup-report.json`；
+切换意图在旧运行`user-stop-width768.json`，新运行入口记录在
+`outputs/pretrain-nine-v5-width768-20261019-r1-launch.json`。
+768实际启动/吞吐证据：`outputs/pretrain-nine-v5-width768-20261019-r1-startup-report.json`。
 
 ## Contact决策
 
