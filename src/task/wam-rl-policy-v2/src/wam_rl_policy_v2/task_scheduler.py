@@ -64,6 +64,7 @@ class TaskScheduler:
         self.path_decision=None;self.settle_since=None;self.probe_origin=None
         self.failure_reason=None;self.complete=False;self.recovering=False;self.paid_events=set()
         self.plan_cursor_frame=float(self.spec.source_frames[0])
+        self.confirmed_progress=0.;self.confirmed_pointer=0;self.confirmed_path_complete=False
         self.acquire_source_origin=0.;self.event_index=0
         self.last_grasp=False;self.last_release=False
 
@@ -131,9 +132,19 @@ class TaskScheduler:
                 # excluding acquisition waiting from path timeout budgets.
                 if paused_path_budget and self.path.start_time is not None:
                     self.path.start_time+=dt;self.path.last_progress_time+=dt
+                candidate=feedback.grasp_candidate or feedback.grasp_established
+                if self.phase==Phase.ACQUIRE and not candidate:
+                    # Candidate motion is provisional until grasp confirmation.
+                    # Dropping that evidence discards the unconfirmed suffix.
+                    self.path.pointer=self.confirmed_pointer;self.path.complete=self.confirmed_path_complete
+                    self.path.settle_since=None;self.path.last_pose=None
+                    self.path.progress_anchor_arc=float(self.path.arc[self.path.milestones[self.confirmed_pointer]])
                 self.path_decision=self.path.update(actual,now,hand_points=hand_points,
-                    execution_ready=False if self.recovering else None)
-                self.plan_cursor_frame=max(self.plan_cursor_frame,float(self.spec.source_frames[self.path_decision['projected_index']]))
+                    execution_ready=bool(self.phase==Phase.TRACK or (candidate and not self.recovering)))
+                if self.phase==Phase.TRACK:
+                    self.confirmed_progress=self.path_decision['confirmed_progress']
+                    self.confirmed_pointer=self.path.pointer;self.confirmed_path_complete=self.path.complete
+                    self.plan_cursor_frame=max(self.plan_cursor_frame,float(self.spec.source_frames[self.path_decision['projected_index']]))
             if self.phase==Phase.TRACK:
                 goal=self.path_decision['goal_pose'].copy()
                 if self.path_decision['timed_out']:self.failure_reason='path_'+self.path_decision['reason']
@@ -157,11 +168,11 @@ class TaskScheduler:
         if self.complete:
             goal=self.path.poses[-1].copy()
             if self.spec.goal_type=='position_only':goal[:3,:3]=actual[:3,:3]
-        progress=self.path_decision['confirmed_progress'] if self.path_decision else 0.
+        progress=self.confirmed_progress
         terminal=self.path.poses[-1].copy()
         if self.spec.goal_type=='position_only':terminal[:3,:3]=actual[:3,:3]
         return SchedulerDecision(self.phase,goal,terminal,progress,self._event(now),
-            bool(self.path.complete),self.complete,bool(self.complete or self.failure_reason),self.failure_reason,
+            bool(self.confirmed_path_complete),self.complete,bool(self.complete or self.failure_reason),self.failure_reason,
             probe,self.recovering,tuple(events),self.plan_cursor_frame,self.spec.goal_type)
 
     def _settle(self,valid,now,events):

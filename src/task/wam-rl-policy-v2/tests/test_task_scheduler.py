@@ -38,7 +38,7 @@ def test_static_contact_requests_probe_and_planned_contact_does_not_advance_phas
     scheduler=TaskScheduler(spec,points());candidate=InteractionFeedback(grasp_candidate=True,force_valid=True)
     for t in range(24):
         d=scheduler.update(poses[0],t/30,candidate)
-        assert d.phase==Phase.ACQUIRE and d.path_progress==0 and d.probe_active
+        assert d.phase==Phase.ACQUIRE and d.path_progress==0 and not d.task_complete and d.probe_active
         assert np.linalg.norm(d.local_goal_pose[:3,3])<=.00300001
     assert d.next_event.delta_s==0 and d.next_event.valid
     assert d.next_event.wam_condition()['event_delta_steps']==0
@@ -112,8 +112,8 @@ def test_shadow_position_goal_does_not_add_an_initial_orientation_constraint():
 def test_geometry_is_observed_before_delayed_grasp_confirmation():
     poses=reference();s=TaskScheduler(TaskSpec.from_reference(poses,source_fps=30,terminal_mode='HOLD'),points())
     for t in range(11):
-        d=s.update(poses[t],t/30,InteractionFeedback(grasp_established=t==10))
-        if t<10:assert d.phase==Phase.ACQUIRE and not d.task_complete
+        d=s.update(poses[t],t/30,InteractionFeedback(grasp_candidate=True,grasp_established=t==10))
+        if t<10:assert d.phase==Phase.ACQUIRE and not d.task_complete and d.path_progress==0 and d.source_cursor_frame==0
     assert d.phase==Phase.TRACK and d.path_progress>0
     assert s.path.initial_acquired and d.source_cursor_frame>0
 
@@ -125,3 +125,22 @@ def test_path_timeout_budget_does_not_include_acquisition_wait():
         assert not d.terminated
     d=s.update(poses[0],13.,InteractionFeedback(grasp_established=True))
     assert d.phase==Phase.TRACK and not d.terminated
+
+
+def test_uncontrolled_object_path_cannot_be_committed_as_pregrasp_progress():
+    poses=reference();s=TaskScheduler(TaskSpec.from_reference(poses,source_fps=30,terminal_mode='HOLD'),points())
+    for t in range(30):
+        d=s.update(poses[t],t/30,InteractionFeedback())
+        assert d.path_progress==0 and not d.path_complete
+    d=s.update(poses[-1],1.,InteractionFeedback(grasp_established=True))
+    assert d.path_progress==0 and not d.path_complete
+
+
+def test_failed_candidate_discards_its_unconfirmed_progress():
+    poses=reference();s=TaskScheduler(TaskSpec.from_reference(poses,source_fps=30,terminal_mode='HOLD'),points())
+    for t in range(16):d=s.update(poses[t],t/30,InteractionFeedback(grasp_candidate=True))
+    assert s.path.pointer>0 and d.path_progress==0
+    d=s.update(poses[15],16/30,InteractionFeedback())
+    assert s.path.pointer==0 and d.path_progress==0
+    d=s.update(poses[15],17/30,InteractionFeedback(grasp_established=True))
+    assert d.path_progress==0
