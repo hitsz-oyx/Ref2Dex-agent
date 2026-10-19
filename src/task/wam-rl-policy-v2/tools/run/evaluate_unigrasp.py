@@ -143,7 +143,7 @@ def prepare(args):
     VecTaskPython.reset, VecTaskPython.step = observed_reset, observed_step
 '''
     replace('dexgrasp/run_online.py','    # start train or test process\n',hook+'\n    # start train or test process\n')
-    replace('dexgrasp/run_online.py','        train()\n',
+    replace('dexgrasp/run_online.py','        train()',
         '        try:\n            train()\n        finally:\n            if audit_task is not None:\n                audit_task.gym.destroy_sim(audit_task.sim)\n')
     model_folder=out/'runtime/Logs/Results/results_distill/random/universal_policy/state_based/distill_0000_3199_seed0'
     model_folder.mkdir(parents=True)
