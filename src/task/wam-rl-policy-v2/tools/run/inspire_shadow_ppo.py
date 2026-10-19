@@ -47,6 +47,7 @@ def main():
     from wam_rl_policy_v2.checkpoint_retention import prune_checkpoints
     from wam_rl_policy_v2.ppo import reduce,distributed_ready
     from wam_rl_policy_v2.scheduled_ppo_loop import parameter_sync_error
+    from wam_rl_policy_v2.distribution_kl import OPTIMIZATION_CONTRACT,actual_policy_kl
     torch.set_num_threads(2);torch.manual_seed(a.seed);np.random.seed(a.seed)
     meta=json.loads((a.cache/'manifest.json').read_text())
     if a.current_parent:
@@ -99,11 +100,15 @@ def main():
             saved=torch.load(a.resume,map_location=runtime.device,weights_only=False)
             if saved.get('schema')!='ref2dex.inspire-shadow-official-ppo.v1':raise ValueError('Inspire Shadow PPO checkpoint required')
             validate_execution(saved.get('execution_identity'),identity,evaluating=a.evaluate)
+            source_optimization=saved.get('optimization_contract','legacy-upstream-log-std-kl')
+            if source_optimization not in ('legacy-upstream-log-std-kl',OPTIMIZATION_CONTRACT):raise ValueError('unknown optimization contract')
+            write(a.output/'resume-optimization.json',dict(source=source_optimization,target=OPTIMIZATION_CONTRACT,
+                changed=source_optimization!=OPTIMIZATION_CONTRACT,reason='calibrate adaptive KL to the preserved actual sampling distribution'))
             ppo.actor_critic.load_state_dict(saved['model']);ppo.optimizer.load_state_dict(saved['optimizer']);ppo.step_size=saved['step_size'];completed=saved['iteration']
         if distributed_ready():
             for tensor in ppo.actor_critic.state_dict().values():dist.broadcast(tensor,src=0)
             torch.manual_seed(a.seed+a.rank)
-        state.update(status='RUNNING',envs=env.num_envs,iteration=completed)
+        state.update(status='RUNNING',envs=env.num_envs,iteration=completed,optimization_contract=OPTIMIZATION_CONTRACT)
         original_step=ppo.optimizer.step
         def optimizer_step(*args,**kwargs):
             result=original_step(*args,**kwargs);state['optimizer_steps']+=1;return result
@@ -123,6 +128,17 @@ def main():
                 if state['mean_path_error']>1e-6 or state['logprob_replay_error']>1e-5:raise ValueError('official action/logprob path mismatch')
             result=original_update()
             if not np.isfinite(result).all():raise FloatingPointError('official PPO loss')
+            with torch.no_grad():
+                observations=ppo.storage.observations.flatten(0,1)
+                mean=ppo.actor_critic.act_inference(observations)
+                old_mean=ppo.storage.mu.flatten(0,1);old_sigma=ppo.storage.sigma.flatten(0,1)
+                sigma=ppo.actor_critic.log_std.expand_as(old_sigma)
+                actual=actual_policy_kl(old_mean,old_sigma,mean,sigma)
+                proxy=(sigma-old_sigma+(old_sigma.exp().square()+(old_mean-mean).square())/(2*sigma.exp().square())-.5).sum(-1)
+                values=reduce(torch.stack((actual.mean(),proxy.mean())))
+                state.update(rollout_actual_kl_mean=float(values[0]),rollout_legacy_kl_mean=float(values[1]),
+                    rollout_actual_kl_max=float(reduce(actual.max(),'max')))
+                if not torch.isfinite(values).all():raise FloatingPointError('nonfinite actual policy KL')
             return result
         ppo.update=update
         def save(_):
@@ -133,6 +149,7 @@ def main():
                 model=ppo.actor_critic.state_dict(),optimizer=ppo.optimizer.state_dict(),iteration=iteration,
                 step_size=ppo.step_size,config=cfg,execution_identity=identity,bc_source=str(a.bc or a.current_parent),
                 engineering_current_expansion=bool(a.current_parent),world_size=a.world_size,environments_per_rank=env.num_envs,
+                optimization_contract=OPTIMIZATION_CONTRACT,
                 resume_semantics='model/optimizer; fresh native episodes'),part);part.replace(destination)
             prune_checkpoints(a.output,final_iteration=completed+a.updates)
         ppo.save=save

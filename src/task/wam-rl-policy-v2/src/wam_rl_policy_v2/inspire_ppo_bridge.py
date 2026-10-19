@@ -146,11 +146,13 @@ def make_shadow_ppo(root,output,env,packet,seed):
     import sys
     import yaml
     from .official_bridge import prepare_official
-    official=prepare_official(root,output,masked_resets=False)
+    official=prepare_official(root,output,masked_resets=False,correct_distribution_kl=True)
     sys.path.insert(0,str(official))
     spec=importlib.util.spec_from_file_location('inspire_official_ppo_process',official/'utils/process_sarl.py')
     module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
     cfg=yaml.safe_load((official/'cfg/ppo/config.yaml').read_text());cfg['seed']=seed;env.task.cfg['seed']=seed
+    from .distribution_kl import OPTIMIZATION_CONTRACT
+    cfg['learn']['adaptive_kl_contract']=OPTIMIZATION_CONTRACT
     cfg['policy'].update(backbone_type='pn',freeze_backbone=False,obs_dim=INPUT_DIM)
     torch.manual_seed(seed)
     actor=expanded_model(True);actor.load_state_dict(packet['model'],strict=True)

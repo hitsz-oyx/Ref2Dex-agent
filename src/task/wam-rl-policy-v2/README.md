@@ -81,6 +81,7 @@ PPO.run/update/storage及原配置，增加BC均值/WAM观测和多卡同步。
 
 - `tools/run/launch_inspire_full_bc.py`：冻结代码、全量提取、GPU6/7不重叠分片生成小型条件缓存、两阶段Shadow配方BC。
 - `tools/run/launch_inspire_shadow_ppo.py`：冻结代码、启动模型/物理双运行时、资源与checkpoint预算。
+- `tools/run/launch_inspire_mixed_ppo.py`：每卡同置两运行时，2–6 rank同步一个策略，50物体/589 TRAIN motion分摊、全局geometry绑定、rank0滚动保存。
 - `tools/run/inspire_shadow_ppo.py`与`src/wam_rl_policy_v2/inspire_ppo_bridge.py`：直接调用Shadow同一`prepare_official`和UniDex PPO引擎；算法、GAE、网络容量、默认PPO超参相同。
 - `tools/run/inspire_physics_host.py`：仅DExplore资产/初始化/物理/PD，不构造或训练DExplore actor，不使用其ref模仿奖励及终止。
 - [全量同路线实验](docs/experiments/probes/P-20261019-inspire-shadow-parity.md)。
@@ -89,6 +90,8 @@ PPO.run/update/storage及原配置，增加BC均值/WAM观测和多卡同步。
 这不是把Shadow静态终点成功率原样解释成整段任务完成。保持代理另行记录。
 Inspire冻结WAM使用FP32：真实输入的bf16 batch64/single差超过1mm，FP32回归通过；
 网络、权重未改变。缓存与在线推理精度写入同一个conditioning合同。
+新Inspire训练修正上游adaptive KL与其平方scale_tril分布的失配；采样分布及官方其他PPO
+超参保留，优化合同与旧checkpoint迁移单独记录，详见后期退化诊断实验卡。
 
 旧`inspire_scheduled_probe.py`/`inspire_executor.py`是已归档的current986/小型单序列工程试跑，
 不作为全量路线的BC或PPO入口；其失败结果不代表上述完整Shadow配方。

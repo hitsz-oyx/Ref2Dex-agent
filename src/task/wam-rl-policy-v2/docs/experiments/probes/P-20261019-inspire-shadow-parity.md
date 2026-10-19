@@ -209,3 +209,16 @@ Blocker工程检查先在GPU0/1、每卡64环境运行4轮，显式错开reset�
 每run48h/3GiB、20GiB磁盘底线，GPU6/7预留。诊断GPU测试安排在六卡启动之前，
 后续先做CPU日志/权重读取，不在六卡训练时额外占满两张预留卡。
 代码网络/奖励/动作/WAM精度不变；合并训练batch改变为原来的6倍，manifest显式记录。
+
+两rank smoke(cc2b84c0)已完整通过4轮：各80 optimizer steps、所有参数同步误差0、
+均值/logprob误差0、原生PD/episode动作错配0，含两环境错开reset。它只用于工程验证，
+正式六卡从原161继续，不使用此带强制reset的165权重。
+
+退化审计发现继承的官方adaptive KL与实际采样scale_tril不一致，
+详见P-20261019-ppo-checkpoint-evaluation的诊断追加。新Inspire修正KL度量，保留原采样
+分布、noise.8、desired_KL.016、clip/GAE/20 optimizer steps及网络/奖励，不重写PPO。
+optimization_contract显式绑定actual-KL版本；从161旧optimizer迁移的源/目标写入resume-optimization。
+这使新运行与旧运行还存在KL校准变化，不将结果差异单归因于六卡batch扩大。
+60项Task测试通过；真实checkpoint方差探针旧公式失配红灯(exit2)、修正后与Torch真KL一致绿灯。
+模型更新后另记录整个rollout的实际KL/旧proxy KL，不将其误称每minibatch硬约束。
+该修正尚未用匹配Shadow续训证明成功率恢复，不能说已完全解决退化。

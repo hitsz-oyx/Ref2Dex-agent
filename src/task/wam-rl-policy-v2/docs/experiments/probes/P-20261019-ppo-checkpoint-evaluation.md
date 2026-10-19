@@ -159,3 +159,29 @@ Isaac Preview4。复用同一原生评估器，launcher只扩展GPU配置与多�
 [完整比较](../../../../../../outputs/wam-rl-policy-v2/full-plateau-eval-20261019-r1/comparison.json)、
 [逐场景初态审计](../../../../../../outputs/wam-rl-policy-v2/full-plateau-eval-20261019-r1/initial-state-audit.json)、
 [趋势图](../../../../../../outputs/wam-rl-policy-v2/full-plateau-eval-20261019-r1/checkpoint-trend.png)。
+
+### 后期退化诊断：已发现上游KL度量缺陷，尚未证明完整因果恢复
+
+用户要求六卡Inspire推进同时定位Shadow退化。最低成本先读取现有checkpoint/日志，
+在GPU6对同一731条初始输入做无更新推理及实际分布KL核对，0训练更新。
+假设依次区分：权重/normalization加载错误、晚期策略更新漂移、自身训练与确定性评估口径偏离。
+若仅加载错误则修加载；若真实训练同样退化且优化度量失准，则修优化校准，再另做恢复验证。
+
+shadow-regression-audit-20261019-r1：7000/8500/9500/10000的文件内iteration与文件名一致，
+optimizer step分别精确为iteration×20；全部参数有限，四组x_mean/x_scale/y_mean/y_scale逐位相同。
+8000→8500随机训练回合曾成功84.91%、曾保持67.40%、平均step reward0.7824，
+9500→10000降到80.88%/61.20%/0.7068。因此不是只有确定性评估才出现下降。
+相邻checkpoint的固定输入动作确实变化；它们之间的累积KL不是单次PPO更新KL，不能混用。
+
+确定的源码不一致：上游module.py实际scale_tril=diag(exp(log_std)^2)，
+真实标准差为exp(2 log_std)；上游ppo.py的adaptive KL公式仍按exp(log_std)标准差计算。
+用9500真实腕部标准差0.09247、同方差均值变动0.03的确定探针，Torch真KL=0.052623，
+旧proxy=0.004866，desired_KL=.016时旧proxy要求提高LR、真KL要求降低LR。
+这证明度量失配，且随某些维度方差变小会低估均值更新KL；是后期更新过松的具体候选机制。
+没有据此断言它是唯一原因，也未声称匹配续训后性能已恢复。
+
+r1命令--assert-kl-consistency在真实采样分布对比上exit2，r2同探针用校正公式与Torch KL一致exit0；
+新增随机多维分布KL及真实尺度反向LR判定回归通过，完整Task共60项测试通过。
+新Inspire采用校准KL并记录优化合同/迁移，保留官方采样和其他算法/超参；旧冻结Shadow产物不热改。
+后续证明该改动恢复Shadow表现属于另一个有预算的受控续训，不在本次拿静态审计冒充因果恢复。
+产物outputs/wam-rl-policy-v2/shadow-regression-audit-20261019-r{1,2}/report.json。

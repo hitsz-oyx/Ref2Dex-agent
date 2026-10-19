@@ -59,7 +59,7 @@ def synchronize_sample_gradients(model,count):
     synchronize_gradients(model)
 
 
-def prepare_official(root,output,masked_resets=False):
+def prepare_official(root,output,masked_resets=False,correct_distribution_kl=False):
     """Same pinned source and dimension compatibility patch as official_unidex_ppo.py."""
     source=root/'third_party/UniDexGrasp2-official-ppo'
     target=output/'runtime-official';shutil.copytree(source,target)
@@ -85,6 +85,11 @@ def prepare_official(root,output,masked_resets=False):
     edit('dexgrasp/algorithms/rl/ppo/storage.py',[
         ('import torch\n','import torch\nfrom wam_rl_policy_v2.official_bridge import normalize_advantages\n',1),
         ('(self.advantages - self.advantages.mean()) / (self.advantages.std() + 1e-8)','normalize_advantages(self.advantages)',1)])
+    if correct_distribution_kl:
+        edit('dexgrasp/algorithms/rl/ppo/ppo.py',[
+            ('import torch\n','import torch\nfrom wam_rl_policy_v2.distribution_kl import actual_policy_kl\n',1),
+            ('kl = torch.sum(\n                        sigma_batch - old_sigma_batch + (torch.square(old_sigma_batch.exp()) + torch.square(old_mu_batch - mu_batch)) / (2.0 * torch.square(sigma_batch.exp())) - 0.5, axis=-1)',
+             'kl = actual_policy_kl(old_mu_batch, old_sigma_batch, mu_batch, sigma_batch)',1)])
     if masked_resets:
         edit('dexgrasp/algorithms/rl/ppo/ppo.py',[
             ('from wam_rl_policy_v2.official_bridge import reduce, synchronize_gradients',
@@ -110,7 +115,8 @@ def prepare_official(root,output,masked_resets=False):
         previous_runner='src/task/wam-rl-policy/tools/run/official_unidex_ppo.py',removed_vision_imports=removed,
         changes=changes,ppo_run_changed=masked_resets,gae_changed=False,reward_changed=False,
         reset_initialization_excluded=masked_resets,
-        distribution_changed=False,actor='self-trained scheduled BC mean with its frozen normalization; fully trainable',
+        distribution_changed=False,adaptive_kl_uses_actual_distribution=correct_distribution_kl,
+        actor='self-trained scheduled BC mean with its frozen normalization; fully trainable',
         critic='official ELU architecture, fresh initialization',observation='565D current300 + world tau264 + valid1'),indent=2)+'\n')
     return target/'dexgrasp'
 
