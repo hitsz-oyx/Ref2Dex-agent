@@ -14,7 +14,7 @@ seeds: [170, 171]
 decision_changed_if_positive: use learned joint21 and local surface contact forecasts for subsequent executor adaptation
 decision_changed_if_negative: diagnose source and fine-grained forecast failures before extending training or porting the executor
 status: RUNNING
-run_id: pretrain-nine-v5-20261019-r1
+run_id: pretrain-nine-v5-width768-20261019-r1
 ---
 
 # Four-GPU nine-source WAM-v5 pretraining
@@ -52,6 +52,16 @@ hand/flow moments using128 sampled windows/source. No TEST data. Refuse pending
 sequences or an engineering subset at the sustained training entry point.
 
 ## Initial training protocol
+
+The1024 protocol/results below describe the initial run. On the user's next
+request, replace it with `pretrain-nine-v5-width768-20261019-r1`, using
+`configs/pretrain_joint21_surface2048.json`: shared_width768/shared_heads12,
+matching the original v4's768/12/12 shared backbone. All other config values,
+the admitted data/statistics, four GPUs, local128/global512, seeds170/171 and
+80k bound are retained. Start from scratch because tensor shapes differ;
+preserve the1024 run and its final controlled-stop checkpoint. This is another
+run of the same learning Probe, not a new independent replication or a matched
+trained-width comparison. Until the new run is checked, its launch is pending.
 
 - One synchronous DDP model on remote GPUs0/1/2/3, local batch128/global512,
   eight loader workers/rank, two intraop threads/rank, bounded reader caches.
