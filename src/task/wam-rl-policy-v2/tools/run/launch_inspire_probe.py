@@ -21,6 +21,7 @@ def main():
     p.add_argument('--source',type=Path,required=True)
     p.add_argument('--selection',type=Path,required=True)
     p.add_argument('--controls',type=int,default=542)
+    p.add_argument('--bc',type=Path,help='Reuse an existing bound BC; no repeated fit')
     a=p.parse_args();a.output=a.output.resolve();a.source=a.source.resolve();a.selection=a.selection.resolve()
     if ROOT/'outputs/wam-rl-policy-v2' not in a.output.parents or not 32<=a.controls<=600:raise ValueError('bounded Task output required')
     a.output.mkdir(exist_ok=True,parents=True)
@@ -55,13 +56,17 @@ def main():
             time.sleep(1)
         if child.returncode:raise RuntimeError('child failed '+str(child.pid)+': '+str(child.returncode))
     try:
-        fit=launch([MODEL_PY,str(TOOLS/'inspire_scheduled_probe.py'),'fit','--source',str(a.source),
-            '--output',str(a.output/'fit'),'--gpu','6','--seconds','850'],'fit.log');wait(fit,900)
+        if a.bc:
+            bc=a.bc.resolve()
+        else:
+            fit=launch([MODEL_PY,str(TOOLS/'inspire_scheduled_probe.py'),'fit','--source',str(a.source),
+                '--output',str(a.output/'fit'),'--gpu','6','--seconds','850'],'fit.log');wait(fit,900)
+            bc=a.output/'fit/bc.pt'
         for name,controls in [('smoke32',32),('closed-loop',a.controls)]:
             folder=ROOT/'tmp'/('ins-'+name+'-'+str(os.getpid()));folder.mkdir(mode=0o700)
             sock=folder/'s'
             server=launch([MODEL_PY,str(TOOLS/'inspire_scheduled_probe.py'),'serve','--source',str(a.source),
-                '--output',str(a.output/(name+'-model')),'--bc',str(a.output/'fit/bc.pt'),
+                '--output',str(a.output/(name+'-model')),'--bc',str(bc),
                 '--socket',str(sock),'--gpu','6','--seconds','850'],name+'-model.log')
             deadline=time.monotonic()+120
             while not sock.exists():

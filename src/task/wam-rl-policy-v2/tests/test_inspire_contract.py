@@ -33,3 +33,25 @@ def test_startup_masks_tau_and_clips_same_current_contract():
     np.testing.assert_array_equal(obs[721:],0)
     valid=executor_input(np.zeros(721),np.ones((8,11,3)),True)
     assert valid.shape==(986,) and valid[-1]==1
+
+
+def test_causal_history_resets_and_rejects_cross_episode_ticks():
+    from wam_rl_policy_v2.inspire_contract import InspireConditioner
+    rng=np.random.default_rng(1)
+    surface=rng.normal(size=(512,3))*.01
+    normals=surface/np.linalg.norm(surface,axis=-1,keepdims=True)
+    geometry=(surface,normals,surface[:32],surface[:128],normals[:128])
+    runtime=type('Runtime',(),{'geometry':[geometry], 'workspace_valid':lambda self,s:np.ones(len(s),bool)})()
+    reference=np.repeat(np.eye(4)[None],10,axis=0);reference[:,2,3]=np.arange(10)*.001
+    c=InspireConditioner(runtime,reference)
+    hand=np.zeros((11,3));hand[:,0]=np.arange(11)*.001
+    for tick in range(3):
+        assert c.prepare(tick,reference[tick],hand)[0] is None
+    sample,_=c.prepare(3,reference[3],hand)
+    assert sample['start_hand_valid'][0].all()
+    assert not sample['start_hand_valid'][1].any()
+    np.testing.assert_allclose(sample['start_hand'][0,:,0],hand[NATIVE_TO_WAM,0])
+    with pytest.raises(ValueError,match='new episode'):
+        c.prepare(0,reference[0],hand)
+    fresh=InspireConditioner(runtime,reference)
+    assert fresh.prepare(0,reference[0],hand)[0] is None
