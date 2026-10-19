@@ -87,3 +87,36 @@ def test_complete_goal_cannot_be_paid_before_ordered_path_completion():
     complete=dict(decision,confirmed_progress=1.,complete=True)
     finished,_=shadow_path_reward(objects,hands,actions,np.zeros(1),[complete],np.zeros(1))
     assert finished[0]>pending[0]+2.9
+
+
+def test_zero_condition_bc_elision_preserves_actions_and_workspace_termination():
+    from wam_rl_policy_v2.inspire_shadow import BatchedInspireInputs
+    class Runtime:
+        device='cpu'
+        config=dict(voxel_origin_m=[-2]*3,voxel_m=.01)
+        calls=0
+        def predict(self,batch):
+            self.calls+=1
+            return dict(trajectory=torch.full((len(batch['start_hand']),24,2,11,3),.01))
+    surface=np.random.default_rng(246).normal(size=(512,3)).astype(np.float32)*.02
+    normals=np.zeros_like(surface);normals[:,2]=1
+    geometry=(surface,normals,surface[:32],surface[:128],normals[:128])
+    full=Runtime();elided=Runtime();full.geometry=elided.geometry=[geometry]*2
+    start=np.repeat(np.eye(4)[None],2,axis=0);goal=start.copy();goal[:,2,3]=.2
+    references=[np.stack((s,g)) for s,g in zip(start,goal)]
+    a=BatchedInspireInputs(full,references);b=BatchedInspireInputs(elided,references);b.predict_trajectory=False
+    model=expanded_model(True)
+    with torch.no_grad():
+        model.net[0].weight[:,CURRENT_DIM:]=0
+        model.net[-1].weight.normal_(std=.01)
+    for tick in range(5):
+        hand=np.zeros((2,11,3))
+        if tick==4:hand[1]=-20
+        first=a.observation(np.full((2,CURRENT_DIM),.02),start,hand,np.full(2,tick))
+        second=b.observation(np.full((2,CURRENT_DIM),.02),start,hand,np.full(2,tick))
+        np.testing.assert_array_equal(first['workspace_invalid'],second['workspace_invalid'])
+        torch.testing.assert_close(model(torch.tensor(first['observation'])),model(torch.tensor(second['observation'])),rtol=0,atol=0)
+        if tick==3:
+            assert first['observation'][:,-1].tolist()==second['observation'][:,-1].tolist()==[1,1]
+        if tick==4:assert second['workspace_invalid'].tolist()==[False,True]
+    assert full.calls==2 and elided.calls==0

@@ -27,7 +27,7 @@ def main():
     a=p.parse_args();a.output=a.output.resolve();a.cache=a.cache.resolve();a.socket=a.socket.resolve()
     if a.output.exists() or ROOT/'outputs/wam-rl-policy-v2' not in a.output.parents or not 0<=a.updates<=10000:raise ValueError('fresh bounded Task output required')
     if a.current_parent and (a.updates>4 or a.resume):raise ValueError('expanded current BC is engineering-only, max4 updates')
-    if a.evaluate and (not a.resume or a.updates or not 1<=a.evaluation_controls<=1200):raise ValueError('bounded evaluation needs checkpoint and zero updates')
+    if a.evaluate and (a.current_parent or a.updates or not 1<=a.evaluation_controls<=1200):raise ValueError('bounded evaluation needs a BC/PPO checkpoint and zero updates')
     if ROOT/'tmp' not in a.socket.parents or a.socket.exists() or len(os.fsencode(a.socket))>=108:raise ValueError('private project socket required')
     a.output.mkdir(parents=True);a.socket.parent.mkdir(parents=True,exist_ok=True);os.chmod(a.socket.parent,0o700)
     os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu),TMPDIR=str(a.socket.parent),OMP_NUM_THREADS='2',OPENBLAS_NUM_THREADS='2',REF2DEX_DEEP_OPT='all',PYTHONDONTWRITEBYTECODE='1')
@@ -123,14 +123,31 @@ def main():
             if state['iteration']%500==0:save(None)
         ppo.log=log
         if a.evaluate:
+            ppo.actor_critic.eval()
+            # A zero-expanded selected BC cannot consume tau or valid at all.
+            # Elide only the irrelevant neural prediction, preserving physical
+            # workspace checks and all episode/scheduler transitions.
+            elided=not a.resume and bool(torch.count_nonzero(ppo.actor_critic.actor.net[0].weight[:,CURRENT_DIM:])==0)
+            env.inputs.predict_trajectory=not elided
+            state.update(evaluation_policy='ppo' if a.resume else 'bc',wam_prediction_elided_for_zero_condition_weights=elided)
             observation=env.reset();returns=np.zeros(env.num_envs);first_done=np.zeros(env.num_envs,bool);results={}
-            for _ in range(a.evaluation_controls):
+            np.savez(a.output/'evaluation-initial-state.npz',**{k:np.asarray(v) for k,v in env.native.items()})
+            def evaluation_report(tick):
+                return dict(optimizer_steps=state['optimizer_steps'],policy_source=state['policy_source'],
+                    evaluation_policy=state['evaluation_policy'],deterministic=True,
+                    wam_prediction_elided_for_zero_condition_weights=elided,
+                    scope='TRAIN first episodes, physical lift/hold proxy; not a contact-force certificate or unseen-object evaluation',
+                    controls=tick,complete_first_episodes=len(results),unfinished_envs=np.flatnonzero(~first_done).tolist(),
+                    envs=env.num_envs,records=results,returns=returns.tolist())
+            for tick in range(a.evaluation_controls):
                 with torch.inference_mode():action=ppo.actor_critic.act_inference(observation)
                 observation,reward,done,info=env.step(action);returns[~first_done]+=reward.cpu().numpy()[~first_done]
                 for i,result in info['episode_results'].items():
                     if not first_done[i]:results[i]=result;first_done[i]=True
+                if (tick+1)%30==0:write(a.output/'evaluation-progress.json',evaluation_report(tick+1))
                 if first_done.all():break
-            write(a.output/'evaluation.json',dict(optimizer_steps=0,complete_first_episodes=len(results),envs=env.num_envs,records=results,returns=returns.tolist()))
+            if state['optimizer_steps']:raise ValueError('evaluation updated optimizer')
+            write(a.output/'evaluation.json',evaluation_report(tick+1))
         else:
             ppo.run(num_learning_iterations=a.updates,log_interval=20)
             if state['optimizer_steps']!=a.updates*20:raise ValueError('Shadow optimizer cadence changed')

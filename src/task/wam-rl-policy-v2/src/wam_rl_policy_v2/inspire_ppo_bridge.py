@@ -54,6 +54,8 @@ class RemoteInspireEnv:
         self.previous=np.zeros((self.num_envs,12),np.float32);self.initial_z=np.zeros(self.num_envs)
         self.progress=np.zeros(self.num_envs);self.longest=np.zeros(self.num_envs,int);self.streak=np.zeros(self.num_envs,int)
         self.dropped=np.zeros(self.num_envs,bool);self.ever_complete=np.zeros(self.num_envs,bool)
+        self.max_lift=np.zeros(self.num_envs);self.lift_streak=np.zeros(self.num_envs,int)
+        self.longest_lift=np.zeros(self.num_envs,int);self.lift_dropped=np.zeros(self.num_envs,bool)
         self.observations=np.zeros((self.num_envs,INPUT_DIM),np.float32);self.decisions=[None]*self.num_envs
         self.workspace=np.zeros(self.num_envs,bool);self.steps=0;self.reset_count=0
         self.reset_probe=reset_probe;self.reset_audits=[]
@@ -73,6 +75,7 @@ class RemoteInspireEnv:
                 reference=self.references[self.native['sequences'][i]]
                 self.inputs.reset(i,reference);self.previous[i]=0;self.initial_z[i]=objects[i,2]
                 self.progress[i]=0;self.streak[i]=0;self.longest[i]=0;self.dropped[i]=False;self.ever_complete[i]=False
+                self.max_lift[i]=0;self.lift_streak[i]=0;self.longest_lift[i]=0;self.lift_dropped[i]=False
         goals=np.stack([self.references[s][-1,:3,3] for s in self.native['sequences']])
         current=current_state(self.native['q'],self.native['dq'],self.native['physical'],objects,goals,self.previous)
         result=self.inputs.observation(current,poses,np.asarray(self.native['hand']),np.asarray(self.native['tick']),indices=indices)
@@ -104,6 +107,9 @@ class RemoteInspireEnv:
         done=self.workspace|timed_out|(np.asarray(self.native['tick'])>=horizon)
         hold=(objects[:,2]-self.initial_z>=.1)&(np.linalg.norm(objects[:,:3]-np.stack([self.references[s][-1,:3,3] for s in self.native['sequences']]),axis=-1)<=.05)
         self.dropped|=(self.longest>=30)&~hold;self.streak=np.where(hold,self.streak+1,0);self.longest=np.maximum(self.longest,self.streak)
+        lift=objects[:,2]-self.initial_z;lifted=lift>=.1
+        self.max_lift=np.maximum(self.max_lift,lift);self.lift_dropped|=(self.longest_lift>=30)&~lifted
+        self.lift_streak=np.where(lifted,self.lift_streak+1,0);self.longest_lift=np.maximum(self.longest_lift,self.lift_streak)
         # Engineering fixture: force only env0 and then env1 to terminate while
         # the other environment stays active, exercising actual indexed reset.
         if self.reset_probe:
@@ -113,6 +119,10 @@ class RemoteInspireEnv:
         episode_results={}
         for i in ids:
             episode_results[int(i)]=dict(episode_id=terminal_episodes[i],ordered_path_success=bool(self.ever_complete[i] and not self.workspace[i]),
+                sequence=self.native['sequences'][i],control_steps=int(self.native['tick'][i]),
+                max_lift_m=float(self.max_lift[i]),final_lift_m=float(lift[i]),ever_lift10cm=bool(self.max_lift[i]>=.1),
+                ever_lift10cm_held1s=bool(self.longest_lift[i]>=30),final_lift10cm_held1s=bool(self.lift_streak[i]>=30),
+                drop_after_lift_hold=bool(self.lift_dropped[i]),longest_lift_hold_steps=int(self.longest_lift[i]),
                 final_path_complete=bool(complete[i] and not self.workspace[i]),ever_held1s=bool(self.longest[i]>=30),final_held1s=bool(self.streak[i]>=30),
                 drop_after_hold=bool(self.dropped[i]),workspace_failure=bool(self.workspace[i]),confirmed_progress=float(self.progress[i]),
                 termination_reason='wam_workspace' if self.workspace[i] else 'scheduler_timeout' if timed_out[i] else 'horizon_or_engineering_reset')

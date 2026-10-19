@@ -153,3 +153,21 @@ GPU7纯物理各256环境，48h/3GiB上限，滚动最近3份及每500轮/最终
 首轮因H4冷启动为12.69s collection，ETA以此前steady16.1s/轮估计，不用首轮短时外推。
 运行状态见outputs/wam-rl-policy-v2/inspire-shadow-parity-20261019-ppo-r1/process.json，
 逐轮记录在policy/curve.jsonl；累计iteration、workspace失败与路径成功继续分别记录。
+
+### BC自主抓取质量检查（用户追加问题）
+
+Decision：全量BC warmstart在无探索噪声时是否已有抬升/保持能力？若已有而PPO频繁失败，
+优先审查探索/动作尺度；若BC也不行，先审查示教与实测输入/动作对应及BC质量，不能只等长训。
+既有DEV MAE0.03851及有噪声PPO启动回合不能回答这个问题；早期单序列小网络也不代表本次BC。
+
+最低成本Probe：inspire-shadow-parity-20261019-bc-eval-r1，在GPU4模型/GPU5原生仿真、
+64环境覆盖50 TRAIN物体，seed246，记录每个环境第一个完整回合，最多1200控制拍/1800秒。
+不停止GPU6/7主PPO，仍有GPU0–3空闲；产物≤3GiB，不存视频，不做optimizer更新。
+相同selected BC、scheduler、workspace终止与原生动作/PD，确定性actor均值，无随机动作。
+记录初始完整测量供配对复用；分别统计物体最大/终态抬升、曾/最终连续30拍抬升≥10cm、
+保持后掉落、路径完成与workspace失败。仅是物理抬升保持代理，不是接触力抓稳证书或未见物体泛化。
+
+入选BC已核验首层整个tau+valid块严格为零，故仅在该条件成立的BC评估可省略WAM predict，
+仍构造同一H4/scheduler输入并检查workspace；已用非零输出网络回归逐位动作相同和越界规则相同。
+若权重非零或评估PPO，则正常预测WAM。该优化在评估manifest中显式记录，不能称WAM闭环增益。
+完整Task测试55项通过；当前长训冻结版本不热改。

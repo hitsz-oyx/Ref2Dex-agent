@@ -21,6 +21,7 @@ def main():
     p.add_argument('--seconds',type=int,default=1800);p.add_argument('--reset-probe',action='store_true');p.add_argument('--resume',type=Path)
     p.add_argument('--shared-run',type=Path,help='Explicit project-owned BC coordinator process.json allowed to share GPUs')
     p.add_argument('--evaluate',action='store_true');p.add_argument('--evaluation-controls',type=int,default=300)
+    p.add_argument('--model-gpu',type=int,default=6);p.add_argument('--physics-gpu',type=int,default=7)
     a=p.parse_args();out=a.output.resolve();a.cache=a.cache.resolve()
     if out.exists() or ROOT/'outputs/wam-rl-policy-v2' not in out.parents or not 2<=a.envs<=256 or not 0<a.seconds<=172800:
         raise ValueError('fresh bounded Task run required')
@@ -31,7 +32,8 @@ def main():
         for child in m['children']:
             cmd=Path('/proc')/str(child['pid'])/'cmdline'
             if cmd.exists() and 'inspire_full_bc.py' in cmd.read_text():allowed[child['pid']]=True
-    for gpu in (6,7):
+    if a.model_gpu==a.physics_gpu or not all(0<=g<8 for g in (a.model_gpu,a.physics_gpu)):raise ValueError('two distinct local GPUs required')
+    for gpu in (a.model_gpu,a.physics_gpu):
         rows=subprocess.check_output(['nvidia-smi','-i',str(gpu),'--query-compute-apps=pid,used_memory','--format=csv,noheader,nounits'],text=True).strip()
         for row in rows.splitlines():
             pid,mem=[int(x.strip()) for x in row.split(',')];owner=subprocess.check_output(['ps','-o','user=','-p',str(pid)],text=True).strip()
@@ -42,7 +44,7 @@ def main():
     frozen=out/'runtime-task';shutil.copytree(ROOT/'src/task/wam-rl-policy-v2',frozen,ignore=shutil.ignore_patterns('__pycache__','.pytest_cache'))
     env=dict(os.environ,REF2DEX_RUN_ROOT=str(ROOT),REF2DEX_CODE_COMMIT=commit,PYTHONDONTWRITEBYTECODE='1')
     sockdir=ROOT/'tmp'/('isppo-'+str(os.getpid()));sockdir.mkdir(mode=0o700);sock=sockdir/'s'
-    state=dict(status='RUNNING',pid=os.getpid(),git_commit=commit,run_id=out.name,envs=a.envs,gpus=[6,7],
+    state=dict(status='RUNNING',pid=os.getpid(),git_commit=commit,run_id=out.name,envs=a.envs,gpus=[a.model_gpu,a.physics_gpu],
         max_seconds=a.seconds,max_bytes=3*1024**3,children=[],started_at=time.strftime('%Y-%m-%dT%H:%M:%S%z'))
     children=[];handles=[];started=time.monotonic();last=-30
     def save():
@@ -59,14 +61,14 @@ def main():
         if elapsed-last>=30:
             last=elapsed;size=sum(p.stat().st_size for p in out.rglob('*') if p.is_file() and not p.is_symlink())
             if size>state['max_bytes']:raise RuntimeError('bounded checkpoints/artifacts exceeded')
-            gpu=subprocess.check_output(['nvidia-smi','-i','6,7','--query-gpu=index,utilization.gpu,memory.used','--format=csv,noheader'],text=True).strip()
+            gpu=subprocess.check_output(['nvidia-smi','-i',str(a.model_gpu)+','+str(a.physics_gpu),'--query-gpu=index,utilization.gpu,memory.used','--format=csv,noheader'],text=True).strip()
             with (out/'resources.jsonl').open('a') as f:f.write(json.dumps(dict(elapsed_s=elapsed,gpu=gpu,bytes=size))+'\n')
             print(json.dumps(dict(elapsed_s=elapsed,gpu=gpu)),flush=True)
     def interrupt(*_):raise InterruptedError('supervisor interrupted')
     signal.signal(signal.SIGTERM,interrupt);signal.signal(signal.SIGINT,interrupt)
     try:
         args=[MODEL,str(frozen/'tools/run/inspire_shadow_ppo.py'),'--cache',str(a.cache),'--output',str(out/'policy'),
-            '--socket',str(sock),'--gpu','6','--updates',str(a.updates),'--seconds',str(a.seconds),
+            '--socket',str(sock),'--gpu',str(a.model_gpu),'--updates',str(a.updates),'--seconds',str(a.seconds),
             '--bc' if a.bc else '--current-parent',str((a.bc or a.current_parent).resolve())]
         if a.reset_probe:args.append('--reset-probe')
         if a.resume:args.extend(['--resume',str(a.resume.resolve())])
@@ -77,7 +79,7 @@ def main():
             if server.poll() is not None or time.monotonic()>deadline:raise RuntimeError('policy server failed before listen')
             time.sleep(1)
         args=[PHYSICS,str(frozen/'tools/run/inspire_physics_host.py'),'--cache',str(a.cache),'--output',str(out/'physics'),
-            '--socket',str(sock),'--server-pid',str(server.pid),'--envs',str(a.envs),'--gpu','7','--seconds',str(a.seconds),
+            '--socket',str(sock),'--server-pid',str(server.pid),'--envs',str(a.envs),'--gpu',str(a.physics_gpu),'--seconds',str(a.seconds),
             '--motions',str(a.motions)]
         native=launch(args,'physics')
         while True:

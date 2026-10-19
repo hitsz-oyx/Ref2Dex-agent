@@ -71,6 +71,7 @@ class BatchedInspireInputs:
     """Same ordered scheduler/WAM boundary, native H4 is already 30Hz."""
     def __init__(self,runtime,references,batch=128):
         self.runtime,self.batch=runtime,batch
+        self.predict_trajectory=True
         self.histories=[deque(maxlen=4) for _ in references]
         self.schedulers=[None]*len(references)
         for i,reference in enumerate(references):self.reset(i,reference)
@@ -113,6 +114,12 @@ class BatchedInspireInputs:
             if not len(ids):continue
             batch={k:v[keep] for k,v in batch.items()}
             self.timings['input_s']+=time.monotonic()-started;started=time.monotonic()
+            if not self.predict_trajectory:
+                # Evaluation may elide prediction only after the caller proves
+                # the actor's entire condition weight block is exactly zero.
+                # History, scheduler and workspace termination stay identical.
+                out[ids,-1]=1
+                continue
             with torch.inference_mode(),torch.autocast('cuda',enabled=False):
                 trajectory=self.runtime.predict(batch)['trajectory'].float().cpu().numpy()
             self.timings['model_s']+=time.monotonic()-started
