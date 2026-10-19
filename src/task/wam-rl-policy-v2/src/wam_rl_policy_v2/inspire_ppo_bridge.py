@@ -65,7 +65,7 @@ class RemoteInspireEnv:
         self.references={};self.objects_by_sequence={}
         for row in meta['sequences']:
             if row['split']!='train':continue
-            with np.load(Path(row['source'])/'trajectory.npz') as z:self.references[row['sequence']]=z['reference_obj'].copy()
+            with np.load(Path(row['source'])/'trajectory.npz') as z:self.references[row['sequence']]=z['obj'].copy()
             self.objects_by_sequence[row['sequence']]=row['object']
         references=[self.references[s] for s in self.native['sequences']]
         self.inputs=BatchedInspireInputs(runtime,references,

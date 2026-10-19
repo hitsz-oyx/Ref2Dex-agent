@@ -45,6 +45,7 @@ class TaskSpec:
     events:tuple=()
     goal_type:str='se3_pose'
     require_support:bool=True
+    source_role:str='explicit_task_instruction'
 
     def __post_init__(self):
         poses=_poses(self.object_path);frames=np.asarray(self.source_frames)
@@ -53,6 +54,7 @@ class TaskSpec:
                 or type(self.source_length) is not int or self.source_length<=int(frames[-1])
                 or not np.isfinite(self.source_fps) or self.source_fps<=0):raise ValueError('ordered source-frame identities and positive fps required')
         if self.goal_type not in ('position_only','se3_pose'):raise ValueError('explicit task goal constraints required')
+        if self.source_role not in ('explicit_task_instruction','same_execution_teacher_object_rollout'):raise ValueError('explicit task source role required')
         events=tuple(self.events)
         if any(not isinstance(e,TaskEvent) or e.source_frame>=self.source_length for e in events):raise ValueError('event outside original source')
         if any(a.source_frame>=b.source_frame for a,b in zip(events,events[1:])):raise ValueError('events must be ordered')
@@ -94,11 +96,11 @@ class TaskSpec:
         return dict(schema=TASK_SCHEMA,object_path=self.object_path.tolist(),source_frames=self.source_frames.tolist(),
             source_fps=self.source_fps,source_length=self.source_length,terminal_mode=self.terminal_mode.value,
             events=[dict(source_frame=e.source_frame,kind=e.kind.value) for e in self.events],
-            goal_type=self.goal_type,require_support=self.require_support)
+            goal_type=self.goal_type,require_support=self.require_support,source_role=self.source_role)
 
     @classmethod
     def from_packet(cls,packet):
         if packet.get('schema')!=TASK_SCHEMA:raise ValueError('unsupported TaskSpec schema')
         return cls(np.asarray(packet['object_path']),np.asarray(packet['source_frames']),packet['source_fps'],
             packet['source_length'],packet['terminal_mode'],tuple(TaskEvent(**e) for e in packet['events']),
-            packet['goal_type'],packet['require_support'])
+            packet['goal_type'],packet['require_support'],packet.get('source_role','explicit_task_instruction'))

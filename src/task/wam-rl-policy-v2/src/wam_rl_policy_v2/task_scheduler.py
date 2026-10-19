@@ -132,7 +132,7 @@ class TaskScheduler:
                 # excluding acquisition waiting from path timeout budgets.
                 if paused_path_budget and self.path.start_time is not None:
                     self.path.start_time+=dt;self.path.last_progress_time+=dt
-                candidate=feedback.grasp_candidate or feedback.grasp_established
+                candidate=feedback.contact_observed or feedback.grasp_candidate or feedback.grasp_established
                 if self.phase==Phase.ACQUIRE and not candidate:
                     # Candidate motion is provisional until grasp confirmation.
                     # Dropping that evidence discards the unconfirmed suffix.

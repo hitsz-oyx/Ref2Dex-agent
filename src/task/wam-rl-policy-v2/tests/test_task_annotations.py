@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from wam_rl_policy_v2.task_annotations import planned_contact_events,dexplore_task_spec,REFERENCE_CONTACT_COLUMNS
+from wam_rl_policy_v2.task_annotations import planned_contact_events,reference_task_spec,task_from_teacher_archive,REFERENCE_CONTACT_COLUMNS
 from wam_rl_policy_v2.task_spec import TerminalMode,Phase
 from wam_rl_policy_v2.task_scheduler import TaskScheduler
 from wam_rl_policy_v2.task_feedback import InteractionFeedback
@@ -14,7 +14,7 @@ def test_multiple_planned_intervals_keep_original_frame_numbers():
     assert [(e.source_frame,e.kind.value) for e in events]==[(5,'CONTACT'),(17,'RELEASE'),(25,'CONTACT')]
     assert terminal==TerminalMode.HOLD
     pose=np.repeat(np.eye(4)[None],40,0)
-    spec=dexplore_task_spec(pose,ref)
+    spec=reference_task_spec(pose,ref)
     assert spec.source_length==40 and spec.source_frames.tolist()==[5,17,25,39]
     ref[35:]=0
     assert planned_contact_events(ref)[1]==TerminalMode.RELEASE
@@ -27,7 +27,7 @@ def test_multiple_planned_intervals_keep_original_frame_numbers():
 def test_event_acknowledgement_requires_new_measured_edges_not_elapsed_time():
     ref=np.zeros((40,428));ref[3:12,REFERENCE_CONTACT_COLUMNS]=1;ref[25:,REFERENCE_CONTACT_COLUMNS]=1
     pose=np.repeat(np.eye(4)[None],40,0);pose[:,0,3]=np.arange(40)*.003
-    spec=dexplore_task_spec(pose,ref)
+    spec=reference_task_spec(pose,ref)
     s=TaskScheduler(spec,np.random.default_rng(246).normal(size=(32,3))*.02)
     held=InteractionFeedback(grasp_established=True)
     d=s.update(pose[3],0,held)
@@ -42,3 +42,17 @@ def test_event_acknowledgement_requires_new_measured_edges_not_elapsed_time():
     d=s.update(pose[25],8/30,held)
     assert d.phase==Phase.TRACK and d.next_event.kind is None and d.next_event.valid
     assert 'grasp_acquired' not in d.transitions
+
+
+def test_teacher_task_ignores_training_reference_and_preserves_actual_initial_anchor():
+    n=40;pose=np.repeat(np.eye(4)[None],n,0);pose[:,0,3]=np.linspace(0,.1,n)
+    forces=np.zeros((n,5,3));forces[5:30,:2,2]=1
+    data=dict(obj=pose,body_contact_forces=forces,contact_force_valid=np.arange(n)>0,frame_tick=np.arange(n),
+        reference_obj=np.full_like(pose,np.nan),reference_current=np.full((n,428),np.nan))
+    a=task_from_teacher_archive(data,list(range(5)))
+    data['reference_obj'][:]=1e6;data['reference_current'][:]=1
+    b=task_from_teacher_archive(data,list(range(5)))
+    assert a.packet()==b.packet()
+    assert a.source_role=='same_execution_teacher_object_rollout' and a.source_frames[0]==0 and a.source_frames[-1]==39
+    assert [(e.source_frame,e.kind.value) for e in a.events]==[(5,'CONTACT'),(30,'RELEASE')]
+    np.testing.assert_array_equal(a.object_path[0],pose[0]);np.testing.assert_array_equal(a.object_path[-1],pose[-1])

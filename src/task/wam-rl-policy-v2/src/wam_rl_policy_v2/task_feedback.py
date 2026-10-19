@@ -17,6 +17,7 @@ class InteractionFeedback:
     workspace_ok:bool=True
     force_valid:bool=False
     source:str='measured_motion_heuristic'
+    contact_observed:bool=False
 
 
 class FeedbackObserver:
@@ -46,7 +47,8 @@ class FeedbackObserver:
             forces=np.asarray(contact_forces)
             if forces.shape!=(5,3) or not np.isfinite(forces).all():raise ValueError('five measured contact forces in newtons required')
             count=int((np.linalg.norm(forces,axis=-1)>=self.contact_force_n).sum())
-        if count is not None and count>=2:
+        contact_observed=bool(count is not None and count>=2 and observed['near_fingers']>=2)
+        if contact_observed:
             if self.candidate_since is None:self.candidate_since=now
         else:self.candidate_since=None
         candidate=self.candidate_since is not None and now-self.candidate_since>=self.dwell_s
@@ -57,10 +59,10 @@ class FeedbackObserver:
         else:self.no_force_since=None
         lost=bool(observed['lost_control'] or (self.had_grasp and self.no_force_since is not None and now-self.no_force_since>=self.dwell_s))
         far=observed['fingertip_gap_m'] is not None and observed['fingertip_gap_m']>=self.release_gap_m
-        if count==0 and far:
+        if far and force_valid:
             if self.release_since is None:self.release_since=now
         else:self.release_since=None
         released=self.release_since is not None and now-self.release_since>=self.dwell_s
         stable=np.linalg.norm(velocity[:3])<=.02 and np.linalg.norm(velocity[3:])<=.2
         return InteractionFeedback(bool(candidate),established,lost,bool(released),bool(stable),supported,
-            bool(workspace_ok),bool(force_valid),'measured_force_and_motion_heuristic' if force_valid else 'measured_motion_heuristic')
+            bool(workspace_ok),bool(force_valid),'measured_force_and_motion_heuristic' if force_valid else 'measured_motion_heuristic',contact_observed)

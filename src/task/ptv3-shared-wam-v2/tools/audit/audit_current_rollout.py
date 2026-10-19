@@ -7,7 +7,7 @@ import time
 import numpy as np
 
 
-def audit_sequence(data, record, contract, controller):
+def audit_sequence(data, record, contract, controller, *, include_reference=True):
     length = record['frames']
     bodies = len(contract['body_names'])
     shapes = dict(q=(length,18),dq=(length,18),hand=(length,11,3),obj=(length,4,4),
@@ -16,6 +16,8 @@ def audit_sequence(data, record, contract, controller):
         body_contact_forces=(length,bodies,3),object_contact_force=(length,3),
         reference_current=(length,contract['reference_dim']),
         action=(length-1,18),applied=(length-1,18),pd_targets=(length-1,18))
+    if not include_reference:
+        for key in ('reference_obj','reference_current'):shapes.pop(key)
     for key,shape in shapes.items():
         if data[key].shape != shape or not np.isfinite(data[key]).all():
             raise ValueError('invalid shape/value: '+key)
@@ -24,14 +26,15 @@ def audit_sequence(data, record, contract, controller):
     if np.abs(data['applied']).max()>1.000001:
         raise ValueError('unclipped applied command')
     contact = (abs(data['body_contact_forces'][:,contract['contact_body_ids']])>.1).any(-1).astype(np.float32)
-    reference = data['reference_current']
-    ref_contact = reference[:,168:184][:,[3,6,9,12,15]]
-    error = ref_contact*((ref_contact+1)/2-contact)
     np.testing.assert_array_equal(data['native_current_obs'][:,252:257],contact)
-    np.testing.assert_array_equal(data['native_current_obs'][:,401:406],error)
     np.testing.assert_array_equal(data['hand'],data['body_state'][:,contract['measured_hand_body_ids'],:3])
-    np.testing.assert_allclose(data['native_current_obs'][:,:3],reference[:,4:7]-data['body_state'][:,6,:3],atol=1e-6,rtol=0)
-    np.testing.assert_array_equal(data['reference_obj'][:,:3,3],reference[:,106:109])
+    if include_reference:
+        reference = data['reference_current']
+        ref_contact = reference[:,168:184][:,[3,6,9,12,15]]
+        error = ref_contact*((ref_contact+1)/2-contact)
+        np.testing.assert_array_equal(data['native_current_obs'][:,401:406],error)
+        np.testing.assert_allclose(data['native_current_obs'][:,:3],reference[:,4:7]-data['body_state'][:,6,:3],atol=1e-6,rtol=0)
+        np.testing.assert_array_equal(data['reference_obj'][:,:3,3],reference[:,106:109])
     applied = data['applied'].copy()
     applied[:,6:] = (1+applied[:,6:])/2
     pd = np.asarray(controller['offset'],np.float32)+np.asarray(controller['scale'],np.float32)*applied

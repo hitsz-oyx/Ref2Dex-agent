@@ -42,7 +42,7 @@ def test_real_adapter_observation_reward_and_done_match_json_lists(tmp_path):
     from wam_rl_policy_v2.inspire_ppo_bridge import RemoteInspireEnv
     from wam_rl_policy_v2.inspire_state_codec import unpack_state
     ref=np.broadcast_to(np.eye(4),(8,4,4)).copy();ref[:,2,3]=np.arange(8)*.001
-    np.savez(tmp_path/'trajectory.npz',reference_obj=ref)
+    np.savez(tmp_path/'trajectory.npz',obj=ref,reference_obj=np.full_like(ref,np.nan))
     (tmp_path/'manifest.json').write_text(json.dumps(dict(sequences=[dict(split='train',sequence='motion',object='fixture',source=str(tmp_path))])))
     rng=np.random.default_rng(19);surface=rng.normal(size=(512,3)).astype(np.float32)*.02
     normals=np.zeros_like(surface);normals[:,2]=1

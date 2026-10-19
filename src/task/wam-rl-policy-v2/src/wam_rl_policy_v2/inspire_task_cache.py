@@ -20,7 +20,7 @@ def build_task_fields(cache):
         if (cache.parent/'STOP').exists():raise InterruptedError('owned task-cache stop')
         geo=geometry[row['geometry']]
         with np.load(Path(row['source'])/'trajectory.npz') as z:
-            poses=z['obj'][:-1].copy();hands=z['hand'][:-1][:,NATIVE_TO_WAM].copy();reference=z['reference_obj'].copy()
+            poses=z['obj'][:-1].copy();hands=z['hand'][:-1][:,NATIVE_TO_WAM].copy();reference=z['obj'].copy()
         if len(poses)!=row['hi']-row['lo']:raise ValueError('same-command task fields must align')
         scheduler=OrderedGoalScheduler(reference,np.arange(len(reference))/30,geo[2],interaction_points=geo[0],goal_type='se3_pose')
         values=[];live=[]
@@ -52,6 +52,8 @@ def build_task_fields(cache):
 def reuse_full_cache(source,target):
     source=Path(source).resolve();target=Path(target).resolve()
     meta=json.loads((source/'manifest.json').read_text())
+    if meta.get('conditioning',{}).get('goal_source')!=CONTRACT['goal_source']:
+        raise ValueError('old reference-conditioned physical/tau cache cannot be reused for teacher-rollout goals; rebuild from audited rollout')
     if meta.get('scheduled_status')!='COMPLETED' or len(meta['sequences'])!=660 or len({r['sequence'] for r in meta['sequences']})!=660:
         raise ValueError('complete full660 physical/WAM cache required')
     if meta['splits']['train']['sequences']!=589 or meta['splits']['dev']['sequences']!=71:raise ValueError('preserve TRAIN/DEV membership')

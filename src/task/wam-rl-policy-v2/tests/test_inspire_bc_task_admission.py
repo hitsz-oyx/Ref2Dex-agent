@@ -3,7 +3,7 @@ import json
 import numpy as np
 
 
-def test_task_cache_excludes_actions_from_the_timeout_state_onward(tmp_path, monkeypatch):
+def test_task_cache_uses_teacher_object_path_without_training_reference_timeout(tmp_path, monkeypatch):
     from wam_rl_policy_v2.inspire_task_cache import build_task_fields
     from wam_rl_policy_v2 import wam_v4_runtime
     n=301
@@ -25,12 +25,12 @@ def test_task_cache_excludes_actions_from_the_timeout_state_onward(tmp_path, mon
     assert (cache/'train-task-active.npy').exists(), 'BC silently admits commands after the online scheduler has terminated'
     active=np.load(cache/'train-task-active.npy')
     assert active.dtype==np.bool_ and active.shape==(300,)
-    assert active[:240].all() and not active[240:].any()
+    assert active.all(), 'unrelated training reference must not discard valid teacher commands'
     from wam_rl_policy_v2.inspire_shadow import bc_admission
     np.testing.assert_array_equal(bc_admission(cache,'train',False),active)
     np.testing.assert_array_equal(bc_admission(cache,'train',True),active)
     admitted=json.loads((cache/'manifest.json').read_text())['task_admission']
-    assert admitted['splits']['train']==dict(source_commands=300,active_commands=240,post_timeout_commands=60)
+    assert admitted['splits']['train']==dict(source_commands=300,active_commands=300,post_timeout_commands=0)
     workspace=np.ones(300,bool);workspace[100]=False
     np.save(cache/'train-include.npy',workspace)
     assert bc_admission(cache,'train',False)[100]

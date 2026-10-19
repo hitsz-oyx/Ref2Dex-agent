@@ -31,6 +31,8 @@ def prepare(a):
     meta=json.loads((a.source/'manifest.json').read_text())
     if meta.get('status')!='COMPLETED' or not meta.get('training_allowed') or len(meta['records'])!=660:
         raise ValueError('complete admitted660 same-execution corpus required')
+    if meta.get('task_goal_source')!=CONTRACT['goal_source'] or meta.get('admission_pending',True):
+        raise ValueError('audited measured teacher-rollout goals required; training-reference corpus/cache is historical only')
     records=meta['records'];sizes={s:sum(r['frames']-1 for r in records if ('dev' if r['split']=='val' else r['split'])==s) for s in ('train','dev')}
     expected=sum(sizes.values())*(CURRENT_DIM+INPUT_DIM+12)*4
     if expected>1024**3:raise RuntimeError('unexpected cache allocation above1GiB')
@@ -49,7 +51,7 @@ def prepare(a):
                     or not np.array_equal(z['action'],z['applied']) or not np.array_equal(z['frame_tick'],np.arange(n+1))):
                 raise ValueError('same-tick canonical capture mismatch: '+row['sequence'])
             y=action[:,ACTIVE];previous=np.zeros_like(y);previous[1:]=y[:-1]
-            goal=np.broadcast_to(z['reference_obj'][-1,:3,3],(n,3))
+            goal=np.broadcast_to(z['obj'][-1,:3,3],(n,3))
             x=current_state(z['q'][:-1],z['dq'][:-1],measured_from_legacy(z['native_current_obs'][:-1]),
                 object_state(z['obj'][:-1],z['velocity'][:-1]),goal,previous)
             if not np.isfinite(y).all() or np.abs(y).max()>1.00001:raise ValueError('invalid command labels')
@@ -106,7 +108,7 @@ class RecordSamples:
         from scipy.spatial.transform import Rotation
         row=self.records[index];geo=self.geometry[row['geometry']]
         with np.load(Path(row['source'])/'trajectory.npz') as z:
-            poses=z['obj'][:-1].copy();hands=z['hand'][:-1][:,NATIVE_TO_WAM].copy();reference=z['reference_obj'].copy()
+            poses=z['obj'][:-1].copy();hands=z['hand'][:-1][:,NATIVE_TO_WAM].copy();reference=z['obj'].copy()
         scheduler=OrderedGoalScheduler(reference,np.arange(len(reference))/30,geo[2],interaction_points=geo[0],goal_type='se3_pose')
         goals=[]
         for tick,pose in enumerate(poses):
@@ -131,6 +133,8 @@ def conditions(a):
     from wam_rl_policy_v2.inspire_shadow import CURRENT_DIM,tau_world,TAU_SLICE,VALID_INDEX
     from wam_rl_policy_v2.batched_geometry import workspace_valid
     root=a.output;meta=json.loads((root/'manifest.json').read_text())
+    from wam_rl_policy_v2.inspire_shadow import CONTRACT
+    if meta.get('conditioning')!=CONTRACT:raise ValueError('old reference-conditioned cache cannot resume as teacher-rollout cache')
     runtime=V4Runtime(a.wam,meta['records'],root,dense_manifest=root/'surface-manifest.json',allow_geometry_replacement=True)
     identity=dict(wam=runtime.conditioning_identity,geometry=runtime.geometry_bindings,inference_precision='fp32')
     prior=root/f'wam-identity-{a.rank}.json'

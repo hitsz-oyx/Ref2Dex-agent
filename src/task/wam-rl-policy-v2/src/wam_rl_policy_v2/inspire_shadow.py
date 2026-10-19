@@ -4,6 +4,7 @@ import time
 import numpy as np
 from scipy.spatial.transform import Rotation
 from .inspire_contract import ACTIVE,NATIVE_TO_WAM,WAM_TO_NATIVE
+from .task_annotations import GOAL_SOURCE
 
 CURRENT_DIM=312
 LEGACY_INPUT_DIM=CURRENT_DIM+264+1
@@ -24,6 +25,7 @@ CONTRACT=dict(schema='ref2dex.inspire-shadow-conditioning.v2',robot_id='dexplore
     tau_hand_order='native_base_then_finger_base_tip',tau_hand_slot='right',tau_units='metres',
     history_indices=[-3,-2,-1,0],startup='zero_tau_with_validity_zero',
     goal_semantics='spatial_path_waypoint',goal_reach_time_guaranteed=False,
+    goal_source=GOAL_SOURCE,
     wam_precision='fp32',task='ordered_object_SE3_path',direct_hand_reference=False,phase_conditioning=False,
     interaction_conditioning=False,current_layout=['q18','dq18','measured248','object_pose_velocity13','task_endpoint_xyz3','previous_independent_action12'],
     task_dim=TASK_DIM,task_offset=LEGACY_INPUT_DIM,tau_valid_index=VALID_INDEX,

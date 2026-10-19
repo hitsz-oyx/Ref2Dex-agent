@@ -58,6 +58,15 @@ def test_force_candidate_needs_observed_motion_coupling():
     assert f.grasp_established
 
 
+def test_table_contact_force_does_not_block_geometric_release_from_object():
+    observer=FeedbackObserver(points());pose=np.eye(4);force=np.ones((5,3))
+    f=observer.update(pose,np.zeros((11,3)),np.zeros(6),0.,contact_forces=force,force_valid=True)
+    assert f.contact_observed and not f.grasp_candidate
+    for t in range(1,9):
+        f=observer.update(pose,np.full((11,3),.5),np.zeros(6),t/30,contact_forces=force,force_valid=True)
+    assert f.released and not f.grasp_candidate and not f.contact_observed
+
+
 def test_closed_path_cannot_complete_at_its_initial_endpoint():
     poses=np.repeat(np.eye(4)[None],121,0);theta=np.linspace(0,2*np.pi,121)
     poses[:,0,3]=.05*(np.cos(theta)-1);poses[:,1,3]=.05*np.sin(theta)

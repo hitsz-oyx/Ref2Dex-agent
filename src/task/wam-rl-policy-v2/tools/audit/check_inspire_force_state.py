@@ -16,7 +16,7 @@ sys.path[:0]=[str(TASK/'src'),str(ROOT/'src/task/trajectory-policy/src')]
 from trajectory_policy.wam_ipc import send,receive,peer_pid
 from wam_rl_policy_v2.inspire_state_codec import unpack_state
 from wam_rl_policy_v2.robot_adapter import InspireAdapter
-from wam_rl_policy_v2.task_annotations import dexplore_task_spec
+from wam_rl_policy_v2.task_annotations import task_from_teacher_archive
 from wam_rl_policy_v2.task_runtime import TaskController
 from wam_rl_policy_v2.executor_contract import ExecutorLayout
 
@@ -28,8 +28,9 @@ def main():
     if a.output.exists():raise ValueError('fresh smoke output required')
     a.output.mkdir(parents=True)
     meta=json.loads((a.cache/'manifest.json').read_text());row=next(r for r in meta['sequences'] if r['sequence']==a.sequence and r['split']=='train')
+    batch=json.loads((Path(row['source']).parents[1]/'manifest.json').read_text())
     with np.load(Path(row['source'])/'trajectory.npz') as z:
-        actions=z['action'][:12].copy();spec=dexplore_task_spec(z['reference_obj'],z['reference_current'])
+        actions=z['action'][:12].copy();spec=task_from_teacher_archive(z,batch['observation_contract']['contact_body_ids'])
     g=Path(meta['records'][row['geometry']]['geometry']);g=g if g.is_absolute() else a.cache/g
     with np.load(g) as z:points=z['query'].copy();surface=z['surface'].copy()
     controllers=[TaskController(spec,points,interaction_points=surface) for _ in range(2)]

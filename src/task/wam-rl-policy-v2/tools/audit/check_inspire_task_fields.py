@@ -22,7 +22,7 @@ def main():
     rows=[]
     for obj in sorted({r['object'] for r in m['sequences']}):
         r=next(r for r in m['sequences'] if r['object']==obj)
-        with np.load(Path(r['source'])/'trajectory.npz') as z:poses=z['obj'][:-1].copy();hands=z['hand'][:-1].copy();reference=z['reference_obj'].copy()
+        with np.load(Path(r['source'])/'trajectory.npz') as z:poses=z['obj'][:-1].copy();hands=z['hand'][:-1].copy();reference=z['obj'].copy()
         runtime=type('Runtime',(),dict(device='cpu',geometry=[geometry[r['geometry']]],config=dict(voxel_origin_m=[-2]*3,voxel_m=.01)))()
         online=BatchedInspireInputs(runtime,[reference]);online.predict_trajectory=False
         error=0.

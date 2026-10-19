@@ -15,7 +15,7 @@ import numpy as np
 
 TASK=Path(__file__).resolve().parents[2];ROOT=TASK.parents[2]
 sys.path.insert(0,str(TASK/'src'))
-from wam_rl_policy_v2.task_annotations import dexplore_task_spec,ANNOTATION_SCHEMA
+from wam_rl_policy_v2.task_annotations import task_from_teacher_archive,ANNOTATION_SCHEMA,GOAL_SOURCE
 from wam_rl_policy_v2.task_runtime import TaskController
 from wam_rl_policy_v2.robot_adapter import InspireAdapter
 
@@ -37,7 +37,7 @@ def main():
         source=Path(row['source']);batch=json.loads((source.parents[1]/'manifest.json').read_text())
         contact_ids=batch['observation_contract']['contact_body_ids']
         with np.load(source/'trajectory.npz') as z:
-            spec=dexplore_task_spec(z['reference_obj'],z['reference_current'])
+            spec=task_from_teacher_archive(z,contact_ids)
             query,surface=geometry[gid]
             controller=TaskController(spec,query,interaction_points=surface);phases=Counter();transitions=Counter();probes=0
             last=None;steps=0;missing_force='dof_force' not in z.files
@@ -60,7 +60,7 @@ def main():
         if len(rows)%50==0:print(json.dumps(dict(sequences=len(rows),elapsed_s=time.monotonic()-started,
             nonzero_geometric_progress=sum(r['confirmed_progress']>0 for r in rows),
             ever_track=sum(r['phase_frames'].get('TRACK',0)>0 for r in rows))),flush=True)
-    report=dict(status='COMPLETED',engineering_only=True,annotation_schema=ANNOTATION_SCHEMA,
+    report=dict(status='COMPLETED',engineering_only=True,annotation_schema=ANNOTATION_SCHEMA,goal_source=GOAL_SOURCE,
         git_commit=code_version,python=sys.executable,
         input=str(a.cache.resolve()),interaction_surface_points=512,elapsed_s=time.monotonic()-started,sequences=len(rows),
         splits=dict(Counter(r['split'] for r in rows)),terminal_modes=dict(Counter(r['terminal_mode'] for r in rows)),
