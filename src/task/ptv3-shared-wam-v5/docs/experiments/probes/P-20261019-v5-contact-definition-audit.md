@@ -5,7 +5,7 @@ experiment_id: P-20261019-v5-contact-definition-audit
 date: 2026-10-19
 task: ptv3-shared-wam-v5
 branch: main
-git_commit: e3f7db18
+git_commit: 6e4bf1f5
 claim_id: C1
 hypothesis_family: HF-v5-contact-definition
 probe_index_in_family: 1
@@ -14,7 +14,7 @@ seeds: [177]
 decision_changed_if_positive: inspect balanced BCE for scarce positives or normal-aware teacher for localized backside errors before v5 training
 decision_changed_if_negative: retain the current distance-only teacher and unweighted contact BCE
 status: RUNNING
-run_id: contact-audit-20261019-r1
+run_id: contact-audit-20261019-r2
 ---
 
 # v5 contact prevalence and normal-direction audit
@@ -96,9 +96,10 @@ cross-morphology invariance, WAM quality or PPO gain is claimed by this probe.
 
 Remote `graspenv`, Python3.8.20; CPU1 thread per audit (array reductions/KD-tree
 geometry only, no repeated neural inference). Existing GPU jobs stay running.
-Normal audit<=900s/256MiB; prevalence watcher<=10800s/128MiB; both stop for
+Normal audit<=900s/256MiB; repaired prevalence watcher<=18000s/128MiB; both stop for
 STOP/deadline/free NAS<20GiB. Outputs stay in separate run directories under
-`outputs/contact-audit-20261019-r1/` of the remote root; no label overwrite.
+`outputs/contact-audit-20261019-r2/` of the remote root; initial diagnostics in
+`outputs/contact-audit-20261019-r1/` are retained. No label overwrite.
 Per-run manifests record code commit, runtime versions, PID and actual inputs.
 
 ## Upstream correctness repair prompted by ref1_1
@@ -130,7 +131,49 @@ not every training batch; metadata/contract checks do not claim detection of
 manual payload edits in an otherwise immutable run. Old human inheritance has
 explicit scope. Global-only C architecture/config cannot resume as local-ID C.
 
-Result: remote capsule blocker confirmed and repair required; preliminary normal differences warrant review, not immediate teacher changes.
+## Repaired execution and first results
+
+| Run | Code | Inputs / result |
+| --- | --- | --- |
+| Shadow-only rebuild + human inheritance | 6e4bf1f5 | hands-r2, contacts-r2, finalize-data-r3; bounded6h each; running |
+| Normal panel on repaired surface | 6e4bf1f5 |324 pairs/9 sources,6.13s incl figures, exact baseline/cache match |
+| Uniform-window prevalence with repaired H4 | 14cf12bd |prevalence-r3,5h bound; watching available contacts; not complete |
+| GPU engineering smoke | 6e4bf1f5 |2×4 and128×8 updates,9-source9334-window recipe, no checkpoints |
+
+The repaired normal panel has8 OakInk sequences; each other source currently
+has1 available sequence. Suppression>.1 ranges1.46–23.49% across sources;
+Shadow is13.74%. These enriched-panel differences are not a census or a
+matched cross-run comparison (available panels differ). Visuals show spatially
+localized changes but cannot certify outward normal signs or physical contact.
+Local artifacts: `outputs/ptv3-shared-wam-v5/contact-audit-20261019-r1/repaired-normals/`.
+
+Matched old/new surface check on s4-00000/100 frames: joints differ0, surface
+sample displacements average10.43mm/max22.59mm;60.15% exceed1mm. Contact changes
+>.1 on14.81% of204800 queries. This independently verifies that aligned joints
+did not protect surface/C correctness. New-cache contract and metadata binding
+tests reject stale protocol/upstream reuse and forbid source4 legacy inheritance.
+
+GPU environment: remote graspenv, Python3.8.20/Torch2.0.1+cu118/RTX4090,
+1024 width, bf16/TF32, workers4. B128 forward+loss312.90ms/backward748.83ms/
+optimizer42.21ms =1.104s per measured GPU update, peak allocated19.16GiB;
+8-update training loop18.64s including first batch/read startup, last loss4.728
+finite, all9 sources seen. This is an engineering subset; normalization moments
+use8 TRAIN windows/source, DEV is empty. It is not an accuracy or matched
+throughput improvement claim. Model/optimizer smoke seed0 is debug-only.
+Identified main WAM supervisor2975536/torchrun2975737 paused33.99s under existing
+user authorization and restored; later progress33980 confirms advancement.
+No v5 checkpoint or long training was started.21 tests and task-local structural
+checks pass; distributed startup/resume equivalence remain untested.
+
+The latest census applies the shared repaired H4 predicate and records rejected
+windows per source. Earlier prevalence snapshots lacking that filter remain
+diagnostics only. It still does not apply the actual source/stratum sampler.
+At the first72 audited sequences (64 OakInk, one each other source), uniform
+TRAIN-window P(c>.25) ranges3.58–42.02%; no H4-rejected window was found in
+this small initial subset. This neither validates full H4 coverage nor justifies
+a balancing decision; caches are arrival-biased and census remains incomplete.
+
+Result: remote capsule blocker fixed and matched-sequence effects verified; repaired C local readout passes real GPU checks at1.104s/update, full data/census still running.
 
 Decision: repair Shadow geometry, refreeze with exact H4 admission, rerun both audits; keep distance-only teacher/BCE until corrected evidence is available.
 

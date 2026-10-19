@@ -47,7 +47,9 @@ in [the contact-definition probe](docs/experiments/probes/P-20261019-v5-contact-
 - `tools/audit/audit_contact_prevalence.py` streams completed caches and reports
   per-source P(c>0), P(c>0.25), P(c>0.5), soft mass, valid denominators and16-part
   positive counts. It also counts TRAIN/DEV K24 label appearances under uniform
-  windows within source. This latter view does not apply the motion-stratum or
+  windows within source, using the reader's repaired H4 admission and reporting
+  rejected windows (hands are inferred from a bound contact contract). This
+  latter view does not apply the motion-stratum or
   source sampler; it must not be presented as the exact optimizer distribution.
   `--watch` waits for newly completed caches within a declared deadline and
   publishes explicit partial coverage until every planned sequence is audited.

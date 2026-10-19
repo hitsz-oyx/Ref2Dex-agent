@@ -1,4 +1,6 @@
 import copy
+import importlib.util
+import json
 from types import SimpleNamespace
 import numpy as np
 import pytest
@@ -93,3 +95,22 @@ def test_root_relative_metric_separates_translation_and_masks_unknown_contact_ph
     assert sum(sum(row) for row in r['part/confusion_gt025']['matrix'])==24*2048
     b['interaction_valid'].zero_();r=forecast_metrics(p,b)
     assert r['hand/contact_phase']['count']==0 and r['hand/noncontact_phase']['count']==0
+
+
+def test_streamed_contact_exposure_excludes_windows_rejected_by_repaired_h4(tmp_path):
+    from ptv3_shared_wam_v5.contracts import LABEL_SEMANTICS
+    spec=importlib.util.spec_from_file_location('prevalence_audit',TASK/'tools/audit/audit_contact_prevalence.py')
+    audit=importlib.util.module_from_spec(spec);spec.loader.exec_module(audit)
+    cf=tmp_path/'contacts/s4-00000';cf.mkdir(parents=True)
+    hf=tmp_path/'hands/sequences/s4-00000';hf.mkdir(parents=True)
+    np.save(cf/'contact.npy',np.ones((32,1,2048),np.float16))
+    np.save(cf/'part.npy',np.zeros((32,1,2048),np.uint8))
+    np.save(cf/'valid.npy',np.ones((32,1),bool))
+    (cf/'meta.json').write_text(json.dumps(dict(label_semantics=LABEL_SEMANTICS,key='s4-00000',source_id=4,valid_object_frames=32)))
+    valid=np.zeros((32,2,21),bool);valid[np.arange(32),np.arange(32)%2]=True;valid[4:8,0,7]=True
+    np.save(hf/'joint_valid.npy',valid);np.save(tmp_path/'train.npy',np.array([[0,3],[0,7]]))
+    job=dict(key='s4-00000',source_id=4,windows=dict(train='train.npy'))
+    r=audit.sequence_counts(job,tmp_path,tmp_path/'contacts',lambda:None,tmp_path/'hands')
+    assert r['h4_rejected_windows']['train']==1
+    assert r['views']['train_uniform_windows']['queries']==24*2048
+    assert r['views']['cached_frames']['queries']==32*2048

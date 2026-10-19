@@ -23,6 +23,15 @@ Shadow退化审计排除了checkpoint编号/normalization buffers变化，随机
 原WAM12000/legacy协议、单seed TRAIN，不作泛化或WAM净收益结论。
 [评估卡](../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-ppo-checkpoint-evaluation.md)。
 
+## 2026-10-19 WAM-v5表面正确性修复与局部C读出
+
+按用户ref1/ref1_1核对远端Trimesh4.12.2，确认Shadow capsule重复居中会偏移表面，
+旧关节点对齐测试无法检出。已修复并停止旧数据冻结，独立新目录重建Shadow并继承人手；
+H4准入与reader统一、cache上游绑定、同ID逐点C读出与细粒度指标已实现，21测试通过。
+真实GPU B128短测1.104s/update、19.16GiB，主WAM暂停34s后恢复。全量新数据/比例审计
+仍在跑，法线候选仅作小审计，未改BCE或C定义，未启动v5长训或接入PPO。
+[v5当前状态](../src/task/ptv3-shared-wam-v5/docs/STATE.md)。
+
 ## 2026-10-19 Inspire转为全量Shadow BC/PPO路线
 
 按用户要求，共享Shadow的1024/1024/512/512 ELU大网络、两阶段各50000步BC及原版

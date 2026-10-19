@@ -870,7 +870,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261019-v5-contact-definition-audit](../../src/task/ptv3-shared-wam-v5/docs/experiments/probes/P-20261019-v5-contact-definition-audit.md) | v5 contact prevalence and normal-direction audit | remote capsule blocker confirmed and repair required; preliminary normal differences warrant review, not immediate teacher changes. | repair Shadow geometry, refreeze with exact H4 admission, rerun both audits; keep distance-only teacher/BCE until corrected evidence is avai | probes/RUNNING |
+| [P-20261019-v5-contact-definition-audit](../../src/task/ptv3-shared-wam-v5/docs/experiments/probes/P-20261019-v5-contact-definition-audit.md) | v5 contact prevalence and normal-direction audit | remote capsule blocker fixed and matched-sequence effects verified; repaired C local readout passes real GPU checks at1.104s/update, full da | repair Shadow geometry, refreeze with exact H4 admission, rerun both audits; keep distance-only teacher/BCE until corrected evidence is avai | probes/RUNNING |
 
 ## HF-video-data-readiness
 
