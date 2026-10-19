@@ -62,3 +62,21 @@ cpu-reset-rng-and-canonical-table.v1协议，900秒上限，graspenv。
 plus/dexgrasp/example_model/state_based_model.pt；native300路径无WAM推理和PPO更新。
 报告iteration=null，因为官方发布权重的训练迭代数未知，不标记为本地10000轮。
 与r2历史微调/current WAM的初始状态和指标比较，其他已述训练覆盖限制仍适用。
+
+### 原始发布模型重测结果
+
+r1原始模型30/64成功、22/64保持，但与此前历史比较run的初始状态不匹配，
+不作跨run严格配对。r2同步重跑两臂（代码8a93bb34），初始native300、手点、
+object pose、goal、完整root状态逐位一致；不以同seed代替实际初态核对。
+
+|模型|官方成功|抬高并保持60步|平均回报|
+|---|---|---|---|
+|官方发布state_based_model.pt|30/64 (46.875%)|20/64 (31.25%)|89.57|
+|自训练BC→PPO5500+最终WAM80000|47/64 (73.4375%)|38/64 (59.375%)|129.08|
+
+增加17个成功、18个保持；当前路线有1个workspace失败，按失败回合计入64分母，
+未剔除；两臂都无优化器更新。此结果支持当前完整系统在该TRAIN面板上优于
+未经本地微调的官方发布模型，不隔离WAM净增益，也不代表全对象泛化。
+官方发布模型内部训练迭代数未知，报告null；明确区别此前本地追加10000轮的模型。
+GPU6/7已释放，主训练不变；证据published-ppo-evaluation-20261019-r2/
+comparison.json、initial-state-audit.json及两臂evaluation.json。

@@ -1,3 +1,11 @@
+## 2026-10-19 官方原始state_based_model重测完成
+
+初始native观测/手物状态/root完全对齐的64场景：官方发布原始模型成功30/64、
+保持20/64；当前PPO5500+WAM80000成功47/64、保持38/64，含1次workspace失败。
+当前系统在该面板明显优于原始发布模型；不同于之前追加10000轮的官方微调模型，
+不据此隔离WAM净收益。GPU6/7释放，主训练未改。
+[实验卡](../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-native-ppo-comparison.md)。
+
 ## 2026-10-19 历史官方PPO同面板评估完成
 
 固定16物体×4场景、seed246，初始原生观测及完整root状态逐位一致：
