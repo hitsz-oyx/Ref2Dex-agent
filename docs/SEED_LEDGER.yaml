@@ -25,6 +25,10 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261019-wam-v5-batch-audit:
+    seed_pool: probe
+    diagnostic_sampling_seed: 177
+    reuse_reason: read-only frozen-checkpoint batch/depth diagnostic; reuses exploratory diagnostic seed, not independent validation or new model training
   P-20261019-inspire-task-contract:
     seed_pool: probe
     training_seed: 246
