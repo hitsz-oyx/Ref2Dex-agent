@@ -1,5 +1,11 @@
 # WAM-v5 next CONTACT/RELEASE condition — proposed contract
 
+The user has moved active event-conditioned model/training work into
+[the separate WAM v6 task](../../ptv3-shared-wam-v6/README.md). This page and
+the optional v5 modules retain prototype/data-audit compatibility. v5 production
+continues to use the original unconditioned contract; v6 has a distinct recipe,
+model/checkpoint schema and explicit migration path for rollback separation.
+
 Source: the user's [shared discussion](https://chatgpt.com/share/6ad61d8a-d46c-83ea-b4e6-9977926fc3c2),
 read from the newest substantive exchanges backward; user confirmed that
 the requested WAM addition is event type plus relative frames. The recent
