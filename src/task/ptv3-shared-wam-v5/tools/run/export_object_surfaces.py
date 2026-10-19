@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import shutil
 import sys
+import tarfile
 import time
 import zipfile
 import numpy as np
@@ -88,6 +89,9 @@ def main():
                 with np.load(row['path'],allow_pickle=False) as z:old,normals,query=z['surface'],z['normals'],z['query']
                 if sid==4:
                     path=ROOT/'outputs/video-data-preparation/unidexgrasp-policy-assets-20261014-r1/assets/meshdatav3_scaled'/row['mesh_id']/'coacd'/('decomposed_%03d.obj'%round(row['scale']*100))
+                    if not path.is_file():
+                        failures.append(dict(key=key,source_id=sid,reason='PENDING_ARCHIVE',member='meshdatav3_scaled/'+row['mesh_id']+'/coacd/'+path.name))
+                        continue
                     mesh=mesh_file(path)
                 elif sid==5:
                     member=taco_names[name.split('/')[-1]+'_cm.obj']
@@ -112,6 +116,25 @@ def main():
             rows.append(dict(key=key,path=dest,source_id=sid,surface_points=2048,flow_points=32))
         except Exception as e:failures.append(dict(key=key,source_id=sid,reason=type(e).__name__+': '+str(e)))
         if (len(rows)+len(failures))%50==0:print(json.dumps(dict(done=len(rows),failed=len(failures),total=len(needed),elapsed_s=time.monotonic()-started)),flush=True)
+    pending_members={r['member']:r for r in failures if r['reason']=='PENDING_ARCHIVE'}
+    failures=[r for r in failures if r['reason']!='PENDING_ARCHIVE']
+    archive=ROOT/'outputs/video-data-preparation/unidexgrasp-policy-assets-20261014-r1/inputs/meshdatav3_scaled.tar.xz'
+    if pending_members:
+        with tarfile.open(archive,'r|xz') as tar:
+            for member in tar:
+                name=member.name[2:] if member.name.startswith('./') else member.name
+                if name not in pending_members:continue
+                record=pending_members.pop(name);key=record['key'];row=objects[key]
+                try:
+                    mesh=trimesh.load(io.BytesIO(tar.extractfile(member).read()),file_type='obj',process=False)
+                    with np.load(row['path'],allow_pickle=False) as z:values=sample(mesh,z['surface'],z['normals'],z['query'],key)
+                    dest='geometry/'+hashlib.sha256(key.encode()).hexdigest()[:20]+'.npz'
+                    np.savez_compressed(a.output/dest,**values)
+                    rows.append(dict(key=key,path=dest,source_id=4,surface_points=2048,flow_points=32))
+                except Exception as e:failures.append(dict(key=key,source_id=4,reason=type(e).__name__+': '+str(e)))
+                if len(rows)%100==0:print(json.dumps(dict(done=len(rows),pending_archive=len(pending_members),elapsed_s=time.monotonic()-started)),flush=True)
+                if not pending_members or time.monotonic()-started>a.seconds or (a.output/'STOP').exists():break
+        failures.extend(dict(key=r['key'],source_id=4,reason='original CAD member not processed') for r in pending_members.values())
     result=dict(schema='ref2dex.wam-v5-object-surfaces.v1',status='COMPLETED' if len(rows)==len(needed) else 'PARTIAL',
         objects=rows,failures=failures,total=len(needed),elapsed_s=time.monotonic()-started,
         scope='Deterministic area-weighted original CAD samples; same coordinate frame; preserve original32 flow queries.')
