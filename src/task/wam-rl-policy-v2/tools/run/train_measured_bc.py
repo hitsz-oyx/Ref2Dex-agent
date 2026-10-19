@@ -78,7 +78,7 @@ def main():
         raise ValueError("bounded wall-clock budget required")
     if not a.manifest.exists():
         raise FileNotFoundError(a.manifest)
-    out.mkdir(parents=True)
+    out.mkdir(parents=True, exist_ok=True)
     scratch = ROOT / "tmp" / out.name
     scratch.mkdir(parents=True, exist_ok=True)
     os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu), TMPDIR=str(scratch),
