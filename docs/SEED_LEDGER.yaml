@@ -619,3 +619,9 @@ allocations:
     model_and_training_seed: 170
     fixed_DEV_panel_seed: 171
     reuse_reason: explicit continuation from the v5 parent with matched inherited draw stream; new branch seed170, not an independent replication
+
+  P-20261020-wam-v6-mixed-pretrain:
+    seed_pool: probe
+    model_and_training_seed: 170
+    fixed_DEV_panel_seed: 171
+    reuse_reason: strict continuation of the learned v6 event branch and original draw stream; not an independent replication
