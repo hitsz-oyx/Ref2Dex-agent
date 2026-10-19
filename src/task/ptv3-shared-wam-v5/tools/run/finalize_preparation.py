@@ -21,6 +21,7 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     for name in ('plan','hands','contacts','geometry','output'):p.add_argument('--'+name,type=Path,required=True)
     p.add_argument('--seconds',type=int,default=21600);p.add_argument('--git-commit',required=True)
+    p.add_argument('--training-admitted',action='store_true',help='Publish complete data for an explicitly requested training run')
     a=p.parse_args();a.output.mkdir(parents=True,exist_ok=True);started=time.monotonic()
     write(a.output/'run-manifest.json',dict(pid=os.getpid(),git_commit=a.git_commit,run_id=a.output.name,
         work_version='v5.preparation-finalizer.v1',seconds=a.seconds,min_free_gib=20,
@@ -33,11 +34,13 @@ def main():
             hands=hand,contacts=contact,checked_at=time.time()))
         if hand.get('status') in ('COMPLETED','PARTIAL','STOPPED') and contact.get('status')=='COMPLETED_FOR_AVAILABLE_HANDS':
             complete=hand.get('status')=='COMPLETED'
+            if a.training_admitted and not complete:raise ValueError('training admission requires complete hand coverage')
             recipe=a.output/'recipe'
             cmd=[sys.executable,str(Path(__file__).with_name('freeze_dataset.py')),
                 '--plan',str(a.plan),'--hands',str(a.hands),'--contacts',str(a.contacts),
                 '--geometry',str(a.geometry),'--output',str(recipe),'--git-commit',a.git_commit]
             if complete:cmd+=['--require-complete']
+            if a.training_admitted:cmd+=['--training-admitted']
             write(a.output/'progress.json',dict(status='FREEZING_DATASET',pid=os.getpid(),hands_complete=complete))
             with (a.output/'freeze.log').open('w') as log:
                 result=subprocess.run(cmd,stdout=log,stderr=subprocess.STDOUT,

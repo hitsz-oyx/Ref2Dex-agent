@@ -1,5 +1,8 @@
 {
   "schema": "ref2dex.ptv3-shared-wam.v5",
+  "seed": 170,
+  "validation_seed": 171,
+  "validation_initial_step": 20,
   "validation_microbatch_size": 8,
   "interaction_encoding": "object-centric-surface-contact16-local-id.v5",
   "interaction_dim": 17,
