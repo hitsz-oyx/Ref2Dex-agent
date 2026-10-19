@@ -29,6 +29,8 @@ def main():
     p.add_argument("--controls", type=int, default=60)
     p.add_argument("--seconds", type=int, default=1800)
     p.add_argument("--state-transport", choices=("json", "packed"), default="json")
+    p.add_argument("--ppo-collector-smoke", action="store_true",
+                   help="record a bounded measured PPO transition batch and update once")
     a = p.parse_args()
     a.manifest, a.checkpoint = a.manifest.resolve(), a.checkpoint.resolve()
     a.geometry_cache = a.geometry_cache.resolve()
@@ -54,6 +56,7 @@ def main():
     from wam_rl_policy_v2.inspire_shadow import current_state, tau_world
     from wam_rl_policy_v2.inspire_state_codec import unpack_state
     from wam_rl_policy_v2.measured_policy import MeasuredInspirePolicy
+    from wam_rl_policy_v2.measured_ppo import MeasuredCritic, MeasuredGaussianActor, update_measured
     from wam_rl_policy_v2.measured_reward_bridge import MeasuredRewardTracker, reward_features
     from wam_rl_policy_v2.robot_adapter import InspireAdapter
     from wam_rl_policy_v2.task_runtime import TaskController
@@ -67,6 +70,8 @@ def main():
         raise ValueError("Scheduled686 measured BC checkpoint required")
     model = MeasuredInspirePolicy(with_tau=True).cuda().eval()
     model.load_state_dict(packet["model"], strict=True)
+    ppo_actor = MeasuredGaussianActor.from_bc_packet(packet, with_tau=True).cuda().eval() if a.ppo_collector_smoke else None
+    ppo_critic = MeasuredCritic(686).cuda().eval() if a.ppo_collector_smoke else None
     corpus = TeacherRolloutCorpus(a.manifest, "train")
     by_sequence = {row["sequence"]: row for row in corpus.records}
     old_meta = json.loads((a.geometry_cache / "manifest.json").read_text())
@@ -112,6 +117,7 @@ def main():
         latest_decisions = [None] * len(sequences); terminal_records = {}
         reward_trackers = [MeasuredRewardTracker() for _ in sequences]
         reward_totals = np.zeros(len(sequences), np.float64); reward_last_parts = [None] * len(sequences)
+        transitions = [[] for _ in sequences]; pending = [None] * len(sequences)
 
         def observe_and_predict(snapshot):
             nonlocal tau_valid_count, force_valid_count
@@ -170,9 +176,35 @@ def main():
                 measured.append(value); tasks.append(result["task"]); shape_points.append(points[index]); taus.append(tau); tau_valid.append(valid)
                 decision_count[index] += 1; force_valid_count += int(contact_valid)
             with torch.inference_mode():
-                output = model(torch.as_tensor(np.asarray(measured), device="cuda"), torch.as_tensor(np.asarray(tasks), device="cuda"),
-                               torch.as_tensor(np.asarray(shape_points), device="cuda"),
-                               tau=torch.as_tensor(np.asarray(taus), device="cuda"), tau_valid=torch.as_tensor(np.asarray(tau_valid), device="cuda"))
+                measured_tensor = torch.as_tensor(np.asarray(measured), device="cuda")
+                task_tensor = torch.as_tensor(np.asarray(tasks), device="cuda")
+                shape_tensor = torch.as_tensor(np.asarray(shape_points), device="cuda")
+                tau_tensor = torch.as_tensor(np.asarray(taus), device="cuda")
+                tau_valid_tensor = torch.as_tensor(np.asarray(tau_valid), device="cuda")
+                if ppo_actor is None:
+                    output = model(measured_tensor, task_tensor, shape_tensor, tau=tau_tensor, tau_valid=tau_valid_tensor)
+                else:
+                    shape = model.shape(shape_tensor)
+                    robot = torch.cat((measured_tensor[..., :345], shape, measured_tensor[..., 345:]), -1)
+                    observation = torch.cat((robot, task_tensor, tau_tensor.flatten(1),
+                                             tau_valid_tensor.to(measured_tensor.dtype)[:, None]), -1)
+                    distribution = ppo_actor.distribution(observation)
+                    output = distribution.loc
+                    values = ppo_critic(observation)
+                    logp = distribution.log_prob(output).sum(-1)
+                    for index in range(len(sequences)):
+                        if pending[index] is not None:
+                            old = pending[index]
+                            transitions[index].append(dict(
+                                observation=old["observation"].detach().cpu(), action=old["action"].detach().cpu(),
+                                logp=old["logp"].detach().cpu(), mean=old["mean"].detach().cpu(),
+                                std=old["std"].detach().cpu(), value=old["value"].detach().cpu(),
+                                reward=float(latest_decisions[index]["reward"]),
+                                done=bool(latest_decisions[index]["terminated"]),
+                            ))
+                        pending[index] = dict(observation=observation[index], action=output[index],
+                                              logp=logp[index], mean=distribution.loc[index],
+                                              std=distribution.scale[index], value=values[index])
             action = output.clamp(-1, 1).cpu().numpy().astype(np.float32); previous[:] = action
             return action, snapshot
 
@@ -188,6 +220,25 @@ def main():
             state["reward_totals"] = reward_totals.tolist(); state["reward_last_parts"] = reward_last_parts
             write(a.output / "progress.json", state)
         send(connection, dict(op="close")); receive(connection)
+        if ppo_actor is not None:
+            if any(len(row) != a.controls for row in transitions):
+                raise ValueError("online PPO collector did not produce one transition per control")
+            batch = {}
+            for key in ("observation", "action", "logp", "mean", "std", "value"):
+                batch[key] = torch.stack([torch.stack([row[key] for row in transitions[index]])
+                                          for index in range(len(sequences))], dim=1).cuda()
+            batch["reward"] = torch.as_tensor(np.asarray([[row["reward"] for row in transitions[index]]
+                                                          for index in range(len(sequences))], np.float32).T, device="cuda")
+            batch["done"] = torch.as_tensor(np.asarray([[row["done"] for row in transitions[index]]
+                                                        for index in range(len(sequences))], bool).T, device="cuda")
+            batch["bootstrap"] = torch.stack([pending[index]["value"] for index in range(len(sequences))])
+            ppo_actor.train(); ppo_critic.train()
+            actor_optimizer = torch.optim.Adam(ppo_actor.parameters(), lr=1e-5)
+            critic_optimizer = torch.optim.Adam(ppo_critic.parameters(), lr=1e-4)
+            state["ppo_collector"] = dict(transition_count=[len(row) for row in transitions],
+                                           update=update_measured(ppo_actor, ppo_critic, batch,
+                                                                  actor_optimizer, critic_optimizer, epochs=1),
+                                           bootstrap_source="actual final measured observation")
         state.update(status="COMPLETED", controls_completed=a.controls, tau_valid_observations=int(tau_valid_count),
                      force_valid_observations=int(force_valid_count), scheduler_decisions=decision_count.tolist(),
                      latest_decisions=latest_decisions, terminal_records=terminal_records, elapsed_s=time.monotonic() - started,
