@@ -30,7 +30,7 @@ loader改spawn/120s读取超时；实际local/global batch写入checkpoint并在
 objective-best保持原定义，新增独立trajectory-best：短期h1–4、根点相对、接触阶段三个
 source-macro毫米误差等权平均；两者均受轮转保护。只从仍存在的父运行checkpoint初始化τ候选。
 
-33项测试通过，含legacy实际batch来源绑定、CPU完整恢复、读取失败末步保存、τ候选保留，
+当前44项测试通过，含legacy实际batch来源绑定、CPU完整恢复、读取失败末步保存、τ候选保留，
 以及实际CUDA fused AdamW恢复和事件零残差迁移。四GPU逐位重放等价仍未认证。
 首次四卡恢复及旧代码回退发现Torch2.0.1 CPU映射后fused step设备错误，均无完成更新；
 ac951370只迁移fused/capturable step到参数GPU，保留数值/动量。单参数CUDA下一步与不中断训练误差0。
@@ -51,10 +51,24 @@ ac951370只迁移fused/capturable step到参数GPU，保留数值/动量。单�
 
 用户确认需要WAM新增下一CONTACT/RELEASE的类型、相对帧数及有效性。已阅读分享会话末尾
 并向前核对，接口与边界见[event设计](event-conditioning.md)。仓库77045e4f已有可选
-零初始化goal残差分支，不增加共享token/点数/KNN；33测试中的4项验证完整WAM迁移输出
+零初始化goal残差分支，不增加共享token/点数/KNN；其中4项测试验证完整WAM迁移输出
 逐位保持、分支有梯度、未知/远期事件和单位合同。当前生产ac951370仍无事件输入。
-事件侧表、近邻标签转事件的语义/删失覆盖审计、按名迁移新增optimizer参数及条件续训待完成；
-现有ckpt可用于后续扩展，但不能把weights-only扩展称为optimizer完整恢复。
+按用户“先准备”的要求，[事件准备Probe](experiments/probes/P-20261019-wam-v5-event-preparation.md)
+已生成首轮全39526条候选侧表（211.67s），复用各sequence绑定的contact_path。
+进入阈值c>=.8/至少3查询，离开阈值c>=.5不足3查询，连续3真实观测确认，缺失断开，
+左边界不伪造事件、右截断不填NONE，远期事件保留时间；这是近邻任务标注，不是力接触。
+真实32768次继承混合采样检查发现HOI4D全在synthetic odd ticks，首版条件全未知；
+e8d995c9/v2只增加两相邻已知真实观测间的计划事件时间查询，不修改physical C/state mask。
+完整新候选目录`data/events-candidate-20261019-r2/`，旧r1只保留诊断。
+独立EventV5Windows保留原抽样/target payload，TRAIN用独立确定性15%条件dropout；
+v2全39526条193.41s完成，58444 CONTACT/26929 RELEASE事件；spawn2 workers/batch128读取通过。
+原抽样32768次中32345条件有效（98.71%），15%dropout后27411保留；HOI4D1776/1803有效（98.50%）。
+九源原输入/target逐值一致，原TRAIN3218740/DEV545459、source/stratum/windows和归一化保持。
+真实step10049经56664364核验：564个原optimizer状态/step10049逐值保留，只新增
+4张量/50304参数；九源真实GPU单样本迁移后τ/C与原模型差0，峰值1.14GiB。
+迁移候选在`outputs/event-migration-20261019-r1/`；不同schema/false admission阻止误普通resume。
+新事件recipe仍为candidate/不准入；当前生产ac951370未热改，条件续训及效果验证待独立短测。
+事件准备、原输入一致性和按名optimizer下一步等价均有测试；不能把条件分支实现称为已学会事件。
 
 ## 当前实现与已确认修复
 
@@ -97,6 +111,9 @@ batch128/4 workers完成8步AdamW，九源均出现，loss/梯度有限。GPU前
 | 训练准入冻结 | `outputs/finalize-training-20261019-r1/progress.json`，COMPLETED；recipe/统计已准入 |
 | 四卡长训 | `outputs/ptv3-shared-wam-v5/pretrain-nine-v5-width768-contracts-20261019-r2/process.json`及`progress.json` |
 | 恢复检查 | `outputs/contract-transition-20261019-r2/startup-report.json`及`recovery-contract-probe-20261019-r2/` |
+| 事件候选侧表 | `data/events-candidate-20261019-r2/manifest.json`，全39526完成，未准入长训 |
+| 事件读取核验 | `outputs/event-dataset-audit-20261019-r2/report.json`及`candidate-recipe.json` |
+| 事件迁移核验 | `outputs/event-migration-20261019-r1/report.json`及独立candidate checkpoint |
 | 全量比例审计 | `outputs/contact-audit-20261019-r2/prevalence-r3/summary.json`，PID3021191 |
 | 修复后法线小审计 | `outputs/contact-audit-20261019-r2/normals/summary.json`及六组PNG/NPZ |
 | GPU/修复证据 | `outputs/surface-repair-20261019-r2/`，gpu-smoke及matched-shadow-validation.json |

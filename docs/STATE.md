@@ -12,6 +12,18 @@ Inspire含力有效位的current421/scheduled686，Shadow310/575，actor容量�
 [实现与边界](../src/task/wam-rl-policy-v2/docs/research/2026-10-19-measured-task-interface.md)、
 [实验记录](../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-inspire-task-contract.md)。
 
+## 2026-10-19 WAM-v5事件数据与checkpoint迁移准备完成，原训练继续
+
+用户确认下一CONTACT/RELEASE类型+相对30Hz帧数，并要求先准备。
+事件候选侧表覆盖39526序列、58444 CONTACT/26929 RELEASE；复用冻结contact缓存，无KNN。
+实际混合抽样发现HOI4D全在synthetic odd anchors，已修正为相邻真实已知观测间的计划事件时间查询，
+physical C/state仍masked，原窗口/target/source-strata/24步归一化不变。
+v2/e8d995c9全量193.41s完成；32768次原采样中条件有效98.71%，HOI4D98.50%，spawn2/batch128读取通过。
+真实step10049按名扩展保留564份原optimizer state/step，只新增50304参数；九源GPU τ/C迁移差0。
+44项v5测试通过。候选recipe/checkpoint仍为独立未准入产物，当前四卡ac951370未热改、继续训练。
+下一步是显式绑定新事件recipe后做短条件续训对照，尚无事件收益结论。
+[准备证据与边界](../src/task/ptv3-shared-wam-v5/docs/experiments/probes/P-20261019-wam-v5-event-preparation.md)。
+
 ## 2026-10-19 WAM-v5工程合同修复后，从10049恢复四卡长训
 
 用户批准spawn loader、实际batch绑定和独立τ候选保留。原768在10049正常保存停止；

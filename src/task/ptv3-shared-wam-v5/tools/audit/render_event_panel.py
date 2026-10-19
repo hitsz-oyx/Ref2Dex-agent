@@ -45,6 +45,8 @@ def main():
                 ax=fig.add_subplot(3,3,r*3+c+1,projection='3d')
                 ax.scatter(*obj[::4].T,s=2,color='.6',alpha=.4)
                 near=contact[c]>=.8
+                band=(contact[c]>=.5)&~near
+                ax.scatter(*obj[band].T,s=3,color='#d35400',alpha=.6)
                 ax.scatter(*obj[near].T,s=4,color='#00843d',alpha=.8)
                 for hand in range(2):
                     points=hands[c,hand]; mask=valid[c,hand]
@@ -55,7 +57,9 @@ def main():
                         if mask[ids].all(): ax.plot(*points[ids].T,lw=1,color=['#2166ac','#b2182b'][hand])
                 for setter,mid in zip((ax.set_xlim,ax.set_ylim,ax.set_zlim),center):setter(mid-radius,mid+radius)
                 ax.set_box_aspect((1,1,1)); ax.view_init(25,40)
-                ax.set_title('{} {} {:+.2f}s'.format(NAMES[sid], 'CONTACT' if event[2]==1 else 'RELEASE', (frames[c]-event[0])/30),fontsize=10)
+                ax.set_title('{} {} {:+.2f}s\nc>=.8: {}; c>=.5: {}'.format(
+                    NAMES[sid], 'CONTACT' if event[2]==1 else 'RELEASE', (frames[c]-event[0])/30,
+                    int(near.sum()),int((contact[c]>=.5).sum())),fontsize=9)
         fig.suptitle('Actual object-frame joints around annotated onset; not force contact')
         fig.tight_layout(); fig.savefig(a.input/'event-geometry.png',dpi=120);plt.close(fig)
 

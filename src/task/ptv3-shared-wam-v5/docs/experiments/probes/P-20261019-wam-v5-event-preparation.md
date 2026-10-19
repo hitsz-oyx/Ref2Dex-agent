@@ -5,7 +5,7 @@ experiment_id: P-20261019-wam-v5-event-preparation
 date: 2026-10-19
 task: ptv3-shared-wam-v5
 branch: main
-git_commit: f68057ee
+git_commit: e8d995c9
 claim_id: C1
 hypothesis_family: HF-v5-planned-proximity-events
 probe_index_in_family: 1
@@ -13,11 +13,14 @@ seed_pool: probe
 seeds: [177]
 decision_changed_if_positive: prepare complete candidate event sidecars and an explicit checkpoint expansion before a conditioned continuation probe
 decision_changed_if_negative: revise annotations before any event-conditioned optimization
-status: RUNNING
+status: COMPLETED
 run_id: events-candidate-20261019-r2
 ---
 
 # Planned CONTACT/RELEASE data preparation
+
+Result: v2 candidate39526 sequences complete;32768 inherited draws98.7% annotated; real step10049 weights/564 optimizer states preserved, nine-source tau/C expansion deltas0.
+Decision: keep current production training unchanged; proceed next to an explicitly bound short event-conditioned continuation, not a new long run yet.
 
 Classification: Decision. The user confirmed the new WAM input is the next
 CONTACT/RELEASE type and relative30Hz frames, then asked to prepare it. Test
@@ -103,3 +106,53 @@ bytes; its distinct schema/false admission prevents accidental generic resume.
 This is migration evidence, not event-conditioned training/effectiveness.
 
 No training model/data configuration has changed. No event-conditioning gain claimed.
+
+## Completed v2 preparation
+
+Frozen e8d995c9 in `code-events-e8d995c9/`, remote graspenv Python3.8.20,
+Torch2.0.1+cu118,8 pure CPU spawn workers. `data/events-candidate-20261019-r2`
+completed all39526 sequences in193.41s. The full pipeline (census,144-sequence
+panel, actual reader/loader audit, geometry export) completed in231.68s,
+supervisorPID3060563. No preparation process remains to restart.
+
+The same58444 CONTACT/26929 RELEASE onsets as v1 are retained; only source10
+midpoint event-time queries change. In32768 fixed inherited-mixture TRAIN
+draws (seed177,step10050,rank0),32345 have valid annotations (98.7091%); after
+independent15% condition dropout,27411 remain (83.6517%). HOI4D improves from
+0/1803 to1776/1803 valid (98.5025%), with355 CONTACT/1288 RELEASE/133 NONE and
+27 unknown. These are sampled optimizer exposure estimates, not uniform-frame
+coverage or model accuracy. Source8 still has no inherited DEV and sampled
+release exposure0; do not claim learned release performance there.
+
+Actual EventV5Windows reads preserve every original input/target field on a
+nine-source panel exactly;32768 source/stratum/window choices match the base
+sampler exactly. Two spawn workers materialize a real batch128 with106 valid
+conditions after dropout. TRAIN3218740/DEV545459 and all original stats remain
+unchanged. `outputs/event-dataset-audit-20261019-r2/candidate-recipe.json` is
+reviewable but training_allowed=false; stats.json is an immutable parent link.
+The production launcher still cannot silently activate this recipe/model.
+
+Inspection artifacts: `outputs/event-panel-export-20261019-r2/` contains actual
+object queries, hand surface samples/joints at onset±6frames and timelines.
+Local receipts/PNGs are under
+`outputs/ptv3-shared-wam-v5/event-preparation-20261019-r2/`. Three geometric
+examples (OakInk2 CONTACT, Shadow CONTACT, HOI4D RELEASE) expose actual
+surfaces and threshold counts. OakInk2/Shadow approach strongly increases
+c>=.8 queries (0→10→158 and0→20→162 over onset±6frames). The HOI4D RELEASE
+example is marginal: c>=.5 query count3→0→3, with no c>=.8 queries at those
+three snapshots. Do not call this a certified intentional release; compare
+event stability/conditioning effects before upgrading proximity to task phase.
+Timelines show residual
+short transitions in some ARCTIC/HOT3D examples; persistence2/3/4 sensitivity
+does not certify force contact or every annotation. This is sufficient to
+prepare a short conditioning decision probe, not to declare label perfection.
+
+44 v5 tests pass. Scoped Python/structured/seed/link checks pass; the full
+repository verification gate remains blocked only by six existing unrelated
+trajectory-policy cards missing v2 metadata. No unrelated cards were edited.
+Current four-GPU production run remains ac951370 and unconditioned. New long
+training, new strict event recipe migration entry, matched continuation and
+event-effect validation remain separate next work.
+
+Final live check: production RUNNING at12400,4 GPUs100%,1.118updates/s,
+remaining60440s (about16.8h). Preparation did not pause or replace that run.

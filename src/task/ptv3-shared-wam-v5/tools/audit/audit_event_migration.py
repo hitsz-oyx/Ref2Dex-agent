@@ -57,6 +57,7 @@ def main():
         candidate = dict(saved)
         candidate.update(schema='ref2dex.wam-v5-event-migration-candidate.v1',
             config=target_config, model=target.state_dict(), optimizer=expanded,
+            git_commit=a.git_commit, parent_git_commit=saved.get('git_commit'),
             parent_checkpoint=str(a.checkpoint.resolve()), selection={},
             event_migration=dict(weights=weights, optimizer=optimizer),
             training_allowed=False,

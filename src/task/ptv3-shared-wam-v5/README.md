@@ -8,6 +8,9 @@ trajectory tokens. There is no KNN, MANO reconstruction, FK or contact-label
 generation in the model or training reader.
 
 Current preparation/check results and live status paths are in [docs/STATE.md](docs/STATE.md).
+Optional next CONTACT/RELEASE conditioning, offline candidate sidecars and
+explicit checkpoint expansion are described in [the event contract](docs/event-conditioning.md).
+Current production training still uses the original unconditioned input.
 
 The independent package is `src/ptv3_shared_wam_v5`. It reuses existing PTv3
 primitives through `paths.py`; on the remote server set
