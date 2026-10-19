@@ -7,6 +7,8 @@ The shared Transformer receives256 scene +42 hand +32 goal tokens, not778
 trajectory tokens. There is no KNN, MANO reconstruction, FK or contact-label
 generation in the model or training reader.
 
+Current preparation/check results and live status paths are in [docs/STATE.md](docs/STATE.md).
+
 The independent package is `src/ptv3_shared_wam_v5`. It reuses existing PTv3
 primitives through `paths.py`; on the remote server set
 `REF2DEX_V5_BASE_CODE_ROOT` to the frozen v4 training-code root. v4 models,
@@ -115,6 +117,10 @@ as v5.
 `tools/audit/run_gpu_smoke.py` supports the user's authorized temporary pause of
 the identified WAM process group. It checks process/GPU ownership, installs an
 independent resume watchdog, and restores training in `finally`.
+
+Each training/smoke run uses a fresh output directory. `--resume` reads the
+previous checkpoint into a new directory so checkpoint rotation only touches
+files created by the current run.
 
 `tools/run/finalize_preparation.py` waits for hand/contact stages and freezes the
 final manifest and TRAIN statistics automatically. Incomplete inputs remain

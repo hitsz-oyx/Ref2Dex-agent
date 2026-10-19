@@ -91,7 +91,8 @@ def main():
     random.seed(seed+rank);np.random.seed(seed+rank);torch.manual_seed(seed+rank)
     torch.set_num_threads(2)
     a.output.mkdir(parents=True,exist_ok=True)
-    if (a.output/'result.json').exists():raise ValueError('fresh output required; no result overwrite')
+    if (a.output/'result.json').exists() or any(a.output.glob('step*.pt*')):
+        raise ValueError('fresh output required; resume into a new directory without overwriting or rotating previous checkpoints')
     identity=hashlib.sha256(a.manifest.read_bytes()+a.stats.read_bytes()).hexdigest()
     model=SharedWAMV5(stats,config).to(device)
     optimizer=torch.optim.AdamW(model.parameter_groups(config['geometry_lr'],config['shared_lr']),
@@ -123,7 +124,7 @@ def main():
             objective_semantics=OBJECTIVE_SEMANTICS,engineering_smoke=a.smoke,device=device,world_size=world,
             python=sys.version,torch=torch.__version__,cuda=torch.version.cuda,steps=last,batch_size=batch_size,
             source_ids=dataset.meta['source_ids'],max_seconds=config['max_seconds'],min_free_gib=20,config=config))
-    start=time.monotonic();times=[];events=[];seen=set();loss_value=None;step=first-1;completed_step=first-1
+    start=time.monotonic();times=[];events=[];seen=set();loss_value=None;step=first-1;completed_step=first-1;checkpoints_written=0
     if device.startswith('cuda'):torch.cuda.reset_peak_memory_stats()
     wrapped.train()
     for step,batch in zip(range(first,last+1),loader):
@@ -165,10 +166,11 @@ def main():
             else:states[0]=rng
             if rank==0:
                 target=a.output/f'step{step:06d}.pt';pending=target.with_suffix('.pt.part')
-                if target.exists():raise ValueError('never overwrite existing v5 checkpoint')
+                if target.exists() or pending.exists():raise ValueError('never overwrite existing v5 checkpoint or partial checkpoint')
                 torch.save(dict(schema=SCHEMA,data_identity=identity,config=config,step=step,world_size=world,
                     model=model.state_dict(),optimizer=optimizer.state_dict(),random_state=states),pending)
                 pending.replace(target)
+                checkpoints_written+=1
                 recent=sorted(a.output.glob('step*.pt'))
                 for old in recent[:-config.get('checkpoint_keep_recent',2)]:old.unlink()
                 if sum(f.stat().st_size for f in a.output.iterdir() if f.is_file())>config['artifact_budget_bytes']:
@@ -180,7 +182,7 @@ def main():
         result=dict(status='COMPLETED' if completed_step==last else 'STOPPED',engineering_smoke=a.smoke,optimizer_updates=len(times),
             last_step=completed_step,last_loss=loss_value,elapsed_s=time.monotonic()-start,source_ids_seen=sorted(seen),
             peak_allocated_gib=torch.cuda.max_memory_allocated()/2**30 if device.startswith('cuda') else None,
-            timing=timing,checkpoint_written=not a.smoke)
+            timing=timing,checkpoint_written=bool(checkpoints_written))
         write(a.output/'result.json',result);print(json.dumps(result),flush=True)
     if world>1:dist.destroy_process_group()
 
