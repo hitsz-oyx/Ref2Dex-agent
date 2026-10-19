@@ -44,3 +44,11 @@ DExplore Inspire真实物理闭环。用户授权在Shadow评估后尝试，使�
 算作WAM负结果，也不拟合此失败示教。追加最多一个已知历史正控制TRAIN任务
 s3_airplane_lift（542控制拍），若其teacher也失败则停止原生试跑并记录前提未满足。
 这次任务选择修订先于BC拟合和学生评估，不扩展为物体搜索。
+
+两次当前teacher失败后，停止对其做物体筛选和BC拟合。进一步只读比对发现，飞机的新旧
+初始q/hand/object/current721/reference及整条reference_current全部相同，首个teacher
+动作却已显著不同，权重文件仍一致；尚未定位是teacher future1442或推理接线差异。
+为隔离这条Blocker，增加一次**已有TRAIN成功抬升canonical动作流的固定重放**（同一飞机，
+不查询teacher、不换seed），验证本机物理任务仍可被已有动作执行；不作为reactive teacher
+复现或WAM效果。如果重放实测held45，则可用已审核TRAIN原始示教先测试WAM条件BC；
+若重放也失败，停止学生原生试跑。离线小BC只用原660已准入TRAIN数据，未准入失败新示教。

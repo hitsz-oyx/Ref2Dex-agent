@@ -31,13 +31,13 @@ def adapted_source():
         if source.count(old) != 1:
             raise RuntimeError('collector adaptation no longer applies: '+old[:100])
         source = source.replace(old,new)
-    replace("    args = parser.parse_args()", "    parser.add_argument('--socket', type=Path)\n    parser.add_argument('--server-pid', type=int, default=-1)\n    parser.add_argument('--controls', type=int, default=300)\n    args = parser.parse_args()\n    if not 1 <= args.controls <= 600: raise ValueError('bounded controls required')")
+    replace("    args = parser.parse_args()", "    parser.add_argument('--socket', type=Path)\n    parser.add_argument('--replay', type=Path)\n    parser.add_argument('--server-pid', type=int, default=-1)\n    parser.add_argument('--controls', type=int, default=300)\n    args = parser.parse_args()\n    if not 1 <= args.controls <= 600: raise ValueError('bounded controls required')")
     replace("    allowed = [ROOT/'outputs/ptv3-shared-wam']", "    allowed = [ROOT/'outputs/wam-rl-policy-v2']")
     replace("    if occupied:\n        raise RuntimeError('assigned GPU occupied: '+occupied)", "    shared_preflight(args.gpu,args.server_pid)")
     replace("    from isaacgym import gymtorch", "    import socket\n    from isaacgym import gymtorch")
     replace("    from trajectory_policy.wam_shadow import NATIVE_LINKS", "    from trajectory_policy.wam_shadow import NATIVE_LINKS\n    from trajectory_policy.wam_ipc import send, receive, peer_pid\n    from consequence_evaluator.physical_geometry import PhysicalGeometry\n    from consequence_evaluator.value_geometry import TableSupport")
-    replace("        actor_role='official data generator only; no official weights in learned WAM/Chunk-R')", "        actor_role=('self-trained WAMv4-conditioned BC; no teacher weights or takeover' if args.socket else 'official teacher positive control only'),\n        collector_sha256=hashlib.sha256(SOURCE.read_bytes()).hexdigest(),native_adapter='inspire_native_peer.v1')")
-    replace("        def restore(self,filename):", "        def restore(self,filename):\n            if args.socket:\n                return  # student never loads official actor weights")
+    replace("        actor_role='official data generator only; no official weights in learned WAM/Chunk-R')", "        actor_role=('self-trained WAMv4-conditioned BC; no teacher weights or takeover' if args.socket else 'recorded canonical action replay positive control' if args.replay else 'official teacher positive control only'),\n        collector_sha256=hashlib.sha256(SOURCE.read_bytes()).hexdigest(),native_adapter='inspire_native_peer.v1')")
+    replace("        def restore(self,filename):", "        def restore(self,filename):\n            if args.socket or args.replay:\n                return  # learned/replay roles never load official actor weights")
     replace("        @torch.no_grad()\n        def _run_export_rl(self,task):", """        def policy_packet(self, final=False):
             task = self.inspire_task
             n = task.num_envs
@@ -55,6 +55,11 @@ def adapted_source():
             return reply
 
         def get_action(self,obs,is_deterministic=False):
+            if args.replay:
+                if not hasattr(self,'replay_actions'):
+                    self.replay_actions=np.load(args.replay)['action'].copy()
+                tick=int(self.inspire_task.progress_buf[0])
+                return torch.tensor(self.replay_actions[tick:tick+1],device=self.device)
             if not args.socket: return super().get_action(obs,is_deterministic)
             reply = self.policy_packet()
             return torch.tensor(reply['action'],device=self.device,dtype=torch.float32).reshape(1,18)

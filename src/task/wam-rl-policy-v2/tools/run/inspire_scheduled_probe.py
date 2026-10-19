@@ -81,6 +81,18 @@ def main():
         role='single TRAIN sequence engineering; not generalization or PPO outcome')
     write(a.output/'run.json',meta)
     if a.mode=='fit':
+        # Admission is explicit: a fresh collector batch is not a whole-corpus
+        # approved dataset. This consumes only one TRAIN engineering episode.
+        corpus=json.loads((ROOT/'outputs/ptv3-shared-wam-v2/dexplore-current-rollout-20261015-r1/manifest.json').read_text())
+        membership={r['sequence']:r['split'] for r in corpus['records']}
+        native=json.loads((a.source.parents[1]/'manifest.json').read_text())
+        if (membership.get(a.source.name)!='train' or native['status']!='COMPLETED'
+                or not native['observation_contract'].get('live_future_invariance_passed')
+                or any(not np.isfinite(v).all() for v in data.values())):
+            raise ValueError('TRAIN same-execution and live current-observation audit required')
+        write(a.output/'training-admission.json',dict(training_allowed=True,engineering_only=True,
+            source=str(a.source),inherited_split='train',scope='single TRAIN episode scratch BC',
+            native_capture_completed=True,current_future_invariance_passed=True))
         count=len(data['action'])
         if count>600 or data['native_current_obs'].shape!=(count+1,721):raise ValueError('bounded same-execution data required')
         x=np.zeros((count,986),np.float32); samples=[];indices=[]
