@@ -108,6 +108,7 @@ def main():
         histories = [deque(maxlen=4) for _ in sequences]; hand_histories = [deque(maxlen=4) for _ in sequences]
         previous = np.zeros((len(sequences), 12), np.float32); decision_count = np.zeros(len(sequences), np.int64)
         tau_valid_count = 0; force_valid_count = 0
+        latest_decisions = [None] * len(sequences); terminal_records = {}
 
         def observe_and_predict(snapshot):
             nonlocal tau_valid_count, force_valid_count
@@ -121,6 +122,14 @@ def main():
                 tick = int(np.asarray(snapshot["tick"])[index]); now = tick / 30.0
                 result = contexts[index].observe(pose, hand, np.asarray(snapshot["objects"], dtype=np.float32)[index, 7:13], now,
                     contact_forces=contact, force_valid=contact_valid, supported=None)
+                decision = result["decision"]
+                latest_decisions[index] = dict(
+                    phase=int(decision.phase), path_progress=float(decision.path_progress),
+                    task_complete=bool(decision.task_complete), terminated=bool(decision.terminated),
+                    failure_reason=decision.failure_reason,
+                )
+                if decision.terminated and index not in terminal_records:
+                    terminal_records[index] = latest_decisions[index]
                 histories[index].append(np.r_[pose[:3, 3], Rotation.from_matrix(pose[:3, :3]).as_quat()])
                 hand_histories[index].append(hand.copy())
                 tau = np.zeros((8, 11, 3), np.float32); valid = False
@@ -158,11 +167,13 @@ def main():
             if "state" not in reply: raise ValueError("native step response lacks state")
             action, native = observe_and_predict(reply["state"])
             state.update(status="RUNNING", controls_completed=control + 1, tau_valid_observations=int(tau_valid_count),
-                         force_valid_observations=int(force_valid_count), scheduler_decisions=decision_count.tolist(), elapsed_s=time.monotonic() - started)
+                         force_valid_observations=int(force_valid_count), scheduler_decisions=decision_count.tolist(),
+                         latest_decisions=latest_decisions, terminal_records=terminal_records, elapsed_s=time.monotonic() - started)
             write(a.output / "progress.json", state)
         send(connection, dict(op="close")); receive(connection)
         state.update(status="COMPLETED", controls_completed=a.controls, tau_valid_observations=int(tau_valid_count),
-                     force_valid_observations=int(force_valid_count), scheduler_decisions=decision_count.tolist(), elapsed_s=time.monotonic() - started,
+                     force_valid_observations=int(force_valid_count), scheduler_decisions=decision_count.tolist(),
+                     latest_decisions=latest_decisions, terminal_records=terminal_records, elapsed_s=time.monotonic() - started,
                      task_success_claim=False, scope="bounded Scheduled686 spatial-tau online adapter only")
     except BaseException as error:
         state.update(status="FAILED", error=repr(error), elapsed_s=time.monotonic() - started); raise

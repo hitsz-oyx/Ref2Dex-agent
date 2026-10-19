@@ -144,6 +144,8 @@ def main():
         previous = np.zeros((len(sequences), 12), np.float32)
         decision_count = np.zeros(len(sequences), np.int64)
         force_valid_count = 0
+        latest_decisions = [None] * len(sequences)
+        terminal_records = {}
 
         def observe_and_predict(snapshot):
             nonlocal force_valid_count
@@ -169,6 +171,13 @@ def main():
                     supported=None,
                 )
                 decision = result["decision"]
+                latest_decisions[index] = dict(
+                    phase=int(decision.phase), path_progress=float(decision.path_progress),
+                    task_complete=bool(decision.task_complete), terminated=bool(decision.terminated),
+                    failure_reason=decision.failure_reason,
+                )
+                if decision.terminated and index not in terminal_records:
+                    terminal_records[index] = latest_decisions[index]
                 # The audited corpus uses the immutable task terminal endpoint
                 # in base312; the moving local waypoint is represented only by
                 # the explicit task10 block.
@@ -221,6 +230,7 @@ def main():
                 controls_completed=control + 1,
                 force_valid_observations=int(force_valid_count),
                 scheduler_decisions=decision_count.tolist(),
+                latest_decisions=latest_decisions, terminal_records=terminal_records,
                 elapsed_s=time.monotonic() - started,
             )
             write(args.output / "progress.json", state)
@@ -231,6 +241,7 @@ def main():
             controls_completed=args.controls,
             force_valid_observations=int(force_valid_count),
             scheduler_decisions=decision_count.tolist(),
+            latest_decisions=latest_decisions, terminal_records=terminal_records,
             elapsed_s=time.monotonic() - started,
             task_success_claim=False,
             scope="bounded Current421 physical closed-loop input contract only",
