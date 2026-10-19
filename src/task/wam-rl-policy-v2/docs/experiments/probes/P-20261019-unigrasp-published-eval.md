@@ -42,3 +42,5 @@ Transformer权重 + 动态PointNet编码器严格加载，在已审计的单jar�
 
 产物：`outputs/wam-rl-policy-v2/unigrasp-published-jar-20261019-r1/`。
 准备阶段依赖：`outputs/wam-rl-policy-v2/unigrasp-eval-20261019-r1/deps/`。
+
+准备r1发现官方下载FPS ZIP内部前缀为meshdatav3_pc_fps_new，修复路径映射后r2准备成功；r1未运行物理评估。补齐GPUtil/h5py/ipdb/addict/yapf/termcolor/nvidia-ml-py至独立deps目录，原环境未改。移除未使用sorcery debug导入，PointNet及Transformer严格加载。GPU6开始r2，256环境，采样约3.4GiB/53%。在接口已执行的基础上，追加单camera-9726.../.10、256环境/seed246/GPU7，同样900秒上限，run_id unigrasp-published-camera-20261019-r1；用于区分单个形状偶然性与可执行的本地多形状策略，不作为全面基准。
