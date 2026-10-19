@@ -15,6 +15,14 @@ def evaluate(env, actor, args, iteration):
     env.task.reset_buf[:] = 1
     started = time.monotonic()
     with torch.inference_mode():
+        # Match the existing replay protocol: warm simulator buffers once,
+        # then reset again from the same RNG state before measuring episodes.
+        env.base.reset()
+        random.seed(args.seed)
+        np.random.seed(args.seed)
+        torch.manual_seed(args.seed)
+        torch.cuda.manual_seed_all(args.seed)
+        env.task.reset_buf[:] = 1
         observation = env.reset()
         initial = env.snapshot()
         np.savez_compressed(args.output / 'initial-state.npz',
