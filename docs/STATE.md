@@ -22,8 +22,13 @@ environments and 30 transitions each ([manifest](../outputs/wam-rl-policy-v2/ins
 for bootstrap, observed behavior log-prob error `0`, retained KL `0.01803` under
 the `0.02` bound, finite value loss `0.15579`, and repeated native checks with
 physical248 error `2.98e-7`, PD error `0`, and zero action mismatches. Neither
-environment terminated or completed the task. Scheduled686 online collector
-remains unvalidated; do not launch long PPO yet.
+environment terminated or completed the task. The matching Scheduled686 online
+collector smoke also passed with 30 transitions per environment, 56/60 valid
+tau observations, finite critic loss, zero behavior log-prob replay error, and
+actual final measured bootstrap; its actor candidate was safely rolled back by
+the KL gate. Both online collector contracts are now qualified, but reward
+calibration, task completion, and PPO improvement remain open, so do not launch
+long PPO yet.
 
 ## 2026-10-20 WAM-v2 measured BC paired audit and Current421 closed-loop contract pass
 

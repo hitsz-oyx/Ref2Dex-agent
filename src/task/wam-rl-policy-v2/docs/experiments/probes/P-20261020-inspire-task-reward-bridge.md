@@ -65,5 +65,17 @@ the one-update actor/critic report had behavior log-prob error `0`, retained KL
 `0.01803` under the `0.02` limit, finite value loss `0.15579`, and an actual
 final measured observation as bootstrap source. Native physical248/PD/episode
 checks passed again and no task terminal occurred. This qualifies the Current421
-online collector contract. Scheduled686 still has only the offline shape and
-bounded reward smoke, so its online PPO collector remains a separate open check.
+online collector contract. The matching Scheduled686 online collector smoke is
+complete at commit `fa0a80f9`:
+`outputs/wam-rl-policy-v2/inspire-scheduled686-ppo-collector-smoke-20261020-r1/`.
+It produced 30 transitions per environment, 56 valid tau observations out of
+60 force-valid observations, reward totals `1.166200` and `1.162621`, behavior
+log-prob error `0`, finite critic loss `0.15393`, and actual final measured
+bootstrap. The actor candidate was rolled back by the KL gate (retained KL `0`),
+which is an expected safety outcome for this bounded smoke. Native checks again
+passed and no task terminal occurred.
+
+Both 421 and 686 online collectors are now qualified for a future bounded PPO
+rollout. This still does not establish reward calibration, task completion, or
+PPO improvement, so multi-hour training remains inadmissible without a separate
+policy-improvement decision.
