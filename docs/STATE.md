@@ -1,3 +1,11 @@
+## 2026-10-19 历史官方PPO同面板评估完成
+
+固定16物体×4场景、seed246，初始原生观测及完整root状态逐位一致：
+历史官方PPO10000成功45/64、保持33/64；当前PPO5500+WAM80000为47/64、38/64。
+小幅正向Probe，微调物体覆盖、初始化、预算不匹配，不能隔离WAM净收益。
+评估reset采用独立CPU RNG并规范桌面初态；37测试通过。主训练不改，GPU6/7释放。
+[比较卡](../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-native-ppo-comparison.md)。
+
 ## 2026-10-19 最终WAM80000直接接入Probe完成
 
 固定PPO5500及64 TRAIN场景，旧WAM→最终80000：成功46→51，保持35→42。
