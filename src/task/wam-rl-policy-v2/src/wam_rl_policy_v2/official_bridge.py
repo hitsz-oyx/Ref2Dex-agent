@@ -105,7 +105,7 @@ def prepare_official(root,output,masked_resets=False):
             ('self.step += 1','self.transition_valid[self.step].copy_(transition_valid.view(-1,1))\n        self.step += 1',1),
             ('normalize_advantages(self.advantages)','normalize_advantages(self.advantages,self.transition_valid)',1),
             ('batch_size = self.num_envs * self.num_transitions_per_env',
-             'if not self.transition_valid.all():\n            return valid_minibatches(self,num_mini_batches)\n        batch_size = self.num_envs * self.num_transitions_per_env',1)])
+             'return valid_minibatches(self,num_mini_batches)\n        batch_size = self.num_envs * self.num_transitions_per_env',1)])
     (output/'official-compatibility.json').write_text(json.dumps(dict(upstream_commit='6c9e710b04769bf5d9765e3233820101cb3d718f',
         previous_runner='src/task/wam-rl-policy/tools/run/official_unidex_ppo.py',removed_vision_imports=removed,
         changes=changes,ppo_run_changed=masked_resets,gae_changed=False,reward_changed=False,

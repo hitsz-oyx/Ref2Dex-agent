@@ -28,6 +28,22 @@ def test_position_goal_does_not_restore_initial_orientation():
     assert not pose_scheduler._reached(actual, target)
 
 
+def test_position_goal_matches_optimized_scheduler():
+    from wam_rl_policy_v2.goal_scheduler import update_schedulers
+    start=np.eye(4);target=start.copy();target[2,3]=.1
+    points=np.random.RandomState(3).normal(size=(32,3))*.03
+    slow=OrderedGoalScheduler([start,target],[0,2],points,goal_type='position_only')
+    fast=OrderedGoalScheduler([start,target],[0,2],points,goal_type='position_only')
+    for tick in range(30):
+        actual=start.copy();actual[2,3]=tick*.003
+        actual[:3,:3]=Rotation.from_euler('z',tick*2,degrees=True).as_matrix()
+        hand=np.zeros((11,3))
+        a=slow.update(actual,tick/60,hand_points=hand)
+        b=update_schedulers([fast],actual[None],np.array([tick/60]),hand[None],fast_geometry=True)[0]
+        np.testing.assert_allclose(a['goal_delta'],b['goal_delta'],atol=1e-10)
+        assert a['confirmed_index']==b['confirmed_index'] and a['mode']==b['mode']
+
+
 def test_hold_drop_and_workspace_do_not_become_final_success():
     record = episode_outcome(True, 65, 0, False, False)
     assert record['native_success'] and record['ever_held60'] and record['drop_after_hold']
