@@ -73,7 +73,7 @@ def evaluate(env, actor, args, iteration):
             if finished.all():break
         if not finished.all():raise RuntimeError('First episodes did not terminate within native horizon')
     records.sort(key=lambda r:r['env'])
-    report=dict(iteration=iteration,episodes=len(records),seed=args.seed,
+    report=dict(iteration=iteration,checkpoint=str(args.rl_checkpoint),episodes=len(records),seed=args.seed,
         deterministic_actions=True,optimizer_steps=0,random_time=False,
         native_only=env.native_only,observation_dim=env.num_observations,
         reset_protocol="cpu-reset-rng-and-canonical-table.v1",

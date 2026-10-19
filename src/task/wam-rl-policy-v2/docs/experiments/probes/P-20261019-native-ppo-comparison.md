@@ -52,3 +52,13 @@ r1发现重置初态不匹配，不用于配对结果。r2代码bd0817ae：仅�
 运行耗时原生约7.19秒、当前约49.08秒（64环境首回合），不含启动，
 证明接入完整WAM有明显推理开销，不能把成功指标的小幅改善说成计算效率优势。
 主六卡训练未动，GPU6/7评估进程已结束。证据r2/comparison.json与initial-state-audit.json。
+
+## 官方发布原始模型补测
+
+用户要求直接重测state_based_model.pt，不再把我们追加10000轮的模型称为官方原始模型。
+run_id=published-ppo-evaluation-20261019-r1，GPU6、64环境、相同16物体/seed246/
+cpu-reset-rng-and-canonical-table.v1协议，900秒上限，graspenv。
+权重来自本地已有outputs/video-data-preparation/unidexgrasp-local-subset-20261014-r1/
+plus/dexgrasp/example_model/state_based_model.pt；native300路径无WAM推理和PPO更新。
+报告iteration=null，因为官方发布权重的训练迭代数未知，不标记为本地10000轮。
+与r2历史微调/current WAM的初始状态和指标比较，其他已述训练覆盖限制仍适用。

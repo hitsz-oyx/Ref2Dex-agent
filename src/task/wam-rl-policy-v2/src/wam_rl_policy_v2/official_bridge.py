@@ -153,7 +153,7 @@ def run(task,snapshot,sim_step,actor,runtime,args):
             weights=packet.get('state_dict',packet)
             ppo.actor_critic.load_state_dict(weights,strict=True)
             from .official_evaluation import evaluate
-            return evaluate(env,ppo.actor_critic,args,10000)
+            return evaluate(env,ppo.actor_critic,args,args.native_checkpoint_iteration)
         if packet.get('schema')!='ref2dex.scheduled-official-ppo.v1' or packet['conditioning']!=scheduled_conditioning_contract():raise ValueError('Official scheduled checkpoint required')
         ppo.actor_critic.load_state_dict(packet['model']);ppo.optimizer.load_state_dict(packet['optimizer'])
         completed=packet['iteration'];ppo.step_size=packet['step_size']
