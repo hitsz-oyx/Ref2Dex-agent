@@ -250,3 +250,76 @@ This panel excludes selection window IDs, not necessarily their sequences or
 nearby overlapping windows; it is still DEV, with no independent TEST claim.
 Local report/panel/summary:
 `outputs/ptv3-shared-wam-v4/heldout-dev-panel-20261018-r1/`.
+
+## 2026-10-19 surface-contact readiness and encoder-grid inspection
+
+The user asked whether CEDex-like surface contact requires more data, forbade
+KNN inside the model, and requested consideration of PTv3 voxel size. This was
+a read-only engineering inspection, not a new training/evaluation experiment.
+The 768-width run is complete at80k, with selection still step30000. The later
+1024-width run stopped at a checkpoint-write artifact budget guard; its
+[experiment card](../experiments/probes/P-20261018-wam-v4-scale-1024.md)
+records the published-checkpoint boundary.
+
+The current remote human training payloads and main3 sequence caches primarily
+retain11 hand points, not a full hand mesh. One TRAIN payload header per native
+source confirms that UniDex source4 also retains `q`, `dq`, and `hand_root`,
+while H2O source9 retains `native_mano_camera` and its availability mask.
+TACO/HOT3D/DexYCB samples lack those richer parameters in the training payload;
+their original annotations need to be read again. Original TACO hand archives,
+HOT3D native files and DexYCB raw labels are present locally. GRAB and ARCTIC
+metadata point to existing local read-only raw MANO files. The existing HOI4D
+hand intermediate retains native MANO parameters, but the current resampled
+training payload only has interpolated11-point positions. Surface labels must
+respect its camera transforms, native timing and interpolation provenance.
+This is not a full per-sequence surface-recoverability audit.
+
+Thus surface-derived contact supervision requires a new derived data layer,
+not necessarily new datasets or more episodes. Reconstruct available hands
+from original pose/shape or robot FK, retain normals/part definitions, and
+generate contact/part/validity per frame and fixed object-query identity.
+Cache per-frame labels rather than repeating overlapping24-step windows or
+materializing every full hand mesh. Missing geometry must not become negative
+contact labels. Richer labels alone do not remove ambiguity in an11-point
+model input; adding observed surface/part features is a separate input choice.
+
+There are two independent1cm grids today: `config.voxel_m` controls PTv3
+encoding, while `V4SamplingPolicy.voxel_m` controls scaffold label generation.
+Changing the encoder config does not change the latter. The active geometry
+and PTv3 forward paths use grid grouping, serialization, and inverse pooling
+indices, with no KNN/cdist. Future surface labels can be prepared offline
+using geometry/grid queries and loaded by training; neither a model KNN nor
+per-iteration MANO/contact reconstruction is required.
+
+A deterministic TRAIN panel of four windows/source (36 total, seed20261019)
+was inspected with the frozen real reader, CPU geometry only, no neural
+forward/backward. Remote environment: Python3.8.20, PyTorch2.0.1+cu118.
+The final inspection took10.78s. At fixed512 object surface points:
+
+| Encoder cell width | Mean occupied object cells | Mean object+hand cells | 1 - occupied object cells/512 |
+| --- | ---: | ---: | ---: |
+| 10mm | 306.44 | 324.58 | 40.15% |
+| 5mm | 439.25 | 457.81 | 14.21% |
+| 3mm | 484.28 | 502.92 | 5.41% |
+
+These are window-sampled geometry statistics, not unique-object population
+estimates, contact-label accuracy, GPU throughput, or model-quality results.
+They support5mm as a candidate for a later bounded comparison, not a validated
+optimum. Finer grids preserve more initial local features but also change
+sparse-convolution physical support and all four stride2 pooling scales.
+At current point counts, the initial occupied cells are bounded by512+22;
+halving cell width does not imply a dense-grid8x compute increase. Shared
+scene-token count remains256, and raw query xyz/normals remain continuous,
+so1cm is not a hard quantization limit on C output positions. The128 contact
+query coverage is another independent limit. Keep label precision and encoder
+grid separate; a5mm encoder can consume finer offline geometric labels.
+
+Local evidence and the exact read-only remote script:
+`outputs/ptv3-shared-wam-v4/contact-data-voxel-audit-20261019-r1/`.
+No production weights, readers, raw datasets, training config, or processes
+were changed, and no restart or new training was launched.
+
+Documentation checks: changed Markdown links, the updated1024 experiment-card
+schema/seed pool and the generated index pass. The full `tools/verify.py
+--changed` gate remains blocked by missing v2 metadata in six existing
+`trajectory-policy` cards; those unrelated cards were not rewritten.

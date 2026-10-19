@@ -881,7 +881,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261018-wam-v4-scale-1024](../../src/task/ptv3-shared-wam-v4/docs/experiments/probes/P-20261018-wam-v4-scale-1024.md) | WAM-v4 1024-width capacity probe | 见原卡 | 见原卡 | probes/PLANNED |
+| [P-20261018-wam-v4-scale-1024](../../src/task/ptv3-shared-wam-v4/docs/experiments/probes/P-20261018-wam-v4-scale-1024.md) | WAM-v4 1024-width capacity probe | 见原卡 | 见原卡 | probes/UNCLEAR |
 
 ## HF-wam-interaction-head
 

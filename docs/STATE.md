@@ -1,3 +1,13 @@
+## 2026-10-19 远端WAM状态与contact/voxel数据检查
+
+768宽度已完成80k；1024宽度因旧8GB运行产物guard在写step15000时退出，
+latest仍为已发布step14000，step15000只有未核验.part；四卡已空闲，NAS约48TiB可用。
+没有重启或清理产物。现有人手训练缓存主要为11点；表面contact需补原始参数派生标签，
+不一定要新增数据集。36窗几何抽查中512物体点在10/5/3mm网格平均占306/439/484格，
+仅支持把5mm列为候选，未测训练收益或吞吐；模型继续无需KNN。
+[数据与网格审计](../src/task/ptv3-shared-wam-v4/docs/audits/2026-10-18-input-label-contract.md)、
+[1024运行记录](../src/task/ptv3-shared-wam-v4/docs/experiments/probes/P-20261018-wam-v4-scale-1024.md)。
+
 ## 2026-10-19 执行边界修复与原生回归通过
 
 新增corrected reset初始化隔离、position_only目标、最终/曾保持及失守指标、PPO checkpoint
