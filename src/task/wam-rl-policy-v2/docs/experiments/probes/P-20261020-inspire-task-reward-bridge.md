@@ -57,8 +57,8 @@ The next blocker is an online collector smoke that records the actual next
 measured state and terminal boundary through the native host. Do not start
 multi-hour PPO from the offline shape result alone.
 
-That online Current421 collector smoke is now complete at commit `768e749f`:
-`outputs/wam-rl-policy-v2/inspire-current421-ppo-collector-smoke-20261020-r1/`.
+That online Current421 collector smoke is now complete at commit `afb8948b`:
+`outputs/wam-rl-policy-v2/inspire-current421-ppo-collector-smoke-20261020-r2/`.
 The native host supplied 30 controls for each of two environments, producing
 30 transitions per environment. Reward totals were `1.174277` and `1.166288`;
 the one-update actor/critic report had behavior log-prob error `0`, retained KL

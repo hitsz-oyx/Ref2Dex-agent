@@ -18,7 +18,7 @@ This only qualifies the offline collector boundary; an online collector must
 still record actual next-state bootstrap and terminal behavior before PPO.
 
 A 30-control Current421 online collector smoke has since passed with two native
-environments and 30 transitions each. It used the actual final measured state
+environments and 30 transitions each ([manifest](../outputs/wam-rl-policy-v2/inspire-current421-ppo-collector-smoke-20261020-r2/manifest.json)). It used the actual final measured state
 for bootstrap, observed behavior log-prob error `0`, retained KL `0.01803` under
 the `0.02` bound, finite value loss `0.15579`, and repeated native checks with
 physical248 error `2.98e-7`, PD error `0`, and zero action mismatches. Neither
