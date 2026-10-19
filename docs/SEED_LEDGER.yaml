@@ -572,3 +572,8 @@ allocations:
       seed: 0
       purpose: deterministic reproduction of upstream default test launch; not independent policy evidence
     reuse_reason: same fixed TRAIN panel for historical policy comparison; not validation
+
+  P-20261019-unigrasp-published-eval:
+    seed_pool: probe
+    evaluation_seed: 246
+    reuse_reason: bounded release compatibility evaluation; different observations and initialization from WAM panels, not a paired comparison or validation
