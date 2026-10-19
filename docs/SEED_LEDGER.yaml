@@ -613,3 +613,9 @@ allocations:
     seed_pool: probe
     diagnostic_sampling_seed: 177
     reuse_reason: source-diverse event annotation diagnostic; reused exploratory seed, no independent replication or model fit
+
+  P-20261019-wam-v6-event-continuation:
+    seed_pool: probe
+    model_and_training_seed: 170
+    fixed_DEV_panel_seed: 171
+    reuse_reason: explicit continuation from the v5 parent with matched inherited draw stream; new branch seed170, not an independent replication
