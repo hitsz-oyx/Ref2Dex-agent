@@ -53,9 +53,9 @@ the collector shape for a future online PPO smoke, while reward calibration,
 native bootstrap at a real terminal, critic quality, and any PPO improvement
 remain unvalidated.
 
-The next blocker is an online collector smoke that records the actual next
-measured state and terminal boundary through the native host. Do not start
-multi-hour PPO from the offline shape result alone.
+The remaining decision is whether the qualified collector should be used for a
+bounded policy-improvement probe. The closed-loop BC runs still show zero path
+progress, so this card does not admit multi-hour PPO by itself.
 
 That online Current421 collector smoke is now complete at commit `afb8948b`:
 `outputs/wam-rl-policy-v2/inspire-current421-ppo-collector-smoke-20261020-r2/`.
