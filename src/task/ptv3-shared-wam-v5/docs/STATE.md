@@ -12,7 +12,7 @@
 - 实际4090/1024宽/bf16，batch128完成8步AdamW，九源均出现：GPU前向+loss约311ms，
   反向746ms，optimizer43ms，合计1.10s/步；峰值allocated18.94GiB。
 - 有界缓存+4 workers的8步总耗时18.59s，约2.32s/步，含启动/读取；这是短测，不是全量/DDP稳态吞吐。
-- 原WAM训练已恢复，同一supervisor2975536/torchrun2975737，检查时step28220，四卡100%，
+- 原WAM训练已恢复，同一supervisor2975536/torchrun2975737，检查时step29480，四卡99%，
   约10.5GiB/卡；两轮暂停共95.70秒，未写v5模型checkpoint。
 
 ## 正在运行
@@ -28,8 +28,8 @@
 | 表面接触 | `data/contacts/progress.json`；CPU离线KD树，每帧复用，bbox剔除不改变正接触标签 |
 | 自动收尾 | `outputs/finalize-data-r2/progress.json`；完成后写`recipe/manifest.json`和`stats.json` |
 
-进度会继续变化，以这些JSON为准。工程检查时手缓存7704/39526、隔离0；contact2253序列、
-约102万个有效物体帧。全量尚未完成。剩余耗时主要取决于原始OakInk pickle解析，预计仍需数小时。
+进度会继续变化，以这些JSON为准。最后检查时手缓存36704/39526、隔离0；contact3130序列、
+约153万个有效物体帧。全量尚未完成。剩余耗时主要取决于原始OakInk pickle解析和contact生成。
 各运行有6小时边界和20GiB空闲空间停止条件；完成产物保留。最终收尾区分完整/部分覆盖，
 不把缺失标签变负样本，也不自动启动v5长训。
 
