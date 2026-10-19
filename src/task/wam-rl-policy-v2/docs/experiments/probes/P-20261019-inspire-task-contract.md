@@ -97,3 +97,28 @@ r3完整评估已完成，484控制拍覆盖全部64首回合、50 TRAIN物体�
 task7解决明确的局部物体指令缺失，不保证相同物体任务下不同抓取/操作意图均可辨识。
 未恢复手参考，未改变官方gamma/nsteps/noise数值，未进行Shadow KL匹配续训，
 不将单seed TRAIN小面板、离线MAE或tau权重变化升级为WAM净收益结论。
+
+后续bug排查（inspire-bug-audit-20261019-r1，修复3a542933）：
+
+- 64首帧离线/在线输入最大差2.98e-7、同一BC动作差4.17e-7；
+  对全部660序列存档body state重算physical248，裁剪后最大差1.073e-6。
+  未发现该物理切片或首帧构造错误。
+- 实际回归先失败：静止物体的300命令在第240拍scheduler超时后，缓存没有终止准入标记。
+  修复后从超时状态开始禁止采样动作；current/scheduled训练和DEV选择统一使用task-active
+  mask，scheduled额外相交既有workspace mask。旧缓存不静默默认全True，旧BC仍可历史评估。
+  全量新小缓存为inspire-task-active-20261019-r1/cache，原始数据/神经tau缓存保持只读。
+  TRAIN超时后12918/150044、DEV749/15633，总13667条；589/71全部源序列仍保留。
+  87项Task测试通过，没有据此启动新BC/PPO或声称修复已经提高成功率。
+- `check_inspire_demonstration_contract.py`逐序列确认canonical action标签与缓存一致，
+  并区分原命令的任务相容性：TRAIN589中仅1条曾确认完整路径，2条末态在8mm/.12rad/8mm
+  终点容差内；二者交集为0。DEV为0/1/0。TRAIN末端位置误差中位4.183cm。
+  路径进度统计使用pre-action帧，末态误差使用terminal观测，不将其伪称完整1秒保持测试。
+  同时50物体的完美reference自身重放全部完成，不能把真实示教偏离直接叫scheduler算术bug。
+- 扩展重放指标到dq、physical248、物体速度。s1_cup_lift恢复原batch005/16环境/seed后
+  仍有长期分歧：首次q>1e-5在71拍，全段物体差30.4mm、手点28.2mm；短程PD一致。
+  此结果不推翻此前s10_cup_drink_1原batch000的158拍零误差，说明逐位一致不能外推所有批。
+
+用户随后提供共享会话，要求以末尾关于统一TaskSpec、当前阶段及补力/形状观测的讨论为准。
+当前只讨论新实现，未恢复721手参考、未改正在运行的WAM-v5、未启动新训练。
+DOF force在原生仿真已启用但当前660存档未保存；连续body/object接触力已保存。
+新任务协议应从完整原始660重新重放准入，不能将旧协议超时后的命令永久标成坏数据。
