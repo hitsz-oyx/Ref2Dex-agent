@@ -1,3 +1,9 @@
+## 2026-10-19 Preview4官方专家获取受阻
+
+用户授权仅评估对应物体专家。官方专家包浏览页及两种下载入口均404，作者fork无替代地址；
+同代理官方prior数据页200，未发现可验证镜像。尚未拿到专家权重，实际评估0场景，无成功率。
+GPU6/7未占用，主训练未改。[追加记录](../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-unigrasp-published-eval.md)。
+
 ## 2026-10-19 UniGraspTransformer发布策略兼容评估完成
 
 官方state Transformer及PointNet严格加载，GPU6/7各256场景、200步、无训练更新。

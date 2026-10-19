@@ -75,3 +75,27 @@ shutdown.json确认完成全部帧且destroy_sim返回后，显式结束独立wo
 
 最终产物：outputs/wam-rl-policy-v2/unigrasp-published-{jar,camera}-final-20261019-r1/；
 汇总：outputs/wam-rl-policy-v2/unigrasp-eval-20261019-r1/summary.json。
+
+## Preview4 官方专家追加尝试：缺失权重，尚未执行
+
+用户进一步授权测试Preview4 dedicated PPO experts。此项Decision用于区分原生版本匹配的
+逐物体专家能否在本机正常抓取；若高分，继续查通用策略版本/输入分布；若低分，优先排查
+共同仿真/初始化协议。最低成本计划为同jar/.06和camera/.10各256场景，GPU6/7，
+仅官方`--algo ppo --config dedicated_policy.yaml --test`，不训练。
+
+获取阶段发现README指向的专家包file id `1ikAD848ZqRRrGaQyg_Xy5YVpNaXE40qX`
+在Google Drive浏览页、uc下载、usercontent下载三个入口均HTTP404。相同代理访问
+官方datasetv4.1_posedata.npy链接返回200，故不能简单归为所有Drive网络不可达；404自身
+仍不能区分文件删除与权限限制。作者fork沿用同一链接，GitHub Releases为空，HF模型与
+数据集API按UniGraspTransformer搜索均为空，未找到可验证的替代专家权重。
+
+[作者issue #16回复](https://github.com/microsoft/UniGraspTransformer/issues/16)确认2025-03-04
+曾宣布3k+专家发布；这证明发布记录，不证明今天的下载可用性。
+[issue #23](https://github.com/microsoft/UniGraspTransformer/issues/23)的替代链接明确用于
+IsaacGym3通用模型，不能用来冒充Preview4专家。
+
+追加状态：**BLOCKED_MISSING_CHECKPOINT**，episodes_executed=0；没有专家成功率。
+原通用策略兼容评估COMPLETED状态不变。产物为
+`outputs/wam-rl-policy-v2/unigrasp-expert-download-20261019-r1/summary.json`及HTTP检查记录，
+总量不足1MiB，GPU6/7未占用、主训练未改。需要恢复专家包访问或取得对应物体的原始专家
+checkpoint，之后仍须注明官方静态测试初态缺失的独立协议限制。
