@@ -1,5 +1,6 @@
 """Inspire embodiment of the Shadow BC/PPO recipe, without hand references."""
 from collections import deque
+import time
 import numpy as np
 from scipy.spatial.transform import Rotation
 from .inspire_contract import ACTIVE,NATIVE_TO_WAM,WAM_TO_NATIVE
@@ -82,7 +83,7 @@ class BatchedInspireInputs:
 
     def observation(self,current,poses,hands,ticks,indices=None):
         import torch
-        from .wam_v4_runtime import v4_online_samples,collate_v4
+        from .batched_geometry import online_batch,workspace_valid
         from .goal_scheduler import update_schedulers
         indices=list(range(len(self.histories))) if indices is None else list(indices)
         current,poses,hands,ticks=map(np.asarray,(current,poses,hands,ticks))
@@ -90,7 +91,9 @@ class BatchedInspireInputs:
         out=np.zeros((len(current),INPUT_DIM),np.float32);out[:,:CURRENT_DIM]=current
         invalid=np.zeros(len(current),bool);decisions=[None]*len(current)
         chosen=[self.schedulers[i] for i in indices]
+        started=time.monotonic()
         decisions_chosen=update_schedulers(chosen,poses[indices],ticks[indices]/30,hands[indices],fast_geometry=True)
+        self.timings=dict(scheduler_s=time.monotonic()-started,input_s=0.,model_s=0.)
         ready=[];objects=[];histories=[];goals=[];geometries=[]
         for i,decision in zip(indices,decisions_chosen):
             decisions[i]=decision
@@ -103,13 +106,16 @@ class BatchedInspireInputs:
                 ready.append(i);objects.append(obj);histories.append([r[2] for r in rows]);goals.append(decision['goal_delta']);geometries.append(self.runtime.geometry[i])
         for start in range(0,len(ready),self.batch):
             stop=min(start+self.batch,len(ready));ids=np.asarray(ready[start:stop])
-            samples=v4_online_samples(np.asarray(objects[start:stop]),np.asarray(histories[start:stop]),geometries[start:stop],goal_delta=np.asarray(goals[start:stop]))
-            keep=self.runtime.workspace_valid(samples);invalid[ids[~keep]]=True
-            samples=[s for s,k in zip(samples,keep) if k];ids=ids[keep]
+            started=time.monotonic()
+            batch=online_batch(np.asarray(objects[start:stop]),np.asarray(histories[start:stop]),geometries[start:stop],np.asarray(goals[start:stop]),self.runtime.device)
+            keep=workspace_valid(batch,self.runtime.config);host_keep=keep.cpu().numpy();invalid[ids[~host_keep]]=True
+            ids=ids[host_keep]
             if not len(ids):continue
-            batch={k:v.to(self.runtime.device) for k,v in collate_v4(samples).items()}
+            batch={k:v[keep] for k,v in batch.items()}
+            self.timings['input_s']+=time.monotonic()-started;started=time.monotonic()
             with torch.inference_mode(),torch.autocast('cuda',enabled=False):
                 trajectory=self.runtime.predict(batch)['trajectory'].float().cpu().numpy()
+            self.timings['model_s']+=time.monotonic()-started
             out[ids,CURRENT_DIM:-1]=tau_world(trajectory,poses[ids,:3,:3]).reshape(len(ids),264)
             out[ids,-1]=1
         return dict(observation=out,workspace_invalid=invalid,scheduler=decisions)

@@ -48,7 +48,7 @@ def main():
     if a.output.exists() or ROOT/'outputs/wam-rl-policy-v2' not in a.output.parents or not 2<=a.envs<=256:
         raise ValueError('fresh bounded native host required')
     a.output.mkdir(parents=True);scratch=ROOT/'tmp'/a.output.parent.name;scratch.mkdir(exist_ok=True)
-    os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu),TMPDIR=str(scratch),OMP_NUM_THREADS='2',
+    os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu),TMPDIR=str(scratch),OMP_NUM_THREADS='2',OPENBLAS_NUM_THREADS='2',
         TORCH_EXTENSIONS_DIR=str(ROOT/'tmp/consequence-official-generator/torch201-extensions'),PYTHONDONTWRITEBYTECODE='1')
     resource.setrlimit(resource.RLIMIT_CORE,(0,0))
     sys.path[:0]=['/home2/wyy/isaac-gym/isaacgym/python',str(NATIVE),str(ROOT),str(TASK/'src'),

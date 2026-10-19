@@ -30,7 +30,7 @@ def main():
     if a.evaluate and (not a.resume or a.updates or not 1<=a.evaluation_controls<=1200):raise ValueError('bounded evaluation needs checkpoint and zero updates')
     if ROOT/'tmp' not in a.socket.parents or a.socket.exists() or len(os.fsencode(a.socket))>=108:raise ValueError('private project socket required')
     a.output.mkdir(parents=True);a.socket.parent.mkdir(parents=True,exist_ok=True);os.chmod(a.socket.parent,0o700)
-    os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu),TMPDIR=str(a.socket.parent),OMP_NUM_THREADS='2',REF2DEX_DEEP_OPT='all',PYTHONDONTWRITEBYTECODE='1')
+    os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu),TMPDIR=str(a.socket.parent),OMP_NUM_THREADS='2',OPENBLAS_NUM_THREADS='2',REF2DEX_DEEP_OPT='all',PYTHONDONTWRITEBYTECODE='1')
     signal.signal(signal.SIGALRM,lambda *_:(_ for _ in ()).throw(TimeoutError('bounded Inspire Shadow PPO')));signal.alarm(a.seconds)
     import numpy as np
     import torch
@@ -47,6 +47,7 @@ def main():
         model.x_scale[CURRENT_DIM:-1]=.05;initialize_scheduled(model,parent)
         packet=dict(schema=SCHEMA,model=model.state_dict(),config=dict(conditioning=CONTRACT,engineering_current_expansion=True),source_cache=parent['source_cache'])
     else:
+        if meta.get('scheduled_status')!='COMPLETED':raise ValueError('complete full-data WAM conditioning cache required')
         packet=torch.load(a.bc,map_location='cpu',weights_only=False)
         if packet['config']['conditioning']!=CONTRACT or packet['config'].get('engineering_current_expansion'):
             raise ValueError('full-data scheduled BC with current contract required')
@@ -112,6 +113,7 @@ def main():
                 collection_s=locs['collection_time'],learning_s=locs['learn_time'],reward_mean=float(locs['mean_reward']),
                 value_loss=float(locs['mean_value_loss']),surrogate_loss=float(locs['mean_surrogate_loss']),
                 effective_std=float(ppo.actor_critic.log_std.exp().square().mean()),lr=ppo.step_size,
+                input_timings=env.inputs.timings,tau_input_weight_norm=float(ppo.actor_critic.actor.net[0].weight[:,CURRENT_DIM:-1].detach().norm()),
                 completed_episodes=env.completed_episodes,ordered_path_successes=env.successes,
                 ever_held1s=env.ever_held,final_held1s=env.final_held,workspace_failures=env.workspace_failures,
                 resets=env.reset_count,peak_cuda_mib=torch.cuda.max_memory_allocated()/2**20,

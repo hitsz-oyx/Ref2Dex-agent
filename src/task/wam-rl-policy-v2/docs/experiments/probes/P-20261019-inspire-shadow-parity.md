@@ -110,3 +110,21 @@ tick11只reset env1，episode[2,1]→[2,2]、ticks[6,0]。真实终止transition
 best保存，故在同一个固定DEV面板重新对比初始点与训练过程中best，写入独立bc-selection，
 不覆盖既有训练产物；后续trainer已补齐启动时初始DEV记录/保存。选择只用DEV命令MAE，
 不读取闭环成功率、hold或测试集来选checkpoint。
+
+### 256环境通过与吞吐检查
+
+ppo256-r1/f1b13c60已用全部589 TRAIN/50物体、256环境实际完成4轮/80优化器更新，
+均值/logprob回放误差0，物理动作episode错配0；混合reset检查通过。仅32个控制拍，
+共3次结束（含两次强制工程reset、一次workspace失败），没有路径成功；不作为成功率评估。
+原CPU输入构造下每轮collection约16.8–17.3秒、learning约0.18秒。
+
+bc-selection按同一800条object-balanced DEV面板选择初始current扩展点，MAE0.03850862，
+优于条件微调best的0.03868201。两阶段训练均已完整执行；入选点的tau列为零，
+PPO可继续学习，但不存在BC阶段WAM增益证据，不改用闭环结果选点。
+
+后续ppo256-r2复用Shadow已验证的GPU online_batch/workspace_valid输入构造，保持FP32和
+相同H4/goal/模型/动作。CPU/GPU全部字段及原Shadow合同共16项测试通过。
+同时限制OPENBLAS线程为2，记录scheduler/input/model计时和tau输入权重范数。
+先做20轮无强制reset的工程/计时运行；通过后从该checkpoint续至累计10000轮。
+两次使用同一seed和BC起点，计时仅作运行配置诊断，不作任务效果配对结论。
+Shadow六卡原训练已正常完成10000终点，GPU0–5空闲；新Inspire只占GPU6/7，满足预留两卡。
