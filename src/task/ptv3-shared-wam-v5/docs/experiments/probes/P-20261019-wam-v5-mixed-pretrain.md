@@ -180,3 +180,33 @@ admitted full-data recipe.
 Decision: continue the768 authorized80k bounded run and
 use fixed DEV panels to assess learning. The stopped869-update1024 run does
 not answer whether either width has better final accuracy.
+
+## Approved engineering recovery revision
+
+The user approved fixing loader safety, effective-batch resume binding and
+independent tau selection, then continuing from the current checkpoint.
+The mathematical768 model, frozen data/stats, loss, batch128x4 and LR schedule
+stay identical. The next run uses spawn/8 workers/rank,120s loader timeout;
+batch read failures are coordinated across ranks before final checkpointing.
+Legacy checkpoints require their original run-manifest to verify actual
+batch/world/data/config. New checkpoints bind effective local/global batch.
+
+Keep objective-best and add trajectory-best. The prospectively fixed tau
+score is the equal mean of three source-macro mm terms: average horizons1–4,
+root-relative hand EPE and contact-phase hand EPE. Report contributing source
+coverage; no training loss is changed. Bootstrap only still-published parent
+checkpoints, explicitly not lost historical bests. Protect both selections
+alongside first/milestones/recent; original run files are not rotated.
+
+28 local tests pass, including actual CPU legacy migration with exact model
+recovery, CLI-batch mismatch rejection, non-periodic final save on loader
+failure, and retaining an older tau-best despite improving total objective.
+Before sustained replacement, run8 actual full-batch four-rank optimizer
+updates from the saved parent, with a DEV panel/save and synchronized rank
+signatures. The recovery probe is isolated,<=900s; production resumes the
+saved parent rather than consuming probe updates. Preserve a verified old
+implementation fallback if the probe fails.
+
+The separately requested CONTACT/RELEASE event condition changes the input
+contract and needs annotated data/explicit migration. It is not silently
+enabled by these engineering repairs. See [event design](../../event-conditioning.md).

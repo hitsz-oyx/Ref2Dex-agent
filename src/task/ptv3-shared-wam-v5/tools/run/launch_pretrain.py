@@ -28,6 +28,9 @@ def main():
     for name in ('config','manifest','stats','output','base-code-root'):p.add_argument('--'+name,type=Path,required=True)
     p.add_argument('--gpus',default='0,1,2,3');p.add_argument('--workers',type=int,default=8)
     p.add_argument('--git-commit',required=True);p.add_argument('--seed',type=int,default=170)
+    p.add_argument('--loader-context',choices=('spawn','forkserver'),default='spawn')
+    p.add_argument('--loader-timeout',type=int,default=120)
+    p.add_argument('--recovery-probe-updates',type=int)
     p.add_argument('--resume',type=Path);a=p.parse_args()
     gpus=list(map(int,a.gpus.split(',')))
     if len(gpus)!=4 or len(set(gpus))!=4:raise ValueError('four distinct GPU IDs required')
@@ -45,12 +48,16 @@ def main():
     command=[sys.executable,'-m','torch.distributed.run','--standalone','--nnodes=1','--nproc_per_node=4',
         str(Path(__file__).with_name('train_pretrain.py')),'--config',str(a.config),'--manifest',str(a.manifest),
         '--stats',str(a.stats),'--output',str(a.output),'--workers',str(a.workers),'--seed',str(a.seed),'--git-commit',a.git_commit]
+    command+=['--loader-context',a.loader_context,'--loader-timeout',str(a.loader_timeout)]
     if a.resume:command+=['--resume',str(a.resume)]
+    if a.recovery_probe_updates is not None:command+=['--recovery-probe-updates',str(a.recovery_probe_updates)]
     state=dict(status='STARTING',supervisor_pid=os.getpid(),command=command,git_commit=a.git_commit,
-        work_version='v5.four-gpu-mixed-pretrain.v1',run_id=a.output.name,physical_gpus=gpus,
+        work_version='v5.four-gpu-mixed-pretrain.v2',run_id=a.output.name,physical_gpus=gpus,
         global_batch=config['batch_size']*4,target_updates=config['updates'],
         max_seconds=config['max_seconds'],artifact_budget_bytes=config['artifact_budget_bytes'],
-        dataset=str(a.manifest),seed=a.seed,started_at=time.time())
+        dataset=str(a.manifest),seed=a.seed,started_at=time.time(),
+        loader_context=a.loader_context,loader_timeout_s=a.loader_timeout,
+        recovery_probe_updates=a.recovery_probe_updates,resume=str(a.resume) if a.resume else None)
     write(a.output/'process.json',state);requested=[]
     signal.signal(signal.SIGTERM,lambda *_:requested.append('supervisor SIGTERM'))
     signal.signal(signal.SIGINT,lambda *_:requested.append('supervisor SIGINT'))
@@ -61,7 +68,8 @@ def main():
             state['torchrun_pid']=child.pid
             while child.poll() is None:
                 elapsed=time.monotonic()-started
-                stop=bool(requested) or (a.output/'STOP').exists() or elapsed>config['max_seconds'] or shutil.disk_usage(a.output).free<20*2**30
+                limit=min(config['max_seconds'],900) if a.recovery_probe_updates else config['max_seconds']
+                stop=bool(requested) or (a.output/'STOP').exists() or elapsed>limit or shutil.disk_usage(a.output).free<20*2**30
                 if stop and deadline is None:
                     (a.output/'STOP').touch();deadline=time.monotonic()+180
                     state.update(status='STOPPING',stop_reason=requested or 'STOP/deadline/free-space boundary')

@@ -27,6 +27,8 @@ from ptv3_shared_wam_v5.storage import read_json
 from ptv3_shared_wam_v5.checkpoints import checkpoint_due,retained_steps
 from ptv3_shared_wam_v5.metrics import forecast_metrics,merge_metrics,summarize_metrics
 from ptv3_shared_wam_v5.objectives import forecast_loss,loss_components,OBJECTIVE_SEMANTICS
+from ptv3_shared_wam_v5.training_contract import execution_contract,validate_resume,loader_options
+from ptv3_shared_wam_v5.selection import trajectory_score,bootstrap_trajectory,TAU_SELECTION
 from ptv3_shared_wam_v4.objectives import normalized_components,combine_components
 
 
@@ -76,9 +78,16 @@ def main():
     p.add_argument('--device',default='cuda:0');p.add_argument('--smoke',action='store_true')
     p.add_argument('--steps',type=int);p.add_argument('--batch-size',type=int);p.add_argument('--workers',type=int,default=4)
     p.add_argument('--seed',type=int)
+    p.add_argument('--loader-context',choices=('spawn','forkserver'),default='spawn')
+    p.add_argument('--loader-timeout',type=int,default=120)
+    p.add_argument('--recovery-probe-updates',type=int)
     p.add_argument('--resume',type=Path);p.add_argument('--git-commit',required=True);a=p.parse_args()
     config=read_json(a.config);stats=read_json(a.stats)
-    dataset=V5Windows(a.manifest,'train');last=a.steps or config['updates'];batch_size=a.batch_size or config['batch_size']
+    dataset=V5Windows(a.manifest,'train')
+    last=config['updates'] if a.steps is None else a.steps
+    batch_size=config['batch_size'] if a.batch_size is None else a.batch_size
+    if a.recovery_probe_updates is not None and (not a.resume or a.smoke or not 1<=a.recovery_probe_updates<=16):
+        raise ValueError('recovery probe requires a checkpoint and1..16 actual updates')
     if a.smoke:
         if not 1<=last<=16:raise ValueError('engineering smoke requires1..16 bounded steps')
     elif (dataset.meta.get('training_allowed') is not True or dataset.meta.get('engineering_subset')
@@ -93,7 +102,8 @@ def main():
     if world>1:dist.init_process_group('nccl' if device.startswith('cuda') else 'gloo')
     if not a.smoke and a.seed is None and 'seed' not in config:raise ValueError('full training requires an explicitly allocated --seed')
     seed=0 if a.smoke else int(a.seed if a.seed is not None else config['seed'])
-    config=dict(config,seed=seed)
+    config=dict(config,seed=seed,batch_size=batch_size)
+    contract=execution_contract(config,world)
     random.seed(seed+rank);np.random.seed(seed+rank);torch.manual_seed(seed+rank)
     torch.set_num_threads(2)
     a.output.mkdir(parents=True,exist_ok=True)
@@ -103,17 +113,25 @@ def main():
     model=SharedWAMV5(stats,config).to(device)
     optimizer=torch.optim.AdamW(model.parameter_groups(config['geometry_lr'],config['shared_lr']),
         weight_decay=config['weight_decay'],fused=device.startswith('cuda'))
-    first=1;previous_elapsed=0.;best_score=None;best_step=None;best_path=None
+    first=1;previous_elapsed=0.;best_score=None;best_step=None;best_path=None;tau_best=None;resume_binding=None
     if a.resume:
-        saved=torch.load(a.resume,map_location='cpu')
-        if (saved.get('schema')!=SCHEMA or saved.get('data_identity')!=identity
-                or saved.get('config')!=config or saved.get('world_size')!=world):raise ValueError('v5 resume config/data/world-size mismatch')
+        saved=torch.load(a.resume,map_location='cpu',weights_only=False)
+        if saved.get('schema')!=SCHEMA:raise ValueError('independent v5 checkpoint required')
+        legacy_path=a.resume.parent/'run-manifest.json'
+        legacy=read_json(legacy_path) if saved.get('execution_contract') is None and legacy_path.is_file() else None
+        resume_binding=validate_resume(saved,config,identity,world,legacy)
+        resume_binding.update(checkpoint=str(a.resume.resolve()),legacy_manifest=str(legacy_path) if legacy else None)
         model.load_state_dict(saved['model'],strict=True);optimizer.load_state_dict(saved['optimizer']);first=int(saved['step'])+1
         previous_elapsed=float(saved.get('elapsed_s',0.));best=saved.get('selection',{})
         best_score,best_step,best_path=best.get('score'),best.get('step'),best.get('checkpoint')
+        tau_best=best.get('trajectory') or bootstrap_trajectory(a.resume.parent)
+        if tau_best and tau_best.get('protocol')!=TAU_SELECTION:raise ValueError('trajectory selection protocol mismatch')
         random.setstate(saved['random_state'][rank]['python']);np.random.set_state(saved['random_state'][rank]['numpy'])
         torch.set_rng_state(saved['random_state'][rank]['torch'])
         if device.startswith('cuda'):torch.cuda.set_rng_state(saved['random_state'][rank]['cuda'])
+        if a.recovery_probe_updates is not None:last=min(last,first+a.recovery_probe_updates-1)
+        if last<first:raise ValueError('resume target must exceed saved update')
+        del saved
     wrapped=DDP(model,device_ids=[local] if device.startswith('cuda') else None) if world>1 else model
     kwargs=dict(dataset=dataset,batch_sampler=Steps(dataset,batch_size,seed,rank,first,last),collate_fn=collate,
                 num_workers=a.workers,pin_memory=device.startswith('cuda'),
@@ -123,7 +141,7 @@ def main():
         ipc.mkdir(exist_ok=True,mode=0o700)
         os.environ['TMPDIR']=str(ipc);tempfile.tempdir=str(ipc)
         multiprocessing.current_process()._config['tempdir']=str(ipc)
-        kwargs.update(multiprocessing_context='fork',persistent_workers=True,prefetch_factor=2)
+    kwargs.update(loader_options(a.workers,a.loader_timeout,a.loader_context))
     loader=DataLoader(**kwargs)
     dev=V5Windows(a.manifest,'dev') if rank==0 and not a.smoke else None
     if rank==0:
@@ -132,11 +150,14 @@ def main():
             run_id=a.output.name,data_identity=identity,input_semantics=INPUT_SEMANTICS,label_semantics=LABEL_SEMANTICS,
             objective_semantics=OBJECTIVE_SEMANTICS,engineering_smoke=a.smoke,device=device,world_size=world,
             python=sys.version,torch=torch.__version__,cuda=torch.version.cuda,steps=last,batch_size=batch_size,
+            execution_contract=contract,resume_binding=resume_binding,
+            loader=dict(context=a.loader_context,workers=a.workers,timeout_s=a.loader_timeout),
+            trajectory_selection_protocol=TAU_SELECTION,recovery_probe=bool(a.recovery_probe_updates),
             source_ids=dataset.meta['source_ids'],max_seconds=config['max_seconds'],min_free_gib=20,config=config))
     start=time.monotonic();times=[];events=[];seen=set();draws=Counter();loss_value=None;step=first-1;completed_step=first-1;checkpoints_written=0;last_saved=None
 
     def save(step):
-        nonlocal checkpoints_written,last_saved,best_path
+        nonlocal checkpoints_written,last_saved,best_path,tau_best
         rng=dict(python=random.getstate(),numpy=np.random.get_state(),torch=torch.get_rng_state(),
                  cuda=torch.cuda.get_rng_state() if device.startswith('cuda') else None)
         states=[None]*world
@@ -146,16 +167,20 @@ def main():
             target=a.output/f'step{step:06d}.pt';pending=target.with_suffix('.pt.part')
             if target.exists() or pending.exists():raise ValueError('never overwrite existing v5 checkpoint or partial checkpoint')
             if best_step==step:best_path=str(target.resolve())
+            if tau_best and tau_best['step']==step:tau_best=dict(tau_best,checkpoint=str(target.resolve()))
             torch.save(dict(schema=SCHEMA,data_identity=identity,config=config,step=step,world_size=world,
+                execution_contract=contract,resume_binding=resume_binding,
                 elapsed_s=previous_elapsed+time.monotonic()-start,
-                selection=dict(score=best_score,step=best_step,checkpoint=best_path),
+                selection=dict(score=best_score,step=best_step,checkpoint=best_path,trajectory=tau_best),
                 model=model.state_dict(),optimizer=optimizer.state_dict(),random_state=states),pending)
             pending.replace(target);target.chmod(0o664);checkpoints_written+=1
-            if best_path:
-                link=a.output/'best.pt';temporary=a.output/'best.pt.link'
-                temporary.symlink_to(best_path);temporary.replace(link)
+            for name,path in [('best',best_path),('trajectory-best',tau_best.get('checkpoint') if tau_best else None)]:
+                if path:
+                    link=a.output/(name+'.pt');temporary=a.output/(name+'.pt.link')
+                    temporary.symlink_to(path);temporary.replace(link)
             recent=sorted(a.output.glob('step*.pt'))
             protected=retained_steps([int(f.stem[4:]) for f in recent],config)|({best_step} if best_step else set())
+            if tau_best:protected.add(tau_best['step'])
             for old in recent:
                 if int(old.stem[4:]) not in protected:old.unlink()
             if sum(f.stat().st_size for f in a.output.iterdir() if f.is_file() and not f.is_symlink())>config['artifact_budget_bytes']:
@@ -164,11 +189,20 @@ def main():
         if world>1:dist.barrier()
     if device.startswith('cuda'):torch.cuda.reset_peak_memory_stats()
     wrapped.train()
-    for step,batch in zip(range(first,last+1),loader):
+    iterator=iter(loader);loader_failure=None
+    for step in range(first,last+1):
         stop=(a.output/'STOP').exists() or previous_elapsed+time.monotonic()-start>config['max_seconds'] or shutil.disk_usage(a.output).free<20*2**30
         flag=torch.tensor(int(stop),device=device)
         if world>1:dist.all_reduce(flag,op=dist.ReduceOp.MAX)
         if flag.item():break
+        batch=None
+        try:batch=next(iterator)
+        except Exception as exc:loader_failure=repr(exc)
+        flag=torch.tensor(int(loader_failure is not None),device=device)
+        if world>1:dist.all_reduce(flag,op=dist.ReduceOp.MAX)
+        if flag.item():
+            loader_failure=loader_failure or 'another rank failed to load its batch'
+            break
         seen.update(map(int,batch['source_id'].tolist()));draws.update(map(int,batch['source_id'].tolist()))
         batch={k:v.to(device,non_blocking=True) for k,v in batch.items()}
         optimizer.zero_grad(set_to_none=True)
@@ -190,7 +224,7 @@ def main():
         if not torch.isfinite(loss.detach()):raise ValueError('nonfinite loss')
         loss_value=float(loss.detach());times.append(time.monotonic()-start)
         if len(times)>256:times.pop(0)
-        if step<=3 or step%config['log_interval']==0:
+        if step<=first+2 or step%config['log_interval']==0:
             values=torch.stack([terms[k].detach() for k in ('hand','scene','contact','part')])
             sources=torch.tensor([draws[s] for s in range(11)],device=device,dtype=torch.long)
             if world>1:dist.all_reduce(values);values/=world;dist.all_reduce(sources)
@@ -209,13 +243,18 @@ def main():
                 with (a.output/'train.jsonl').open('a') as log:log.write(json.dumps(record)+'\n')
                 print(json.dumps(record),flush=True)
         new_best=False
-        if not a.smoke and (step%config['validation_interval']==0 or step==config.get('validation_initial_step',20)):
+        if not a.smoke and (step%config['validation_interval']==0 or step==config.get('validation_initial_step',20)
+                            or (a.recovery_probe_updates and step==first)):
             if world>1:dist.barrier()
             if rank==0:
-                evaluation=evaluate(model,dev,config,device);write(a.output/f'dev-step{step:06d}.json',evaluation)
+                evaluation=evaluate(model,dev,config,device)
+                candidate=trajectory_score(evaluation);evaluation['trajectory_selection']=candidate
+                write(a.output/f'dev-step{step:06d}.json',evaluation)
                 score=evaluation.get('source_macro_objective')
                 if score is not None and np.isfinite(score) and (best_score is None or score<best_score):
                     best_score,best_step,new_best=float(score),step,True
+                if candidate and (tau_best is None or candidate['score']<tau_best['score']):
+                    tau_best=dict(candidate,step=step,checkpoint=None,origin='fixed-DEV');new_best=True
             if world>1:dist.barrier()
             signal=torch.tensor(int(new_best),device=device)
             if world>1:dist.broadcast(signal,src=0)
@@ -224,7 +263,7 @@ def main():
     if not a.smoke and completed_step>=first and last_saved!=completed_step:save(completed_step)
     if device.startswith('cuda'):torch.cuda.synchronize()
     signatures=None
-    if a.smoke and world>1:
+    if (a.smoke or a.recovery_probe_updates) and world>1:
         signature=torch.stack([torch.stack([p.detach().double().sum(),p.detach().double().square().sum()])
                                for p in model.parameters()]).sum(0)
         all_signatures=[torch.zeros_like(signature) for _ in range(world)]
@@ -234,11 +273,12 @@ def main():
     if rank==0:
         measured=events[min(2,len(events)-1):]
         timing={name:float(np.mean([ev[i].elapsed_time(ev[i+1]) for ev in measured])) for i,name in enumerate(('forward_loss_ms','backward_ms','optimizer_ms'))} if measured else {}
-        result=dict(status='COMPLETED' if completed_step==last else 'STOPPED',engineering_smoke=a.smoke,optimizer_updates=completed_step-first+1,
+        result=dict(status='FAILED_DATA_LOADER' if loader_failure else ('COMPLETED' if completed_step==last else 'STOPPED'),
+            loader_failure=loader_failure,engineering_smoke=a.smoke,recovery_probe=bool(a.recovery_probe_updates),optimizer_updates=completed_step-first+1,
             last_step=completed_step,last_loss=loss_value,elapsed_s=time.monotonic()-start,source_ids_seen=sorted(seen),
             peak_allocated_gib=torch.cuda.max_memory_allocated()/2**30 if device.startswith('cuda') else None,
             timing=timing,checkpoint_written=bool(checkpoints_written),ddp_parameter_signatures=signatures,
-            best_selection=dict(score=best_score,step=best_step,checkpoint=best_path))
+            best_selection=dict(score=best_score,step=best_step,checkpoint=best_path,trajectory=tau_best))
         write(a.output/'result.json',result);print(json.dumps(result),flush=True)
         if (a.output/'progress.json').exists():
             progress=read_json(a.output/'progress.json');progress.update(status=result['status'],step=completed_step)

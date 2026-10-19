@@ -99,6 +99,14 @@ class V5Windows(Dataset):
 
     def __len__(self):return len(self.index)
 
+    def __getstate__(self):
+        # Spawn workers reopen immutable mmap inputs; do not pickle array
+        # payloads, open sequence caches or the parent process's file handles.
+        return dict(manifest=str(self.path), split=self.split, cache_size=self.cache_size)
+
+    def __setstate__(self, state):
+        self.__init__(state['manifest'], state['split'], state['cache_size'])
+
     def _sequence(self,seq_id):
         if seq_id not in self.cache:
             row=self.meta['sequences'][seq_id];folder=Path(row['path']);cf=Path(row['contact_path'])
