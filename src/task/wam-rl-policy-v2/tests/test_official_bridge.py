@@ -24,3 +24,17 @@ def test_upstream_run_preserved_and_action_paths_agree(tmp_path):
     torch.testing.assert_close(model.log_std.exp().square(),torch.full((24,),.64))
     z=torch.randn(8,4,1)
     torch.testing.assert_close(normalize_advantages(z),(z-z.mean())/(z.std()+1e-8),rtol=0,atol=0)
+
+
+def test_native_evaluation_never_uses_wam_inputs():
+    import numpy as np
+    from wam_rl_policy_v2.official_bridge import ScheduledOfficialEnv
+    env=object.__new__(ScheduledOfficialEnv)
+    env.native_only=True;env.inputs=None;env.num_envs=2
+    env.ticks=np.zeros(2,int);env.initial_z=np.zeros(2)
+    env.streak=np.zeros(2,int);env.longest=np.zeros(2,int)
+    poses=np.repeat(np.eye(4)[None],2,axis=0)
+    env.snapshot=lambda:dict(pose=poses,goal=np.zeros((2,3)))
+    native=torch.randn(2,300)
+    torch.testing.assert_close(env.augment(native,[0,1]),native,rtol=0,atol=0)
+    assert env.inputs is None

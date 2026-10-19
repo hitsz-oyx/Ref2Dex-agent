@@ -60,13 +60,14 @@ def prepare_official(root,output):
 
 
 class ScheduledOfficialEnv:
-    def __init__(self,base,snapshot,runtime):
+    def __init__(self,base,snapshot,runtime,native_only=False):
         from gym import spaces
+        self.native_only=native_only
         self.base=base;self.task=base.task;self.snapshot=snapshot;self.runtime=runtime
         for name in ('num_envs','num_environments','num_states','num_actions','state_space','action_space','rl_device'):
             setattr(self,name,getattr(base,name))
-        self.num_observations=565
-        self.observation_space=spaces.Box(low=-np.inf,high=np.inf,shape=(565,),dtype=np.float32)
+        self.num_observations=300 if native_only else 565
+        self.observation_space=spaces.Box(low=-np.inf,high=np.inf,shape=(self.num_observations,),dtype=np.float32)
         self.ticks=np.zeros(self.num_envs,int);self.pending=np.zeros(self.num_envs,bool)
         self.inputs=None;self.reset_count=0;self.steps=0
         self.initial_z=np.zeros(self.num_envs);self.streak=np.zeros(self.num_envs,int);self.longest=np.zeros(self.num_envs,int)
@@ -75,16 +76,21 @@ class ScheduledOfficialEnv:
 
     def augment(self,native,reset_ids):
         state=self.snapshot()
-        if self.inputs is None:
+        if self.inputs is None and not self.native_only:
             schedulers=[]
             for i in range(self.num_envs):schedulers.append(self.scheduler(state,i))
             self.inputs=BatchedScheduledInputs(self.runtime,schedulers)
         for i in reset_ids:
-            self.inputs.histories[i].clear();self.inputs.schedulers[i]=self.scheduler(state,i);self.ticks[i]=0
+            if not self.native_only:
+                self.inputs.histories[i].clear();self.inputs.schedulers[i]=self.scheduler(state,i)
+            self.ticks[i]=0
             self.initial_z[i]=state['pose'][i,2,3];self.streak[i]=0;self.longest[i]=0
         lift=state['pose'][:,2,3]-self.initial_z
         near=np.linalg.norm(state['pose'][:,:3,3]-state['goal'],axis=-1)<=.05
         self.streak=np.where(near & (lift>=.1),self.streak+1,0);self.longest=np.maximum(self.longest,self.streak)
+        if self.native_only:
+            self.ticks+=1
+            return native.detach()
         current=native.detach() if self.inputs.pipeline in ('tau','inputs','all') else native.detach().cpu().numpy()
         result=self.inputs.observation(current,state['pose'],state['hand'],self.ticks/60)
         self.workspace_invalid=result['workspace_invalid']
@@ -130,18 +136,24 @@ def run(task,snapshot,sim_step,actor,runtime,args):
     spec=importlib.util.spec_from_file_location('scheduled_official_process',official/'utils/process_sarl.py')
     module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
     cfg=yaml.safe_load((official/'cfg/ppo/config.yaml').read_text())
-    cfg['policy'].update(backbone_type='pn',freeze_backbone=False,obs_dim=565)
+    native_only=getattr(args,'native_evaluation',False)
+    cfg['policy'].update(backbone_type='pn',freeze_backbone=False,obs_dim=300 if native_only else 565)
     cfg['seed']=args.seed;task.cfg['seed']=args.seed
     torch.manual_seed(args.seed)
-    env=ScheduledOfficialEnv(VecTaskPython(task,'cuda:0',cfg['clip_observations'],cfg['clip_actions']),snapshot,runtime)
+    env=ScheduledOfficialEnv(VecTaskPython(task,'cuda:0',cfg['clip_observations'],cfg['clip_actions']),snapshot,runtime,native_only=native_only)
     ppo=module.process_ppo(SimpleNamespace(test=False,vision=False,model_dir=''),env,cfg,str(args.output/'models'))
     # Replace only the policy mean network; upstream act/evaluate/inference and
     # Gaussian convention remain identical in all three call paths.
-    ppo.actor_critic.actor=actor.actor
+    if not native_only:ppo.actor_critic.actor=actor.actor
     ppo.optimizer=torch.optim.Adam(ppo.actor_critic.parameters(),lr=cfg['learn']['optim_stepsize'])
     completed=0
     if args.rl_checkpoint:
         packet=torch.load(args.rl_checkpoint,map_location=runtime.device,weights_only=False)
+        if native_only:
+            weights=packet.get('state_dict',packet)
+            ppo.actor_critic.load_state_dict(weights,strict=True)
+            from .official_evaluation import evaluate
+            return evaluate(env,ppo.actor_critic,args,10000)
         if packet.get('schema')!='ref2dex.scheduled-official-ppo.v1' or packet['conditioning']!=scheduled_conditioning_contract():raise ValueError('Official scheduled checkpoint required')
         ppo.actor_critic.load_state_dict(packet['model']);ppo.optimizer.load_state_dict(packet['optimizer'])
         completed=packet['iteration'];ppo.step_size=packet['step_size']

@@ -57,6 +57,7 @@ def evaluate(env, actor, args, iteration):
     records.sort(key=lambda r:r['env'])
     report=dict(iteration=iteration,episodes=len(records),seed=args.seed,
         deterministic_actions=True,optimizer_steps=0,random_time=False,
+        native_only=env.native_only,observation_dim=env.num_observations,
         native_success_rate=float(np.mean([r['native_success'] for r in records])),
         held60_lift10cm_rate=float(np.mean([r['held60_lift10cm'] for r in records])),
         workspace_failures=sum(r['workspace_failure'] for r in records),

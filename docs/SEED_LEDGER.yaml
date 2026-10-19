@@ -563,3 +563,8 @@ allocations:
     seed_pool: probe
     evaluation_seed: 246
     reuse_reason: same TRAIN panel as checkpoint evaluation for matched WAM replacement; not validation
+
+  P-20261019-native-ppo-comparison:
+    seed_pool: probe
+    evaluation_seed: 246
+    reuse_reason: same fixed TRAIN panel for historical policy comparison; not validation
