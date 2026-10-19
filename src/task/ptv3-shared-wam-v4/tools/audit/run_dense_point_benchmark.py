@@ -57,7 +57,7 @@ if Path('/proc/'+str(d['supervisor'])+'/cmdline').exists() and d['run'].encode()
  os.kill(d['supervisor'],signal.SIGCONT)
 print('watchdog resumed verified main job',flush=True)
 '''
-    watchdog=subprocess.Popen([sys.executable,'-c',watchdog_code,json.dumps(dict(seconds=580,
+    watchdog=subprocess.Popen([sys.executable,'-c',watchdog_code,json.dumps(dict(seconds=min(580,a.seconds+30),
         worker=worker,group=group,supervisor=supervisor,run=str(a.main_run)))],
         stdout=(a.output/'watchdog.log').open('w'),stderr=subprocess.STDOUT,start_new_session=True)
     paused=False;child=None;started=time.monotonic();monitor_stop=threading.Event();monitor=None
