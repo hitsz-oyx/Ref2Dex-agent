@@ -41,3 +41,49 @@ def test_native_tau_is_30hz_world_displacement_not_absolute_position():
     np.testing.assert_allclose(tau[0,:,:,0],prediction[0,:8,0][:,WAM_TO_NATIVE,0],atol=1e-6)
     np.testing.assert_allclose(tau[1,:,:,1],tau[0,:,:,0],atol=1e-6)
     np.testing.assert_array_equal(tau[1,:,:,0],0)
+
+
+def test_actual_official_shadow_ppo_recipe_and_bc_mean(tmp_path):
+    import ast
+    import json
+    from pathlib import Path
+    from types import SimpleNamespace
+    from gym import spaces
+    from wam_rl_policy_v2.inspire_ppo_bridge import make_shadow_ppo
+    from wam_rl_policy_v2.inspire_shadow import SCHEMA
+    torch.set_num_threads(2)
+    model=expanded_model(True)
+    with torch.no_grad():model.y_mean.copy_(torch.linspace(-.3,.3,12))
+    env=SimpleNamespace(observation_space=spaces.Box(-np.inf,np.inf,shape=(577,),dtype=np.float32),
+        state_space=spaces.Box(-np.inf,np.inf,shape=(0,),dtype=np.float32),action_space=spaces.Box(-1,1,shape=(12,),dtype=np.float32),
+        runtime=SimpleNamespace(device=torch.device('cpu')),task=SimpleNamespace(cfg={}),rl_device='cpu',num_envs=2,num_states=0)
+    root=Path(__file__).resolve().parents[4]
+    ppo,cfg=make_shadow_ppo(root,tmp_path,env,dict(schema=SCHEMA,model=model.state_dict()),246)
+    try:
+        assert (ppo.num_transitions_per_env,ppo.num_learning_epochs,ppo.num_mini_batches)==(8,5,4)
+        assert (ppo.gamma,ppo.lam,ppo.clip_param,ppo.desired_kl)==(.96,.95,.2,.016)
+        assert cfg['policy']['pi_hid_sizes']==cfg['policy']['vf_hid_sizes']==[1024,1024,512,512]
+        x=torch.randn(2,577)
+        torch.testing.assert_close(ppo.actor_critic.act_inference(x),model(x))
+        actions,logp,values,mean,sigma=ppo.actor_critic.act(x,None)
+        replay=ppo.actor_critic.evaluate(x,None,actions)
+        torch.testing.assert_close(logp,replay[0]);torch.testing.assert_close(mean,replay[3])
+        torch.testing.assert_close(ppo.actor_critic.log_std.exp().square(),torch.full((12,),.64))
+        def methods(path):
+            tree=ast.parse(path.read_text());cls=next(n for n in tree.body if isinstance(n,ast.ClassDef) and n.name=='PPO')
+            return {n.name:ast.dump(n) for n in cls.body if isinstance(n,ast.FunctionDef)}
+        original=methods(root/'third_party/UniDexGrasp2-official-ppo/dexgrasp/algorithms/rl/ppo/ppo.py')
+        actual=methods(tmp_path/'runtime-official/dexgrasp/algorithms/rl/ppo/ppo.py')
+        assert original['run']==actual['run']
+        assert original.get('compute_returns')==actual.get('compute_returns')
+    finally:ppo.writer.close()
+
+
+def test_complete_goal_cannot_be_paid_before_ordered_path_completion():
+    from wam_rl_policy_v2.inspire_ppo_bridge import shadow_path_reward
+    objects=np.zeros((1,13));hands=np.zeros((1,11,3));actions=np.zeros((1,12))
+    decision=dict(reference_error_m=0.,confirmed_progress=0.,complete=False)
+    pending,_=shadow_path_reward(objects,hands,actions,np.zeros(1),[decision],np.zeros(1))
+    complete=dict(decision,confirmed_progress=1.,complete=True)
+    finished,_=shadow_path_reward(objects,hands,actions,np.zeros(1),[complete],np.zeros(1))
+    assert finished[0]>pending[0]+2.9

@@ -69,3 +69,24 @@ Inspire新cache和在线adapter统一使用FP32并写入合同，不修改WAM权
 r2复用已完成current BC和不可变physical cache，在新输出重新生成FP32条件；
 589 TRAIN/71 DEV划分、全量覆盖与其他超参不改。失败r1的空scheduled数组只在确认
 两个done均全false、所有原writer退出后清理，保留首批数值审计、日志、current缓存及全部权重。
+
+### 原生PPO接线工程协议
+
+复用同一prepare_official，PPO.run/storage/GAE/优化器与Shadow相同，actor直接替换为
+共享大BC均值、critic同官方大MLP。纯物理host只用DExplore资产/初始化/PD/物理步进，
+不构造DExplore actor、不加载teacher、不跑rl_games PPO；post-step不读hand-ref观测、
+不使用DExplore参考模仿reward/reset/curriculum。physical248直接从实测刚体算，原生函数
+比对及参考扰动负控制在启动时执行。显式indexed reset先返回新episode/tick状态，再采动作；
+旧terminal transition保留，无隐藏初始化控制拍、无跨回合action。
+完整TRAIN路径通过按物体固定mesh、每次reset轮换该物体的motion，覆盖全部589条。
+
+奖励保留Shadow goal_cond=False手掌/五指距离项和接近门控，针对完整物体路径将目标距离
+替换为局部SE3路径误差，成功bonus必须scheduler按序complete，并加2×正向confirmed进度增量。
+高度项仅将Shadow固定世界高度阈值平移到各回合桌面；不使用人体手参考误差或姿态模仿loss。
+这是任务目标适配，不宣称与Shadow静态抓取reward完全相同。几何路径完成不证明抓稳/释放，
+路径成功与保持代理分别记录。路径horizon为参考长度加30控制拍、scheduler另保留stall保护。
+
+工程最先允许已完成全量current BC零扩展的2-env/4-update检查（与Shadow条件BC初始化相同），
+明确标engineering_current_expansion；不可将其称WAM条件BC最终结果或作为正式warmstart。
+actual learning必须使用完成的全量scheduled BC。检查官方20个optimizer steps/update、
+均值/log-prob回放、原生命令/PD、两环境错开reset与WAM history清空，再扩大到256环境。
