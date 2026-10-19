@@ -170,6 +170,7 @@ def main():
     write(out/'manifest.json',manifest)
     pending = [(index,batch) for index,batch in enumerate(batches) if index not in reused]
     active = {}
+    attempts={};failed_batches=[]
     initial_completed = len(completed)
     started = time.monotonic()
     storage_checked = 0.
@@ -184,11 +185,13 @@ def main():
                 if gpu in active or not pending:
                     continue
                 index,batch = pending.pop(0)
+                attempts[index]=attempts.get(index,0)+1
                 selection = scratch/('selection%03d.json'%index)
                 write(selection,batch)
                 folder = out/'batches'/('batch%03d'%index)
                 if a.resume:
                     folder = folder.with_name(folder.name+('-resume%02d'%attempt))
+                if attempts[index]>1:folder=folder.with_name(folder.name+('-attempt%02d'%attempts[index]))
                 folder.parent.mkdir(exist_ok=True)
                 command = [RUNTIME,str(TASK/'tools/run/collect_rl660_batch.py'),
                     '--selection',str(selection),'--output',str(folder),'--gpu',gpu,
@@ -197,7 +200,8 @@ def main():
                     command.append('--capture-current-observation')
                 if a.capture_dof_force:command.append('--capture-dof-force')
                 if a.allow_monica_sharing:command.append('--allow-monica-sharing')
-                log = (scratch/('batch%03d.log'%index)).open('x')
+                logname=('batch%03d'%index)+('' if attempts[index]==1 else '-attempt%02d'%attempts[index])+'.log'
+                log = (scratch/logname).open('x')
                 process = subprocess.Popen(command,cwd=ROOT,stdin=subprocess.DEVNULL,
                     stdout=log,stderr=subprocess.STDOUT,start_new_session=True,
                     env=dict(os.environ,TMPDIR=str(scratch),PYTHONDONTWRITEBYTECODE='1'))
@@ -207,6 +211,14 @@ def main():
                     continue
                 log.close()
                 if process.returncode:
+                    if a.capture_dof_force:
+                        del active[gpu]
+                        if attempts[index]<3:
+                            pending.append((index,batches[index]))
+                            print(json.dumps(dict(event='BATCH_RETRY',index=index,attempt=attempts[index],returncode=process.returncode)),flush=True)
+                        else:
+                            failed_batches.append(dict(index=index,sequences=batches[index],attempts=attempts[index],last_receipt=str(folder)))
+                        continue
                     raise RuntimeError('collection batch%d failed; see supervisor scratch'%index)
                 receipt = json.loads((folder/'manifest.json').read_text())
                 if receipt['status']!='COMPLETED':
@@ -242,6 +254,7 @@ def main():
             row = dict(status='RUNNING',completed_sequences=len(completed),target=660,
                 elapsed_s=elapsed,eta_s=((elapsed-prior_elapsed)/new_count*(660-len(completed)) if new_count else None),
                 active_pids=[v[0].pid for v in active.values()],
+                failed_batches=failed_batches,
                 gpu=subprocess.check_output(['nvidia-smi','-i',a.gpus,
                     '--query-gpu=index,utilization.gpu,memory.used','--format=csv,noheader'],text=True).strip())
             write(out/'progress.json',row)
@@ -257,6 +270,7 @@ def main():
                 storage_checked=elapsed
             if pending or active:
                 time.sleep(15)
+        if failed_batches:raise RuntimeError('bounded retries exhausted; completed data retained; failed batches='+str(failed_batches))
         if sorted(r['sequence'] for r in completed)!=names:
             raise ValueError('incomplete 660-member execution corpus')
         # Stable per-object sequence split independent of GPU completion order.
