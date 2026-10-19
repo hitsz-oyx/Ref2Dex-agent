@@ -231,7 +231,7 @@ def main():
     p.add_argument('--warmup',type=int,default=3);p.add_argument('--steps',type=int,default=8)
     p.add_argument('--check-equivalence',action='store_true')
     p.add_argument('--skip-batch-inference',action='store_true',
-                   help='Measure checkpointed training even when uncheckpointed inference OOMs')
+                   help='Do not repeat separately measured inference in a training-only follow-up')
     args=p.parse_args()
     torch.set_num_threads(1);torch.cuda.set_device(0);torch.manual_seed(176)
     free,total=torch.cuda.mem_get_info()
@@ -266,14 +266,17 @@ def main():
             report['baseline_equivalence_max_abs']=errors
             del original,small,reference,actual;gc.collect();torch.cuda.empty_cache()
         del parent,compatible;gc.collect()
+        report['active_phase']='inference_batch1'
         small=make_batch(fixture,1,args.mode,args.queries,args.hands,'cuda')
         report['inference_batch1']=inference(model,small,args.warmup,args.steps)
         del small
         batch=make_batch(fixture,args.batch,args.mode,args.queries,args.hands,'cuda')
+        report['active_phase']='inference_training_batch'
         if not args.skip_batch_inference:
             report['inference_training_batch']=inference(model,batch,args.warmup,args.steps)
         else:
-            report['inference_training_batch']='explicitly skipped after separate inference OOM'
+            report['inference_training_batch']='not repeated in training-only follow-up'
+        report['active_phase']='training'
         report['training']=training(model,batch,config,args.warmup,args.steps)
         report['status']='COMPLETED'
     except torch.cuda.OutOfMemoryError as error:

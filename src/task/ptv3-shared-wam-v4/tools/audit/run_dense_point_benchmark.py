@@ -83,8 +83,9 @@ print('watchdog resumed verified main job',flush=True)
                ('geometry-5mm','geometry',.005,128),('vertices-5mm-c128','full',.005,128),
                ('vertices-5mm-c2048','full',.005,2048),('baseline-5mm','baseline',.005,128)]
         if a.full_training_followup:
-            cases=[('vertices-train-5mm-c128','full',.005,128),
-                   ('vertices-train-5mm-c2048','full',.005,2048)]
+            cases=[('vertices-train-5mm-c128-b64','full',.005,128),
+                   ('vertices-train-5mm-c2048-b64','full',.005,2048),
+                   ('baseline-5mm-b64','baseline',.005,128)]
         env=dict(os.environ,CUDA_VISIBLE_DEVICES='0',OMP_NUM_THREADS='1',MKL_NUM_THREADS='1',
                  OPENBLAS_NUM_THREADS='1',PYTHONDONTWRITEBYTECODE='1',REF2DEX_BENCH_CODE_ROOT=str(a.code_root))
         position=0
