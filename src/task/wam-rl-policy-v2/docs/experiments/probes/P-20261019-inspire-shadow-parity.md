@@ -222,3 +222,14 @@ optimization_contract显式绑定actual-KL版本；从161旧optimizer迁移的�
 60项Task测试通过；真实checkpoint方差探针旧公式失配红灯(exit2)、修正后与Torch真KL一致绿灯。
 模型更新后另记录整个rollout的实际KL/旧proxy KL，不将其误称每minibatch硬约束。
 该修正尚未用匹配Shadow续训证明成功率恢复，不能说已完全解决退化。
+
+六卡inspire-mixed6-20261019-r1(fd79db1a)已从161实际续训，首轮162以及随后多轮正常；
+六rank首轮参数同步误差0，均值/logprob误差0，native PD/episode错配0。
+源成员审计coverage-audit.json核对589条motion恰好覆盖一次，50物体无重叠/缺失；
+每rank物体9/9/8/8/8/8、motion134/87/81/91/95/101。不是已完成全部轨迹的成功证明。
+新权重单份保存于rank-0/policy，首次162已发布；optimization_contract与从legacy161的
+迁移均有记录。主训练累计10000上限，GPU0–5总1536环境，GPU6/7未被本项目占用。
+观察到约19.7–20秒/轮、每卡约8.7–9.1GiB；10000终点预计约54小时，超过当前48h预算，
+不自动扩预算，保留周期checkpoint可继续。actual rollout KL首轮0.0140，随后例0.0137，
+旧proxy同轮仅0.00852；这里只确认校准度量运行，不据此声称任务成功或退化已恢复。
+旧两卡的主动停止另写stop-result.json，原始FAILED/InterruptedError日志保留，不覆盖历史证据。

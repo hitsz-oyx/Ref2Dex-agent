@@ -1,3 +1,18 @@
+## 2026-10-19 Inspire已改为六卡混合训练，发现KL校准缺陷
+
+按用户请求停止旧GPU6/7两卡训练，保留iteration161。新inspire-mixed6-20261019-r1
+在GPU0–5每卡同置模型/原生物理，共1536环境，同步一个策略，全部50物体/589 TRAIN
+motion分摊覆盖。双rank工程检查及60项测试通过；六rank实际首轮162参数同步、回放/PD误差0。
+BC/网络/奖励/动作/FP32 WAM保持，旧单卡optimizer继续；新增actual-KL优化合同及显式迁移。
+约20秒/轮、9GiB/卡；10000上限估约54h，当前48h预算保护及滚动保存保持，不自动扩预算。
+
+Shadow退化审计排除了checkpoint编号/normalization buffers变化，随机训练指标自身也在下降。
+发现官方adaptive KL按exp(log_std)计算，但实际scale_tril为exp(2log_std)；真实方差探针
+会产生相反的LR调整方向。新Inspire已校准KL，保留原采样分布和其他官方超参。
+这是一项已验证的计算缺陷，尚未通过匹配Shadow续训证明它是退化唯一原因或已恢复成功率。
+[六卡运行](../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-inspire-shadow-parity.md)、
+[退化审计](../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-ppo-checkpoint-evaluation.md)。
+
 ## 2026-10-19 六卡Shadow终点表现回落
 
 7000/8500/9500/10000轮、全96 TRAIN物体×8场景的确定性评估完成；四轮共同初态为
@@ -17,7 +32,7 @@ UniDexGrasp2 PPO引擎/超参，Inspire仅适配实测current312、12独立动�
 所有命令均进入current BC。DEV选择初始current扩展点，tau列初始为零；尚无WAM收益证据。
 两环境错开reset及256环境实际官方PPO更新通过，动作episode错配/均值/logprob误差0；
 GPU输入构造20轮计时已通过；26个已结束回合中23个workspace失败、0个路径成功，
-不能将启动检查称为任务成功。现已在GPU6/7从iteration20续至10000上限，
+不能将启动检查称为任务成功。此前在GPU6/7从iteration20续至10000上限，现已按用户要求停止，
 首轮恢复到21、均值/logprob误差0；steady约16.1s/轮，预计约45h，未有Inspire成功结论。
 另在GPU4/5完成确定性BC的64首回合/50 TRAIN物体检查：最终无越界高度保持0/64、
 目标附近保持1秒0/64、完整路径0/64。6个高度保持代理中5个后掉落、1个末态越界，
