@@ -86,6 +86,8 @@ def main():
                 time.sleep(15)
         result=read_json(a.output/'result.json') if (a.output/'result.json').exists() else {}
         state.update(status=result.get('status','FAILED') if child.returncode==0 else 'FAILED',exit_code=child.returncode,result=result)
+        if child.returncode!=0 or state['status'].startswith('FAILED'):
+            raise RuntimeError('owned torchrun failed; inspect train.log (exit=%s)'%child.returncode)
     except BaseException as exc:
         state.update(status='FAILED',error=repr(exc));raise
     finally:

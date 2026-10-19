@@ -11,7 +11,7 @@ from test_v5_contract import TASK,Geometry,config,stats,fixture as data_fixture
 from ptv3_shared_wam_v5.data import sample_window
 from ptv3_shared_wam_v5.model import SharedWAMV5
 from ptv3_shared_wam_v5.selection import trajectory_score
-from ptv3_shared_wam_v5.training_contract import execution_contract,validate_resume,loader_options
+from ptv3_shared_wam_v5.training_contract import execution_contract,validate_resume,loader_options,restore_optimizer_state
 
 
 class TinyDataset:
@@ -123,3 +123,27 @@ def test_execution_contract_and_fork_rejection():
     assert loader_options(8)['multiprocessing_context']=='spawn'
     assert loader_options(8)['timeout']==120
     with pytest.raises(ValueError):loader_options(8,context='fork')
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(),reason='actual fused CUDA recovery regression')
+def test_fused_optimizer_recovery_moves_cpu_step_and_preserves_update(monkeypatch):
+    import copy
+    p=torch.nn.Parameter(torch.tensor([1.,2.],device='cuda:0'))
+    optimizer=torch.optim.AdamW([p],lr=.001,fused=True)
+    p.grad=torch.tensor([.2,.3],device=p.device);optimizer.step()
+    value=p.detach().clone();saved=copy.deepcopy(optimizer.state_dict())
+    for state in saved['state'].values():
+        for key,x in state.items():
+            if isinstance(x,torch.Tensor):state[key]=x.cpu()
+    p.grad=torch.tensor([.2,.3],device=p.device);optimizer.step();expected=p.detach().clone()
+    q=torch.nn.Parameter(value.clone());resumed=torch.optim.AdamW([q],lr=.001,fused=True)
+    native=resumed.load_state_dict
+    def old_torch_load(state):
+        native(state)
+        # Real Torch2.0 call-site state; force it on newer Torch too.
+        resumed.state[q]['step']=resumed.state[q]['step'].cpu()
+    monkeypatch.setattr(resumed,'load_state_dict',old_torch_load)
+    report=restore_optimizer_state(resumed,saved)
+    assert report['fused_or_capturable_steps_moved']==1
+    q.grad=torch.tensor([.2,.3],device=q.device);resumed.step()
+    torch.testing.assert_close(q,expected,rtol=0,atol=0)

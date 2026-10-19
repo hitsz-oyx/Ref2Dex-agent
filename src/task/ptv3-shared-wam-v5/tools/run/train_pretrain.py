@@ -27,7 +27,7 @@ from ptv3_shared_wam_v5.storage import read_json
 from ptv3_shared_wam_v5.checkpoints import checkpoint_due,retained_steps
 from ptv3_shared_wam_v5.metrics import forecast_metrics,merge_metrics,summarize_metrics
 from ptv3_shared_wam_v5.objectives import forecast_loss,loss_components,OBJECTIVE_SEMANTICS
-from ptv3_shared_wam_v5.training_contract import execution_contract,validate_resume,loader_options
+from ptv3_shared_wam_v5.training_contract import execution_contract,validate_resume,loader_options,restore_optimizer_state
 from ptv3_shared_wam_v5.selection import trajectory_score,bootstrap_trajectory,TAU_SELECTION
 from ptv3_shared_wam_v4.objectives import normalized_components,combine_components
 
@@ -121,7 +121,9 @@ def main():
         legacy=read_json(legacy_path) if saved.get('execution_contract') is None and legacy_path.is_file() else None
         resume_binding=validate_resume(saved,config,identity,world,legacy)
         resume_binding.update(checkpoint=str(a.resume.resolve()),legacy_manifest=str(legacy_path) if legacy else None)
-        model.load_state_dict(saved['model'],strict=True);optimizer.load_state_dict(saved['optimizer']);first=int(saved['step'])+1
+        model.load_state_dict(saved['model'],strict=True)
+        resume_binding['optimizer_restore']=restore_optimizer_state(optimizer,saved['optimizer'])
+        first=int(saved['step'])+1
         previous_elapsed=float(saved.get('elapsed_s',0.));best=saved.get('selection',{})
         best_score,best_step,best_path=best.get('score'),best.get('step'),best.get('checkpoint')
         tau_best=best.get('trajectory') or bootstrap_trajectory(a.resume.parent)

@@ -38,3 +38,24 @@ def loader_options(workers, timeout=120, context='spawn'):
         raise ValueError('nonnegative workers and bounded spawn/forkserver loader required')
     return (dict(multiprocessing_context=context, persistent_workers=True,
                  prefetch_factor=2, timeout=timeout) if workers else {})
+
+
+def restore_optimizer_state(optimizer, saved):
+    """Torch2.0 leaves fused AdamW step on CPU after CPU-mapped recovery.
+
+    Move only fused/capturable scalar steps to their parameter device, keeping
+    their values and all momentum tensors. Unfused CPU-step semantics remain.
+    """
+    import torch
+    optimizer.load_state_dict(saved)
+    moved=0
+    for group in optimizer.param_groups:
+        if not (group.get('fused') or group.get('capturable')):
+            continue
+        for parameter in group['params']:
+            state=optimizer.state.get(parameter,{})
+            step=state.get('step')
+            if isinstance(step,torch.Tensor) and step.device!=parameter.device:
+                state['step']=step.to(parameter.device)
+                moved+=1
+    return dict(fused_or_capturable_steps_moved=moved)
