@@ -5,7 +5,8 @@
 绕开近期评估reset改动的旧原生入口仍29/64（45.31%），低分并非仅由该改动造成。
 官方模型已经训练；“未追加我们微调”不等于“未经官方微调”。当前本地比较不能升级为胜过官方基准，
 直接原始train.py --test、单jar256环境仍124/256（48.44%），官方该jar为99.6%；未用多物体扩容或评估reset改动。
-共享资产/运行时和上游权重-结果对应关系仍未定位，后续优先复现baseline。主训练不改。
+资产提取核查通过（手/mesh/feature/prior）；显式同步和Torch2.2.2对照均124/256，初始及终止状态完全相同。
+未找到issue现成修复，Preview3交叉结果与权重-结果对应关系仍待确认。主训练不改。
 [审计记录](../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-native-ppo-comparison.md)。
 
 ## 2026-10-19 官方原始state_based_model重测完成

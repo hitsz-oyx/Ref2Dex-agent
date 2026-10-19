@@ -104,6 +104,28 @@ run_id: published-legacy-reset-audit-20261019-r1；git_commit: 218d6362。沿用
 
 Decision：区分低分是否仍存在于原始任务+原始PPO.run(test)中，决定优先修复wrapper还是下沉资产/运行时。最小判别为官方表99.6%的jar-724fb.../0.06单物体、256环境、seed0、200步，GPU6/graspenv/600秒/2GiB。run_id: upstream-state-test-20261019-r1，代码2f101a29。下载固定上游任务/基类，使用上游train.py --test、配置解析、seed、原生reset和测试循环；只去掉未使用视觉/多智能体导入及无效agent_index读取。不采用aggregate扩容或我们任何eval reset修改。资产只软链接现有官方来源文件。该probe仍不证明资产及本地IsaacGym等于论文运行时。
 
-该直接上游测试完成：原始train.py --test → parse_task → process_ppo.test → PPO.run(is_testing)，原始任务/基类/VecTask reset，单jar 256环境成功124/256（48.4375%），官方对应表99.6%。原始循环运行200步，在第199步读取sticky successes。optimizer_steps=0。因最近wrapper、aggregate补丁、CPU RNG及桌面reset改动都不在此路径中，该复现差距不能只归因于这些适配。共享资产、运行时和上游发布权重/结果对应关系仍待隔离；非同初态配对实验。GPU6峰值采样2773MiB/52%，已释放。启动曾因旧IsaacGym中的np.float在当前NumPy不可用而失败，运行副本补充np.float=float兼容别名后成功，不修改系统或外部环境。
+该直接上游测试完成：原始train.py --test → parse_task → process_ppo.test → PPO.run(is_testing)，原始任务/基类/VecTask reset，单jar 256环境成功124/256（48.4375%），官方对应表99.6%。原始循环运行200步，在第199步读取sticky successes。optimizer_steps=0。因最近wrapper、aggregate补丁、CPU RNG及桌面reset改动都不在此路径中，该复现差距不能只归因于这些适配。共享资产、运行时和上游发布权重/结果对应关系仍待隔离；非同初态配对实验。GPU6采样2773MiB/52%，已释放。启动曾因旧IsaacGym中的np.float在当前NumPy不可用而失败，运行副本补充np.float=float兼容别名后成功，不修改系统或外部环境。
 
 官方确有环境与评估说明：Python3.8，论文IsaacGym Preview3/4并测试过4/4；cfg/shadow_hand_grasp.yaml给出200步、60Hz、substeps2、位置迭代8等；脚本加--test进入PPO.run测试分支。它不是独立eval.py，也不是一条自动遍历所有split并复现表格的完备评估流水线。README未锁定完整Torch/NumPy/驱动环境。此前我们复用了算法/任务主体，但用自己的bootstrap/多物体资产组织/评估包装，不能简称完全未改的官方端到端运行。此次直接上游诊断来源和兼容改动均列于run manifest。两臂初态匹配只支持本地比较公平，不能代替官方复现合格检查。
+
+## Issue线索与运行时差分诊断（2026-10-19）
+
+Decision：在单jar原始--test仍48.44%的反馈环中检验显式物理完成同步是否改变低分，以决定优先修复同步还是继续查资产/运行时。baseline/fetch-results两臂各256环境、seed0、GPU6/7、graspenv、原始PPO.run、600秒/每臂2GiB上限，不训练。代码b3f8930e，run_id upstream-runtime-{baseline,fetch-results}-20261019-r1。两臂均增加同样的初始/终止状态保存；只有fetch-results臂在gym.simulate之后调用阻塞fetch_results。先核对初态，比较动作前向和仿真轨迹。保存状态也会同步GPU，若baseline本身改变，需要识别观测效应而不宣称fetch单因素因果。静态资产来源审计同时核对官方手XML/STL、64D特征、全量官方原始prior及本地IsaacGym安装包。
+
+同步差分两臂均124/256，初始观测/root/dof/goal/theta及终止root/观测/success逐位相同，因此显式fetch_results不是此jar低分原因。下一最小Decision：复用本机已有Torch2.2.2+CUDA12.1，仅在graspenv原解释器前置torch/torchgen只读symlink，其他依赖沿用，单jar256/seed0/GPU6/600秒/2GiB，run_id upstream-runtime-torch222-20261019-r1。单独gymtorch扩展目录，不改系统环境或主训练。核对实际torch版本和初态，若成功率/物理仍同级则排除本地2.4.1→2.2.2差异，但不能扩展到1.x或IsaacGym3。
+
+运行时诊断完成：baseline、显式fetch_results、Torch2.2.2均124/256（48.4375%）；两组相对于baseline，初始观测/root/dof/goal/theta和终止root/观测/success逐位一致。Torch2.2.2实际从本地只读shim加载，与当前2.4.1+cu121比较；不能泛化到Torch1.x。无任何训练更新，GPU6/7已释放。
+
+资产来源检查通过：13个实际手部XML/STL逐字节等于固定上游版本；面板16物体的64D特征逐字节等于官方zip，prior全部字段等于官方完整npy转float32后的值；32个实际URDF/引用mesh文件逐字节等于官方下载tar.xz。该检查排除本地提取/拼装损坏，不能证明作者训练时用的版本与目前发布数据完全一致。IsaacGym关键Python/核心库对照本机Preview4原始安装包，无修改证据；并非与Preview3等价。
+
+Issue核查：
+- [++ #10](https://github.com/PKU-EPIC/UniDexGrasp2/issues/10)：单物体训练约60%，两位用户附和，无已定位原因或修复；不是同一发布权重评估的直接复现证据。
+- [++ #8](https://github.com/PKU-EPIC/UniDexGrasp2/issues/8)：test/model_dir未生效，社区提示续行符问题；我们已明确进入原始test分支，不适用。
+- [++ #4](https://github.com/PKU-EPIC/UniDexGrasp2/issues/4)：Graphics nullptr/headless，作者建议去掉headless解决显示；不能据此解释state成功率。
+- [++ #7](https://github.com/PKU-EPIC/UniDexGrasp2/issues/7)：作者说明手初态固定，实际仅物体点云即可；不是低分修复。
+- [原版 #32](https://github.com/PKU-EPIC/UniDexGrasp/issues/32)：发布ckpt在test_seen_category仅35.6%，无解决回复；属于UniDexGrasp而非++，仅作旁证。
+- 检查了相关关闭issue，未发现可以直接解释本次低分的补丁。GitHub API全量列表因匿名rate limit 403不可用，采用公开issue页核查；不声称完整审阅所有未显示讨论。
+
+剩余可判别方向：同一发布权重在论文IsaacGym Preview3上交叉评估；核对checkpoint与逐物体表是否确为同一训练产物/配置。后续[UniGraspTransformer官方仓库](https://github.com/microsoft/UniGraspTransformer)分别组织IsaacGym3/4模型，说明版本兼容需实证，但不能据此断言本次差距来自版本。NVIDIA[公开回复](https://forums.developer.nvidia.com/t/isaac-gym-preview-3-for-linux/345516/5)称Preview3已不再提供官方下载；本机已确认的安装包为Preview4。当前仍未找到根因，不盲改PPO超参、reward或WAM。来源/资产/运行时报告保存在published-provenance-audit-20261019-r1/，调试脚本保存debug-tools/。
+
+所有seed0调用为复现上游默认启动的确定性debug诊断，不是独立Probe统计样本或validation；原系统比较seed246不变。

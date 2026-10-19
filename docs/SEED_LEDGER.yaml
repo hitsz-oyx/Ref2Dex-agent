@@ -567,4 +567,8 @@ allocations:
   P-20261019-native-ppo-comparison:
     seed_pool: probe
     evaluation_seed: 246
+    upstream_runtime_diagnostics:
+      seed_pool: debug
+      seed: 0
+      purpose: deterministic reproduction of upstream default test launch; not independent policy evidence
     reuse_reason: same fixed TRAIN panel for historical policy comparison; not validation
