@@ -46,6 +46,7 @@ def main():
     p.add_argument('--seconds',type=int,default=1800);p.add_argument('--motions',type=int,default=0)
     p.add_argument('--object-manifest',type=Path)
     p.add_argument('--state-transport',choices=['json','packed'],default='json')
+    p.add_argument('--sequence',help='Exact TRAIN motion for bounded canonical-command replay')
     a=p.parse_args();a.cache=a.cache.resolve();a.output=a.output.resolve();a.socket=a.socket.resolve()
     if a.output.exists() or ROOT/'outputs/wam-rl-policy-v2' not in a.output.parents or not 2<=a.envs<=256:
         raise ValueError('fresh bounded native host required')
@@ -71,6 +72,9 @@ def main():
     if torch.__version__!='2.0.1+cu118':raise ValueError('pinned native Torch2.0.1 required')
     torch.set_num_threads(2);torch.manual_seed(a.seed);np.random.seed(a.seed)
     meta=json.loads((a.cache/'manifest.json').read_text());records=[r for r in meta['sequences'] if r['split']=='train']
+    if a.sequence:
+        records=[r for r in records if r['sequence']==a.sequence]
+        if len(records)!=1:raise ValueError('one known TRAIN replay sequence required')
     if a.object_manifest:
         selected=json.loads(a.object_manifest.read_text())['object_names']
         if not selected or len(set(selected))!=len(selected) or set(selected)-{r['object'] for r in records}:
@@ -193,7 +197,9 @@ def main():
                         audit['last_physics_and_pd_check_s']=time.perf_counter()-physics_started
                         audit['steps']+=1
                     else:raise ValueError('unknown native operation')
-                    send(connection,dict(state=packet()))
+                    reply=dict(state=packet())
+                    if op=='step' and command.get('return_pd',False):reply['pd_targets']=actual_pd.cpu().tolist()
+                    send(connection,reply)
                     if audit['steps']%128==0:
                         # This counts motion initializations, not completed or
                         # successful trajectories; keep coverage visible live.

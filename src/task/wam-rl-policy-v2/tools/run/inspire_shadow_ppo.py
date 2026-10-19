@@ -43,8 +43,8 @@ def main():
     import numpy as np
     import torch
     from trajectory_policy.wam_ipc import send,receive,peer_pid
-    from wam_rl_policy_v2.inspire_shadow import CONTRACT,SCHEMA,CURRENT_DIM,expanded_model,initialize_scheduled
-    from wam_rl_policy_v2.inspire_ppo_bridge import RemoteInspireEnv,make_shadow_ppo
+    from wam_rl_policy_v2.inspire_shadow import CONTRACT,SCHEMA,CURRENT_DIM,TAU_SLICE,TASK_SLICE,VALID_INDEX,LEGACY_INPUT_DIM,expanded_model,initialize_scheduled
+    from wam_rl_policy_v2.inspire_ppo_bridge import RemoteInspireEnv,make_shadow_ppo,REWARD_CONTRACT,TASK_SUCCESS_CONTRACT
     from wam_rl_policy_v2.wam_v4_runtime import V4Runtime
     from wam_rl_policy_v2.execution_identity import validate_execution
     from wam_rl_policy_v2.checkpoint_retention import prune_checkpoints
@@ -55,7 +55,7 @@ def main():
     meta=json.loads((a.cache/'manifest.json').read_text())
     if a.current_parent:
         parent=torch.load(a.current_parent,map_location='cpu',weights_only=False);model=expanded_model(True)
-        model.x_scale[CURRENT_DIM:-1]=.05;initialize_scheduled(model,parent)
+        model.x_scale[TAU_SLICE]=.05;initialize_scheduled(model,parent)
         packet=dict(schema=SCHEMA,model=model.state_dict(),config=dict(conditioning=CONTRACT,engineering_current_expansion=True),source_cache=parent['source_cache'])
     else:
         if meta.get('scheduled_status')!='COMPLETED':raise ValueError('complete full-data WAM conditioning cache required')
@@ -83,7 +83,7 @@ def main():
             if bound['wam']!=runtime.conditioning_identity or any(bound['geometry'].get(k)!=v for k,v in runtime.geometry_bindings.items()):raise ValueError('BC WAM/geometry binding differs')
         env=RemoteInspireEnv(connection,hello,a.cache,runtime,reset_probe=a.reset_probe)
         identity=dict(conditioning=CONTRACT,wam=runtime.conditioning_identity,geometry=runtime.geometry_bindings,
-            task_goal='ordered full object SE3 path',task_reward='shadow_approach_with_ordered_path_tracking.v1',
+            task_goal='ordered full object SE3 path',task_reward=REWARD_CONTRACT,task_success=TASK_SUCCESS_CONTRACT,
             scheduler=env.inputs.schedulers[0].config.__dict__,source=str(a.cache),
             reset='explicit_indexed_reset_then_observation_then_policy.v1',native_controller=hello['audit']['controller'],native_dt=hello['audit']['native_dt_s'],
             inference=dict(env.inputs.performance_contract(),state_transport=a.state_transport,
@@ -105,7 +105,7 @@ def main():
         completed=0
         if a.resume:
             saved=torch.load(a.resume,map_location=runtime.device,weights_only=False)
-            if saved.get('schema')!='ref2dex.inspire-shadow-official-ppo.v1':raise ValueError('Inspire Shadow PPO checkpoint required')
+            if saved.get('schema')!='ref2dex.inspire-shadow-official-ppo.v2':raise ValueError('task-conditioned584 PPO checkpoint required; old577 PPO is not a valid resume')
             prior=saved.get('execution_identity')
             if prior is not None and 'inference' not in prior:
                 prior=dict(prior,inference=dict(identity['inference'],mode='full_fp32',batch=128,shared_transformer_math='fp32'))
@@ -165,7 +165,7 @@ def main():
             if a.rank:return
             iteration=state['iteration'];destination=a.output/f'official-iteration-{iteration}.pt'
             if destination.exists():return
-            part=destination.with_suffix('.pt.part');torch.save(dict(schema='ref2dex.inspire-shadow-official-ppo.v1',
+            part=destination.with_suffix('.pt.part');torch.save(dict(schema='ref2dex.inspire-shadow-official-ppo.v2',
                 model=ppo.actor_critic.state_dict(),optimizer=ppo.optimizer.state_dict(),iteration=iteration,
                 step_size=ppo.step_size,config=cfg,execution_identity=identity,bc_source=str(a.bc or a.current_parent),
                 engineering_current_expansion=bool(a.current_parent),world_size=a.world_size,environments_per_rank=env.num_envs,
@@ -183,7 +183,8 @@ def main():
                 effective_std=float(ppo.actor_critic.log_std.exp().square().mean()),lr=ppo.step_size,
                 input_timings=env.input_timings,rollout_timings=env.rollout_timing_totals(),
                 inference=identity['inference'],inference_audits=env.inputs.inference_audits,
-                tau_input_weight_norm=float(ppo.actor_critic.actor.net[0].weight[:,CURRENT_DIM:-1].detach().norm()),
+                tau_input_weight_norm=float(ppo.actor_critic.actor.net[0].weight[:,TAU_SLICE].detach().norm()),
+                task_input_weight_norm=float(ppo.actor_critic.actor.net[0].weight[:,TASK_SLICE].detach().norm()),
                 completed_episodes=int(counts[0]),ordered_path_successes=int(counts[1]),
                 ever_held1s=int(counts[2]),final_held1s=int(counts[3]),workspace_failures=int(counts[4]),
                 resets=env.reset_count,peak_cuda_mib=torch.cuda.max_memory_allocated()/2**20,
@@ -200,7 +201,7 @@ def main():
             # A zero-expanded selected BC cannot consume tau or valid at all.
             # Elide only the irrelevant neural prediction, preserving physical
             # workspace checks and all episode/scheduler transitions.
-            elided=not a.resume and bool(torch.count_nonzero(ppo.actor_critic.actor.net[0].weight[:,CURRENT_DIM:])==0)
+            elided=not a.resume and bool(torch.count_nonzero(ppo.actor_critic.actor.net[0].weight[:,CURRENT_DIM:LEGACY_INPUT_DIM])==0)
             env.inputs.predict_trajectory=not elided
             state.update(evaluation_policy='ppo' if a.resume else 'bc',wam_prediction_elided_for_zero_condition_weights=elided)
             observation=env.reset();returns=np.zeros(env.num_envs);first_done=np.zeros(env.num_envs,bool);results={}

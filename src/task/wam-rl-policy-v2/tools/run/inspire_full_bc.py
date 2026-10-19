@@ -92,6 +92,8 @@ def prepare(a):
         scheduled_admission='all startup rows and in-workspace measured H4; invalid rows excluded, never fabricated tau',
         geometry_replacement='explicit new Inspire canonical manifest',git_commit=a.commit,wam=str(a.wam.resolve()))
     write(root/'manifest.json',meta)
+    from wam_rl_policy_v2.inspire_task_cache import build_task_fields
+    build_task_fields(root)
 
 
 class RecordSamples:
@@ -126,7 +128,7 @@ def one(value):return value
 def conditions(a):
     import torch
     from wam_rl_policy_v2.wam_v4_runtime import V4Runtime
-    from wam_rl_policy_v2.inspire_shadow import CURRENT_DIM,tau_world
+    from wam_rl_policy_v2.inspire_shadow import CURRENT_DIM,tau_world,TAU_SLICE,VALID_INDEX
     from wam_rl_policy_v2.batched_geometry import workspace_valid
     root=a.output;meta=json.loads((root/'manifest.json').read_text())
     runtime=V4Runtime(a.wam,meta['records'],root,dense_manifest=root/'surface-manifest.json',allow_geometry_replacement=True)
@@ -162,7 +164,7 @@ def conditions(a):
                     if error>.001:raise ValueError('WAM batch/single discrepancy exceeds1mm')
                     checked=True
                 rotations=item['rotations'][lo-3:lo-3+size][host]
-                block[ids,CURRENT_DIM:-1]=tau_world(trajectory,rotations).reshape(len(ids),264);block[ids,-1]=1
+                block[ids,TAU_SLICE]=tau_world(trajectory,rotations).reshape(len(ids),264);block[ids,VALID_INDEX]=1
         if not np.isfinite(block).all():raise ValueError('nonfinite scheduled conditions')
         arrays[split].flush();include[split].flush();done[global_index]=True;done.flush();rows_done+=n
         if count==1 or count%10==0 or count==len(rows):
@@ -175,14 +177,13 @@ def conditions(a):
 
 def train(a):
     import torch
-    from wam_rl_policy_v2.inspire_shadow import CURRENT_DIM,INPUT_DIM,CONTRACT,CURRENT_SCHEMA,SCHEMA,expanded_model,initialize_scheduled
+    from wam_rl_policy_v2.inspire_shadow import CURRENT_DIM,CURRENT_INPUT_DIM,INPUT_DIM,CONTRACT,CURRENT_SCHEMA,SCHEMA,expanded_model,initialize_scheduled,bc_inputs,bc_stats
     root=a.output;root.mkdir();meta=json.loads((a.cache/'manifest.json').read_text());scheduled=a.stage=='scheduled'
     if scheduled and meta['scheduled_status']!='COMPLETED':raise ValueError('complete WAM conditions required')
     torch.manual_seed(a.seed);torch.set_num_threads(2);torch.backends.cuda.matmul.allow_tf32=True
-    data={s:{k:torch.as_tensor(np.load(a.cache/f'{s}-{("scheduled" if scheduled and k=="x" else k)}.npy'),device='cuda') for k in ('x','y')} for s in ('train','dev')}
-    stats=dict(np.load(a.cache/'stats.npz'))
-    if scheduled:
-        stats['x_mean']=np.r_[stats['x_mean'],np.zeros(265,np.float32)];stats['x_scale']=np.r_[stats['x_scale'],np.full(264,.05,np.float32),np.ones(1,np.float32)]
+    if meta.get('task_status')!='COMPLETED' or meta.get('conditioning')!=CONTRACT:raise ValueError('complete explicit-task cache required')
+    data={s:dict(x=torch.as_tensor(bc_inputs(a.cache,s,scheduled),device='cuda'),y=torch.as_tensor(np.load(a.cache/f'{s}-y.npy'),device='cuda')) for s in ('train','dev')}
+    stats=bc_stats(a.cache,scheduled)
     model=expanded_model(scheduled).cuda()
     for key,value in stats.items():getattr(model,key).copy_(torch.as_tensor(value,device='cuda'))
     if scheduled:
@@ -198,7 +199,7 @@ def train(a):
     if not len(early) or not len(panel):raise ValueError('startup and DEV coverage required')
     rng=np.random.default_rng(a.seed+1);best=float('inf');started=time.monotonic();curve=[]
     manifest=dict(schema=SCHEMA if scheduled else CURRENT_SCHEMA,status='RUNNING',git_commit=a.commit,
-        input_dim=INPUT_DIM if scheduled else CURRENT_DIM,action_dim=12,conditioning=CONTRACT,steps=a.steps,batch=2048,
+        input_dim=INPUT_DIM if scheduled else CURRENT_INPUT_DIM,action_dim=12,conditioning=CONTRACT,steps=a.steps,batch=2048,
         source_cache=str(a.cache),train_rows=len(all_rows),source_train_rows=len(include),dev_panel_rows=len(panel),
         source_sequences=meta['splits'],params=sum(p.numel() for p in model.parameters()),hidden_dims=[1024,1024,512,512],activation='elu',
         optimizer='AdamW',lr=3e-4,weight_decay=1e-5,loss='TRAIN-standardized independent-command L1',

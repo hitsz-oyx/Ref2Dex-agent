@@ -16,10 +16,15 @@ PYTHON='/home2/wyy/miniconda3/envs/graspenv/bin/python'
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True)
     p.add_argument('--current-run',type=Path,help='Reuse a completed full current BC and immutable physical cache')
+    p.add_argument('--prepared-cache',type=Path,help='Complete task-conditioned cache; retrain both full BC stages without regenerating WAM')
+    p.add_argument('--gpus',type=int,nargs='+',default=[6,7])
     p.add_argument('--seconds',type=int,default=28800);a=p.parse_args();out=a.output.resolve()
     if out.exists() or ROOT/'outputs/wam-rl-policy-v2' not in out.parents or not 60<=a.seconds<=28800:raise ValueError('fresh bounded Task run required')
     if shutil.disk_usage(ROOT).free<24*2**30:raise RuntimeError('storage reserve')
-    for gpu in (6,7):
+    if a.current_run and a.prepared_cache:raise ValueError('choose one cache route')
+    if not 1<=len(set(a.gpus))==len(a.gpus)<=2 or (not a.prepared_cache and len(a.gpus)!=2):raise ValueError('one prepared-cache GPU or two cache GPUs required')
+    model_gpu,cache_gpu=a.gpus[0],a.gpus[-1]
+    for gpu in a.gpus:
         rows=subprocess.check_output(['nvidia-smi','-i',str(gpu),'--query-compute-apps=pid,used_memory','--format=csv,noheader,nounits'],text=True).strip()
         for row in rows.splitlines():
             pid,memory=map(lambda x:int(x.strip()),row.split(','));owner=subprocess.check_output(['ps','-o','user=','-p',str(pid)],text=True).strip()
@@ -27,7 +32,7 @@ def main():
     resource.setrlimit(resource.RLIMIT_CORE,(0,0));out.mkdir(parents=True)
     commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
     frozen=out/'runtime-task';shutil.copytree(ROOT/'src/task/wam-rl-policy-v2',frozen,ignore=shutil.ignore_patterns('__pycache__','.pytest_cache'))
-    state=dict(status='RUNNING',stage='PREPARE_CURRENT',pid=os.getpid(),git_commit=commit,gpus=[6,7],run_id=out.name,
+    state=dict(status='RUNNING',stage='PREPARE_CURRENT',pid=os.getpid(),git_commit=commit,gpus=a.gpus,run_id=out.name,
         max_seconds=a.seconds,max_artifact_bytes=2*1024**3,python=PYTHON,started_at=time.strftime('%Y-%m-%dT%H:%M:%S%z'),children=[])
     path=out/'process.json';processes=[];handles=[];started=time.monotonic();sampled=-30
     def save():
@@ -47,7 +52,7 @@ def main():
         if elapsed-sampled>=30:
             sampled=elapsed;size=sum(p.stat().st_size for p in out.rglob('*') if p.is_file() and not p.is_symlink())
             if size>state['max_artifact_bytes']:raise RuntimeError('2GiB output limit')
-            gpu=subprocess.check_output(['nvidia-smi','-i','6,7','--query-gpu=index,utilization.gpu,memory.used','--format=csv,noheader'],text=True).strip()
+            gpu=subprocess.check_output(['nvidia-smi','-i',','.join(map(str,a.gpus)),'--query-gpu=index,utilization.gpu,memory.used','--format=csv,noheader'],text=True).strip()
             with (out/'resources.jsonl').open('a') as f:f.write(json.dumps(dict(elapsed_s=elapsed,gpus=gpu,artifact_bytes=size,stage=state['stage']))+'\n')
             print(json.dumps(dict(stage=state['stage'],elapsed_s=elapsed,gpus=gpu)),flush=True)
     def wait(children):
@@ -59,6 +64,19 @@ def main():
     def stop(*_):raise InterruptedError('supervisor stop')
     signal.signal(signal.SIGTERM,stop);signal.signal(signal.SIGINT,stop)
     try:
+        if a.prepared_cache:
+            import sys
+            sys.path.insert(0,str(frozen/'src'))
+            from wam_rl_policy_v2.inspire_shadow import CONTRACT
+            prepared=a.prepared_cache.resolve();meta=json.loads((prepared/'manifest.json').read_text())
+            if meta.get('task_status')!='COMPLETED' or meta.get('scheduled_status')!='COMPLETED' or meta.get('conditioning')!=CONTRACT or len(meta['sequences'])!=660:
+                raise ValueError('full660 completed explicit-task cache required')
+            (out/'cache').symlink_to(prepared,target_is_directory=True)
+            state['stage']='CURRENT_TASK_BC';save()
+            current=start('current','current-bc',['--cache',str(out/'cache'),'--gpu',str(model_gpu)]);wait([current])
+            state['stage']='SCHEDULED_TASK_BC';save()
+            scheduled=start('scheduled','scheduled-bc',['--cache',str(out/'cache'),'--gpu',str(model_gpu),'--parent',str(out/'current-bc/best.pt')]);wait([scheduled])
+            state.update(status='COMPLETED',stage='READY_FOR_SHADOW_PPO');return
         if a.current_run:
             import numpy as np
             import sys
@@ -66,29 +84,30 @@ def main():
             from wam_rl_policy_v2.inspire_shadow import CONTRACT,INPUT_DIM
             prior=a.current_run.resolve();cache=out/'cache';cache.mkdir()
             current_meta=json.loads((prior/'current-bc/manifest.json').read_text())
-            if current_meta['status']!='COMPLETED' or current_meta['steps']!=50000:raise ValueError('completed full-data current BC required')
+            if current_meta['status']!='COMPLETED' or current_meta['steps']!=50000 or current_meta.get('conditioning')!=CONTRACT:raise ValueError('completed full-data task-conditioned current BC required')
             meta=json.loads((prior/'cache/manifest.json').read_text())
-            for name in ['stats.npz','dev-panel.npy','geometries','surface-manifest.json']+[s+'-'+k+'.npy' for s in ('train','dev') for k in ('x','y','tick','seq')]:
+            for name in ['stats.npz','dev-panel.npy','geometries','surface-manifest.json']+[s+'-'+k+'.npy' for s in ('train','dev') for k in ('x','y','tick','seq','task')]:
                 (cache/name).symlink_to(prior/'cache'/name)
             meta.update(conditioning=CONTRACT,scheduled_status='PENDING',current_cache_source=str(prior/'cache'))
             (cache/'manifest.json').write_text(json.dumps(meta,indent=2)+'\n')
             for s in ('train','dev'):
                 n=meta['splits'][s]['commands']
                 x=np.lib.format.open_memmap(cache/f'{s}-scheduled.npy',mode='w+',dtype=np.float32,shape=(n,INPUT_DIM));x[:,:312]=np.load(cache/f'{s}-x.npy',mmap_mode='r');x[:,312:]=0;x.flush()
+                x[:,577:]=np.load(cache/f'{s}-task.npy',mmap_mode='r');x.flush()
                 mask=np.lib.format.open_memmap(cache/f'{s}-include.npy',mode='w+',dtype=bool,shape=(n,));mask[:]=False;mask.flush()
             for rank in (0,1):np.save(cache/f'done-{rank}.npy',np.zeros(660,bool))
             current_parent=prior/'current-bc/best.pt';state['reused_current_bc']=str(current_parent)
             state['stage']='TWO_GPU_CONDITIONS';save()
-            shard1=start('conditions','cache-gpu7',['--gpu','7','--rank','1'])
+            shard1=start('conditions','cache-gpu7',['--gpu',str(cache_gpu),'--rank','1'])
         else:
             prepare=start('prepare','prepare',[]);wait([prepare])
             state['stage']='CURRENT_BC_AND_GPU7_CACHE';save()
-            current=start('current','current-bc',['--cache',str(out/'cache'),'--gpu','6'])
-            shard1=start('conditions','cache-gpu7',['--gpu','7','--rank','1']);wait([current])
+            current=start('current','current-bc',['--cache',str(out/'cache'),'--gpu',str(model_gpu)])
+            shard1=start('conditions','cache-gpu7',['--gpu',str(cache_gpu),'--rank','1']);wait([current])
             current_parent=out/'current-bc/best.pt'
         if shard1.poll() not in (None,0):raise RuntimeError('GPU7 condition worker failed')
         state['stage']='TWO_GPU_CONDITIONS';save()
-        shard0=start('conditions','cache-gpu6',['--gpu','6','--rank','0']);wait([shard0,shard1])
+        shard0=start('conditions','cache-gpu6',['--gpu',str(model_gpu),'--rank','0']);wait([shard0,shard1])
         import numpy as np
         done=np.load(out/'cache/done-0.npy')|np.load(out/'cache/done-1.npy')
         if not done.all():raise RuntimeError('condition shards did not cover all660 sequences')
@@ -96,7 +115,7 @@ def main():
         meta['scheduled_counts']={s:int(np.load(out/f'cache/{s}-include.npy').sum()) for s in ('train','dev')}
         path_meta.write_text(json.dumps(meta,indent=2)+'\n')
         state['stage']='SCHEDULED_BC';save()
-        scheduled=start('scheduled','scheduled-bc',['--cache',str(out/'cache'),'--gpu','6','--parent',str(current_parent)]);wait([scheduled])
+        scheduled=start('scheduled','scheduled-bc',['--cache',str(out/'cache'),'--gpu',str(model_gpu),'--parent',str(current_parent)]);wait([scheduled])
         state.update(status='COMPLETED',stage='READY_FOR_SHADOW_PPO')
     except BaseException as error:
         state.update(status='FAILED',error=repr(error));raise

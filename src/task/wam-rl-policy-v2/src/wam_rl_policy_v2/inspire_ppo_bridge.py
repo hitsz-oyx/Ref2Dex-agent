@@ -11,7 +11,20 @@ from .inspire_contract import expand_action,ACTIVE
 from .inspire_shadow import CONTRACT,CURRENT_DIM,INPUT_DIM,SCHEMA,expanded_model,current_state,BatchedInspireInputs
 
 
-def shadow_path_reward(objects,hands,actions,initial_z,decisions,previous_progress):
+REWARD_CONTRACT='shadow_approach_local_goal_progress.v2'
+TASK_SUCCESS_CONTRACT='ordered_path_then_live_SE3_endpoint_held1s.v2'
+# Bounds: fingers<=3, wrist<=.5, local point error clipped to .05.
+# A deliberate early failure must not outperform the worst continuing penalty.
+FAILURE_COST=(.5*3+.5+2*.05)/(1-.96)
+
+
+def path_outcome(ever_complete,at_endpoint,streak,workspace):
+    final=bool(ever_complete and at_endpoint and not workspace)
+    return dict(ever_ordered_path_complete=bool(ever_complete),final_goal_reached=bool(at_endpoint and not workspace),
+        final_path_complete=final,final_path_held1s=bool(final and streak>=30),task_success=bool(final and streak>=30))
+
+
+def shadow_path_reward(objects,hands,actions,initial_z,decisions,previous_progress,final_goal_reached=None):
     """Shadow goal_cond=False approach terms; ordered object-path task adapter.
 
     The static-target distance is replaced by local SE3 surface tracking error,
@@ -21,15 +34,17 @@ def shadow_path_reward(objects,hands,actions,initial_z,decisions,previous_progre
     wrist=np.linalg.norm(objects[:,:3]-hands[:,0],axis=-1).clip(max=.5)
     fingers=np.linalg.norm(objects[:,None,:3]-hands[:,[2,4,6,8,10]],axis=-1).sum(-1).clip(max=3.)
     coupled=(fingers<=.6)&(wrist<=.12)
-    error=np.array([d['reference_error_m'] for d in decisions])
+    error=np.array([d.get('goal_point_m',d['reference_error_m']) for d in decisions]).clip(max=.05)
     progress=np.array([d['confirmed_progress'] for d in decisions])
     complete=np.array([d['complete'] for d in decisions])
     lift=objects[:,2]-initial_z
     # Translate the Shadow world-height thresholds to each episode's tabletop.
     hand_up=np.where(coupled&(lift>=.003),.1+.1*actions[:,2],0.)
     hand_up=np.where(coupled&(lift>=.17),.2,hand_up)
-    goal=np.where(coupled,.9-2*error,0.)
-    bonus=np.where(coupled&complete,1/(1+10*error),0.)
+    goal=np.where(coupled,-2*error,0.)
+    reached=(np.asarray(final_goal_reached,bool) if final_goal_reached is not None else np.array([
+        d.get('goal_position_m',0)<=.008 and d.get('goal_rotation_rad',0)<=.12 and d.get('goal_point_m',0)<=.008 for d in decisions]))
+    bonus=np.where(complete&reached,1/(1+10*error),0.)
     advance=2*np.maximum(progress-previous_progress,0.)
     reward=-.5*fingers-wrist+goal+hand_up+bonus+advance
     return reward.astype(np.float32),progress
@@ -62,6 +77,7 @@ class RemoteInspireEnv:
         self.longest_lift=np.zeros(self.num_envs,int);self.lift_dropped=np.zeros(self.num_envs,bool)
         self.observations=np.zeros((self.num_envs,INPUT_DIM),np.float32);self.decisions=[None]*self.num_envs
         self.workspace=np.zeros(self.num_envs,bool);self.steps=0;self.reset_count=0
+        self.final_goal_reached=np.zeros(self.num_envs,bool)
         self.step_timings=deque(maxlen=8)
         self.reset_probe=reset_probe;self.reset_audits=[]
         self.completed_episodes=0;self.successes=0;self.ever_held=0;self.final_held=0;self.workspace_failures=0
@@ -91,6 +107,7 @@ class RemoteInspireEnv:
         result=self.inputs.observation(current,poses,np.asarray(self.native['hand'],np.float64),np.asarray(self.native['tick']),indices=indices)
         self.observations[indices]=result['observation'][indices];self.workspace[indices]=result['workspace_invalid'][indices]
         for i in indices:self.decisions[i]=result['scheduler'][i]
+        for i in indices:self.final_goal_reached[i]=self.inputs.schedulers[i]._reached(poses[i],self.inputs.schedulers[i].poses[-1])
         return objects
 
     def reset(self):
@@ -114,12 +131,12 @@ class RemoteInspireEnv:
         # startup-only call. Report the actual full-environment policy tick.
         self.input_timings=dict(self.inputs.timings)
         refreshed=time.perf_counter()
-        reward,self.progress=shadow_path_reward(objects,np.asarray(self.native['hand'],np.float64),canonical,self.initial_z,self.decisions,self.progress)
+        reward,self.progress=shadow_path_reward(objects,np.asarray(self.native['hand'],np.float64),canonical,self.initial_z,self.decisions,self.progress,self.final_goal_reached&~self.workspace)
         complete=np.array([d['complete'] for d in self.decisions]);self.ever_complete|=complete
         timed_out=np.array([d['timed_out'] for d in self.decisions])
         horizon=np.array([len(self.references[s])+30 for s in self.native['sequences']])
         done=self.workspace|timed_out|(np.asarray(self.native['tick'])>=horizon)
-        hold=(objects[:,2]-self.initial_z>=.1)&(np.linalg.norm(objects[:,:3]-np.stack([self.references[s][-1,:3,3] for s in self.native['sequences']]),axis=-1)<=.05)
+        hold=complete&self.final_goal_reached&~self.workspace
         self.dropped|=(self.longest>=30)&~hold;self.streak=np.where(hold,self.streak+1,0);self.longest=np.maximum(self.longest,self.streak)
         lift=objects[:,2]-self.initial_z;lifted=lift>=.1
         self.max_lift=np.maximum(self.max_lift,lift);self.lift_dropped|=(self.longest_lift>=30)&~lifted
@@ -132,16 +149,18 @@ class RemoteInspireEnv:
         terminal=self.observations.copy();terminal_episodes=list(self.native['episodes']);ids=np.flatnonzero(done)
         episode_results={}
         for i in ids:
-            episode_results[int(i)]=dict(episode_id=terminal_episodes[i],ordered_path_success=bool(self.ever_complete[i] and not self.workspace[i]),
+            outcome=path_outcome(self.ever_complete[i],self.final_goal_reached[i],self.streak[i],self.workspace[i])
+            episode_results[int(i)]=dict(episode_id=terminal_episodes[i],ordered_path_success=outcome['task_success'],**outcome,
                 sequence=self.native['sequences'][i],control_steps=int(self.native['tick'][i]),
                 max_lift_m=float(self.max_lift[i]),final_lift_m=float(lift[i]),ever_lift10cm=bool(self.max_lift[i]>=.1),
-                ever_lift10cm_held1s=bool(self.longest_lift[i]>=30),final_lift10cm_held1s=bool(self.lift_streak[i]>=30),
+                ever_lift10cm_held1s=bool(self.longest_lift[i]>=30),final_lift10cm_held1s=bool(self.lift_streak[i]>=30 and not self.workspace[i]),
                 drop_after_lift_hold=bool(self.lift_dropped[i]),longest_lift_hold_steps=int(self.longest_lift[i]),
-                final_path_complete=bool(complete[i] and not self.workspace[i]),ever_held1s=bool(self.longest[i]>=30),final_held1s=bool(self.streak[i]>=30),
+                ever_held1s=bool(self.longest[i]>=30),final_held1s=outcome['final_path_held1s'],
                 drop_after_hold=bool(self.dropped[i]),workspace_failure=bool(self.workspace[i]),confirmed_progress=float(self.progress[i]),
                 termination_reason='wam_workspace' if self.workspace[i] else 'scheduler_timeout' if timed_out[i] else 'horizon_or_engineering_reset')
             self.completed_episodes+=1;self.successes+=episode_results[int(i)]['ordered_path_success']
-            self.ever_held+=int(self.longest[i]>=30);self.final_held+=int(self.streak[i]>=30);self.workspace_failures+=int(self.workspace[i])
+            self.ever_held+=int(self.longest[i]>=30);self.final_held+=int(outcome['final_path_held1s']);self.workspace_failures+=int(self.workspace[i])
+            if not outcome['task_success']:reward[i]-=FAILURE_COST
         reward_finished=time.perf_counter()
         if len(ids):
             before=np.asarray(terminal_episodes);old_ticks=np.asarray(self.native['tick']);unaffected=np.setdiff1d(np.arange(self.num_envs),ids)

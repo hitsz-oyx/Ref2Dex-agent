@@ -25,6 +25,10 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261019-inspire-task-contract:
+    seed_pool: probe
+    training_seed: 246
+    reuse_reason: explicit task-input and reward contract repair on full inherited TRAIN/DEV; exploratory, not paired validation
   P-20261019-wam-v5-mixed-pretrain:
     seed_pool: probe
     model_and_training_seed: 170

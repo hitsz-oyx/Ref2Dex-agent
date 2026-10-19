@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import pytest
 from wam_rl_policy_v2.inspire_shadow import (
-    CURRENT_DIM,INPUT_DIM,CURRENT_SCHEMA,CONTRACT,expanded_model,initialize_scheduled,
+    CURRENT_DIM,CURRENT_INPUT_DIM,INPUT_DIM,CURRENT_SCHEMA,CONTRACT,TAU_SLICE,VALID_INDEX,TASK_SLICE,expanded_model,initialize_scheduled,
     current_state,measured_from_legacy,object_state,tau_world,WAM_TO_NATIVE,
 )
 
@@ -12,16 +12,17 @@ def test_shared_shadow_capacity_and_action_normalization_expansion():
     linear=[m for m in model.net if isinstance(m,torch.nn.Linear)]
     assert [m.out_features for m in linear]==[1024,1024,512,512,12]
     assert sum(isinstance(m,torch.nn.ELU) for m in model.net)==4
-    assert CURRENT_DIM==312 and INPUT_DIM==577 and not CONTRACT['direct_hand_reference']
+    assert CURRENT_DIM==312 and CURRENT_INPUT_DIM==319 and INPUT_DIM==584 and not CONTRACT['direct_hand_reference']
     with torch.no_grad():
         model.net[-1].weight.normal_(std=.01);model.x_mean.normal_();model.x_scale.uniform_(.1,1);model.y_mean.normal_();model.y_scale.uniform_(.1,1)
-        scheduled.x_scale[CURRENT_DIM:-1]=.05
+        scheduled.x_scale[TAU_SLICE]=.05
     initialize_scheduled(scheduled,dict(schema=CURRENT_SCHEMA,model=model.state_dict()))
-    x=torch.randn(5,CURRENT_DIM)*10;tail=torch.randn(5,265)
-    torch.testing.assert_close(scheduled(torch.cat((x,tail),1)),model(x),atol=2e-6,rtol=2e-6)
-    assert torch.equal(scheduled.x_scale[CURRENT_DIM:-1],torch.full((264,),.05))
-    scheduled(torch.cat((x,tail),1)).square().mean().backward()
-    assert scheduled.net[0].weight.grad[:,CURRENT_DIM:].abs().sum()>0
+    x=torch.randn(5,CURRENT_INPUT_DIM)*10;tail=torch.randn(5,265)
+    augmented=torch.cat((x[:,:CURRENT_DIM],tail,x[:,CURRENT_DIM:]),1)
+    torch.testing.assert_close(scheduled(augmented),model(x),atol=2e-6,rtol=2e-6)
+    assert torch.equal(scheduled.x_scale[TAU_SLICE],torch.full((264,),.05))
+    scheduled(augmented).square().mean().backward()
+    assert scheduled.net[0].weight.grad[:,TAU_SLICE].abs().sum()>0
 
 
 def test_actor_input_ignores_all_reference_error_fields():
@@ -55,7 +56,7 @@ def test_actual_official_shadow_ppo_recipe_and_bc_mean(tmp_path):
     torch.set_num_threads(2)
     model=expanded_model(True)
     with torch.no_grad():model.y_mean.copy_(torch.linspace(-.3,.3,12))
-    env=SimpleNamespace(observation_space=spaces.Box(-np.inf,np.inf,shape=(577,),dtype=np.float32),
+    env=SimpleNamespace(observation_space=spaces.Box(-np.inf,np.inf,shape=(INPUT_DIM,),dtype=np.float32),
         state_space=spaces.Box(-np.inf,np.inf,shape=(0,),dtype=np.float32),action_space=spaces.Box(-1,1,shape=(12,),dtype=np.float32),
         runtime=SimpleNamespace(device=torch.device('cpu')),task=SimpleNamespace(cfg={}),rl_device='cpu',num_envs=2,num_states=0)
     root=Path(__file__).resolve().parents[4]
@@ -64,7 +65,7 @@ def test_actual_official_shadow_ppo_recipe_and_bc_mean(tmp_path):
         assert (ppo.num_transitions_per_env,ppo.num_learning_epochs,ppo.num_mini_batches)==(8,5,4)
         assert (ppo.gamma,ppo.lam,ppo.clip_param,ppo.desired_kl)==(.96,.95,.2,.016)
         assert cfg['policy']['pi_hid_sizes']==cfg['policy']['vf_hid_sizes']==[1024,1024,512,512]
-        x=torch.randn(2,577)
+        x=torch.randn(2,INPUT_DIM)
         torch.testing.assert_close(ppo.actor_critic.act_inference(x),model(x))
         actions,logp,values,mean,sigma=ppo.actor_critic.act(x,None)
         replay=ppo.actor_critic.evaluate(x,None,actions)
@@ -118,7 +119,7 @@ def test_zero_condition_bc_elision_preserves_actions_and_workspace_termination()
         np.testing.assert_array_equal(first['workspace_invalid'],second['workspace_invalid'])
         torch.testing.assert_close(model(torch.tensor(first['observation'])),model(torch.tensor(second['observation'])),rtol=0,atol=0)
         if tick==3:
-            assert first['observation'][:,-1].tolist()==second['observation'][:,-1].tolist()==[1,1]
+            assert first['observation'][:,VALID_INDEX].tolist()==second['observation'][:,VALID_INDEX].tolist()==[1,1]
         if tick==4:assert second['workspace_invalid'].tolist()==[False,True]
     assert full.calls==2 and elided.calls==0
 
@@ -148,7 +149,7 @@ def test_optimized_inspire_uses_live_full_forward_precision_gate(error):
         with pytest.raises(ValueError,match='1mm precision gate'):tick(3)
     else:
         result=tick(3)
-        assert result['observation'][0,-1]==1
+        assert result['observation'][0,VALID_INDEX]==1
         assert runtime.calls==runtime.hand_calls==1
         tick(4)
         assert runtime.calls==1 and runtime.hand_calls==2

@@ -6,10 +6,17 @@ from scipy.spatial.transform import Rotation
 from .inspire_contract import ACTIVE,NATIVE_TO_WAM,WAM_TO_NATIVE
 
 CURRENT_DIM=312
-INPUT_DIM=CURRENT_DIM+264+1
-CURRENT_SCHEMA='ref2dex.inspire-shadow-current-bc.v1'
-SCHEMA='ref2dex.inspire-shadow-scheduled-bc.v1'
-CONTRACT=dict(schema='ref2dex.inspire-shadow-conditioning.v1',robot_id='dexplore.inspire.v1',
+LEGACY_INPUT_DIM=CURRENT_DIM+264+1
+TASK_DIM=7
+CURRENT_INPUT_DIM=CURRENT_DIM+TASK_DIM
+INPUT_DIM=LEGACY_INPUT_DIM+TASK_DIM
+TAU_SLICE=slice(CURRENT_DIM,CURRENT_DIM+264)
+VALID_INDEX=CURRENT_DIM+264
+TASK_SLICE=slice(LEGACY_INPUT_DIM,INPUT_DIM)
+TASK_SCALE=np.array([.05]*3+[.35]*3+[1.],np.float32)
+CURRENT_SCHEMA='ref2dex.inspire-shadow-current-bc.v2'
+SCHEMA='ref2dex.inspire-shadow-scheduled-bc.v2'
+CONTRACT=dict(schema='ref2dex.inspire-shadow-conditioning.v2',robot_id='dexplore.inspire.v1',
     input_dim=INPUT_DIM,current_dim=CURRENT_DIM,action_dim=12,native_action_dim=18,
     hidden_dims=[1024,1024,512,512],activation='elu',native_hz=30,wam_hz=30,
     tau_steps=8,tau_hz=30,tau_frame='world',tau_representation='displacement_from_current_hand',
@@ -17,7 +24,47 @@ CONTRACT=dict(schema='ref2dex.inspire-shadow-conditioning.v1',robot_id='dexplore
     history_indices=[-3,-2,-1,0],startup='zero_tau_with_validity_zero',
     goal_semantics='spatial_path_waypoint',goal_reach_time_guaranteed=False,
     wam_precision='fp32',task='ordered_object_SE3_path',direct_hand_reference=False,phase_conditioning=False,
-    interaction_conditioning=False,current_layout=['q18','dq18','measured248','object_pose_velocity13','task_endpoint_xyz3','previous_independent_action12'])
+    interaction_conditioning=False,current_layout=['q18','dq18','measured248','object_pose_velocity13','task_endpoint_xyz3','previous_independent_action12'],
+    task_dim=TASK_DIM,task_offset=LEGACY_INPUT_DIM,tau_valid_index=VALID_INDEX,
+    task_layout=['current_object_frame_goal_translation3','current_object_frame_goal_rotvec3','confirmed_path_progress1'],
+    task_available_at_startup=True,task_shared_with_no_wam=True)
+
+
+def task_condition(poses,decisions):
+    """Known local object instruction, independent of any WAM/hand forecast."""
+    poses=np.asarray(poses,np.float64)
+    targets=np.stack([d['goal_pose'] for d in decisions])
+    rotation=poses[:,:3,:3].transpose(0,2,1)
+    translation=(rotation @ (targets[:,:3,3]-poses[:,:3,3])[...,None])[...,0]
+    angles=Rotation.from_matrix(rotation @ targets[:,:3,:3]).as_rotvec()
+    progress=np.array([d['confirmed_progress'] for d in decisions])[:,None]
+    values=np.concatenate((translation,angles,progress),-1).astype(np.float32)
+    if not np.isfinite(values).all():raise ValueError('finite local SE3 task condition required')
+    return values
+
+
+def bc_inputs(cache,split,scheduled):
+    """Append the same task fields to immutable full-data physical/tau caches."""
+    from pathlib import Path
+    cache=Path(cache);task=np.load(cache/f'{split}-task.npy')
+    values=np.load(cache/(f'{split}-'+('scheduled.npy' if scheduled else 'x.npy')))
+    expected=LEGACY_INPUT_DIM if scheduled else CURRENT_DIM
+    if values.shape[1]==expected:return np.concatenate((values,task),-1)
+    if scheduled and values.shape[1]==INPUT_DIM:
+        if not np.array_equal(values[:,TASK_SLICE],task):raise ValueError('stored task condition differs')
+        return values
+    raise ValueError('physical/tau cache does not match explicit task layout')
+
+
+def bc_stats(cache,scheduled):
+    from pathlib import Path
+    stats=dict(np.load(Path(cache)/'stats.npz'))
+    if scheduled:
+        stats['x_mean']=np.r_[stats['x_mean'],np.zeros(265,np.float32)]
+        stats['x_scale']=np.r_[stats['x_scale'],np.full(264,.05,np.float32),np.ones(1,np.float32)]
+    stats['x_mean']=np.r_[stats['x_mean'],np.zeros(TASK_DIM,np.float32)]
+    stats['x_scale']=np.r_[stats['x_scale'],TASK_SCALE]
+    return stats
 
 
 def object_state(poses,velocity):
@@ -47,7 +94,7 @@ def measured_from_legacy(current721):
 
 def expanded_model(scheduled=False):
     from .bc_mlp import NormalizedCommandMLP
-    return NormalizedCommandMLP(INPUT_DIM if scheduled else CURRENT_DIM,CURRENT_DIM,12)
+    return NormalizedCommandMLP(INPUT_DIM if scheduled else CURRENT_INPUT_DIM,CURRENT_DIM,12)
 
 
 def initialize_scheduled(model,parent):
@@ -55,8 +102,10 @@ def initialize_scheduled(model,parent):
         raise ValueError('full current312 BC parent required')
     state=model.state_dict()
     for key,value in parent['model'].items():
-        if key=='net.0.weight':state[key].zero_();state[key][:,:CURRENT_DIM].copy_(value)
-        elif key in ('x_mean','x_scale'):state[key][:CURRENT_DIM].copy_(value)
+        if key=='net.0.weight':
+            state[key].zero_();state[key][:,:CURRENT_DIM].copy_(value[:,:CURRENT_DIM]);state[key][:,TASK_SLICE].copy_(value[:,CURRENT_DIM:])
+        elif key in ('x_mean','x_scale'):
+            state[key][:CURRENT_DIM].copy_(value[:CURRENT_DIM]);state[key][TASK_SLICE].copy_(value[CURRENT_DIM:])
         else:state[key].copy_(value)
     model.load_state_dict(state,strict=True)
 
@@ -99,6 +148,7 @@ class BatchedInspireInputs:
         started=time.monotonic()
         decisions_chosen=update_schedulers(chosen,poses[indices],ticks[indices]/30,hands[indices],fast_geometry=True)
         self.timings=dict(scheduler_s=time.monotonic()-started,input_s=0.,model_s=0.)
+        out[np.asarray(indices),TASK_SLICE]=task_condition(poses[indices],decisions_chosen)
         ready=[];objects=[];histories=[];goals=[];geometries=[]
         for i,decision in zip(indices,decisions_chosen):
             decisions[i]=decision
@@ -122,7 +172,7 @@ class BatchedInspireInputs:
                 # Evaluation may elide prediction only after the caller proves
                 # the actor's entire condition weight block is exactly zero.
                 # History, scheduler and workspace termination stay identical.
-                out[ids,-1]=1
+                out[ids,VALID_INDEX]=1
                 continue
             with torch.inference_mode(),torch.autocast('cuda',enabled=False):
                 if self.inference_mode=='full_fp32':prediction=self.runtime.predict(batch)
@@ -140,8 +190,8 @@ class BatchedInspireInputs:
                 self.prediction_calls+=1
                 trajectory=predicted.cpu().numpy()
             self.timings['model_s']+=time.monotonic()-started
-            out[ids,CURRENT_DIM:-1]=tau_world(trajectory,poses[ids,:3,:3]).reshape(len(ids),264)
-            out[ids,-1]=1
+            out[ids,TAU_SLICE]=tau_world(trajectory,poses[ids,:3,:3]).reshape(len(ids),264)
+            out[ids,VALID_INDEX]=1
         return dict(observation=out,workspace_invalid=invalid,scheduler=decisions)
 
     def performance_contract(self):

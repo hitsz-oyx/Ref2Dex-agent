@@ -11,19 +11,19 @@ sys.path.insert(0,str(TASK/'src'))
 
 def main():
     p=argparse.ArgumentParser();p.add_argument('--cache',type=Path,required=True);p.add_argument('--current',type=Path,required=True)
-    p.add_argument('--scheduled',type=Path,required=True);p.add_argument('--output',type=Path,required=True);a=p.parse_args()
+    p.add_argument('--scheduled',type=Path,required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--gpu',type=int,default=0);a=p.parse_args()
     if a.output.exists():raise ValueError('fresh selection output required')
-    a.output.mkdir();os.environ.update(CUDA_VISIBLE_DEVICES='6',TMPDIR=str(ROOT/'tmp/inspire-shadow-tests'))
+    a.output.mkdir();os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu),TMPDIR=str(ROOT/'tmp/inspire-shadow-tests'))
     import numpy as np
     import torch
-    from wam_rl_policy_v2.inspire_shadow import SCHEMA,CONTRACT,CURRENT_DIM,expanded_model,initialize_scheduled
+    from wam_rl_policy_v2.inspire_shadow import SCHEMA,CONTRACT,CURRENT_DIM,TAU_SLICE,expanded_model,initialize_scheduled,bc_inputs
     torch.set_num_threads(2);torch.backends.cuda.matmul.allow_tf32=True
     parent=torch.load(a.current,map_location='cpu',weights_only=False)
     candidate=torch.load(a.scheduled,map_location='cpu',weights_only=False)
-    baseline=expanded_model(True);baseline.x_scale[CURRENT_DIM:-1]=.05;initialize_scheduled(baseline,parent)
+    baseline=expanded_model(True);baseline.x_scale[TAU_SLICE]=.05;initialize_scheduled(baseline,parent)
     fitted=expanded_model(True);fitted.load_state_dict(candidate['model'],strict=True)
     panel=np.load(a.cache/'dev-panel.npy');valid=np.load(a.cache/'dev-include.npy');panel=panel[valid[panel]]
-    x=torch.tensor(np.load(a.cache/'dev-scheduled.npy',mmap_mode='r')[panel],device='cuda');y=torch.tensor(np.load(a.cache/'dev-y.npy',mmap_mode='r')[panel],device='cuda')
+    x=torch.tensor(bc_inputs(a.cache,'dev',True)[panel],device='cuda');y=torch.tensor(np.load(a.cache/'dev-y.npy',mmap_mode='r')[panel],device='cuda')
     metrics={}
     with torch.inference_mode():
         for name,model in [('initial_current_expansion',baseline),('scheduled_best',fitted)]:
