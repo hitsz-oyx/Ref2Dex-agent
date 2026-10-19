@@ -52,3 +52,20 @@ current BC使用全部有限命令，不要求未来24帧；WAM条件使用全�
 native工程PPO每次≤30分钟，训练若通过smoke遵从已有10000更新上限/48h并采用滚动保留。
 不存视频、不重采660、不生成大token缓存。模型graspenv/Torch2.4.1+cu121，
 物理dexplore_v120_train/Torch2.0.1+cu118；AF_UNIX有界RPC、临时文件在项目tmp。
+
+### 全量current完成与WAM精度回归
+
+r1/c5dcaf4d已完整提取660序列165677命令，current BC的50000更新完成，约168秒，
+GPU6利用率约78–95%、总显存约1GiB；object-balanced DEV最佳command MAE0.03851。
+这不是行为成功率，DEV后期误差回升，保持与Shadow一致的best选择规则，不据此额外训练。
+
+r1首次WAM缓存bf16的batch64/single差4.1168mm，超过1mm合同而停止；同输入重复batch
+差3.3161mm。固定实测H4/goal的GPU7回归check_inspire_wam_precision.py可稳定抓到该模式；
+模型eval已禁用随机serialization（未发现eval随机点序），仅切FP32后batch/single差7.2µm、
+repeat batch22.1µm、repeat single5.8µm，全部通过原1mm门槛。
+当前证据定位为这组输入的bf16数值敏感，未声称定位底层稀疏算子根因。
+Inspire新cache和在线adapter统一使用FP32并写入合同，不修改WAM权重、网络或Shadow活动版本。
+
+r2复用已完成current BC和不可变physical cache，在新输出重新生成FP32条件；
+589 TRAIN/71 DEV划分、全量覆盖与其他超参不改。失败r1的空scheduled数组只在确认
+两个done均全false、所有原writer退出后清理，保留首批数值审计、日志、current缓存及全部权重。

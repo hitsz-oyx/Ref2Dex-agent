@@ -15,7 +15,7 @@ CONTRACT=dict(schema='ref2dex.inspire-shadow-conditioning.v1',robot_id='dexplore
     tau_hand_order='native_base_then_finger_base_tip',tau_hand_slot='right',tau_units='metres',
     history_indices=[-3,-2,-1,0],startup='zero_tau_with_validity_zero',
     goal_semantics='spatial_path_waypoint',goal_reach_time_guaranteed=False,
-    task='ordered_object_SE3_path',direct_hand_reference=False,phase_conditioning=False,
+    wam_precision='fp32',task='ordered_object_SE3_path',direct_hand_reference=False,phase_conditioning=False,
     interaction_conditioning=False,current_layout=['q18','dq18','measured248','object_pose_velocity13','task_endpoint_xyz3','previous_independent_action12'])
 
 
@@ -108,7 +108,7 @@ class BatchedInspireInputs:
             samples=[s for s,k in zip(samples,keep) if k];ids=ids[keep]
             if not len(ids):continue
             batch={k:v.to(self.runtime.device) for k,v in collate_v4(samples).items()}
-            with torch.inference_mode(),torch.autocast('cuda',dtype=torch.bfloat16):
+            with torch.inference_mode(),torch.autocast('cuda',enabled=False):
                 trajectory=self.runtime.predict(batch)['trajectory'].float().cpu().numpy()
             out[ids,CURRENT_DIM:-1]=tau_world(trajectory,poses[ids,:3,:3]).reshape(len(ids),264)
             out[ids,-1]=1

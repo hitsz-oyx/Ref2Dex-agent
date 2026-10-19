@@ -130,7 +130,7 @@ def conditions(a):
     from wam_rl_policy_v2.batched_geometry import workspace_valid
     root=a.output;meta=json.loads((root/'manifest.json').read_text())
     runtime=V4Runtime(a.wam,meta['records'],root,dense_manifest=root/'surface-manifest.json',allow_geometry_replacement=True)
-    identity=dict(wam=runtime.conditioning_identity,geometry=runtime.geometry_bindings)
+    identity=dict(wam=runtime.conditioning_identity,geometry=runtime.geometry_bindings,inference_precision='fp32')
     prior=root/f'wam-identity-{a.rank}.json'
     if prior.exists() and json.loads(prior.read_text())!=identity:raise ValueError('WAM/cache resume identity changed')
     write(prior,identity)
@@ -153,10 +153,10 @@ def conditions(a):
             invalid_count+=int((~host).sum());selected[lo:lo+size]=host
             if len(ids):
                 batch={k:v[keep] for k,v in batch.items()}
-                with torch.inference_mode(),torch.autocast('cuda',dtype=torch.bfloat16):trajectory=runtime.predict(batch)['trajectory'].float().cpu().numpy()
+                with torch.inference_mode(),torch.autocast('cuda',enabled=False):trajectory=runtime.predict(batch)['trajectory'].float().cpu().numpy()
                 if not checked:
                     first={k:v[:1] for k,v in batch.items()}
-                    with torch.inference_mode(),torch.autocast('cuda',dtype=torch.bfloat16):single=runtime.predict(first)['trajectory'].float().cpu().numpy()
+                    with torch.inference_mode(),torch.autocast('cuda',enabled=False):single=runtime.predict(first)['trajectory'].float().cpu().numpy()
                     error=float(np.abs(single[0]-trajectory[0]).max())
                     write(root/f'batch-check-{a.rank}.json',dict(max_hand_displacement_difference_m=error,tolerance_m=.001,batch=a.wam_batch))
                     if error>.001:raise ValueError('WAM batch/single discrepancy exceeds1mm')

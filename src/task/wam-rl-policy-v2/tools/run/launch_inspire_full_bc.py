@@ -15,6 +15,7 @@ PYTHON='/home2/wyy/miniconda3/envs/graspenv/bin/python'
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True)
+    p.add_argument('--current-run',type=Path,help='Reuse a completed full current BC and immutable physical cache')
     p.add_argument('--seconds',type=int,default=28800);a=p.parse_args();out=a.output.resolve()
     if out.exists() or ROOT/'outputs/wam-rl-policy-v2' not in out.parents or not 60<=a.seconds<=28800:raise ValueError('fresh bounded Task run required')
     if shutil.disk_usage(ROOT).free<24*2**30:raise RuntimeError('storage reserve')
@@ -58,10 +59,33 @@ def main():
     def stop(*_):raise InterruptedError('supervisor stop')
     signal.signal(signal.SIGTERM,stop);signal.signal(signal.SIGINT,stop)
     try:
-        prepare=start('prepare','prepare',[]);wait([prepare])
-        state['stage']='CURRENT_BC_AND_GPU7_CACHE';save()
-        current=start('current','current-bc',['--cache',str(out/'cache'),'--gpu','6'])
-        shard1=start('conditions','cache-gpu7',['--gpu','7','--rank','1']);wait([current])
+        if a.current_run:
+            import numpy as np
+            import sys
+            sys.path.insert(0,str(frozen/'src'))
+            from wam_rl_policy_v2.inspire_shadow import CONTRACT,INPUT_DIM
+            prior=a.current_run.resolve();cache=out/'cache';cache.mkdir()
+            current_meta=json.loads((prior/'current-bc/manifest.json').read_text())
+            if current_meta['status']!='COMPLETED' or current_meta['steps']!=50000:raise ValueError('completed full-data current BC required')
+            meta=json.loads((prior/'cache/manifest.json').read_text())
+            for name in ['stats.npz','dev-panel.npy','geometries','surface-manifest.json']+[s+'-'+k+'.npy' for s in ('train','dev') for k in ('x','y','tick','seq')]:
+                (cache/name).symlink_to(prior/'cache'/name)
+            meta.update(conditioning=CONTRACT,scheduled_status='PENDING',current_cache_source=str(prior/'cache'))
+            (cache/'manifest.json').write_text(json.dumps(meta,indent=2)+'\n')
+            for s in ('train','dev'):
+                n=meta['splits'][s]['commands']
+                x=np.lib.format.open_memmap(cache/f'{s}-scheduled.npy',mode='w+',dtype=np.float32,shape=(n,INPUT_DIM));x[:,:312]=np.load(cache/f'{s}-x.npy',mmap_mode='r');x[:,312:]=0;x.flush()
+                mask=np.lib.format.open_memmap(cache/f'{s}-include.npy',mode='w+',dtype=bool,shape=(n,));mask[:]=False;mask.flush()
+            for rank in (0,1):np.save(cache/f'done-{rank}.npy',np.zeros(660,bool))
+            current_parent=prior/'current-bc/best.pt';state['reused_current_bc']=str(current_parent)
+            state['stage']='TWO_GPU_CONDITIONS';save()
+            shard1=start('conditions','cache-gpu7',['--gpu','7','--rank','1'])
+        else:
+            prepare=start('prepare','prepare',[]);wait([prepare])
+            state['stage']='CURRENT_BC_AND_GPU7_CACHE';save()
+            current=start('current','current-bc',['--cache',str(out/'cache'),'--gpu','6'])
+            shard1=start('conditions','cache-gpu7',['--gpu','7','--rank','1']);wait([current])
+            current_parent=out/'current-bc/best.pt'
         if shard1.poll() not in (None,0):raise RuntimeError('GPU7 condition worker failed')
         state['stage']='TWO_GPU_CONDITIONS';save()
         shard0=start('conditions','cache-gpu6',['--gpu','6','--rank','0']);wait([shard0,shard1])
@@ -72,7 +96,7 @@ def main():
         meta['scheduled_counts']={s:int(np.load(out/f'cache/{s}-include.npy').sum()) for s in ('train','dev')}
         path_meta.write_text(json.dumps(meta,indent=2)+'\n')
         state['stage']='SCHEDULED_BC';save()
-        scheduled=start('scheduled','scheduled-bc',['--cache',str(out/'cache'),'--gpu','6','--parent',str(out/'current-bc/best.pt')]);wait([scheduled])
+        scheduled=start('scheduled','scheduled-bc',['--cache',str(out/'cache'),'--gpu','6','--parent',str(current_parent)]);wait([scheduled])
         state.update(status='COMPLETED',stage='READY_FOR_SHADOW_PPO')
     except BaseException as error:
         state.update(status='FAILED',error=repr(error));raise
