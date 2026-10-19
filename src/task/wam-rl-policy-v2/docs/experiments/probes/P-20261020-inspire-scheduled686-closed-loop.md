@@ -29,3 +29,11 @@ reported physical248 error `2.98e-7`, canonical-to-PD error `0`, and zero
 cross-episode action mismatches. This validates the spatial tau transport and
 the Scheduled686 input boundary only. It does not establish task success,
 event-conditioned behavior, or a tau performance gain over Current421.
+
+An extended 300-control deterministic replay
+(`inspire-scheduled686-closed-loop-20261020-r2`) produced 596 valid tau
+observations out of 600 force-valid observations. Airplane remained in
+`ACQUIRE`/progress `0`; alarmclock reached `TRACK` but also stayed at path
+progress `0`. No terminal decision occurred and native checks passed for all
+300 steps. Tau changed one phase transition, but did not produce path progress,
+so a long PPO run is not admitted from this evidence alone.

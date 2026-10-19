@@ -27,3 +27,9 @@ checks passed with physical248 versus legacy observation maximum error
 mismatches. The policy server performed no optimizer updates. The run validates
 the measured input/action transport and task-controller clock only; it is not a
 grasp or task-success result and does not validate Scheduled686 tau inference.
+
+An extended 300-control deterministic replay (`inspire-current421-closed-loop-20261020-r5`)
+consumed 600 valid-force observations. Both environments remained in `ACQUIRE`
+with path progress `0`, without terminal decisions. Native checks again passed
+for all 300 steps. This is a control-behavior blocker for treating Current421 as
+a successful executor, not evidence that the observation transport is broken.
