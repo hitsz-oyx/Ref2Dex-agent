@@ -12,6 +12,8 @@ def evaluate(env, actor, args, iteration):
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
+    env.task.reset_goal_buf[:] = 0
+    env.task.root_state_tensor[env.task.table_indices, 7:13] = 0
     env.task.reset_buf[:] = 1
     started = time.monotonic()
     with torch.inference_mode():
@@ -22,6 +24,11 @@ def evaluate(env, actor, args, iteration):
         np.random.seed(args.seed)
         torch.manual_seed(args.seed)
         torch.cuda.manual_seed_all(args.seed)
+        # Native pre_physics_step otherwise conditionally draws another random
+        # goal reset before the full reset, depending on warmup terminal flags.
+        env.task.reset_goal_buf[:] = 0
+        # Native reset restores table pose but leaves its old velocity intact.
+        env.task.root_state_tensor[env.task.table_indices, 7:13] = 0
         env.task.reset_buf[:] = 1
         observation = env.reset()
         initial = env.snapshot()
