@@ -8,6 +8,8 @@ import subprocess
 import sys
 import threading
 import time
+sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'src'))
+from ptv3_shared_wam_v5.storage import read_json
 
 
 def gpu():
@@ -21,7 +23,7 @@ def main():
     p.add_argument('--seconds',type=int,default=300);p.add_argument('--git-commit',required=True)
     a=p.parse_args()
     if not 60<=a.seconds<=540:raise ValueError('bounded60..540 second pause required')
-    state=json.loads((a.main_run/'process.json').read_text())
+    state=read_json(a.main_run/'process.json')
     supervisor,worker=state['supervisor_pid'],state['torchrun_pid']
     if state['status']!='RUNNING':raise ValueError('main job must be running')
     for pid in (supervisor,worker):
@@ -35,7 +37,7 @@ def main():
     if any(int(pid) not in owned for pid in pids):raise ValueError('unknown GPU0 owner; preserve existing tasks')
     a.output.mkdir(parents=True,exist_ok=False)
     report=dict(status='PREPARING',supervisor_pid=supervisor,torchrun_pid=worker,main_run=str(a.main_run),
-        git_commit=a.git_commit,before_gpu=gpu(),before_progress=json.loads((a.main_run/'progress.json').read_text()),cases=[])
+        git_commit=a.git_commit,before_gpu=gpu(),before_progress=read_json(a.main_run/'progress.json'),cases=[])
     def save():(a.output/'summary.json').write_text(json.dumps(report,indent=2)+'\n')
     watchdog_code='''import os,signal,sys,time,json
 from pathlib import Path
@@ -78,7 +80,7 @@ for pid in (d['worker'],d['supervisor']):
             try:code=child.wait(timeout=remaining)
             finally:log.close()
             entry=dict(batch_size=batch,exit_code=code)
-            if (output/'result.json').exists():entry.update(json.loads((output/'result.json').read_text()))
+            if (output/'result.json').exists():entry.update(read_json(output/'result.json'))
             report['cases'].append(entry);save();print(json.dumps(entry),flush=True)
             child=None
             if code and batch==2:raise RuntimeError('small real-data v5 smoke failed; see owned log')

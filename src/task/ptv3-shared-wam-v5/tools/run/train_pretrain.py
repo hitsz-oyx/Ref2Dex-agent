@@ -20,6 +20,7 @@ from ptv3_shared_wam_v5 import paths
 from ptv3_shared_wam_v5.contracts import SCHEMA,INPUT_SEMANTICS,LABEL_SEMANTICS
 from ptv3_shared_wam_v5.data import V5Windows,collate
 from ptv3_shared_wam_v5.model import SharedWAMV5
+from ptv3_shared_wam_v5.storage import read_json
 from ptv3_shared_wam_v5.objectives import forecast_loss,loss_components,OBJECTIVE_SEMANTICS
 from ptv3_shared_wam_v4.objectives import normalized_components,combine_components
 
@@ -69,7 +70,7 @@ def main():
     p.add_argument('--steps',type=int);p.add_argument('--batch-size',type=int);p.add_argument('--workers',type=int,default=0)
     p.add_argument('--seed',type=int)
     p.add_argument('--resume',type=Path);p.add_argument('--git-commit',required=True);a=p.parse_args()
-    config=json.loads(a.config.read_text());stats=json.loads(a.stats.read_text())
+    config=read_json(a.config);stats=read_json(a.stats)
     dataset=V5Windows(a.manifest,'train');last=a.steps or config['updates'];batch_size=a.batch_size or config['batch_size']
     if a.smoke:
         if not 1<=last<=16:raise ValueError('engineering smoke requires1..16 bounded steps')
