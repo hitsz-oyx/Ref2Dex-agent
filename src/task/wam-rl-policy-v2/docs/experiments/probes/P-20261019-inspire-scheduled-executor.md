@@ -17,6 +17,10 @@ status: UNCLEAR
 run_id: inspire-scheduled-20261019-r1
 ---
 
+本卡保留早期小网络/含ref输入的工程历史。用户后续已明确采用全量数据、Shadow大网络及
+UniDex官方PPO；此处“下一步DExplore PPO”计划已由
+[全量Shadow路线](P-20261019-inspire-shadow-parity.md)替代，未按旧计划启动DExplore PPO。
+
 Decision工程Probe：能否将冻结WAMv4→空间goal scheduler→自训练BC执行器部署到
 DExplore Inspire真实物理闭环。用户授权在Shadow评估后尝试，使用GPU6/7共享；0–5不动。
 最低成本方案：一条TRAIN的s1_spheresmall_lift、300控制拍；先原生teacher正控制确认

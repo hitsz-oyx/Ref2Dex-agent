@@ -1,3 +1,15 @@
+## 2026-10-19 Inspire转为全量Shadow BC/PPO路线
+
+按用户要求，共享Shadow的1024/1024/512/512 ELU大网络、两阶段各50000步BC及原版
+UniDexGrasp2 PPO引擎/超参，Inspire仅适配实测current312、12独立动作/18原生DOF、30Hz，
+完整物体SE3参考路径经scheduler→WAM，不直接输入hand-ref或模仿误差，不用DExplore PPO。
+全量660序列/50物体BC已完成（589 TRAIN、71 DEV），WAM条件1165个越界帧明确排除，
+所有命令均进入current BC。DEV选择初始current扩展点，tau列初始为零；尚无WAM收益证据。
+两环境错开reset及256环境实际官方PPO更新通过，动作episode错配/均值/logprob误差0；
+正在GPU6/7复用Shadow GPU输入构造做20轮计时，之后续至累计10000轮，未有任务成功结论。
+Shadow原六卡训练r4已正常完成10000终点、进程全部退出，不再处于训练中。
+[当前实验](../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-inspire-shadow-parity.md)。
+
 ## 2026-10-19 后期PPO评估与Inspire初次自主闭环
 
 GPU6/7完成5500/7000/8000/8483各256场景评估。5500/7000/8483完整初态逐位一致；

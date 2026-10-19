@@ -113,7 +113,7 @@ def main():
                 collection_s=locs['collection_time'],learning_s=locs['learn_time'],reward_mean=float(locs['mean_reward']),
                 value_loss=float(locs['mean_value_loss']),surrogate_loss=float(locs['mean_surrogate_loss']),
                 effective_std=float(ppo.actor_critic.log_std.exp().square().mean()),lr=ppo.step_size,
-                input_timings=env.inputs.timings,tau_input_weight_norm=float(ppo.actor_critic.actor.net[0].weight[:,CURRENT_DIM:-1].detach().norm()),
+                input_timings=env.input_timings,tau_input_weight_norm=float(ppo.actor_critic.actor.net[0].weight[:,CURRENT_DIM:-1].detach().norm()),
                 completed_episodes=env.completed_episodes,ordered_path_successes=env.successes,
                 ever_held1s=env.ever_held,final_held1s=env.final_held,workspace_failures=env.workspace_failures,
                 resets=env.reset_count,peak_cuda_mib=torch.cuda.max_memory_allocated()/2**20,

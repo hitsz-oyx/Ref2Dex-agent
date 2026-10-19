@@ -1,5 +1,9 @@
 # WAMv4 scheduled BC → PPO 在 DExplore Inspire 上的接入准备
 
+当前实现已按用户后续要求转入[全量Shadow BC/PPO路线](../experiments/probes/P-20261019-inspire-shadow-parity.md)：
+current312/577、大网络、UniDex官方PPO及完整物体路径调度。下文早期“小网络/单序列/
+DExplore PPO”建议保留为历史核查，不能作为当前入口；末尾无ref测量与reset分析仍可追溯。
+
 日期：2026-10-19。范围：本地源码和现存产物的只读核查；未训练、未运行 GPU 仿真。用户要求在当前 Shadow PPO 评估后，尝试**同一方法**：冻结 WAMv4、在线局部 goal scheduler、自训练 BC warmstart、原生动作 PPO。旧 WAMv2/shared-R 实验只用于复用数据和原生接口，不是该流程的已完成复现。
 
 ## 判断

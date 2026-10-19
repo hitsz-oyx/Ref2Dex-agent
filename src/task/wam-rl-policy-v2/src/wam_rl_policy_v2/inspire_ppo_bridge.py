@@ -94,6 +94,9 @@ class RemoteInspireEnv:
         if self.native['episodes']!=source_episodes:raise ValueError('native physics changed episode during policy step')
         self.previous[:]=canonical
         objects=self._refresh(range(self.num_envs));self.steps+=1
+        # A subsequent partial reset may replace inputs.timings with a tiny
+        # startup-only call. Report the actual full-environment policy tick.
+        self.input_timings=dict(self.inputs.timings)
         reward,self.progress=shadow_path_reward(objects,np.asarray(self.native['hand']),canonical,self.initial_z,self.decisions,self.progress)
         complete=np.array([d['complete'] for d in self.decisions]);self.ever_complete|=complete
         timed_out=np.array([d['timed_out'] for d in self.decisions])
