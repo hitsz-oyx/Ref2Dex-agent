@@ -18,6 +18,15 @@ class InspireAdapter:
     robot_id='dexplore.inspire.measured.v1'
 
     @staticmethod
+    def legacy_tau_column_permutation():
+        """New canonical tau columns select these old native-order columns.
+
+        Apply to both the first-layer weights and input normalization when
+        migrating a legacy Inspire scheduled actor; a reshape is insufficient.
+        """
+        return np.arange(264).reshape(8,11,3)[:,NATIVE_TO_WAM].reshape(-1)
+
+    @staticmethod
     def canonical_hand(native_hand):return np.asarray(native_hand)[...,NATIVE_TO_WAM,:].copy()
 
     @staticmethod

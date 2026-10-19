@@ -883,7 +883,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261019-wam-v5-mixed-pretrain](../../src/task/ptv3-shared-wam-v5/docs/experiments/probes/P-20261019-wam-v5-mixed-pretrain.md) | Four-GPU nine-source WAM-v5 pretraining | the1024 run is preserved and stopped; the requested768 replacement | continue the768 authorized80k bounded run and | probes/RUNNING |
+| [P-20261019-wam-v5-mixed-pretrain](../../src/task/ptv3-shared-wam-v5/docs/experiments/probes/P-20261019-wam-v5-mixed-pretrain.md) | Four-GPU nine-source WAM-v5 pretraining | repaired ac951370 continuation from10049 is RUNNING, verified through | continue the admitted engineering-repaired run; prepare event data | probes/RUNNING |
 
 ## HF-video-data-readiness
 

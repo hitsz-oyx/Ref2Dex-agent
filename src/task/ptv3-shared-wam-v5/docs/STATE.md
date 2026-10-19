@@ -3,7 +3,7 @@
 用户授权先准备远端数据、同步实现v5；需要GPU时可暂停已确认远端WAM训练并立即恢复。
 参考[ref1](user/ref1.md)和[ref1_1](user/ref1_1.md)，先解决数据正确性与局部C读出，
 再决定teacher/loss。用户现明确要求停scale、启动四卡v5；完整缓存已完成，四rank启动检查通过。
-本轮从头训练，不加入C→PPO、重定向或CEDex抓取数据。
+原768运行从头训练，现按用户授权修复工程合同后从10049末步续训；不加入C→PPO、重定向或CEDex抓取数据。
 
 ## 本次审查（真实checkpoint2000，训练继续）
 
@@ -18,26 +18,43 @@ batch128相对单样本τ位移宏平均0.118mm、单点最大1.826mm、C最大�
 DEV20/1000/2000手EPE59.69/47.89/42.87mm，根点相对19.95/19.67/19.27mm；
 整体τ在改善，手型相对误差改善尚小。2000步总目标best与宏手EPE best重合，完整审计副本独立保留。
 结论：不据此停训。下次启动/恢复前应验证spawn/forkserver、绑定有效local/global batch，
-并另保留预定义τ候选；这些修复和四GPU恢复验证尚未实施。后续有意义checkpoint再复测batch敏感性。
+并另保留预定义τ候选；当时尚未实施，现已完成下面的恢复修复与四卡检查。后续有意义checkpoint再复测batch敏感性。
 
 ## 当前四卡训练协议
 
-[训练Probe](experiments/probes/P-20261019-wam-v5-mixed-pretrain.md)按用户要求改为冻结6334e1ea代码，
+[训练Probe](experiments/probes/P-20261019-wam-v5-mixed-pretrain.md)当前冻结ac951370代码，
 768宽/12头/12层、每卡128/全局512、8 workers/rank、bf16/TF32、两组LR1e-4、500步warmup、
 80k更新上限。沿用v4九源概率/运动分层及seed170，DEV固定seed171/256窗口每源，
 第20步首次验证、之后每1000步；首步/里程碑/最优/停止末步保存。
+loader改spawn/120s读取超时；实际local/global batch写入checkpoint并在恢复时核对。
+objective-best保持原定义，新增独立trajectory-best：短期h1–4、根点相对、接触阶段三个
+source-macro毫米误差等权平均；两者均受轮转保护。只从仍存在的父运行checkpoint初始化τ候选。
 
-四rank真实混合数据8步检查通过，参数描述性签名相同，峰值rank0约19.79GiB；22项测试通过，
-含实际optimizer/DEV/非周期STOP保存及CPU逐位resume一致性。CUDA逐位resume仍未验证。
+33项测试通过，含legacy实际batch来源绑定、CPU完整恢复、读取失败末步保存、τ候选保留，
+以及实际CUDA fused AdamW恢复和事件零残差迁移。四GPU逐位重放等价仍未认证。
+首次四卡恢复及旧代码回退发现Torch2.0.1 CPU映射后fused step设备错误，均无完成更新；
+ac951370只迁移fused/capturable step到参数GPU，保留数值/动量。单参数CUDA下一步与不中断训练误差0。
+修复后`recovery-contract-probe-20261019-r2`从10049完成8更新至10057，DEV/保存通过、
+四rank参数签名一致、564份fused step恢复，末步optimizer计数10057且4份RNG齐全。
 当前已停止scale并保留39000完整checkpoint；旧launcher因own-STOP记FAILED是用户停止语义。
 新全量recipe已冻结并准入，TRAIN3218740/DEV545459窗口全部保留；21点归一化重算1152个TRAIN窗口。
 原1024运行`pretrain-nine-v5-20261019-r1`已通过own STOP正常结束于869步，
 完整`step000869.pt`（1993176330 bytes）、首步/20步及best产物保留。
-新`pretrain-nine-v5-width768-20261019-r1`已运行，supervisor3033996/torchrun3034138；
-宽度/头数是唯一配置差异，从头训练并沿用完整recipe/统计，不加载1024权重或optimizer。
-启动报告已到120步，九源均采样，step1/20及best已落盘、首轮DEV完成。
-60–120步约0.889s/update，四卡100%、24163–28199MiB/卡；80k含验证/存盘初估21–23h。
-短窗更新耗时比旧1024约少23%，不是严格匹配性能实验；尚无效果结论。
+原`pretrain-nine-v5-width768-20261019-r1`已正常STOP于10049，完整末步与历史选择保留。
+当前`pretrain-nine-v5-width768-contracts-20261019-r2`从该末步续训，不消费短测8次更新；
+保留四卡/global512、完整recipe/统计、optimizer/RNG、LR和累计7日/80000步上限。
+恢复启动报告到10140步、九源均出现、四卡100%，约0.90s/update、23–28GiB/卡；
+剩余含验证/存盘初估18–20h。LR1e-4，未重启warmup。
+原768历史短窗0.889s/update，较1024约少23%；新运行稳态以progress/日志为准。
+
+## 接触／脱手事件条件
+
+用户确认需要WAM新增下一CONTACT/RELEASE的类型、相对帧数及有效性。已阅读分享会话末尾
+并向前核对，接口与边界见[event设计](event-conditioning.md)。仓库77045e4f已有可选
+零初始化goal残差分支，不增加共享token/点数/KNN；33测试中的4项验证完整WAM迁移输出
+逐位保持、分支有梯度、未知/远期事件和单位合同。当前生产ac951370仍无事件输入。
+事件侧表、近邻标签转事件的语义/删失覆盖审计、按名迁移新增optimizer参数及条件续训待完成；
+现有ckpt可用于后续扩展，但不能把weights-only扩展称为optimizer完整恢复。
 
 ## 当前实现与已确认修复
 
@@ -78,7 +95,8 @@ batch128/4 workers完成8步AdamW，九源均出现，loss/梯度有限。GPU前
 | 修复手表面 | `data/hands-r2/progress.json`，39526完成；6471人手继承，33055 Shadow重建 |
 | 修复接触 | `data/contacts-r2/progress.json`，39526完成；parallel3025527已收尾 |
 | 训练准入冻结 | `outputs/finalize-training-20261019-r1/progress.json`，COMPLETED；recipe/统计已准入 |
-| 四卡长训 | `outputs/ptv3-shared-wam-v5/pretrain-nine-v5-width768-20261019-r1/process.json`及`progress.json` |
+| 四卡长训 | `outputs/ptv3-shared-wam-v5/pretrain-nine-v5-width768-contracts-20261019-r2/process.json`及`progress.json` |
+| 恢复检查 | `outputs/contract-transition-20261019-r2/startup-report.json`及`recovery-contract-probe-20261019-r2/` |
 | 全量比例审计 | `outputs/contact-audit-20261019-r2/prevalence-r3/summary.json`，PID3021191 |
 | 修复后法线小审计 | `outputs/contact-audit-20261019-r2/normals/summary.json`及六组PNG/NPZ |
 | GPU/修复证据 | `outputs/surface-repair-20261019-r2/`，gpu-smoke及matched-shadow-validation.json |

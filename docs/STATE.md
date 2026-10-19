@@ -1,3 +1,16 @@
+## 2026-10-19 WAM-v5工程合同修复后，从10049恢复四卡长训
+
+用户批准spawn loader、实际batch绑定和独立τ候选保留。原768在10049正常保存停止；
+首次四卡恢复和旧实现回退均暴露Torch2.0.1 fused AdamW step留CPU，未完成更新。
+ac951370修复标量设备恢复，保留动量/步数；单参数CUDA下一步与不中断训练误差0。
+四rank真实恢复10050–10057、DEV/保存及参数签名检查通过，随后
+`pretrain-nine-v5-width768-contracts-20261019-r2`从原10049继续，原数据/网络/loss/统计/global512不变。
+恢复报告到10140、四卡100%、约0.90s/update，剩余含验证/存盘初估18–20h。
+33项测试通过；另已实现可选CONTACT/RELEASE事件输入和零残差迁移测试，事件数据/optimizer
+扩展尚未准入，当前生产没有热加事件。路径、失败和恢复证据见
+[v5状态](../src/task/ptv3-shared-wam-v5/docs/STATE.md)、
+[训练卡](../src/task/ptv3-shared-wam-v5/docs/experiments/probes/P-20261019-wam-v5-mixed-pretrain.md)。
+
 ## 2026-10-19 WAM-v5真实checkpoint批组成审计完成，继续原训练
 
 固定6334e1ea/2000步权重、同远端Torch2.0.1/4090只读推理，真实batch使Hilbert depth9→10，

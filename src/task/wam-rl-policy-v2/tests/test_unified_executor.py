@@ -42,6 +42,26 @@ def test_current_to_scheduled_expansion_preserves_task_and_force_information():
     torch.testing.assert_close(child(torch.cat((value,torch.randn(3,265)),-1)),parent(value),atol=1e-6,rtol=1e-5)
 
 
+def test_legacy_inspire_tau_migration_preserves_actions_after_canonical_reordering():
+    parent=NormalizedCommandMLP(584,312,12)
+    with torch.no_grad():
+        parent.net[-1].weight.normal_(std=.01);parent.x_mean.normal_();parent.x_scale.uniform_(.2,1.)
+    permutation=InspireAdapter.legacy_tau_column_permutation()
+    child=expand_named_model(parent,dict(robot=312,tau=264,tau_valid=1,task=7),
+        ExecutorLayout('inspire',411,12,30).blocks,clip_dim=312,source_column_permutations=dict(tau=permutation))
+    old=torch.randn(3,584)
+    new=torch.cat((old[:,:312],torch.randn(3,99),old[:,577:],torch.randn(3,3),old[:,312:576][:,permutation],old[:,576:577]),-1)
+    torch.testing.assert_close(child(new),parent(old),atol=1e-6,rtol=1e-5)
+
+
+def test_shared_wam_tau_uses_canonical_points_and_distinct_native_clocks():
+    prediction=np.zeros((24,2,11,3));prediction[:,0,:,0]=np.arange(1,25)[:,None]*np.arange(1,12)[None]*.001
+    shadow=ExecutorLayout('shadow',300,24,60).wam_tau(prediction,np.eye(3))
+    inspire=ExecutorLayout('inspire',411,12,30).wam_tau(prediction,np.eye(3))
+    np.testing.assert_allclose(shadow[1::2],inspire[:4])
+    np.testing.assert_allclose(inspire[0,:,0],np.arange(1,12)*.001)
+
+
 def test_phase_potential_telescopes_and_terminal_is_zero():
     features=RewardFeatures(palm_gap_m=.2,mean_tip_gap_m=.1,tracking_error_m=.02)
     states=[SimpleNamespace(phase=p,path_progress=u,terminated=False,task_complete=False,failure_reason=None,transitions=())

@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import numpy as np
 from .interaction_state import InteractionObserver
+from .goal_scheduler import _pose
 
 
 @dataclass(frozen=True)
@@ -34,7 +35,9 @@ class FeedbackObserver:
         self.last_time=None;self.had_grasp=False
 
     def update(self,pose,hand,velocity,now,*,contact_forces=None,force_valid=False,supported=None,workspace_ok=True):
-        if self.last_time is not None and now<=self.last_time:raise ValueError('strictly increasing feedback time required')
+        now=float(now)
+        if not np.isfinite(now) or (self.last_time is not None and now<=self.last_time):raise ValueError('strictly increasing finite feedback time required')
+        pose=_pose(pose)
         velocity=np.asarray(velocity)
         if velocity.shape!=(6,) or not np.isfinite(velocity).all():raise ValueError('finite object linear/angular velocity required')
         observed=self.motion.update(pose,hand,now);self.last_time=now

@@ -5,7 +5,7 @@ experiment_id: P-20261019-wam-v5-mixed-pretrain
 date: 2026-10-19
 task: ptv3-shared-wam-v5
 branch: main
-git_commit: 6334e1ea
+git_commit: ac951370
 claim_id: C1
 hypothesis_family: HF-v5-nine-source-learnability
 probe_index_in_family: 1
@@ -14,10 +14,17 @@ seeds: [170, 171]
 decision_changed_if_positive: use learned joint21 and local surface contact forecasts for subsequent executor adaptation
 decision_changed_if_negative: diagnose source and fine-grained forecast failures before extending training or porting the executor
 status: RUNNING
-run_id: pretrain-nine-v5-width768-20261019-r1
+run_id: pretrain-nine-v5-width768-contracts-20261019-r2
 ---
 
 # Four-GPU nine-source WAM-v5 pretraining
+
+Result: repaired ac951370 continuation from10049 is RUNNING, verified through
+10140 with four GPUs100%, approximately0.90s/update. Eight-update real recovery,
+DEV/save and rank synchronization passed. Optional event conditions are not active.
+
+Decision: continue the admitted engineering-repaired run; prepare event data
+and explicit parameter/optimizer expansion before event-conditioned continuation.
 
 Classification: Decision. The user explicitly requested stopping the v4 scale
 run and starting v5 on four GPUs, with hyperparameters based on v4. Test whether
@@ -210,3 +217,48 @@ implementation fallback if the probe fails.
 The separately requested CONTACT/RELEASE event condition changes the input
 contract and needs annotated data/explicit migration. It is not silently
 enabled by these engineering repairs. See [event design](../../event-conditioning.md).
+
+## Recovery execution result
+
+The original768 run stopped normally at10049, preserving complete
+`step010049.pt`. Initial d5ab627d recovery reached the first optimizer but
+failed: Torch2.0.1 CPU-mapped optimizer recovery leaves fused AdamW scalar
+steps on CPU. The old6334e1ea rollback hit the same device error. Neither
+failed run published a completed optimizer update/checkpoint; parent files
+were retained. This was an additional CUDA recovery defect, not data damage.
+
+A real remote4090/Torch2.0.1 single-parameter repro failed before the repair.
+Moving only fused/capturable scalar steps to their parameter device preserves
+the next update exactly against uninterrupted fused AdamW (max error0).
+ac951370 implements this compatibility repair and propagates launcher failure
+exit status. On modern Torch the helper is a no-op if devices already match.
+The CUDA regression forces the old call-site state and verifies the same next
+update. All33 local tests pass, including actual CUDA recovery and optional
+event-interface tests; this does not certify bitwise full four-GPU replay.
+
+`recovery-contract-probe-20261019-r2` passed10050–10057, eight actual updates,
+local128/global512,32 spawned loader workers, original seed170/LR1e-4 and full
+data. It completed its fixed DEV panel and published step10050/10057 plus
+objective/trajectory selections. All four rank parameter signatures match:
+`[25861.946430139957,95905.49395934986]`. GPU timing255.66ms forward/loss,
+595.43ms backward,28.55ms optimizer; peak allocated17.96GiB. Probe loop70.58s
+includes spawn/DEV/checkpoint startup, not steady throughput. The run manifest
+confirms legacy provenance and512 global batch;564 fused scalar steps were
+moved. Its final optimizer states all have step10057 and four RNG snapshots.
+
+Production now uses frozenac951370:
+`pretrain-nine-v5-width768-contracts-20261019-r2`, resumed from the original
+10049 checkpoint, not the throwaway probe. Keep the cumulative604800s training
+budget and80000 target, both original AdamW parameter groups/moments, K24
+statistics, sampling and mathematical model. The old parent checkpoint files
+remain protected; new rotation owns only the new run. Additional selector
+bootstrap explicitly covers only available parent checkpoints.
+
+Remote receipts: `outputs/contract-transition-20261019-r1/` records failure;
+`outputs/contract-transition-20261019-r2/` records successful replacement,
+including `startup-report.json`. Local copy:
+`outputs/ptv3-shared-wam-v5/contract-recovery-20261019-r2/startup-report.json`.
+
+Current result: engineering repairs passed real four-rank recovery and the
+production continuation has restarted. Event conditions remain disabled in
+production until sidecars and explicit parameter/optimizer expansion exist.

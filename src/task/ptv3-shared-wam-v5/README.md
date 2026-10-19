@@ -211,7 +211,18 @@ The launcher owns four GPUs and an isolated torchrun group, records GPU state
 and progress, and applies runtime/free-space boundaries. `STOP` saves the last
 completed update before exit; resume uses a fresh directory and the exact same
 data/config/world size. Checkpoints carry optimizer/per-rank RNG/elapsed time
-and DEV selection. Recent rotation protects the first, milestones and best.
+and effective local/global batch. Legacy migration requires the original run
+manifest to prove actual batch identity. Spawn workers reopen immutable mmaps
+and use120s read timeout. Fused/capturable AdamW scalar step states are restored
+to their parameter device for remote Torch2.0 compatibility.
+Recent rotation protects the first, milestones, objective-best and the separate
+tau-best (equal mean of macro short-horizon/root-relative/contact-phase mm).
 Loss logs are reduced over all ranks; the first DEV panel runs at20 and then
 every1000, using a fixed seed171 panel. The four-rank engineering startup now
 passes; the CPU recovery contract test does not claim bitwise CUDA/DDP resume.
+
+The real four-rank checkpoint recovery probe also passes8 updates plus DEV/save
+after the Torch2.0 fused-step repair; this is not bitwise four-GPU replay proof.
+[Optional event conditioning](docs/event-conditioning.md) has a zero-residual
+model interface and migration tests; event data and optimizer expansion are
+not yet admitted into sustained training.
