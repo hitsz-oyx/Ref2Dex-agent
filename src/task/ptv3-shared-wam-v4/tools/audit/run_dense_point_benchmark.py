@@ -23,6 +23,7 @@ def main():
     p.add_argument('--fixture',type=Path,required=True);p.add_argument('--output',type=Path,required=True)
     p.add_argument('--benchmark-script',type=Path,required=True);p.add_argument('--seconds',type=int,default=540)
     p.add_argument('--full-training-followup',action='store_true')
+    p.add_argument('--contact-head-followup',action='store_true')
     a=p.parse_args()
     if not 60<=a.seconds<=540:raise ValueError('pause benchmark budget60..540 seconds')
     state=json.loads((a.main_run/'process.json').read_text())
@@ -86,6 +87,8 @@ print('watchdog resumed verified main job',flush=True)
             cases=[('vertices-train-5mm-c128-b64','full',.005,128),
                    ('vertices-train-5mm-c2048-b64','full',.005,2048),
                    ('baseline-5mm-b64','baseline',.005,128)]
+        if a.contact_head_followup:
+            cases=[('geometry-5mm-c2048','geometry',.005,2048)]
         env=dict(os.environ,CUDA_VISIBLE_DEVICES='0',OMP_NUM_THREADS='1',MKL_NUM_THREADS='1',
                  OPENBLAS_NUM_THREADS='1',PYTHONDONTWRITEBYTECODE='1',REF2DEX_BENCH_CODE_ROOT=str(a.code_root))
         position=0
