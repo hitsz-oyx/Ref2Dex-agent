@@ -32,3 +32,13 @@ not fabricate `tau`.
 The primary metric is DEV command MAE, with root and finger MAE reported beside
 it.  This is an offline probe, not a grasp success result.  Closed-loop BC and
 PPO remain separate decisions.
+
+
+## Result (2026-10-20)
+
+Run `inspire-current421-bc-20261020-r1` completed 50,000 updates on GPU6 in
+1,421.9 s.  It consumed 54,162 TRAIN and 5,879 DEV active commands from 501/62
+sequences.  The best fixed DEV checkpoint was step 3,000 with command MAE
+0.038258 (root 0.018142, finger 0.058375); the final step was worse at 0.055811.
+The best checkpoint is therefore the only Current BC parent admitted downstream.
+This is offline action error, not closed-loop task success.
