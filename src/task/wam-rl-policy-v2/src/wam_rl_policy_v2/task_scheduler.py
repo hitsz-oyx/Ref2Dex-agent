@@ -29,8 +29,9 @@ class PlannedEvent:
 
     def wam_condition(self):
         # WAM ticks always mean 30 Hz, independent of native action frequency.
-        return dict(event_type=self.kind.value if self.kind else 'NONE',event_delta_steps=self.delta_s*30,
-            event_valid=self.valid,event_in_horizon=bool(self.valid and self.delta_s<=.8),event_hz=30)
+        # Matches WAM-v5's next-contact-release-plan.frame30.v1 encoding.
+        kind={None:0,EventType.CONTACT:1,EventType.RELEASE:2}[self.kind]
+        return dict(event_type=kind,event_delta_steps=self.delta_s*30,event_valid=self.valid,event_hz=30)
 
 
 @dataclass(frozen=True)
@@ -70,7 +71,10 @@ class TaskScheduler:
         if event not in self.paid_events:self.paid_events.add(event);events.append(event)
 
     def _event(self,now):
-        if self.event_index>=len(self.spec.events):return PlannedEvent(None,0.,False)
+        if self.event_index>=len(self.spec.events):
+            # An exhausted explicit plan means known NONE. A task without
+            # planned annotations cannot make that assertion.
+            return PlannedEvent(None,0.,bool(self.spec.events))
         planned=self.spec.events[self.event_index];kind=planned.kind
         if self.phase==Phase.ACQUIRE and kind==EventType.CONTACT:
             elapsed=now-self.phase_since

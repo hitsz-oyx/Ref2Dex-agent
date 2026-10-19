@@ -4,7 +4,7 @@ from .task_scheduler import TaskScheduler
 from .executor_contract import task_condition
 from .goal_scheduler import rigid_goal_delta
 
-EVENT_SCHEMA='ref2dex.wam-planned-contact-release.v1'
+EVENT_SCHEMA='next-contact-release-plan.frame30.v1'
 
 
 class TaskController:

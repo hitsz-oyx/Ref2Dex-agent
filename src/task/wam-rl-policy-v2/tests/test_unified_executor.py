@@ -89,4 +89,22 @@ def test_eventless_wam_checkpoint_cannot_silently_consume_new_event_fields():
     fields,metadata=wam_goal(old,poses[0],decision,points)
     assert set(fields)=={'goal_delta'} and not metadata['event_consumed']
     fields,metadata=wam_goal(SimpleNamespace(event_conditioning_schema=EVENT_SCHEMA),poses[0],decision,points,require_events=True)
-    assert metadata['event_consumed'] and fields['event_type']=='CONTACT' and fields['event_delta_steps']==10
+    assert metadata['event_consumed'] and fields['event_type']==1 and fields['event_delta_steps']==10
+
+
+def test_event_packet_is_accepted_by_actual_wam_v5_encoder():
+    import importlib.util
+    from pathlib import Path
+    from wam_rl_policy_v2.task_scheduler import PlannedEvent
+    from wam_rl_policy_v2.task_spec import EventType
+    path=Path(__file__).resolve().parents[2]/'ptv3-shared-wam-v5/src/ptv3_shared_wam_v5/events.py'
+    module_spec=importlib.util.spec_from_file_location('wam_v5_event_contract',path)
+    module=importlib.util.module_from_spec(module_spec);module_spec.loader.exec_module(module)
+    from wam_rl_policy_v2.task_runtime import EVENT_SCHEMA
+    assert EVENT_SCHEMA==module.EVENT_ENCODING
+    packets=[PlannedEvent(EventType.CONTACT,2.,True).wam_condition(),
+             PlannedEvent(None,0.,True).wam_condition(),PlannedEvent(None,0.,False).wam_condition()]
+    batch={k:torch.tensor([p[k] for p in packets]) for k in packets[0]}
+    features,valid=module.event_features(batch)
+    assert features.shape==(3,5) and valid.tolist()==[True,True,False]
+    assert features[0,-1]==1 and features[1,0]==1 and not features[2].count_nonzero()

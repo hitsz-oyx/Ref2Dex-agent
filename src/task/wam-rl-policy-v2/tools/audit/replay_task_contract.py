@@ -26,6 +26,7 @@ def main():
     p.add_argument('--limit',type=int,default=0);a=p.parse_args()
     if a.output.exists():raise ValueError('fresh audit report required')
     a.output.parent.mkdir(parents=True,exist_ok=True)
+    code_version=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
     meta=json.loads((a.cache/'manifest.json').read_text());rows=[];geometry={};started=time.monotonic()
     membership=meta['sequences'][:a.limit] if a.limit else meta['sequences']
     for row in membership:
@@ -58,7 +59,7 @@ def main():
                 missing_dof_force=missing_force,support_unknown=True))
         if len(rows)%50==0:print(json.dumps(dict(sequences=len(rows),elapsed_s=time.monotonic()-started)),flush=True)
     report=dict(status='COMPLETED',engineering_only=True,annotation_schema=ANNOTATION_SCHEMA,
-        git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),python=sys.executable,
+        git_commit=code_version,python=sys.executable,
         input=str(a.cache.resolve()),interaction_surface_points=512,elapsed_s=time.monotonic()-started,sequences=len(rows),
         splits=dict(Counter(r['split'] for r in rows)),terminal_modes=dict(Counter(r['terminal_mode'] for r in rows)),
         multiple_contact_sequences=sum(sum(e['type']=='CONTACT' for e in r['events'])>1 for r in rows),

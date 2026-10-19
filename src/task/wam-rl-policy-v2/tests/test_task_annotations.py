@@ -40,5 +40,5 @@ def test_event_acknowledgement_requires_new_measured_edges_not_elapsed_time():
     d=s.update(pose[12],7/30,InteractionFeedback(released=True))
     assert d.next_event.kind.value=='CONTACT'
     d=s.update(pose[25],8/30,held)
-    assert d.phase==Phase.TRACK and not d.next_event.valid
+    assert d.phase==Phase.TRACK and d.next_event.kind is None and d.next_event.valid
     assert 'grasp_acquired' not in d.transitions

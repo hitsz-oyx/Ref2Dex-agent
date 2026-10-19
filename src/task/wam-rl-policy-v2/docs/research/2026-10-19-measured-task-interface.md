@@ -46,7 +46,9 @@ palm、五bases、五tips；旧Inspire交错base/tip的τ必须显式使用列�
 不是旧PPO的普通resume，后续训练必须保存新的合同与已训练形状编码器身份。
 
 `wam_goal` 始终显式返回空间 waypoint 的 SE(3) goal_delta。只有声明训练过
-`ref2dex.wam-planned-contact-release.v1` 合同的模型才接收计划事件；当前v4/v5没有此能力，
+`next-contact-release-plan.frame30.v1` 合同的模型才接收计划事件，类型数值为
+NONE=0/CONTACT=1/RELEASE=2，时间单位为30Hz步，已知NONE与缺失mask分开。
+该编码与WAM-v5新增可选事件分支源码对齐；既有v4/v5检查点尚未训练此输入，
 require_events=True时拒绝调用，默认兼容路径明确记录event_consumed=False。
 没有修改正在训练的 WAM-v5，也没有宣称旧模型已理解新事件。
 

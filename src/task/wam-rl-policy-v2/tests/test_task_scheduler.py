@@ -44,7 +44,8 @@ def test_static_contact_requests_probe_and_planned_contact_does_not_advance_phas
     assert d.next_event.wam_condition()['event_delta_steps']==0
     assert task_condition(poses[0],d)[-3:].tolist()==[1,0,0]
     d=scheduler.update(poses[0],.8,InteractionFeedback(grasp_established=True,stable=True))
-    assert d.phase==Phase.TRACK and 'grasp_acquired' in d.transitions and not d.next_event.valid
+    assert d.phase==Phase.TRACK and 'grasp_acquired' in d.transitions and d.next_event.kind is None
+    assert d.next_event.wam_condition()==dict(event_type=0,event_delta_steps=0.,event_valid=True,event_hz=30)
 
 
 def test_force_candidate_needs_observed_motion_coupling():
