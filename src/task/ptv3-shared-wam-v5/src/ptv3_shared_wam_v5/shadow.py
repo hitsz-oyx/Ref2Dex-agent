@@ -78,7 +78,9 @@ class ShadowSurface:
         visit(self.root,rt)
         joints=[transforms['robot0:palm'][:,:3,3]]
         for f in ('th','ff','mf','rf','lf'):
-            names=['thhub','thmiddle','thdistal'] if f=='th' else [f+'knuckle',f+'middle',f+'distal']
+            # CMC, MCP and IP origins. thhub and thmiddle coincide and must
+            # not occupy two anatomical slots in the new joint21 contract.
+            names=['thbase','thhub','thdistal'] if f=='th' else [f+'knuckle',f+'middle',f+'distal']
             joints.extend(transforms['robot0:'+name][:,:3,3] for name in names)
             tip=transforms['robot0:'+f+'distal'];offset=np.array([0,0,.0275 if f=='th' else .026])
             joints.append(np.einsum('nij,j->ni',tip[:,:3,:3],offset)+tip[:,:3,3])

@@ -94,9 +94,13 @@ def reconstruct(packet, mano_root, device='cpu', chunk_size=128):
     return joints,jv,verts,valid,parts
 
 
-def validate_alignment(joints, valid, base, tolerance=5e-5):
-    sparse=joints[:,:,SPARSE11_IN_21]
-    mask=valid[:,:,SPARSE11_IN_21]&base['hand_valid']
+def validate_alignment(joints, valid, base, tolerance=5e-5,source_id=None):
+    # The old Shadow scaffold's thumb-base slot is physically MCP (thhub),
+    # whereas human MANO's first thumb point is CMC. Check the actual matching
+    # landmark without perpetuating the old mismatch in the new21 targets.
+    indices=(0,2,5,9,13,17,4,8,12,16,20) if source_id==4 else SPARSE11_IN_21
+    sparse=joints[:,:,indices]
+    mask=valid[:,:,indices]&base['hand_valid']
     if not mask.any():raise ValueError('no authoritative overlapping scaffold for alignment audit')
     error=float(np.abs(sparse[mask]-base['hand'][mask]).max())
     if error>tolerance:raise ValueError(f'source/clock/frame convention mismatch: {error:.8f}m')

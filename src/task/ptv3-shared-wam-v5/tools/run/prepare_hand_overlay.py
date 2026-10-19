@@ -32,7 +32,7 @@ def prepare(job,packet,a):
     presence=base['hand_valid'].any(-1)
     jvalid &= presence[...,None]
     vvalid &= presence
-    error=validate_alignment(joints,jvalid,base)
+    error=validate_alignment(joints,jvalid,base,source_id=job['source_id'])
     if not (jvalid & base['hand_valid'].any(-1)[...,None]).any():raise ValueError('no usable joint21 labels')
     pending=a.output/'sequences'/(job['key']+'.partial')
     if pending.exists():
@@ -77,6 +77,8 @@ def main():
     torch.set_num_threads(a.threads)
     a.output.mkdir(parents=True,exist_ok=True)
     for sub in ('sequences','records'):(a.output/sub).mkdir(exist_ok=True)
+    # This is task-owned generated metadata, never an original raw asset.
+    a.plan.chmod(0o664)
     jobs=json.loads(a.plan.read_text())['jobs'];started=time.monotonic();processed=0
     records={p.stem:json.loads(p.read_text()) for p in (a.output/'records').glob('*.json')}
     if a.retry_failed:records={k:r for k,r in records.items() if r['status']=='COMPLETED'}
