@@ -1268,4 +1268,10 @@
 | [P-20261018-direct-tau-dagger](../../src/task/trajectory-policy/docs/experiments/probes/P-20261018-direct-tau-dagger.md) | P-20261018-direct-tau-dagger | 见原卡 | 见原卡 | probes/UNPROMISING |
 | [P-20261018-direct-tau-executor-r3](../../src/task/trajectory-policy/docs/experiments/probes/P-20261018-direct-tau-executor-r3.md) | P-20261018-direct-tau-executor-r3 | 见原卡 | 见原卡 | probes/UNPROMISING |
 | [P-20261018-unidex-live-oracle-tau](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261018-unidex-live-oracle-tau.md) | P-20261018-unidex-live-oracle-tau | 见原卡 | mark this particular packet-plus-update expansion UNPROMISING and | probes/见原卡 |
+| [P-20261020-inspire-current421-bc](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261020-inspire-current421-bc.md) | P-20261020-inspire-current421-bc | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261020-inspire-current421-closed-loop](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261020-inspire-current421-closed-loop.md) | P-20261020-inspire-current421-closed-loop | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261020-inspire-paired-bc-dev](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261020-inspire-paired-bc-dev.md) | P-20261020-inspire-paired-bc-dev | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261020-inspire-scheduled686-bc](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261020-inspire-scheduled686-bc.md) | P-20261020-inspire-scheduled686-bc | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261020-inspire-scheduled686-cache](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261020-inspire-scheduled686-cache.md) | P-20261020-inspire-scheduled686-cache | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261020-inspire-scheduled686-closed-loop](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261020-inspire-scheduled686-closed-loop.md) | P-20261020-inspire-scheduled686-closed-loop | 见原卡 | 见原卡 | probes/见原卡 |
 | [VAL-20260923-CM-EFFECT-PPO](validations/VAL-20260923-CM-EFFECT-PPO.md) | Validation: 动作条件 Cm 效应排序能否稳定改善 PPO？ | 见原卡 | 见原卡 | validations/见原卡 |
