@@ -210,6 +210,11 @@ def train(a):
     def evaluate():
         error=(model(data['dev']['x'][panel])-data['dev']['y'][panel]).abs()
         return dict(command_mae=float(error.mean()),root_mae=float(error[:,:6].mean()),finger_mae=float(error[:,6:].mean()))
+    if scheduled:
+        initial=evaluate();best=initial['command_mae'];write(root/'initial-dev.json',initial)
+        initial_packet=dict(schema=manifest['schema'],step=0,model=model.state_dict(),optimizer=optimizer.state_dict(),config=manifest,source_cache=str(a.cache),
+            torch_rng=torch.get_rng_state(),cuda_rng=torch.cuda.get_rng_state(),numpy_rng=rng.bit_generator.state)
+        torch.save(initial_packet,root/'best.pt')
     for step in range(1,a.steps+1):
         ids=np.r_[rng.choice(early,1024),rng.choice(all_rows,1024)]
         prediction=model(data['train']['x'][ids]);loss=((prediction-data['train']['y'][ids])/model.y_scale).abs().mean()

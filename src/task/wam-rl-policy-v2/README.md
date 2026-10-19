@@ -69,3 +69,26 @@ PPO.run/update/storage及原配置，增加BC均值/WAM观测和多卡同步。
 合并检查不跳过有限性判断：在predict返回前统一检查全部谓词，context之外保持原行为。
 当前主训练使用自己的冻结副本；修改环境变量或源码不会热更新已运行的训练。
 新启动器默认独立分配通信端口，显式指定已占用端口会在启动worker前失败。
+
+## Inspire：沿用Shadow训练路线（2026-10-19用户修订）
+
+正式适配使用共享`NormalizedCommandMLP`，隐藏层1024/1024/512/512、ELU；
+全量660条DExplore示教（589 TRAIN、71 DEV），先current BC再条件BC，各50000更新。
+输入为无手部ref的physical current312 + world tau264 + valid1，共577维；
+12独立命令展开18原生命令，30Hz H4和tau。current721只取无ref实测slice9:257，
+在线直接从真实刚体构造对应248维，并在原生进程做等价/参考扰动检查。
+已知完整物体SE3路径是任务指令，由同一个scheduler给WAM局部目标，actor不读hand-ref。
+
+- `tools/run/launch_inspire_full_bc.py`：冻结代码、全量提取、GPU6/7不重叠分片生成小型条件缓存、两阶段Shadow配方BC。
+- `tools/run/launch_inspire_shadow_ppo.py`：冻结代码、启动模型/物理双运行时、资源与checkpoint预算。
+- `tools/run/inspire_shadow_ppo.py`与`src/wam_rl_policy_v2/inspire_ppo_bridge.py`：直接调用Shadow同一`prepare_official`和UniDex PPO引擎；算法、GAE、网络容量、默认PPO超参相同。
+- `tools/run/inspire_physics_host.py`：仅DExplore资产/初始化/物理/PD，不构造或训练DExplore actor，不使用其ref模仿奖励及终止。
+- [全量同路线实验](docs/experiments/probes/P-20261019-inspire-shadow-parity.md)。
+
+完整物体路径任务在环境adapter中定义有序进度、跟踪误差与终点门控；
+这不是把Shadow静态终点成功率原样解释成整段任务完成。保持代理另行记录。
+Inspire冻结WAM使用FP32：真实输入的bf16 batch64/single差超过1mm，FP32回归通过；
+网络、权重未改变。缓存与在线推理精度写入同一个conditioning合同。
+
+旧`inspire_scheduled_probe.py`/`inspire_executor.py`是已归档的current986/小型单序列工程试跑，
+不作为全量路线的BC或PPO入口；其失败结果不代表上述完整Shadow配方。

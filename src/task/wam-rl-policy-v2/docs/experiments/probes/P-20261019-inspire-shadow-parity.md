@@ -90,3 +90,23 @@ r2复用已完成current BC和不可变physical cache，在新输出重新生成
 明确标engineering_current_expansion；不可将其称WAM条件BC最终结果或作为正式warmstart。
 actual learning必须使用完成的全量scheduled BC。检查官方20个optimizer steps/update、
 均值/log-prob回放、原生命令/PD、两环境错开reset与WAM history清空，再扩大到256环境。
+
+### 全量条件完成与真实PPO工程回归
+
+r2两个FP32分片覆盖全部660条，分别626.9s/655.5s，首批single/batch误差均约12µm，
+原1mm门槛通过。逐帧workspace排除354+811=1165个条件帧；这些帧仍已进入current BC，
+没有换小数据或把不可预测τ造为零后纳入scheduled loss。已核对原几何目录恰有660条，
+与当前corpus缺失/多出均0。完整两阶段各50000更新、网络/损失/采样和Shadow一致。
+
+两环境纯物理+实际Shadow PPO的r1已完成4轮80更新，均值与logprob回放0、PD误差0，
+但最终审计写入status重复字段触发退出失败；修复后r2完整重复通过，包括正常关闭双peer。
+r2原生physical248与原函数max差2.98e-7、参考扰动不变；32个真实物理控制拍、0 workspace
+failure，跨回合动作不匹配0。tick5只reset env0，episode[1,1]→[2,1]、ticks[0,5]；
+tick11只reset env1，episode[2,1]→[2,2]、ticks[6,0]。真实终止transition保留，
+新动作使用新episode观测/H4。此回归为current大BC零扩展，仅证明工程，不报任务成功率。
+54项Task测试通过，包括原Shadow兼容、实际官方PPO超参/分布/BC均值和collector AST不变。
+
+与Shadow相同，scheduled BC选择应包括初始current BC扩展点。r2训练遗漏了初始点的
+best保存，故在同一个固定DEV面板重新对比初始点与训练过程中best，写入独立bc-selection，
+不覆盖既有训练产物；后续trainer已补齐启动时初始DEV记录/保存。选择只用DEV命令MAE，
+不读取闭环成功率、hold或测试集来选checkpoint。
