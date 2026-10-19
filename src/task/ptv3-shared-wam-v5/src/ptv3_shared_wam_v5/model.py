@@ -101,6 +101,12 @@ class SharedWAMV5(nn.Module):
             raise ValueError("v5 interaction probability head requires unit interaction_scales")
         self.register_buffer("interaction_scale", scale)
         self.normalizer = HorizonNormalizer(stats, config.get("horizon_normalization", True))
+        self.event_conditioning = config.get('event_conditioning',False)
+        if self.event_conditioning:
+            from .events import EVENT_ENCODING,EventGoalResidual
+            if config.get('event_encoding')!=EVENT_ENCODING:
+                raise ValueError('explicit planned contact/release event encoding required')
+            self.event_goal=EventGoalResidual(width)
 
     def encode_hand(self, batch):
         valid = batch["start_hand_valid"].bool()
@@ -121,8 +127,11 @@ class SharedWAMV5(nn.Module):
         goal_valid = batch["object_goal_valid"].bool()
         goal = torch.cat((clean(batch["start_object_points"], goal_valid),
                           clean(batch["goal_object_delta"], goal_valid)), -1) / self.position_scale
+        goal_tokens=self.goal(goal)
+        if self.event_conditioning:
+            goal_tokens=goal_tokens+self.event_goal(batch)[:,None]
         tokens = torch.cat((scene_tokens + self.token_type.weight[0], hand_tokens + self.token_type.weight[1],
-                            self.goal(goal) + self.token_type.weight[2]), 1)
+                            goal_tokens + self.token_type.weight[2]), 1)
         valid = torch.cat((scene["mask"], hand_valid, goal_valid), 1)
         tokens = torch.where(valid[..., None], tokens, 0.)
         if self.config.get("checkpoint_interaction", True) and self.training and torch.is_grad_enabled():

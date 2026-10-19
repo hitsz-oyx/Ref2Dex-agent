@@ -23,6 +23,20 @@ zero-initialized residual to the existing object-goal tokens. This adds no
 point search or KNN and does not lengthen the shared token sequence. Verify
 old predictions at migration before any event-conditioned update.
 
+The optional model interface is implemented in `events.py` and enabled only
+with event_conditioning=true plus event_encoding=
+`next-contact-release-plan.frame30.v1`. Inputs are per-sample event_type
+(0 NONE/1 CONTACT/2 RELEASE), event_delta_steps, event_valid and event_hz30.
+It encodes the type, relative time divided by24 (capped at240 frames), and
+an out-of-horizon flag. A far event retains its type; invalid padded fields
+are cleaned and gated out. A one-sample condition cannot broadcast across
+an unrelated batch. Production configs still leave this branch disabled.
+
+Four tests exercise the actual WAM forward: exact old trajectory/scene/C and
+shared-token equality after zero-residual weights-only expansion, a nonzero
+event-branch gradient and subsequent event sensitivity, unknown/far event
+handling, and rejection of incomplete/wrong-rate/broadcast input contracts.
+
 This requires an explicit new input/config identity. Model weights can be
 reused; optimizer migration must retain moments for old parameters by name
 and initialize the additional parameters separately. Shape-compatible weight
@@ -63,4 +77,6 @@ Do not claim success from total loss alone or from a wrong-event-only test.
 
 The engineering-resume revision is independent. Event-conditioned production
 training is not yet activated; no future-event payload has been inserted into
-the currently frozen training data or model.
+the currently frozen training data or model. The code supports the optional
+interface, but data sidecars, named optimizer expansion, conditioned continuation
+and effect validation remain before an event-conditioned training run.
