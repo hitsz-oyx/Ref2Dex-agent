@@ -56,3 +56,14 @@ remain unvalidated.
 The next blocker is an online collector smoke that records the actual next
 measured state and terminal boundary through the native host. Do not start
 multi-hour PPO from the offline shape result alone.
+
+That online Current421 collector smoke is now complete at commit `768e749f`:
+`outputs/wam-rl-policy-v2/inspire-current421-ppo-collector-smoke-20261020-r1/`.
+The native host supplied 30 controls for each of two environments, producing
+30 transitions per environment. Reward totals were `1.174277` and `1.166288`;
+the one-update actor/critic report had behavior log-prob error `0`, retained KL
+`0.01803` under the `0.02` limit, finite value loss `0.15579`, and an actual
+final measured observation as bootstrap source. Native physical248/PD/episode
+checks passed again and no task terminal occurred. This qualifies the Current421
+online collector contract. Scheduled686 still has only the offline shape and
+bounded reward smoke, so its online PPO collector remains a separate open check.

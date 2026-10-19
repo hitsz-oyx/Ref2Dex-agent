@@ -17,6 +17,14 @@ finite update with behavior log-prob replay error `0` and retained KL about
 This only qualifies the offline collector boundary; an online collector must
 still record actual next-state bootstrap and terminal behavior before PPO.
 
+A 30-control Current421 online collector smoke has since passed with two native
+environments and 30 transitions each. It used the actual final measured state
+for bootstrap, observed behavior log-prob error `0`, retained KL `0.01803` under
+the `0.02` bound, finite value loss `0.15579`, and repeated native checks with
+physical248 error `2.98e-7`, PD error `0`, and zero action mismatches. Neither
+environment terminated or completed the task. Scheduled686 online collector
+remains unvalidated; do not launch long PPO yet.
+
 ## 2026-10-20 WAM-v2 measured BC paired audit and Current421 closed-loop contract pass
 
 Following the teacher-rollout correction, Current421 BC `inspire-current421-bc-20261020-r1` completed 50k updates on GPU6; best DEV command MAE was 0.038258 at step3000 and final was 0.055811, so only the best checkpoint is retained downstream. A fresh spatial WAM tau cache from the same-execution goals completed with two workers on GPU6/7: 53,042 TRAIN and 5,799 DEV rows passed workspace validity out of 60,529 admitted rows. Scheduled686 BC `inspire-scheduled686-bc-20261020-r1` completed 50k updates; best DEV command MAE was 0.036683 at step1000 and final was 0.052845. On the 5,693 active-and-valid common DEV rows, Current421 command MAE was 0.036321 and Scheduled686 was 0.036683, so tau has no stable offline advantage in this probe. Current421 completed 300 deterministic native controls over two fixed TRAIN motions: both environments stayed ACQUIRE/progress0. Scheduled686 completed the same 300 controls with 596 valid tau observations; airplane stayed ACQUIRE/progress0 and alarmclock reached TRACK but stayed progress0. Native physical248/PD/episode checks passed in both arms. A paired action-scale audit found teacher/current/scheduled absolute means 0.19095/0.18532/0.18784, so the policies are not output-collapsed; the zero-progress result is a closed-loop generalization/conditioning problem. The adapters are operational, but no long PPO run is admitted until a measured TaskReward/critic bridge is specified and a bounded smoke demonstrates it preserves this contract.

@@ -49,6 +49,8 @@ def main():
     parser.add_argument("--controls", type=int, default=60)
     parser.add_argument("--seconds", type=int, default=1800)
     parser.add_argument("--state-transport", choices=("json", "packed"), default="json")
+    parser.add_argument("--ppo-collector-smoke", action="store_true",
+                        help="record a bounded measured PPO transition batch and update once")
     args = parser.parse_args()
     args.manifest = args.manifest.resolve()
     args.checkpoint = args.checkpoint.resolve()
@@ -79,6 +81,7 @@ def main():
     from wam_rl_policy_v2.inspire_contract import expand_action
     from wam_rl_policy_v2.inspire_shadow import current_state
     from wam_rl_policy_v2.measured_policy import MeasuredInspirePolicy
+    from wam_rl_policy_v2.measured_ppo import MeasuredCritic, MeasuredGaussianActor, update_measured
     from wam_rl_policy_v2.measured_reward_bridge import MeasuredRewardTracker, reward_features
     from wam_rl_policy_v2.robot_adapter import InspireAdapter
     from wam_rl_policy_v2.task_runtime import TaskController
@@ -90,6 +93,8 @@ def main():
         raise ValueError("Current421 measured BC checkpoint required")
     model = MeasuredInspirePolicy(with_tau=False).cuda().eval()
     model.load_state_dict(packet["model"], strict=True)
+    ppo_actor = MeasuredGaussianActor.from_bc_packet(packet, with_tau=False).cuda().eval() if args.ppo_collector_smoke else None
+    ppo_critic = MeasuredCritic(421).cuda().eval() if args.ppo_collector_smoke else None
     corpus = TeacherRolloutCorpus(args.manifest, "train")
     by_sequence = {row["sequence"]: row for row in corpus.records}
     listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -150,6 +155,8 @@ def main():
         reward_trackers = [MeasuredRewardTracker() for _ in sequences]
         reward_totals = np.zeros(len(sequences), np.float64)
         reward_last_parts = [None] * len(sequences)
+        transitions = [[] for _ in sequences]
+        pending = [None] * len(sequences)
 
         def observe_and_predict(snapshot):
             nonlocal force_valid_count
@@ -222,11 +229,35 @@ def main():
                 decision_count[index] += 1
                 force_valid_count += int(contact_valid)
             with torch.inference_mode():
-                output = model(
-                    torch.as_tensor(np.asarray(measured), device="cuda"),
-                    torch.as_tensor(np.asarray(tasks), device="cuda"),
-                    torch.as_tensor(np.asarray(points), device="cuda"),
-                )
+                measured_tensor = torch.as_tensor(np.asarray(measured), device="cuda")
+                task_tensor = torch.as_tensor(np.asarray(tasks), device="cuda")
+                points_tensor = torch.as_tensor(np.asarray(points), device="cuda")
+                if ppo_actor is None:
+                    output = model(measured_tensor, task_tensor, points_tensor)
+                else:
+                    shape = model.shape(points_tensor)
+                    robot = torch.cat((measured_tensor[..., :345], shape, measured_tensor[..., 345:]), -1)
+                    observation = torch.cat((robot, task_tensor), -1)
+                    distribution = ppo_actor.distribution(observation)
+                    output = distribution.loc
+                    values = ppo_critic(observation)
+                    logp = distribution.log_prob(output).sum(-1)
+                    for index in range(len(sequences)):
+                        if pending[index] is not None:
+                            old = pending[index]
+                            transitions[index].append(dict(
+                                observation=old["observation"].detach().cpu(),
+                                action=old["action"].detach().cpu(),
+                                logp=old["logp"].detach().cpu(),
+                                mean=old["mean"].detach().cpu(),
+                                std=old["std"].detach().cpu(),
+                                value=old["value"].detach().cpu(),
+                                reward=float(latest_decisions[index]["reward"]),
+                                done=bool(latest_decisions[index]["terminated"]),
+                            ))
+                        pending[index] = dict(observation=observation[index], action=output[index],
+                                              logp=logp[index], mean=distribution.loc[index],
+                                              std=distribution.scale[index], value=values[index])
             action = output.clamp(-1, 1).cpu().numpy().astype(np.float32)
             previous[:] = action
             return action, snapshot
@@ -253,6 +284,25 @@ def main():
             write(args.output / "progress.json", state)
         send(connection, dict(op="close"))
         receive(connection)
+        collector_result = None
+        if ppo_actor is not None:
+            if any(len(row) != args.controls for row in transitions):
+                raise ValueError("online PPO collector did not produce one transition per control")
+            batch = {}
+            for key in ("observation", "action", "logp", "mean", "std", "value"):
+                batch[key] = torch.stack([torch.stack([row[key] for row in transitions[index]])
+                                           for index in range(len(sequences))], dim=1).cuda()
+            batch["reward"] = torch.as_tensor(np.asarray([[row["reward"] for row in transitions[index]]
+                                                          for index in range(len(sequences))], np.float32).T, device="cuda")
+            batch["done"] = torch.as_tensor(np.asarray([[row["done"] for row in transitions[index]]
+                                                        for index in range(len(sequences))], bool).T, device="cuda")
+            batch["bootstrap"] = torch.stack([pending[index]["value"] for index in range(len(sequences))])
+            ppo_actor.train(); ppo_critic.train()
+            actor_optimizer = torch.optim.Adam(ppo_actor.parameters(), lr=1e-5)
+            critic_optimizer = torch.optim.Adam(ppo_critic.parameters(), lr=1e-4)
+            collector_result = update_measured(ppo_actor, ppo_critic, batch, actor_optimizer, critic_optimizer, epochs=1)
+            state["ppo_collector"] = dict(transition_count=[len(row) for row in transitions], update=collector_result,
+                                            bootstrap_source="actual final measured observation")
         state.update(
             status="COMPLETED",
             controls_completed=args.controls,
