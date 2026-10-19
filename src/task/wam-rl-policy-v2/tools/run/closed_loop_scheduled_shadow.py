@@ -23,6 +23,7 @@ def main():
  p.add_argument('--official-ppo',action='store_true')
  p.add_argument('--evaluate',action='store_true',help='Deterministic first-episode evaluation; no optimizer updates')
  p.add_argument('--object-manifest',type=Path);p.add_argument('--rl-checkpoint',type=Path)
+ p.add_argument('--wam-checkpoint',type=Path);p.add_argument('--wam-surface-manifest',type=Path)
  p.add_argument('--rank',type=int,default=0);p.add_argument('--world-size',type=int,default=1)
  p.add_argument('--rendezvous',default='tcp://127.0.0.1:29671')
  p.add_argument('--save-every',type=int,default=20)
@@ -36,6 +37,8 @@ def main():
  if not 1<=a.world_size<=6 or not 0<=a.rank<a.world_size or a.save_every<1:raise ValueError('Bounded distributed rank required')
  if a.object_manifest:a.object_manifest=a.object_manifest.resolve()
  if a.rl_checkpoint:a.rl_checkpoint=a.rl_checkpoint.resolve()
+ if a.wam_checkpoint:a.wam_checkpoint=a.wam_checkpoint.resolve()
+ if a.wam_surface_manifest:a.wam_surface_manifest=a.wam_surface_manifest.resolve()
  if a.output.exists():raise ValueError('Fresh output required')
  a.output.mkdir(parents=True);(a.output/'tmp').mkdir()
  os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu),TMPDIR=str(a.output/'tmp'))
@@ -109,7 +112,10 @@ def main():
    from wam_rl_policy_v2.recipe_ppo import update_minibatches
    torch.manual_seed(a.seed);critic=Critic(obs_dim=565,value_scale=100.).cuda()
   cache=ROOT/'outputs/shadow-finetune/policy-data-full-20261015-r1';snap=ROOT/'outputs/ptv3-shared-wam-v4/local-control-snapshot-20261018-r1'
-  runtime=V4Runtime(snap/'step12000-local.pt',env_objects,cache,dense_manifest=snap/'surface-manifest.json')
+  wam_checkpoint=a.wam_checkpoint or snap/'step12000-local.pt'
+  wam_surface=a.wam_surface_manifest or snap/'surface-manifest.json'
+  runtime=V4Runtime(wam_checkpoint,env_objects,cache,dense_manifest=wam_surface)
+  manifest.update(wam_checkpoint=str(wam_checkpoint),wam_surface_manifest=str(wam_surface))
   manifest['wam_step']=runtime.step
   if a.ppo_updates or a.evaluate:
    if a.official_ppo:

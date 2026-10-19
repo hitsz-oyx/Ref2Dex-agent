@@ -558,3 +558,8 @@ allocations:
     seed_pool: probe
     evaluation_seed: 246
     reuse_reason: fixed TRAIN panel checkpoint comparison; not independent validation
+
+  P-20261019-wam-final-swap:
+    seed_pool: probe
+    evaluation_seed: 246
+    reuse_reason: same TRAIN panel as checkpoint evaluation for matched WAM replacement; not validation
