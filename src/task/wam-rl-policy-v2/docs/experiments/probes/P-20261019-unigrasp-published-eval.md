@@ -48,3 +48,5 @@ Transformer权重 + 动态PointNet编码器严格加载，在已审计的单jar�
 动态fallback首轮：jar 57/256（22.27%），camera 29/256（11.33%），均optimizer_steps=0。审计发现原始Modes.static_init切换同时改变hand起点y=0.08→0，不能视作只更换物体初始化来源。追加Decision对照：相同两物体、seed246/256环境，动态物体初始化不变，只将手部构造起点恢复训练默认y=0.08m；GPU6/7、每进程900秒、同权重与官方test循环。run_id unigrasp-published-{jar,camera}-handpose-20261019-r1。结果无论正负均结束此轮兼容性尝试，不做基于成功率的参数搜索；需要原始静态测试包才能给出严格复现结论。
 
 四臂均完成官方200步循环并打印最终成功率，随后进程SIGSEGV（exit -11），运行器标记FAILED。手起点恢复后jar 0/256、camera47/256，非一致改善，不继续配置搜索。追加同jar手起点臂工程退出重测，仅在finally显式gym.destroy_sim，不改模型/动作/观测/初态，run_id unigrasp-published-jar-cleanup-20261019-r1，验证物理测试后清理问题与指标重复性。准备阶段修正上游文件末尾无换行的补丁定位，尚无额外物理采样。
+
+退出定位：cleanup-trace重测的shutdown.json确认frame199且destroy_sim已正常返回，随后原生解释器finalizer仍SIGSEGV，0/256指标重复。采用受控worker退出：仅在上游正常SystemExit、frame199、evaluation.json完整存在且destroy_sim返回后，flush并os._exit(0)，跳过有问题的原生解释器finalizer。任何仿真/模型/optimizer异常仍失败，不用该路径掩盖。GPU6/7各重放既定手起点臂，run_id unigrasp-published-{jar,camera}-final-20261019-r1，不改变评估参数。主进程禁用core dump。

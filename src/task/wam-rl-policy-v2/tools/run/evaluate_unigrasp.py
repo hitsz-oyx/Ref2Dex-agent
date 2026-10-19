@@ -144,7 +144,7 @@ def prepare(args):
 '''
     replace('dexgrasp/run_online.py','    # start train or test process\n',hook+'\n    # start train or test process\n')
     replace('dexgrasp/run_online.py','        train()',
-        '        try:\n            train()\n        finally:\n            if audit_task is not None:\n                audit_task.gym.destroy_sim(audit_task.sim)\n')
+        '        audit_complete = False\n        try:\n            train()\n        except SystemExit as completed:\n            audit_complete = completed.code in (None, 0) and audit_task is not None and audit_task.frame == audit_task.max_episode_length-1 and (audit_out/"evaluation.json").is_file()\n            raise\n        finally:\n            if audit_task is not None:\n                audit_task.gym.destroy_sim(audit_task.sim)\n            if audit_complete:\n                (audit_out/"shutdown.json").write_text(json.dumps(dict(stage="evaluation_complete_sim_destroyed", strategy="explicit_worker_exit_skips_legacy_native_finalizers")))\n                import os, sys\n                sys.stdout.flush(); sys.stderr.flush()\n                os._exit(0)\n')
     model_folder=out/'runtime/Logs/Results/results_distill/random/universal_policy/state_based/distill_0000_3199_seed0'
     model_folder.mkdir(parents=True)
     (model_folder/'model_best.pt').symlink_to((source/'results/state_based/model_best_isaacgym_3.pt').resolve())
@@ -198,6 +198,8 @@ def main():
         PYTHONDONTWRITEBYTECODE='1',LD_LIBRARY_PATH=str(Path(sys.executable).resolve().parents[1]/'lib'),
         PYTHONPATH=os.pathsep.join([str(ROOT/'outputs/wam-rl-policy-v2/unigrasp-eval-20261019-r1/deps'),
             str(upstream/'pytorch_kinematics'),str(upstream/'dexgrasp'),str(upstream/'dexgrasp/algo/pn_utils')]))
+    import resource
+    resource.setrlimit(resource.RLIMIT_CORE,(0,0))
     started=time.monotonic()
     with (args.output/'worker.log').open('a') as log:
         child=subprocess.Popen(command,cwd=upstream/'dexgrasp',env=env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
