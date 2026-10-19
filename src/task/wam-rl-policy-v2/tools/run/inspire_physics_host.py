@@ -44,6 +44,7 @@ def main():
     p.add_argument('--server-pid',type=int,required=True);p.add_argument('--envs',type=int,default=256)
     p.add_argument('--gpu',type=int,default=7);p.add_argument('--seed',type=int,default=246)
     p.add_argument('--seconds',type=int,default=1800);p.add_argument('--motions',type=int,default=0)
+    p.add_argument('--object-manifest',type=Path)
     a=p.parse_args();a.cache=a.cache.resolve();a.output=a.output.resolve();a.socket=a.socket.resolve()
     if a.output.exists() or ROOT/'outputs/wam-rl-policy-v2' not in a.output.parents or not 2<=a.envs<=256:
         raise ValueError('fresh bounded native host required')
@@ -68,6 +69,11 @@ def main():
     if torch.__version__!='2.0.1+cu118':raise ValueError('pinned native Torch2.0.1 required')
     torch.set_num_threads(2);torch.manual_seed(a.seed);np.random.seed(a.seed)
     meta=json.loads((a.cache/'manifest.json').read_text());records=[r for r in meta['sequences'] if r['split']=='train']
+    if a.object_manifest:
+        selected=json.loads(a.object_manifest.read_text())['object_names']
+        if not selected or len(set(selected))!=len(selected) or set(selected)-{r['object'] for r in records}:
+            raise ValueError('distinct known TRAIN objects required')
+        records=[r for r in records if r['object'] in selected]
     if a.motions:records=records[:a.motions]
     if len({r['object'] for r in records})>a.envs:raise ValueError('each selected object needs an environment')
     original=json.loads((ROOT/'data/processed_data/inspire_rl_object_dexplore/manifest.json').read_text())
@@ -98,6 +104,7 @@ def main():
         python=sys.executable,torch=torch.__version__,gpu=a.gpu,envs=a.envs,seed=a.seed,
         policy='none; Shadow PPO in remote process',native_ref_observation_consumed=False,
         native_ref_reward_used=False,native_ref_termination_used=False,source_sequences=len(files),
+        source_sequence_names=[r['sequence'] for r in records],source_object_names=sorted({r['object'] for r in records}),
         indexed_resets=0,steps=0,episode_action_mismatches=0,maximum_pd_error=0.)
     def save():
         (a.output/'manifest.json').write_text(json.dumps(audit,indent=2)+'\n')

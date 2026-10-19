@@ -188,3 +188,24 @@ physical248逐序列RMSE最大5.96e-8，object quat最大4.22e-8。
 PPO长训仍在运行，后续优先审查BC闭环误差与示教/执行动态对应，不能仅凭DEV MAE认可warmstart质量。
 汇总及逐回合证据在outputs/wam-rl-policy-v2/inspire-shadow-parity-20261019-bc-eval-r1/
 的summary.json、policy/evaluation.json和initial-state-diagnostics.json。
+
+### 用户要求停止旧运行、转六卡混合训练
+
+16:41用户停止旧两卡训练，STOP已触发且所属policy/native/supervisor退出，保留最后完整
+checkpoint iteration161；旧launcher将主动STOP记为FAILED，stop-request.json记录了用户请求，
+不将它误报成算法数值失败。新run使用该模型/optimizer继续，新物理回合。
+
+六卡版在GPU0–5每卡同置graspenv WAM/PPO和dexplore_v120_train纯物理两个进程；
+每卡256环境，总1536，六rank同一个策略，沿用Shadow官方梯度/KL/优势统计归并。
+50个TRAIN物体按master seed246分为9/9/8/8/8/8个，每条589 TRAIN motion恰好属于一个rank；
+DEV不入PPO，BC仍是全660两阶段。局部几何身份合并50物体后校验resume绑定；
+广播参数与normalization buffers，单份rank0 rolling checkpoint，记录参数同步误差。
+native派生随机流seed246+rank，policy初始化246、采样流246+rank；不是追加独立实验seed。
+
+Blocker工程检查先在GPU0/1、每卡64环境运行4轮，显式错开reset并验证实际官方PPO
+80 optimizer steps/rank、回放/PD误差、跨rank参数完全同步。通过后从原iteration161
+启动六卡无强制reset的正式续训，累计10000上限，不从带工程reset的smoke策略续训。
+新launcher主STOP在更新边界归并，rank0先保存完整checkpoint，barrier后各peer正常退出；
+每run48h/3GiB、20GiB磁盘底线，GPU6/7预留。诊断GPU测试安排在六卡启动之前，
+后续先做CPU日志/权重读取，不在六卡训练时额外占满两张预留卡。
+代码网络/奖励/动作/WAM精度不变；合并训练batch改变为原来的6倍，manifest显式记录。
