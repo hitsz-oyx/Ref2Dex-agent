@@ -21,6 +21,7 @@ def main():
  p.add_argument('--ppo-smoke',action='store_true',help='One on-policy rollout and bounded PPO update; engineering only')
  p.add_argument('--envs',type=int,default=1);p.add_argument('--ppo-updates',type=int,default=0)
  p.add_argument('--official-ppo',action='store_true')
+ p.add_argument('--adaptive-kl',choices=['actual','legacy'],help='Scheduled training defaults actual; native published evaluation defaults legacy')
  p.add_argument('--native-checkpoint-iteration',type=int,default=None,help='Known local finetuning iteration; omit for published weights')
  p.add_argument('--native-evaluation',action='store_true',help='Evaluate the historical official 300D policy without WAM conditioning')
  p.add_argument('--evaluate',action='store_true',help='Deterministic first-episode evaluation; no optimizer updates')

@@ -18,6 +18,21 @@ from .episode_metrics import episode_outcome
 from .execution_identity import execution_identity, validate_execution
 
 
+def optimization_contract(mode):
+    from .distribution_kl import OPTIMIZATION_CONTRACT
+    if mode not in ('actual','legacy'):raise ValueError('explicit adaptive KL mode required')
+    return OPTIMIZATION_CONTRACT if mode=='actual' else 'legacy-upstream-log-std-kl'
+
+
+def validate_optimization(saved,target,*,evaluating=False,migration_reason=None):
+    source=saved or optimization_contract('legacy')
+    if source not in (optimization_contract('actual'),optimization_contract('legacy')):raise ValueError('unknown optimization contract')
+    changed=source!=target
+    if changed and not evaluating and not (migration_reason and migration_reason.strip()):
+        raise ValueError('adaptive KL contract changed; explicit --checkpoint-migration-reason required')
+    return dict(source=source,target=target,changed=changed,evaluation_only=evaluating,migration_reason=migration_reason)
+
+
 def normalize_advantages(values, valid=None):
     selected=values if valid is None else values[valid]
     if not distributed_ready():
@@ -242,12 +257,15 @@ def run(task,snapshot,sim_step,actor,runtime,args):
     root=Path(os.environ.get('REF2DEX_RUN_ROOT',Path(__file__).resolve().parents[5]))
     native_only=getattr(args,'native_evaluation',False)
     protocol=getattr(args,'execution_protocol',None) or ('legacy' if native_only else 'corrected')
-    official=prepare_official(root,args.output,masked_resets=protocol=='corrected');sys.path.insert(0,str(official))
+    kl_mode=getattr(args,'adaptive_kl',None) or ('legacy' if native_only else 'actual')
+    optimization=optimization_contract(kl_mode)
+    official=prepare_official(root,args.output,masked_resets=protocol=='corrected',correct_distribution_kl=kl_mode=='actual');sys.path.insert(0,str(official))
     spec=importlib.util.spec_from_file_location('scheduled_official_process',official/'utils/process_sarl.py')
     module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
     cfg=yaml.safe_load((official/'cfg/ppo/config.yaml').read_text())
     cfg['policy'].update(backbone_type='pn',freeze_backbone=False,obs_dim=300 if native_only else 565)
     cfg['seed']=args.seed;task.cfg['seed']=args.seed
+    cfg['learn']['adaptive_kl_contract']=optimization
     torch.manual_seed(args.seed)
     env=ScheduledOfficialEnv(VecTaskPython(task,'cuda:0',cfg['clip_observations'],cfg['clip_actions']),snapshot,runtime,native_only=native_only,
         protocol=protocol,goal_type=args.goal_type,termination_policy=args.termination_policy)
@@ -276,6 +294,9 @@ def run(task,snapshot,sim_step,actor,runtime,args):
             from .official_evaluation import evaluate
             return evaluate(env,ppo.actor_critic,args,args.native_checkpoint_iteration)
         if packet.get('schema')!='ref2dex.scheduled-official-ppo.v1' or packet['conditioning']!=scheduled_conditioning_contract():raise ValueError('Official scheduled checkpoint required')
+        optimization_migration=validate_optimization(packet.get('optimization_contract'),optimization,
+            evaluating=getattr(args,'evaluate',False),migration_reason=getattr(args,'checkpoint_migration_reason',None))
+        (args.output/'optimization-migration.json').write_text(json.dumps(optimization_migration,indent=2)+'\n')
         migration=validate_execution(packet.get('execution_identity'),identity,evaluating=getattr(args,'evaluate',False),
             migration_reason=getattr(args,'checkpoint_migration_reason',None))
         (args.output/'checkpoint-migration.json').write_text(json.dumps(migration,indent=2)+'\n')
@@ -287,7 +308,7 @@ def run(task,snapshot,sim_step,actor,runtime,args):
     if distributed_ready():
         for parameter in ppo.actor_critic.parameters():dist.broadcast(parameter.data,src=0)
     (args.output/'training-config.json').write_text(json.dumps(cfg,indent=2)+'\n')
-    started=time.monotonic();state=dict(iteration=completed,optimizer_steps=0)
+    started=time.monotonic();state=dict(iteration=completed,optimizer_steps=0,optimization_contract=optimization)
     original_step=ppo.optimizer.step
     def step(*a,**kw):
         result=original_step(*a,**kw);state['optimizer_steps']+=1;return result
@@ -340,7 +361,7 @@ def run(task,snapshot,sim_step,actor,runtime,args):
             torch.save(dict(schema='ref2dex.scheduled-official-ppo.v1',model=ppo.actor_critic.state_dict(),
                 optimizer=ppo.optimizer.state_dict(),iteration=iteration,step_size=ppo.step_size,
                 config=cfg,conditioning=scheduled_conditioning_contract(),execution_identity=identity,bc_source=str(args.policy),
-                resume_semantics='model/optimizer; fresh native episodes'),partial)
+                resume_semantics='model/optimizer; fresh native episodes',optimization_contract=optimization),partial)
             partial.replace(dest)
             removed=prune_checkpoints(args.output,final_iteration=completed+args.ppo_updates)
             if removed:

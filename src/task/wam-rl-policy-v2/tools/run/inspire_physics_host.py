@@ -47,6 +47,7 @@ def main():
     p.add_argument('--object-manifest',type=Path)
     p.add_argument('--state-transport',choices=['json','packed'],default='json')
     p.add_argument('--sequence',help='Exact TRAIN motion for bounded canonical-command replay')
+    p.add_argument('--fixed-motions-json',type=Path,help='Engineering replay only: exact collection batch membership, no object sampler')
     a=p.parse_args();a.cache=a.cache.resolve();a.output=a.output.resolve();a.socket=a.socket.resolve()
     if a.output.exists() or ROOT/'outputs/wam-rl-policy-v2' not in a.output.parents or not 2<=a.envs<=256:
         raise ValueError('fresh bounded native host required')
@@ -72,6 +73,11 @@ def main():
     if torch.__version__!='2.0.1+cu118':raise ValueError('pinned native Torch2.0.1 required')
     torch.set_num_threads(2);torch.manual_seed(a.seed);np.random.seed(a.seed)
     meta=json.loads((a.cache/'manifest.json').read_text());records=[r for r in meta['sequences'] if r['split']=='train']
+    if a.fixed_motions_json:
+        names=json.loads(a.fixed_motions_json.read_text())['sequences'];by_name={r['sequence']:r for r in meta['sequences']}
+        if len(names)!=a.envs or len(set(names))!=len(names):raise ValueError('fixed replay needs one motion per environment')
+        records=[by_name[name] for name in names]
+        if a.sequence or a.object_manifest:raise ValueError('fixed replay cannot use policy sampling flags')
     if a.sequence:
         records=[r for r in records if r['sequence']==a.sequence]
         if len(records)!=1:raise ValueError('one known TRAIN replay sequence required')
@@ -99,7 +105,7 @@ def main():
     DexploreTask._load_table=table
     original_create=native.create_rlgpu_env
     def create(**kwargs):
-        native.cfg['env'].update(motion_file=files,objectMotionSampling=True,hardObjectOversampling=False,
+        native.cfg['env'].update(motion_file=files,objectMotionSampling=not bool(a.fixed_motions_json),hardObjectOversampling=False,
             stateInit='Start',hybridInitProb=1.,enableEarlyTermination=False,saveImages=False,export_rl=False,playdataset=False)
         native.cfg_train['params']['config']['multi_gpu']=False
         return original_create(**kwargs)
@@ -203,11 +209,11 @@ def main():
                     if audit['steps']%128==0:
                         # This counts motion initializations, not completed or
                         # successful trajectories; keep coverage visible live.
-                        audit['motion_visits']=task._motion_sampler.visits.cpu().tolist()
+                        audit['motion_visits']=task._motion_sampler.visits.cpu().tolist() if task._motion_sampler is not None else []
                         audit['reset_setter_submissions']=getattr(task,'_inspire_reset_setter_submissions',0)
                         save()
             audit.update(status='COMPLETED',elapsed_s=time.monotonic()-started,
-                motion_visits=task._motion_sampler.visits.cpu().tolist())
+                motion_visits=task._motion_sampler.visits.cpu().tolist() if task._motion_sampler is not None else [])
             save();task.gym.destroy_sim(task.sim)
 
     def host_run(runner,command):

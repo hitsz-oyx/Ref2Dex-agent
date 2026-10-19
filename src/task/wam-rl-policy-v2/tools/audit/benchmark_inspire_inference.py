@@ -36,7 +36,7 @@ def main():
     from scipy.spatial.transform import Rotation
     from wam_rl_policy_v2.wam_v4_runtime import V4Runtime
     from wam_rl_policy_v2.batched_geometry import workspace_valid
-    from wam_rl_policy_v2.inspire_shadow import expanded_model, CURRENT_DIM, tau_world
+    from wam_rl_policy_v2.inspire_shadow import expanded_model, CURRENT_DIM, TAU_SLICE, VALID_INDEX, tau_world
     spec = importlib.util.spec_from_file_location('inspire_full_bc_inputs', TASK/'tools/run/inspire_full_bc.py')
     module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
     torch.set_num_threads(2); torch.manual_seed(246)
@@ -111,11 +111,11 @@ def main():
             action_error=None
             if actor is not None:
                 # Same measured current for both trajectories: isolate tau drift.
-                x=actor.x_mean.expand(len(predicted),-1).clone();x[:,:CURRENT_DIM]=current.cuda();x[:,-1]=1
+                x=actor.x_mean.expand(len(predicted),-1).clone();x[:,:CURRENT_DIM]=current.cuda();x[:,VALID_INDEX]=1
                 rot=Rotation.from_quat(current[:,287:291].numpy()).as_matrix()
-                x[:,CURRENT_DIM:-1]=torch.as_tensor(tau_world(references[0].numpy(),rot).reshape(len(predicted),264),device='cuda')
+                x[:,TAU_SLICE]=torch.as_tensor(tau_world(references[0].numpy(),rot).reshape(len(predicted),264),device='cuda')
                 old=actor(x)
-                x[:,CURRENT_DIM:-1]=torch.as_tensor(tau_world(predicted.numpy(),rot).reshape(len(predicted),264),device='cuda')
+                x[:,TAU_SLICE]=torch.as_tensor(tau_world(predicted.numpy(),rot).reshape(len(predicted),264),device='cuda')
                 action_error=float((actor(x)-old).abs().max())
             row=dict(mode=mode,batch=size,seconds=durations,median_s=float(np.median(durations)),
                      max_trajectory_error_m=error,max_repeat_error_m=repeat_error,

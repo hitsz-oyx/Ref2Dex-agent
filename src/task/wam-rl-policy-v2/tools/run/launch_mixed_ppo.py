@@ -20,6 +20,7 @@ def main():
     p.add_argument('--save-every',type=int,default=200)
     p.add_argument('--port',type=int,default=0);p.add_argument('--resume',type=Path)
     p.add_argument('--checkpoint-migration-reason')
+    p.add_argument('--adaptive-kl',choices=['actual','legacy'],default='actual')
     p.add_argument('--execution-protocol',choices=['corrected','legacy'],default='corrected')
     p.add_argument('--goal-type',choices=['position_only','se3_pose'],default='position_only')
     p.add_argument('--termination-policy',choices=['wam_workspace','common_workspace'],default='wam_workspace')
@@ -45,6 +46,7 @@ def main():
         policy=str(a.policy),resume=str(a.resume),python=sys.executable,
         execution_protocol=a.execution_protocol,goal_type=a.goal_type,termination_policy=a.termination_policy,
         checkpoint_migration_reason=a.checkpoint_migration_reason,
+        adaptive_kl=a.adaptive_kl,
         training='pinned official PPO run/update/storage; synchronized gradients/KL/advantage statistics; frozen WAM; TRAIN only')
     write(a.output/'process.json',status)
     children=[];streams=[];started=time.monotonic();stopped=[False]
@@ -61,7 +63,7 @@ def main():
                 '--envs',str(a.envs),'--ppo-updates',str(a.updates),'--ticks',str(a.ticks),
                 '--seconds',str(a.seconds),'--seed',str(a.seed),'--official-ppo','--save-every',str(a.save_every)]
             if a.resume:cmd+=['--rl-checkpoint',str(a.resume)]
-            cmd+=['--execution-protocol',a.execution_protocol,'--goal-type',a.goal_type,'--termination-policy',a.termination_policy]
+            cmd+=['--execution-protocol',a.execution_protocol,'--goal-type',a.goal_type,'--termination-policy',a.termination_policy,'--adaptive-kl',a.adaptive_kl]
             if a.checkpoint_migration_reason:cmd+=['--checkpoint-migration-reason',a.checkpoint_migration_reason]
             env=dict(os.environ,REF2DEX_RUN_ROOT=str(ROOT),REF2DEX_CODE_COMMIT=commit,
                 OMP_NUM_THREADS='2',OPENBLAS_NUM_THREADS='2',PYTHONDONTWRITEBYTECODE='1',
