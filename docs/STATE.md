@@ -1,3 +1,17 @@
+## 2026-10-19 统一TaskSpec与实测执行接口第一批通过，Inspire长训继续停止
+
+新增TaskSpec、ACQUIRE/TRACK/RELEASE、task10、两机器人adapter和同轮力采集接口；
+Inspire含力有效位的current421/scheduled686，Shadow310/575，actor容量沿用Shadow。
+108项Task测试通过，真实双环境step/reset的力有效性、邻居隔离、PD/episode检查通过；
+两条新力归档采集成功，真实旧BC迁移动作差Shadow4.77e-7、Inspire1.79e-7。
+修复延迟抓取确认丢失路径起点；ACQUIRE只暂存候选几何证据，对外cursor保持冻结。
+50物体完美参考/合成反馈的路径及阶段测试50/50，不是机器人成功率。
+完整660旧示教重放：581进入TRACK，8条有少量确认进度，0路径/任务完成，不能视为新策略评估。
+旧660归档仍缺DOF力；真实示教与8mm/.12rad路径容差仍不相容，shape未训练、
+原生支撑反馈及新合同BC/PPO入口尚待接线，未恢复六卡长训。
+[实现与边界](../src/task/wam-rl-policy-v2/docs/research/2026-10-19-measured-task-interface.md)、
+[实验记录](../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-inspire-task-contract.md)。
+
 ## 2026-10-19 WAM-v5工程合同修复后，从10049恢复四卡长训
 
 用户批准spawn loader、实际batch绑定和独立τ候选保留。原768在10049正常保存停止；

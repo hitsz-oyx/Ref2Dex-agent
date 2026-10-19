@@ -122,3 +122,72 @@ task7解决明确的局部物体指令缺失，不保证相同物体任务下不
 当前只讨论新实现，未恢复721手参考、未改正在运行的WAM-v5、未启动新训练。
 DOF force在原生仿真已启用但当前660存档未保存；连续body/object接触力已保存。
 新任务协议应从完整原始660重新重放准入，不能将旧协议超时后的命令永久标成坏数据。
+
+
+### 用户批准的统一 TaskSpec 与实测执行接口：第一批实现
+
+本轮是工程 Blocker 处理，不作为训练效果实验。run_id 为
+`inspire-measured-task-20261019-r1/r2/r3/r4`，产物位于同名 outputs/wam-rl-policy-v2 目录。
+代码起点45ac5e9e，后续命名列/τ布局与事件合同对齐94b98f76，阶段确认修复b34cac0d。
+外部WAM-v5的并行Git提交不代表本轮改变了其训练；实际运行版本另见budget/manifest。
+未启动新的BC/PPO，旧六卡PPO仍停止，旧checkpoint与全部660原始源保持。
+
+实现 TaskSpec、TaskScheduler、FeedbackObserver、task10、机器人adapter、命名列扩展、
+PointNet shape64接口和增广阶段潜势奖励。Shadow current310/scheduled575；Inspire原312
+加DOF力18、连续接触力15、shape64、两个力有效位为robot411，current421/scheduled686。
+actor仍为1024/1024/512/512 ELU；新增列初始权重为0，原裁剪前缀不变。
+Inspire τ从旧交错base/tip顺序迁移到共同palm/bases/tips时，归一化与首层权重一起置换。
+事件字段与WAM-v5新增可选分支的next-contact-release-plan.frame30.v1数值合同对齐，
+已知NONE与unknown mask区分；旧v4/v5权重未训练事件，不能据此宣称事件已接入当前模型。
+
+原生力检查r1在GPU1、2环境13步加一次局部reset，13.17秒；r2用dense512交互表面复核，
+13.99秒。两次均验证reset清零/invalid、step后valid、邻居状态/力/clock不变、
+canonical episode错配0、PD最大误差0。686维只做输入格式检查，shape64用显式零测试fixture，
+没有用随机/未训练形状特征控制机器人。模型graspenv/Torch2.4.1+cu121，
+原生dexplore_v120_train/Torch2.0.1+cu118。
+
+同轮新增力采集复用原官方teacher，仅作数据生成器：GPU0，cup和airplane两条，共426状态/
+424命令，28.34秒；DOF18、contact validity与frame_tick对齐，首帧invalid且DOF力为0，
+后续valid，canonical/applied逐位相同。DOF力绝对最大分别10.05、41.63（原生广义力单位），
+说明原始[-5,5]裁剪不适用于新增力字段。全部新产物约数MiB，无大型缓存、视频或新模型保存。
+全部660旧归档仍缺DOF力，不能将这两条新执行的力值拼接到旧动作；完整新BC仍需同轮全量数据。
+
+r2完整660归档重放478.46秒：保留589 TRAIN/71 DEV、原始帧号及全部事件，77条存在多个
+接触区间。全部参考尾部为计划释放，不能据此证明真实放置/支撑。该次暴露新时序bug：
+几何tracker只在确认抓取后启动，丢失此前已观测的路径起点，导致全部确认进度0。
+最小延迟确认回归先失败。r3修复时进一步明确用户要求的ACQUIRE cursor冻结，提前停止保留记录。
+最终实现从首帧记录起点，抓取候选期间仅保留临时几何证据；实测抓取确认进入TRACK后才提交，
+候选中断则撤销临时后缀，恢复失控时不推进。路径预算排除acquire等待，保留真实观测dt的穿越保护。
+108项Task测试通过，包括外力移动不能积累成抓取前任务进度、候选撤销、已知NONE与实际WAM-v5
+编码器兼容、旧Inspire τ列迁移、终止潜势望远镜关系。
+
+另做50个真实物体参考的几何/阶段检查：用完美参考位姿和合成抓取/释放/支撑反馈，
+50/50路径及合成任务完成，9.71秒。这是状态机工程验证，绝非机器人成功率。
+真实teacher仍与严格路径容差不相容：例如s10_cup_drink_1首个milestone在原始47帧，
+所有实际状态中最近位置状态也差15.7mm、旋转0.202rad、平均表面点16.8mm，
+超过8mm/.12rad/8mm；即使几何readiness全True，该序列也不能确认第一个milestone。
+因此时序修复不等于已解决任务标签与示教相容性，不能通过偷偷替换参考路径或放宽容差来制造结论。
+完整r4重放结果另行追加；支撑反馈仍需原生接线，shape encoder未训练，奖励和新观测尚未切入
+正式PPO入口，故不恢复长训。
+
+
+真实旧BC权重/真实DEV输入的GPU0迁移检查（r4/model-migration.json）也通过：
+Shadow565→575，32帧原始/迁移后动作最大差4.77e-7；Inspire584→686，32帧最大差1.79e-7。
+不保存新checkpoint，不将函数保持检查解释为PPO迁移或新观测已学会使用；
+Inspire新增的力/shape列仅为格式fixture，零扩展使这些列尚不改变旧策略。
+
+
+最终r4完整重放已完成（b34cac0d，624.50秒）：660条/589 TRAIN/71 DEV，581条曾进入TRACK；
+8条确认少量几何进度，最大2.26%，0条路径完成、0条任务完成。32条路径停滞超时、
+2条acquire超时，626条在归档结束时尚未完成。均未进入RELEASE，因此不能把此轮用于
+验证真实释放/支撑效果。此结果是已保存teacher执行与任务合同的重放，不是新BC或PPO成功率。
+77条多次计划接触完整保留；全部660缺DOF力的边界仍明确。
+起点/延迟确认bug已有回归锁定，但真实示教的任务相容性仍是独立blocker；下一步优先
+核对已知参考与实际示教目标的构造/可实现性，再推进完整同轮力数据、shape与两阶段BC。
+不在本轮私改原始参考、容差、冻结数据或恢复10000轮PPO。
+
+验证：108项Task测试通过，22项governance测试通过，所改Python/结构化文件/Markdown链接检查通过。
+全仓verify仍失败于trajectory-policy的6张历史v2实验卡缺probe_id等必填字段；本轮未修改
+这些无关历史卡。索引检查另有并行WAM-v5新增实验卡尚待生成的差异，不属于本轮新卡。
+本轮未新增experiment ID或消耗validation seed。所有资源任务均已结束，GPU归还，
+本轮四个run目录合计约3.8MiB，无模型checkpoint新增；数据/指标不足不升级为方法结论。
