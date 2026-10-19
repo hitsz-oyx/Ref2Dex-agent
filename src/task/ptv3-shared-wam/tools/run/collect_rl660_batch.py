@@ -124,6 +124,13 @@ def main():
         reset_module=importlib.util.module_from_spec(module_spec);module_spec.loader.exec_module(reset_module)
         from env.tasks.base_dexplore_task import DexploreTask
         reset_module.install_reset_submission(DexploreTask,gymtorch)
+        original_parse=native.parse_sim_params
+        def parse(*pos,**kwargs):
+            sim=original_parse(*pos,**kwargs)
+            sim.physx.max_gpu_contact_pairs=8*1024*1024
+            sim.physx.default_buffer_size_multiplier=5.
+            return sim
+        native.parse_sim_params=parse
     started = time.monotonic()
     manifest = dict(schema='ref2dex.rl660-batch.v1',status='RUNNING',sequences=names,
         seed=args.seed,physical_gpu=args.gpu,fps=30,source_membership=str(source.resolve()),
@@ -133,6 +140,7 @@ def main():
         actor_role='official data generator only; no official weights in learned WAM/Chunk-R')
     manifest['capture_current_observation'] = args.capture_current_observation
     manifest['reset_submission']='once_before_simulate.v1' if args.capture_dof_force else 'legacy'
+    if args.capture_dof_force:manifest['physx_buffers']=dict(max_gpu_contact_pairs=8*1024*1024,default_buffer_size_multiplier=5.)
     manifest['terminal_reference_clamp'] = args.capture_current_observation or args.terminal_reference_clamp
     write(out/'manifest.json',manifest)
 
