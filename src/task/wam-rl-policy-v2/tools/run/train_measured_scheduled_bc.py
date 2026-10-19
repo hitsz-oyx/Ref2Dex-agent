@@ -22,15 +22,15 @@ def load(manifest, split):
     sys.path.insert(0, str(TASK / "src"))
     from wam_rl_policy_v2.teacher_dataset import TeacherRolloutCorpus
     corpus = TeacherRolloutCorpus(manifest, split)
-    measured=[]; task=[]; action=[]; object_id=[]; points=[]; sequences=[]
+    measured=[]; task=[]; action=[]; object_id=[]; points=[]; sequences=[]; active_masks=[]
     for i in range(len(corpus)):
         e=corpus.episode(i); keep=np.asarray(e["active"],bool)
         if not keep.any(): continue
         oid=len(points); points.append(e["object_points"])
         measured.append(e["measured"][keep]); task.append(e["task"][keep]); action.append(e["action"][keep])
-        object_id.append(np.full(int(keep.sum()),oid,np.int64)); sequences.append(e["sequence"])
+        object_id.append(np.full(int(keep.sum()),oid,np.int64)); sequences.append(e["sequence"]); active_masks.append(keep)
     return dict(measured=np.concatenate(measured),task=np.concatenate(task),action=np.concatenate(action),
-                object_id=np.concatenate(object_id),points=np.stack(points),sequences=sequences)
+                object_id=np.concatenate(object_id),points=np.stack(points),sequences=sequences,active_masks=active_masks)
 
 
 def main():
@@ -51,10 +51,19 @@ def main():
         rows=[r for r in layout['records'] if r['split']==split]
         if [r['sequence'] for r in rows]!=data['sequences']: raise ValueError(split+' sequence order changed')
         total=sum(r['commands'] for r in rows)
-        if total!=len(data['action']): raise ValueError(split+' row count mismatch')
         tau=np.load(a.tau_cache/f'{split}-tau.npy',mmap_mode='r'); valid=np.load(a.tau_cache/f'{split}-valid.npy',mmap_mode='r')
         if tau.shape!=(total,264) or valid.shape!=(total,): raise ValueError(split+' tau shape mismatch')
-        return tau,valid
+        compressed_tau=[]; cursor=0
+        compressed_valid=[]
+        for sequence, mask in zip(data['sequences'], data['active_masks']):
+            row=next(r for r in rows if r['sequence']==sequence)
+            segment=slice(row['lo'],row['hi'])
+            if len(mask) != int(row['commands']): raise ValueError(split+' active mask length mismatch for '+sequence)
+            compressed_tau.append(np.asarray(tau[segment])[mask])
+            compressed_valid.append(np.asarray(valid[segment])[mask])
+            cursor += int(mask.sum())
+        if cursor != len(data['action']): raise ValueError(split+' compressed row count mismatch')
+        return np.concatenate(compressed_tau),np.concatenate(compressed_valid)
     train_tau,train_valid=check('train',train); dev_tau,dev_valid=check('dev',dev)
     if not train_valid.any() or not dev_valid.any(): raise ValueError('scheduled admission has no valid rows')
     device=torch.device('cuda')
