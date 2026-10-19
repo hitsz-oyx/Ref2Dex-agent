@@ -32,12 +32,13 @@ def main():
         gid=row['geometry']
         if gid not in geometry:
             g=Path(meta['records'][gid]['geometry']);g=g if g.is_absolute() else a.cache/g
-            with np.load(g) as z:geometry[gid]=z['query'].copy()
+            with np.load(g) as z:geometry[gid]=(z['query'].copy(),z['surface'].copy())
         source=Path(row['source']);batch=json.loads((source.parents[1]/'manifest.json').read_text())
         contact_ids=batch['observation_contract']['contact_body_ids']
         with np.load(source/'trajectory.npz') as z:
             spec=dexplore_task_spec(z['reference_obj'],z['reference_current'])
-            controller=TaskController(spec,geometry[gid]);phases=Counter();transitions=Counter();probes=0
+            query,surface=geometry[gid]
+            controller=TaskController(spec,query,interaction_points=surface);phases=Counter();transitions=Counter();probes=0
             last=None;steps=0;missing_force='dof_force' not in z.files
             for t in range(len(z['obj'])):
                 contact_valid=bool(z['contact_force_valid'][t]) if 'contact_force_valid' in z.files else t>0
@@ -58,7 +59,7 @@ def main():
         if len(rows)%50==0:print(json.dumps(dict(sequences=len(rows),elapsed_s=time.monotonic()-started)),flush=True)
     report=dict(status='COMPLETED',engineering_only=True,annotation_schema=ANNOTATION_SCHEMA,
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),python=sys.executable,
-        input=str(a.cache.resolve()),elapsed_s=time.monotonic()-started,sequences=len(rows),
+        input=str(a.cache.resolve()),interaction_surface_points=512,elapsed_s=time.monotonic()-started,sequences=len(rows),
         splits=dict(Counter(r['split'] for r in rows)),terminal_modes=dict(Counter(r['terminal_mode'] for r in rows)),
         multiple_contact_sequences=sum(sum(e['type']=='CONTACT' for e in r['events'])>1 for r in rows),
         phase_frames=dict(sum((Counter(r['phase_frames']) for r in rows),Counter())),

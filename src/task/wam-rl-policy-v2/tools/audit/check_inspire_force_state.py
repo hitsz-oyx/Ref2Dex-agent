@@ -31,8 +31,8 @@ def main():
     with np.load(Path(row['source'])/'trajectory.npz') as z:
         actions=z['action'][:12].copy();spec=dexplore_task_spec(z['reference_obj'],z['reference_current'])
     g=Path(meta['records'][row['geometry']]['geometry']);g=g if g.is_absolute() else a.cache/g
-    with np.load(g) as z:points=z['query'].copy()
-    controllers=[TaskController(spec,points) for _ in range(2)]
+    with np.load(g) as z:points=z['query'].copy();surface=z['surface'].copy()
+    controllers=[TaskController(spec,points,interaction_points=surface) for _ in range(2)]
     private=ROOT/'tmp'/('force-state-'+str(os.getpid()));private.mkdir(mode=0o700)
     sock=private/'s';server=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM)
     server.settimeout(120);server.bind(str(sock));server.listen(1)
