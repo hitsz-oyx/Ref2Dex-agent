@@ -87,9 +87,10 @@ def prepare(args):
     name = 'meshdatav3_pc_fps/'+args.object_code+'/coacd/pc_fps1024_%03d.npy' % round(args.scale*100)
     remote = RemoteZip(FPS_URL)
     with zipfile.ZipFile(remote) as archive:
-        info = archive.getinfo(name)
+        archive_name = name if name in archive.namelist() else name.replace('meshdatav3_pc_fps/', 'meshdatav3_pc_fps_new/', 1)
+        info = archive.getinfo(archive_name)
         if info.file_size > 2**20: raise ValueError('Unexpected point-cloud payload')
-        data = archive.read(name)
+        data = archive.read(archive_name)
     dest=assets/name;dest.parent.mkdir(parents=True);dest.write_bytes(data)
     patches=[]
     def replace(relative, old, new):
@@ -101,6 +102,7 @@ def prepare(args):
     replace('dexgrasp/autoencoding/PN_Model.py','from maniskill_learn.networks.backbones.pointnet import',
         'from algo.pn_utils.maniskill_learn.networks.backbones.pointnet import')
     replace('dexgrasp/cfg/train/universal_policy_state_based.yaml','  static_init: True','  static_init: False')
+    replace('dexgrasp/algo/pn_utils/maniskill_learn/utils/meta/__init__.py','from .magic_utils import *','')
     # Guard every optimizer step and collect passive evidence at upstream readout.
     hook='''    assert args.test and not args.train, 'Evaluation-only runner requires --test'
     import torch
