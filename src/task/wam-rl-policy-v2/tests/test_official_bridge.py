@@ -31,8 +31,10 @@ def test_native_evaluation_never_uses_wam_inputs():
     from wam_rl_policy_v2.official_bridge import ScheduledOfficialEnv
     env=object.__new__(ScheduledOfficialEnv)
     env.native_only=True;env.inputs=None;env.num_envs=2
+    env.termination_policy='native';env.workspace_invalid=np.zeros(2,bool)
     env.ticks=np.zeros(2,int);env.initial_z=np.zeros(2)
     env.streak=np.zeros(2,int);env.longest=np.zeros(2,int)
+    env.dropped_after_hold=np.zeros(2,bool)
     poses=np.repeat(np.eye(4)[None],2,axis=0)
     env.snapshot=lambda:dict(pose=poses,goal=np.zeros((2,3)))
     native=torch.randn(2,300)

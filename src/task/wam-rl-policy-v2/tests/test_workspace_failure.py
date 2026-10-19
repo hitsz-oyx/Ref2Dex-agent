@@ -26,6 +26,10 @@ def test_workspace_failure_terminates_only_affected_environment():
     env.augment=lambda native,ids:torch.zeros(2,565)
     env.workspace_failures=env.reset_count=env.steps=env.completed_episodes=env.successful_episodes=env.held_episodes=0
     env.longest=np.zeros(2)
+    env.streak=np.zeros(2);env.final_near=np.ones(2,bool);env.protocol='corrected'
+    env.episode_ids=np.zeros(2,int);env.initialization_steps=0
+    env.final_successful_episodes=env.final_held_episodes=env.drop_episodes=0
+    env.dropped_after_hold=np.zeros(2,bool)
     _,_,done,_=env.step(torch.zeros(2,24))
     assert done.tolist()==[0,1]
     assert task.reset_buf.tolist()==[0,1]

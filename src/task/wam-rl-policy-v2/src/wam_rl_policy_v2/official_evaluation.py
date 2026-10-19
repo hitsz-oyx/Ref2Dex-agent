@@ -60,15 +60,12 @@ def evaluate(env, actor, args, iteration):
         horizon = int(env.task.max_episode_length) + 2
         for tick in range(horizon):
             action = actor.act_inference(observation)
-            observation, reward, done, _ = env.step(action)
+            observation, reward, done, info = env.step(action)
             returns[~finished] += reward.cpu().numpy()[~finished]
             terminal = done.cpu().numpy().astype(bool)
             for i in np.flatnonzero(terminal & ~finished):
                 records.append(dict(env=int(i),steps=tick+1,
-                    native_success=bool(env.task.successes[i].item()>0),
-                    held60_lift10cm=bool(env.longest[i]>=60),
-                    workspace_failure=bool(env.workspace_invalid[i]),
-                    reward=float(returns[i])))
+                    **info['episode_results'][int(i)],reward=float(returns[i])))
             finished |= terminal
             if finished.all():break
         if not finished.all():raise RuntimeError('First episodes did not terminate within native horizon')
@@ -77,8 +74,15 @@ def evaluate(env, actor, args, iteration):
         deterministic_actions=True,optimizer_steps=0,random_time=False,
         native_only=env.native_only,observation_dim=env.num_observations,
         reset_protocol="cpu-reset-rng-and-canonical-table.v1",
+        execution_protocol=env.protocol,goal_type=env.goal_type,termination_policy=env.termination_policy,
+        metrics_schema='ref2dex.episode-outcomes.v2',
         native_success_rate=float(np.mean([r['native_success'] for r in records])),
         held60_lift10cm_rate=float(np.mean([r['held60_lift10cm'] for r in records])),
+        ever_held60_rate=float(np.mean([r['ever_held60'] for r in records])),
+        final_held60_rate=float(np.mean([r['final_held60'] for r in records])),
+        drop_after_hold_rate=float(np.mean([r['drop_after_hold'] for r in records])),
+        final_task_success_rate=float(np.mean([r['final_task_success'] for r in records])),
+        final_stable_success_rate=float(np.mean([r['final_stable_success'] for r in records])),
         workspace_failures=sum(r['workspace_failure'] for r in records),
         mean_return=float(returns.mean()),elapsed_s=time.monotonic()-started,
         scope='fixed TRAIN panel; first episodes only; not held-out generalization',records=records)

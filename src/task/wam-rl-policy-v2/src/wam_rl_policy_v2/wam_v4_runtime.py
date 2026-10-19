@@ -289,6 +289,10 @@ class V4Runtime:
         self.geometry = load_geometry(cache, env_objects, dense_manifest, dense_sha256)
         if len(self.geometry) != len(env_objects):
             raise ValueError("one prepared v4 geometry per environment required")
+        from .execution_identity import file_digest, value_digest, geometry_bindings
+        self.conditioning_identity = dict(checkpoint_sha256=file_digest(checkpoint),step=self.step,
+            config_sha256=value_digest(self.config),stats_sha256=value_digest(self.stats))
+        self.geometry_bindings = geometry_bindings(env_objects,self.geometry)
 
     def batch(self, objects, hands, *, goal_delta=None, goal_world=None):
         samples = v4_online_samples(np.asarray(objects, dtype=np.float64),

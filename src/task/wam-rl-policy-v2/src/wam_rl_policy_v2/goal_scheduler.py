@@ -92,9 +92,15 @@ class OrderedGoalScheduler:
     The module emits a goal, never executable robot commands.
     """
     def __init__(self, reference_poses, reference_times_s, object_points, *,
-                 config=None, mandatory_indices=(), interaction_points=None, interaction_config=None):
+                 config=None, mandatory_indices=(), interaction_points=None, interaction_config=None,
+                 goal_type='se3_pose'):
+        if goal_type not in ('position_only', 'se3_pose'):
+            raise ValueError('explicit position_only or se3_pose goal required')
+        self.goal_type = goal_type
         self.config = config or SchedulerConfig()
         self.poses = np.stack([_pose(p) for p in reference_poses])
+        if goal_type == 'position_only':
+            self.poses[:, :3, :3] = self.poses[0, :3, :3]
         self.times = np.asarray(reference_times_s, dtype=np.float64).copy()
         self.points = np.asarray(object_points, dtype=np.float64).copy()
         if (len(self.poses) < 2 or self.times.shape != (len(self.poses),)
@@ -134,6 +140,8 @@ class OrderedGoalScheduler:
 
     def _errors(self, actual, goal):
         position = float(np.linalg.norm(actual[:3, 3]-goal[:3, 3]))
+        if self.goal_type == 'position_only':
+            return position, 0., position
         angle = float(Rotation.from_matrix(actual[:3, :3].T @ goal[:3, :3]).magnitude())
         points = float(np.linalg.norm(transform_points(actual, self.points)-transform_points(goal, self.points), axis=-1).mean())
         return position, angle, points
@@ -196,12 +204,18 @@ class OrderedGoalScheduler:
         if (translation > self.config.max_crossing_translation_m
                 or rotation > self.config.max_crossing_rotation_rad):
             return None, None
-        start = transform_points(self.last_pose, self.points)
-        direction = transform_points(actual, self.points)-start
+        if self.goal_type == 'position_only':
+            start = self.last_pose[:3, 3]
+            direction = actual[:3, 3]-start
+            target_points = target[:3, 3]
+        else:
+            start = transform_points(self.last_pose, self.points)
+            direction = transform_points(actual, self.points)-start
+            target_points = transform_points(target, self.points)
         width = float(np.sum(direction**2))
         if width < 1e-12:
             return None, None
-        fraction = float(np.clip(np.sum((transform_points(target, self.points)-start)*direction)/width, 0, 1))
+        fraction = float(np.clip(np.sum((target_points-start)*direction)/width, 0, 1))
         intermediate = interpolate_pose(self.last_pose, actual, fraction)
         return (fraction, 'bounded_crossing') if self._reached(intermediate, target) else (None, None)
 
@@ -217,6 +231,12 @@ class OrderedGoalScheduler:
 
     def _update_iter(self, object_pose, time_s, *, execution_ready=None, lost_control=False, hand_points=None, _validated=False, _interaction_geometry=None):
         actual, now, c = object_pose.copy() if _validated else _pose(object_pose), float(time_s), self.config
+        if self.goal_type == 'position_only':
+            # Orientation is unconstrained: ask WAM for translation at the live
+            # orientation, including projection, recovery and final settling.
+            # The interaction observer still receives the actual SE(3) motion.
+            self.poses[:, :3, :3] = actual[:3, :3]
+            self.path_points = self.points @ actual[:3, :3].T + self.poses[:, None, :3, 3]
         if (not np.isfinite(now) or (self.last_time is not None and now <= self.last_time)
                 or (execution_ready is not None and not isinstance(execution_ready, (bool, np.bool_)))
                 or not isinstance(lost_control, (bool, np.bool_))):
@@ -357,7 +377,7 @@ class OrderedGoalScheduler:
             goal_delta=self.points @ rotation_delta.T+translation_delta-self.points
         else:
             goal_delta=rigid_goal_delta(actual,goal,self.points)
-        return dict(goal_pose=goal, goal_delta=goal_delta,
+        return dict(goal_pose=goal, goal_delta=goal_delta, goal_type=self.goal_type,
             horizon_s=c.horizon_s, goal_semantics='spatial_path_waypoint',
             reference_endpoint_time_s=None, progress_semantics='geometric_path_only',
             readiness_source='external' if readiness_external else 'heuristic_or_unknown',

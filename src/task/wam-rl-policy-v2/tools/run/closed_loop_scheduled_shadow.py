@@ -27,6 +27,10 @@ def main():
  p.add_argument('--object-manifest',type=Path);p.add_argument('--rl-checkpoint',type=Path)
  p.add_argument('--wam-checkpoint',type=Path);p.add_argument('--wam-surface-manifest',type=Path)
  p.add_argument('--allow-wam-geometry-replacement',action='store_true',help='Evaluation only: explicitly substitute the local geometry manifest')
+ p.add_argument('--checkpoint-migration-reason',help='Explicitly acknowledge a legacy/unbound or changed execution contract; recorded in output')
+ p.add_argument('--execution-protocol',choices=['corrected','legacy'],help='Default corrected; native official reproduction defaults legacy')
+ p.add_argument('--goal-type',choices=['position_only','se3_pose'],default='position_only')
+ p.add_argument('--termination-policy',choices=['native','wam_workspace','common_workspace'],help='Use common_workspace for matched native/WAM comparisons')
  p.add_argument('--rank',type=int,default=0);p.add_argument('--world-size',type=int,default=1)
  p.add_argument('--rendezvous',default='tcp://127.0.0.1:29671')
  p.add_argument('--save-every',type=int,default=20)
@@ -122,7 +126,8 @@ def main():
   runtime=V4Runtime(wam_checkpoint,env_objects,cache,dense_manifest=wam_surface,
     allow_geometry_replacement=a.allow_wam_geometry_replacement)
   manifest.update(wam_checkpoint=str(wam_checkpoint),wam_surface_manifest=str(wam_surface),
-    wam_geometry_identity=runtime.geometry_identity)
+    wam_geometry_identity=runtime.geometry_identity,execution_protocol=a.execution_protocol,
+    goal_type=a.goal_type,termination_policy=a.termination_policy,checkpoint_migration_reason=a.checkpoint_migration_reason)
   manifest['wam_step']=runtime.step
   if a.ppo_updates or a.evaluate:
    if a.official_ppo:
@@ -155,7 +160,7 @@ def main():
     task.reset_buf[:]=1;task.step(torch.zeros((1,24),device='cuda'),-1)
    if task.reset_buf.any():raise ValueError('reset remains pending')
    first=snapshot();initial.append(first['current']);target=first['pose'].copy();target[:3,3]=first['goal']
-   scheduler=OrderedGoalScheduler([first['pose'],target],[0,2],runtime.geometry[0][2],interaction_points=runtime.geometry[0][0])
+   scheduler=OrderedGoalScheduler([first['pose'],target],[0,2],runtime.geometry[0][2],interaction_points=runtime.geometry[0][0],goal_type=a.goal_type)
    control=ScheduledShadowControl(runtime,scheduler,actor,TaskIntent('unidex-position-goal'));episode_id='native-%d'%episode;control.reset(episode_id)
    states=[first];commands=[];applied=[];parent_error=0.;decision_trace=[];reset_reason=None;rollout=[]
    with torch.inference_mode():

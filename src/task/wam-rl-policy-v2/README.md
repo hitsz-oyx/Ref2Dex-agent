@@ -16,6 +16,15 @@
 - [批量PPO试跑结果](docs/experiments/probes/P-20261018-scheduled-batch-ppo.md)。
 
 新输出使用 `outputs/wam-rl-policy-v2/<run_id>/`。
+
+2026-10-19 起，新运行默认 `--execution-protocol corrected --goal-type position_only`。
+终止后的下一拍只对重置环境执行官方零动作初始化；该拍不参与PPO loss、KL或优势归一化，
+真实终止transition保留，后续策略动作使用新观测。SE(3)任务显式选择`--goal-type se3_pose`。
+PPO checkpoint绑定WAM权重/归一化、实际逐物体几何及调度/终止合同；旧checkpoint或
+有意换条件必须传`--checkpoint-migration-reason`，产生独立迁移记录。原生官方复现默认
+legacy时序和native终止；匹配WAM对照应显式统一corrected时序和common_workspace终止。
+历史held60保持“曾连续保持”的原义，新增最终保持、曾保持后失守、最终任务成功与终止原因。
+详见[执行边界修复](docs/research/2026-10-19-execution-boundaries.md)。
 已完成产物仍在 `outputs/wam-rl-policy/full-scheduled-current-bc-20261018-local-r1/`，
 初始策略直接读取其中 `fit-fast/best.pt`，无需重新生成缓存或训练BC。
 WAM模型继续复用 `outputs/ptv3-shared-wam-v4/local-control-snapshot-20261018-r1/`。
