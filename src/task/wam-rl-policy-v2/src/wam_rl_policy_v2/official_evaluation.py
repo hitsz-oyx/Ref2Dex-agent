@@ -1,5 +1,6 @@
 """Matched deterministic first-episode evaluation on the native task."""
 import json
+import random
 import time
 import numpy as np
 import torch
@@ -7,6 +8,10 @@ import torch
 
 def evaluate(env, actor, args, iteration):
     actor.eval()
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    torch.cuda.manual_seed_all(args.seed)
     env.task.reset_buf[:] = 1
     started = time.monotonic()
     with torch.inference_mode():
