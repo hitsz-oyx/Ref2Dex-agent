@@ -6,6 +6,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 from .contracts import DATA_SCHEMA,INPUT_SEMANTICS,LABEL_SEMANTICS
+from .storage import read_json,load_array
 
 
 def transform(points,pose):
@@ -64,14 +65,14 @@ def sample_window(sequence,geometry,contact,tick,slot,source_id,sample_id):
 
 class V5Windows(Dataset):
     def __init__(self,manifest,split,cache_size=2):
-        self.path=Path(manifest).resolve();self.meta=json.loads(self.path.read_text());self.split=split
+        self.path=Path(manifest).resolve();self.meta=read_json(self.path);self.split=split
         if (self.meta.get('schema')!=DATA_SCHEMA or self.meta.get('status')!='FROZEN'
                 or self.meta.get('input_semantics')!=INPUT_SEMANTICS
                 or self.meta.get('label_semantics')!=LABEL_SEMANTICS):raise ValueError('frozen independent v5 overlay required')
         if split not in ('train','dev') or not 1<=cache_size<=8:raise ValueError('known split and bounded sequence cache required')
-        self.index=np.load(self.meta['indices'][split],mmap_mode='r')
+        self.index=load_array(self.meta['indices'][split],mmap_mode='r')
         self.cache=OrderedDict();self.cache_size=cache_size
-        geometry=json.loads(Path(self.meta['geometry_manifest']).read_text())
+        geometry=read_json(self.meta['geometry_manifest'])
         self.geometry={r['key']:r for r in geometry['objects']}
         self.geometry_root=Path(self.meta['geometry_manifest']).parent
         source_ids=np.array([r['source_id'] for r in self.meta['sequences']])[self.index[:,0]]
@@ -83,8 +84,8 @@ class V5Windows(Dataset):
     def _sequence(self,seq_id):
         if seq_id not in self.cache:
             row=self.meta['sequences'][seq_id];folder=Path(row['path']);cf=Path(row['contact_path'])
-            seq={p.stem:np.load(p,mmap_mode='r') for p in folder.glob('*.npy')}
-            contact={p.stem:np.load(p,mmap_mode='r') for p in cf.glob('*.npy')}
+            seq={p.stem:load_array(p,mmap_mode='r') for p in folder.glob('*.npy')}
+            contact={p.stem:load_array(p,mmap_mode='r') for p in cf.glob('*.npy')}
             self.cache[seq_id]=(seq,contact);self.cache.move_to_end(seq_id)
             while len(self.cache)>self.cache_size:self.cache.popitem(last=False)
         return self.cache[seq_id]
@@ -94,7 +95,7 @@ class V5Windows(Dataset):
         seq,contact=self._sequence(seq_id)
         name=row['objects'][slot];key=f"s{row['source_id']}:{name}" if row['source_id']<3 else name
         geo=self.geometry[key]
-        with np.load(self.geometry_root/geo['path'],allow_pickle=False) as z:geometry={k:z[k] for k in z.files}
+        with load_array(self.geometry_root/geo['path'],allow_pickle=False) as z:geometry={k:z[k] for k in z.files}
         return sample_window(seq,geometry,contact,tick,slot,row['source_id'],[seq_id,slot,tick])
 
     def draw(self,count,seed,step=0,rank=0):

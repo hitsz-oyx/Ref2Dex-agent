@@ -26,6 +26,7 @@ from ptv3_shared_wam_v4.objectives import normalized_components,combine_componen
 
 def write(path,value):
     tmp=path.with_suffix('.json.part');tmp.write_text(json.dumps(value,indent=2,allow_nan=False)+'\n');tmp.replace(path)
+    path.chmod(0o664)
 
 
 class Steps:

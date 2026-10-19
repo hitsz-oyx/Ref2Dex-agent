@@ -107,7 +107,7 @@ def validate_alignment(joints, valid, base, tolerance=5e-5,source_id=None):
     return error
 
 
-def surface_contact(vertices, vertex_parts, queries, radius=.003, falloff=.010):
+def surface_contact(vertices, vertex_parts, queries, radius=.003, falloff=.010,tree=None,bounds=None):
     """Offline nearest-surface-vertex proximity, explicitly not measured force.
 
     This KD tree belongs exclusively to preparation. Training reads cached values.
@@ -115,7 +115,14 @@ def surface_contact(vertices, vertex_parts, queries, radius=.003, falloff=.010):
     normal-oriented capsule formula and is recorded under a distinct identity.
     """
     from scipy.spatial import cKDTree
-    distance,which=cKDTree(vertices).query(queries,k=1)
+    lo,hi=(vertices.min(0),vertices.max(0)) if bounds is None else bounds
+    margin=radius+3*falloff
+    near=((queries>=lo-margin)&(queries<=hi+margin)).all(-1)
+    confidence=np.zeros(len(queries),np.float16);parts=np.zeros(len(queries),np.uint8)
+    if not near.any():return confidence,parts
+    if tree is None:tree=cKDTree(vertices)
+    distance,which=tree.query(queries[near],k=1)
     contact=np.exp(-np.maximum(distance-radius,0)/falloff)
     contact[distance>radius+3*falloff]=0
-    return contact.astype(np.float16),vertex_parts[which].astype(np.uint8)
+    confidence[near]=contact.astype(np.float16);parts[near]=vertex_parts[which].astype(np.uint8)
+    return confidence,parts

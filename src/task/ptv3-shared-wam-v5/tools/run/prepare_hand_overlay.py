@@ -12,6 +12,7 @@ TASK=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(TASK/'src'))
 from ptv3_shared_wam_v5.preparation import reconstruct,load_base,validate_alignment
 from ptv3_shared_wam_v5.contracts import DATA_SCHEMA,JOINT_NAMES,PART_NAMES
+from ptv3_shared_wam_v5.storage import read_json,load_array
 
 
 def write(path,value):
@@ -79,8 +80,8 @@ def main():
     for sub in ('sequences','records'):(a.output/sub).mkdir(exist_ok=True)
     # This is task-owned generated metadata, never an original raw asset.
     a.plan.chmod(0o664)
-    jobs=json.loads(a.plan.read_text())['jobs'];started=time.monotonic();processed=0
-    records={p.stem:json.loads(p.read_text()) for p in (a.output/'records').glob('*.json')}
+    jobs=read_json(a.plan)['jobs'];started=time.monotonic();processed=0
+    records={p.stem:read_json(p) for p in (a.output/'records').glob('*.json')}
     if a.retry_failed:records={k:r for k,r in records.items() if r['status']=='COMPLETED'}
     write(a.output/'run-manifest.json',dict(schema='ref2dex.wam-v5-preparation-run.v1',git_commit=a.git_commit,
         run_id=a.output.name,work_version=DATA_SCHEMA,plan=str(a.plan),packets=str(a.packets),
@@ -96,15 +97,15 @@ def main():
             if key in records:continue
             source_record=a.packets/'records'/(key+'.json')
             if not source_record.exists():continue
-            record=json.loads(source_record.read_text())
+            record=read_json(source_record)
             if job['source_id'] in (8,9) and record.get('surface_adapter')!='native-mano-v1':continue
             if record['status']=='READY' and not (a.packets/record['packet']).exists():continue
             found=True
             try:
                 if record['status']!='READY':raise ValueError(record.get('reason','native parameters unavailable'))
-                with np.load(a.packets/record['packet'],allow_pickle=False) as z:packet={k:z[k] for k in z.files}
+                with load_array(a.packets/record['packet'],allow_pickle=False) as z:packet={k:z[k] for k in z.files}
                 existing=a.output/'sequences'/key/'meta.json'
-                result=json.loads(existing.read_text()) if existing.exists() else prepare(job,packet,a)
+                result=read_json(existing) if existing.exists() else prepare(job,packet,a)
                 record=dict(status='COMPLETED',**{k:result[k] for k in ('source_id','frames','joint_frames','surface_frames','alignment_max_error_m')})
             except Exception as e:
                 record=dict(status='QUARANTINED',source_id=job['source_id'],reason=type(e).__name__+': '+str(e))

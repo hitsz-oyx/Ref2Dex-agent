@@ -1,0 +1,110 @@
+# PTv3 shared WAM v5
+
+v5 predicts24 frames at30Hz with **21 semantic landmarks per hand**,32 original
+object-flow queries, and2048 object-surface contact queries. It encodes2048
+object points and up to778 surface points per hand with serialized PTv3 at5mm.
+The shared Transformer receives256 scene +42 hand +32 goal tokens, not778
+trajectory tokens. There is no KNN, MANO reconstruction, FK or contact-label
+generation in the model or training reader.
+
+The independent package is `src/ptv3_shared_wam_v5`. It reuses existing PTv3
+primitives through `paths.py`; on the remote server set
+`REF2DEX_V5_BASE_CODE_ROOT` to the frozen v4 training-code root. v4 models,
+checkpoints, source data and running training are not edited.
+
+## Representation
+
+Joint order is wrist, then thumb/index/middle/ring/little, each with three
+articulated origins and a tip. Human thumb roles are CMC/MCP/IP/tip; other
+fingers are MCP/PIP/DIP/tip. Robot landmarks are geometric semantic proxies.
+The recorded Shadow asset uses palm as root, thbase/thhub/thdistal/tip for the
+thumb, and knuckle/middle/distal/tip for other fingers. The old Shadow11
+scaffold placed its thumb-base slot at thhub (MCP), whereas the human first
+thumb point is CMC; v5 fixes that role instead of duplicating the coincident
+thhub/thmiddle origins. The old landmark audit therefore compares that legacy
+point to v5 thumb slot2, not slot1.
+
+MANO sources retain their original fingertip vertex convention and coordinate
+transforms. Robot surfaces are deterministic samples of the recorded collision
+primitives, not an invented MANO mesh. Surface samples carry side and16-part
+semantics, without requiring robot and human vertex IDs to correspond.
+
+`C` has17 channels: one contact confidence and16 part probabilities (palm plus
+three segments per finger). Labels are **offline nearest-surface-vertex
+proximity**, with confidence1 inside3mm, exponential10mm falloff, and zero
+beyond33mm. They are not measured force/contact, exact triangle distances, or
+CEDex's normal-oriented capsule formula. Part labels use dominant MANO skinning
+joint or actual robot collision-link semantics. Contact supervision is masked
+if an expected hand lacks reconstructed geometry, and on synthetic HOI4D
+midpoints. Missing geometry never creates negative labels.
+
+Tau and C remain parallel predictions of the observed state and goal. There is
+no trajectory/contact consistency loss or embodiment-specific retargeting in
+this implementation. BC/RL executors have not been ported to joint21 here.
+
+## Data preparation
+
+The2026-10-19 remote workspace is:
+
+```text
+/mnt/ugreen_nas/storage/oyx_storage/ptv3-shared-wam-v5-20261019-r1/
+  data/plan/            # frozen admitted v4 TRAIN/DEV window identities
+  data/packets/         # compact original annotation packets and readiness records
+  data/geometry/        # deterministic2048-point CAD surfaces
+  data/manifest.json   # complete2747-object surface registry
+  data/hands/           # audited per-sequence joint21 and surface caches
+  data/contacts/        # per-frame contact confidence/part/validity caches
+```
+
+Tools in `tools/run/` implement these stages:
+
+1. `export_preparation_plan.py` freezes admitted windows; no held-out TEST.
+2. `export_hand_packets.py` extracts original local annotations. DexYCB uses
+   its calibrated45-component MANO PCA basis; H2O uses native camera transforms.
+3. `sync_preparation_inputs.py` transfers packets before their readiness records.
+4. `prepare_hand_overlay.py` reconstructs surfaces/21 points and validates the
+   original overlapping scaffold to50µm. Surface offsets relative to the wrist
+   use float16, checked for at most0.1mm quantization error. Joint positions
+   remain float32. Data is stored once per frame, not per overlapping window.
+5. `export_object_surfaces.py` samples original CAD triangles, streaming the
+   UniDex archive once and retaining all original32 flow identities.
+6. `prepare_surface_contact.py` computes labels offline and prioritizes an
+   initial cross-source sample. Its KD tree is absent from all training paths.
+7. `freeze_dataset.py` publishes a separate manifest/index and recomputes
+   TRAIN-only joint21/flow moments. `--require-complete` rejects pending
+   sequences; a bounded `--max-sequences-per-source` snapshot is explicitly
+   marked as an engineering subset. Dataset admission and subset scope are
+   recorded independently.
+
+Writers publish atomic files/directories and explicitly set readable task-cache
+permissions to handle the NAS's observed mode000 files. Run manifests preserve
+the Python/PyTorch environment, code revision, paths and bounded runtime.
+Preparation stops below20GiB free space or at its declared deadline. A `STOP`
+file in a stage output requests a reversible stop; completed data is retained.
+
+## Model checks and training
+
+```bash
+/home2/wyy/miniconda3/envs/graspenv/bin/python -m pytest -q \
+  src/task/ptv3-shared-wam-v5/tests
+```
+
+The1024-width config is
+`configs/pretrain_joint21_surface2048_scale1024.json`. The contact head uses
+checkpointed256-query chunks to bound activations; equivalence and gradients
+are tested. Losses use separate global DDP denominators for joint motion,
+motion-weighted object flow, contact BCE and positive-contact part CE.
+
+`tools/run/train_pretrain.py --smoke --steps 8 --batch-size 64` runs bounded
+real-data AdamW updates and writes timing/results only, with no model checkpoint.
+It requires explicit `--config`, `--manifest`, `--stats`, `--output` and
+`--git-commit` paths. Full training additionally requires an admitted manifest
+and an allocated `--seed`; no full v5 training has been launched as part of
+preparing this code. DDP, source-macro DEV evaluation, exact same-world-size RNG
+resume and recent-checkpoint rotation are implemented; distributed startup has
+not yet been exercised for v5. v4 checkpoints/statistics cannot silently resume
+as v5.
+
+`tools/audit/run_gpu_smoke.py` supports the user's authorized temporary pause of
+the identified WAM process group. It checks process/GPU ownership, installs an
+independent resume watchdog, and restores training in `finally`.
