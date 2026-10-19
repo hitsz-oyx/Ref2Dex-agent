@@ -5,13 +5,12 @@
 再决定teacher/loss。用户现明确要求停scale、启动四卡v5；完整缓存已完成，四rank启动检查通过。
 原768运行从头训练，现按用户授权修复工程合同后从10049末步续训；不加入C→PPO、重定向或CEDex抓取数据。
 
-当前安排（2026-10-20）：独立[v6](../../ptv3-shared-wam-v6/README.md)已完成8+1000+8
-四卡事件goal续训/恢复检查，checkpoint保留，按用户选择已停止v6并恢复v5。
-本v5从自己的15120完整checkpoint恢复，冻结ac951370、原数据/统计/global512及optimizer/RNG
-保持，不消费v6更新。当前run为pretrain-nine-v5-width768-after-v6-probe-20261019-r3，
-已核验RUNNING到15260，约1.116更新/s，四卡100%。此前contracts-r2已于15120正常保存停止。
-本Task模型/配置/生产入口未改；试跑、异常目标样本及回退记录在
-[v6实验卡](../../ptv3-shared-wam-v6/docs/experiments/probes/P-20261019-wam-v6-event-continuation.md)。
+当前安排（2026-10-20）：用户改为继续训练独立[v6](../../ptv3-shared-wam-v6/README.md)。
+v5 after-v6-probe-r3已于15723正常保存/停止，完整step015723.pt及optimizer/RNG保留。
+v6从自己的16136恢复四卡训练，不再使用当前v5更新做新迁移；v5模型/配置/生产入口未改。
+当前主训练与异常标签排查见
+[v6训练卡](../../ptv3-shared-wam-v6/docs/experiments/probes/P-20261020-wam-v6-mixed-pretrain.md)。
+下述v5协议/进度均为保留的历史记录，不代表当前仍占用GPU。
 
 ## 本次审查（真实checkpoint2000，训练继续）
 
@@ -117,7 +116,7 @@ batch128/4 workers完成8步AdamW，九源均出现，loss/梯度有限。GPU前
 | 修复手表面 | `data/hands-r2/progress.json`，39526完成；6471人手继承，33055 Shadow重建 |
 | 修复接触 | `data/contacts-r2/progress.json`，39526完成；parallel3025527已收尾 |
 | 训练准入冻结 | `outputs/finalize-training-20261019-r1/progress.json`，COMPLETED；recipe/统计已准入 |
-| 四卡长训 | `outputs/ptv3-shared-wam-v5/pretrain-nine-v5-width768-after-v6-probe-20261019-r3/process.json`及`progress.json` |
+| 已停止四卡长训 | `outputs/ptv3-shared-wam-v5/pretrain-nine-v5-width768-after-v6-probe-20261019-r3/result.json`；15723完整保存 |
 | 恢复检查 | `outputs/contract-transition-20261019-r2/startup-report.json`及`recovery-contract-probe-20261019-r2/` |
 | 事件候选侧表 | `data/events-candidate-20261019-r2/manifest.json`，全39526完成，未准入长训 |
 | 事件读取核验 | `outputs/event-dataset-audit-20261019-r2/report.json`及`candidate-recipe.json` |

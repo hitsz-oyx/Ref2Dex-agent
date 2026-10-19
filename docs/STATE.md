@@ -1,3 +1,15 @@
+## 2026-10-20 用户选择继续WAM-v6，四卡切换完成并定位异常目标
+
+v5 after-v6-probe-r3已正常保存/停止15723。v6从自己已学事件的16136完整checkpoint严格恢复，
+冻结d37e2320、568份optimizer state、原LR/RNG/数据/24步归一化/global512不变，现已核验16520。
+四卡99–100%，约1.114更新/s，剩余到80k含DEV/存盘初估17–19h。
+8.925m目标定位为原Shadow rollout第36帧起飞离，原始/compact/cache位移逐值一致；当前继承
+准入漏了未来失控段。39526序列全量67.28s扫描：Shadow>2m未来中心位移29 TRAIN/5 DEV；
+按首次中心速度>5m/s截断的候选为60 TRAIN/10 DEV、25序列，整体抽样曝光0.00275%。
+另HOT3D2个TRAIN窗口为跟踪候选。具体排除清单已备好但未准入/未改运行数据，不据此废弃ckpt。
+[当前v6状态](../src/task/ptv3-shared-wam-v6/docs/STATE.md)、
+[训练及排查记录](../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261020-wam-v6-mixed-pretrain.md)。
+
 ## 2026-10-20 WAM-v6四卡续训检查通过，按用户选择恢复v5
 
 独立事件goal Task冻结d37e2320，实际完成8+1000+8更新至16136，DEV/完整checkpoint/恢复均通过，

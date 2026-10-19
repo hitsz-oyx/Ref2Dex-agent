@@ -14,6 +14,13 @@ initialized event residual adds50304 parameters without new tokens, points or
 KNN. Joint21/K24,2048 object/C queries,778 samples per hand,5mm PTv3 and original
 TRAIN-only horizon normalization remain unchanged.
 
+Current operation (2026-10-20): the user chose continuing v6 after the readiness
+check. v5 saved/stopped at15723; v6 strict-resumed its own16136 checkpoint into
+pretrain-nine-v6-events-20261020-r1. See the
+[current training and target audit](docs/experiments/probes/P-20261020-wam-v6-mixed-pretrain.md).
+Sparse inherited Shadow runaway targets are diagnosed; concrete cleanup
+candidates are recorded separately and have not changed the frozen running data.
+
 ## Data and checkpoint contracts
 
 `tools/run/freeze_event_recipe.py` admits a separate v6 recipe binding the
