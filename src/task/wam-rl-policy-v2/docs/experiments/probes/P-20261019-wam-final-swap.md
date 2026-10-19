@@ -28,3 +28,9 @@ seed246，确定性动作，预热reset后重设seed再次reset，首个200步na
 旧本地manifest不同；须提供匹配文件及几何payload，不关闭身份校验。
 当前远端bound manifest权限000、wbcd无法读取，已请求用户提供可读副本/恢复权限。
 产物目录outputs/wam-rl-policy-v2/wam-final-swap-20261019-r1/。
+
+旧WAM对照已完成：PPO5500、64场景，54/64官方成功（84.4%），39/64保持（60.9%），
+workspace_failures=0，optimizer_steps=0。与此前同配置结果存在几例波动，
+本次应使用同期对照，不以历史79.7%作为固定真值。新模型未评估：bound manifest
+权限000，需要所有者提供可读副本。权重正在下载；完成后后台CPU加载验证写入
+outputs/ptv3-shared-wam-v4/local-control-final-20261019-r1/download-status.json。
