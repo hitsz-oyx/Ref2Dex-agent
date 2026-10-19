@@ -43,6 +43,7 @@ def valid_minibatches(storage, count):
 
 
 def weighted_reduce(value, count):
+    value=value.detach()
     if not distributed_ready():return value
     pair=torch.stack((value*count,value.new_tensor(count)))
     dist.all_reduce(pair)

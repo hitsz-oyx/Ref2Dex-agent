@@ -44,6 +44,7 @@ def main():
             result=original_reward(*a,**kw)
             if current['active'] and current['step']==8:
                 task.reset_buf[0]=1
+                if args.rank==1 and args.envs>2:task.reset_buf[2]=1
                 current['forced']=True
             return result
 

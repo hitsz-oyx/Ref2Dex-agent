@@ -36,6 +36,8 @@ def test_hold_drop_and_workspace_do_not_become_final_success():
     assert record['native_success'] and record['final_held60']
     assert not record['final_task_success'] and not record['final_stable_success']
     assert record['termination_reason'] == 'wam_workspace'
+    recovered = episode_outcome(True,80,80,False,True,dropped_after_hold=True)
+    assert recovered['drop_after_hold'] and recovered['final_stable_success']
 
 
 def test_resume_rejects_changed_wam_and_unbound_legacy_checkpoint():
@@ -116,3 +118,38 @@ def test_masked_official_storage_excludes_reset_rows_and_preserves_terminal_retu
     indices = [i for batch in storage.mini_batch_generator(4) for i in batch]
     assert len(indices)==15 and 2 not in indices  # row t=1, env=0 is initialization
     assert storage.advantages[1,0,0]==0.
+    selected = storage.advantages[storage.transition_valid]
+    torch.testing.assert_close(selected.mean(),torch.tensor(0.),atol=1e-6,rtol=0)
+    torch.testing.assert_close(selected.std(),torch.tensor(1.))
+
+
+def test_drop_flag_survives_recovery():
+    base = DelayedResetBase()
+    poses = np.repeat(np.eye(4)[None],2,axis=0)
+    goals = np.tile([0.,0.,.15],(2,1))
+    env = ScheduledOfficialEnv(base,lambda:dict(pose=poses,goal=goals),
+                               SimpleNamespace(device='cpu'),native_only=True)
+    env.reset()
+    for z,frames in [(.15,65),(0.,1),(.15,70)]:
+        poses[:,2,3]=z
+        for _ in range(frames):env.augment(torch.zeros(2,300),[])
+    assert env.streak[0]>=60 and env.dropped_after_hold[0]
+
+
+def test_common_workspace_matches_native_and_wam_during_startup():
+    from wam_rl_policy_v2.wam_v4_runtime import V4Runtime
+    from types import MethodType
+    points = np.random.RandomState(4).normal(size=(32,3))*.02
+    geometry = (np.zeros((512,3),np.float32),np.zeros((512,3)),points,np.zeros((128,3)),np.zeros((128,3)))
+    runtime = SimpleNamespace(device=torch.device('cpu'),geometry=[geometry]*2,
+                              config=dict(voxel_origin_m=[-2.,-2.,-2.],voxel_m=.01,hand_in_ptv3=True))
+    runtime.workspace_valid=MethodType(V4Runtime.workspace_valid,runtime)
+    poses=np.repeat(np.eye(4)[None],2,axis=0)
+    hands=np.zeros((2,11,3));hands[0,0,0]=-3
+    snapshot=lambda:dict(pose=poses,goal=np.ones((2,3)),hand=hands)
+    results=[]
+    for native in (True,False):
+        env=ScheduledOfficialEnv(DelayedResetBase(),snapshot,runtime,native_only=native,
+                                 termination_policy='common_workspace')
+        env.reset();results.append(env.workspace_invalid.copy())
+    np.testing.assert_array_equal(results,[[True,False],[True,False]])
