@@ -1275,4 +1275,5 @@
 | [P-20261020-inspire-scheduled686-bc](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261020-inspire-scheduled686-bc.md) | P-20261020-inspire-scheduled686-bc | 见原卡 | 见原卡 | probes/见原卡 |
 | [P-20261020-inspire-scheduled686-cache](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261020-inspire-scheduled686-cache.md) | P-20261020-inspire-scheduled686-cache | 见原卡 | 见原卡 | probes/见原卡 |
 | [P-20261020-inspire-scheduled686-closed-loop](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261020-inspire-scheduled686-closed-loop.md) | P-20261020-inspire-scheduled686-closed-loop | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261020-inspire-task-reward-bridge](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261020-inspire-task-reward-bridge.md) | P-20261020-inspire-task-reward-bridge | 见原卡 | 见原卡 | probes/见原卡 |
 | [VAL-20260923-CM-EFFECT-PPO](validations/VAL-20260923-CM-EFFECT-PPO.md) | Validation: 动作条件 Cm 效应排序能否稳定改善 PPO？ | 见原卡 | 见原卡 | validations/见原卡 |
