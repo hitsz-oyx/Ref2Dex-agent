@@ -1,3 +1,15 @@
+## 2026-10-19 远端scale已停止，全量WAM-v5四卡训练启动
+
+按用户要求停止远端v4 scale1024，保留完整39000步checkpoint及历史产物。
+v5修复手表面/contact全部39526序列完成，完整准入TRAIN3218740/DEV545459窗口；
+从头启动九源同步四卡训练，冻结395ab290、每卡128/全局512、1024宽/12层、bf16、
+LR1e-4/500步warmup/80k上限，21点τ保留24步逐horizon归一化，模型内无KNN。
+`pretrain-nine-v5-20261019-r1`启动报告到280步，首轮DEV、step1/20及best已落盘；
+四卡100%、约24–30GiB/卡，近期1.15s/update，含定期验证/存盘初估27–30h。
+22项测试及四rank真实混合数据启动检查通过；尚无v5效果或相对v4增益结论。
+[当前状态](../src/task/ptv3-shared-wam-v5/docs/STATE.md)、
+[训练实验卡](../src/task/ptv3-shared-wam-v5/docs/experiments/probes/P-20261019-wam-v5-mixed-pretrain.md)。
+
 ## 2026-10-19 Inspire在线吞吐约提升两倍，优化版六卡续训中
 
 用户授权调优后，旧mixed6-r1在300、r2在339完整保存并停止；当前为

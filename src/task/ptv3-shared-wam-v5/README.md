@@ -147,11 +147,10 @@ quantization. These diagnostics do not add new losses.
 real-data AdamW updates and writes timing/results only, with no model checkpoint.
 It requires explicit `--config`, `--manifest`, `--stats`, `--output` and
 `--git-commit` paths. Full training additionally requires an admitted manifest
-and an allocated `--seed`; no full v5 training has been launched as part of
-preparing this code. DDP, source-macro DEV evaluation, per-rank RNG restoration
-and recent-checkpoint rotation are implemented; distributed startup and bitwise
-resume equivalence have not yet been exercised for v5. v4 checkpoints/statistics cannot silently resume
-as v5.
+and an allocated `--seed`. DDP, source-macro DEV evaluation, per-rank RNG restoration
+and recent-checkpoint rotation are implemented. Four-rank CUDA startup passes;
+CPU stop/resume matches uninterrupted optimization exactly, while bitwise CUDA
+resume remains unverified. v4 checkpoints/statistics cannot silently resume as v5.
 
 `tools/audit/run_gpu_smoke.py` supports the user's authorized temporary pause of
 the identified WAM process group. It checks process/GPU ownership, installs an
@@ -196,3 +195,22 @@ follow-up decisions; this change does not assume their benefit.
 `tools/run/finalize_preparation.py` waits for hand/contact stages and freezes the
 final manifest and TRAIN statistics automatically. Incomplete inputs remain
 explicitly marked as a partial subset; it never launches training.
+
+## Four-GPU sustained training
+
+The user-requested mixed run is recorded in the
+[training probe](docs/experiments/probes/P-20261019-wam-v5-mixed-pretrain.md).
+`complete_contacts_parallel.py` takes over a confirmed stopped serial stage
+with the identical teacher and input binding. `finalize_preparation.py
+--training-admitted` only admits complete hand/contact coverage. Sustained
+training rejects engineering/partial recipes and requires all nine sources
+through `tools/run/launch_pretrain.py`.
+
+The launcher owns four GPUs and an isolated torchrun group, records GPU state
+and progress, and applies runtime/free-space boundaries. `STOP` saves the last
+completed update before exit; resume uses a fresh directory and the exact same
+data/config/world size. Checkpoints carry optimizer/per-rank RNG/elapsed time
+and DEV selection. Recent rotation protects the first, milestones and best.
+Loss logs are reduced over all ranks; the first DEV panel runs at20 and then
+every1000, using a fixed seed171 panel. The four-rank engineering startup now
+passes; the CPU recovery contract test does not claim bitwise CUDA/DDP resume.

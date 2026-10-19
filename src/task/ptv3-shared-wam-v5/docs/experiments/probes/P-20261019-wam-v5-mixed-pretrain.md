@@ -5,7 +5,7 @@ experiment_id: P-20261019-wam-v5-mixed-pretrain
 date: 2026-10-19
 task: ptv3-shared-wam-v5
 branch: main
-git_commit: pending
+git_commit: 395ab290
 claim_id: C1
 hypothesis_family: HF-v5-nine-source-learnability
 probe_index_in_family: 1
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [170, 171]
 decision_changed_if_positive: use learned joint21 and local surface contact forecasts for subsequent executor adaptation
 decision_changed_if_negative: diagnose source and fine-grained forecast failures before extending training or porting the executor
-status: PLANNED
+status: RUNNING
 run_id: pretrain-nine-v5-20261019-r1
 ---
 
@@ -85,6 +85,61 @@ processes. Preparation and metadata audits are CPU jobs; existing local Inspire
 training remains outside this run. Actual throughput/ETA are reported only
 after startup, including the limits of small measurement windows.
 
-Result: preparing complete contact labels and four-rank startup checks.
+## Startup evidence
 
-Decision: complete the admitted recipe, verify DDP, then start the explicitly requested sustained four-GPU run.
+Code395ab290 passed22 local tests, including actual optimizer/DEV/checkpoint
+loops on tiny geometry: a STOP after update3 saves that non-periodic update;
+resuming into a fresh directory produces bitwise-equal model tensors to an
+uninterrupted4-update run, preserving DEV selection and protected snapshots.
+This is a CPU engineering check, not bitwise four-GPU resume certification.
+
+Four real4090 ranks completed8 throwaway updates at local128/global512,
+8 workers/rank on the repaired9-sequence engineering recipe. All nine sources
+appeared. The two descriptive parameter signatures (sum and sum of squares)
+were exactly equal across all four ranks after optimization:
+`[32779.318755598084,105661.06832150088]`. This checks synchronization, not a
+cryptographic tensor identity claim. Rank0 GPU timing315.75ms forward/loss,
+781.66ms backward,40.15ms optimizer; peak19.79GiB, loop19.86s including startup.
+No checkpoint was written or used to initialize sustained training. The parent
+experiment remains a learning Probe, while this startup check is engineering.
+Remote evidence: `outputs/ddp-startup-20261019-r1/`.
+
+## Sustained run startup result
+
+All39526 hand/contact sequences completed, with16250070 valid object frames;
+16-worker contact completion took879.79s without changing the teacher. The
+replacement admitted finalizer completed with pending0, training_allowed=true
+and engineering_subset=false. The frozen recipe retains3218740 TRAIN and
+545459 DEV windows. Joint21 hand/scene24×3 normalization uses1152 TRAIN
+moment windows (128/source); minimum hand standard deviation is7.058mm.
+Recipe: `outputs/finalize-training-20261019-r1/recipe/manifest.json`.
+
+The sustained run is RUNNING under supervisor3028892/torchrun3029034, frozen
+code395ab290. At the startup report it had reached update280, and all nine
+training sources had appeared. Complete `step000001.pt` and `step000020.pt`
+are each about1.993GB; the first fixed DEV evaluation completed, source-macro
+objective5.1234348847, with `best.pt` published. This is startup evidence, not
+a learning-quality or v4 improvement conclusion. The inherited DEV split has
+eight sources: DexYCB/source8 has no DEV windows. Its TRAIN draws are present;
+the macro score therefore does not assess DexYCB generalization. No split was
+changed to manufacture a ninth DEV source. A follow-up liveness read reached
+update440 with RUNNING status and finite loss3.22755.
+
+Updates220–280 took1.15426s/update. All four GPUs were100% utilized; reported
+memory24571–30099MiB/card. Pure remaining update time is25.56h; allowing
+periodic DEV/checkpoint overhead, initial80k estimate is27–30h. The short
+window does not establish sustained throughput over the whole data mix.
+The progress-file aggregate ETA still includes cold startup and first DEV,
+so it is not the same estimator as this recent-window estimate.
+
+Remote run: `outputs/ptv3-shared-wam-v5/pretrain-nine-v5-20261019-r1/`.
+Remote receipt: `outputs/pretrain-nine-v5-20261019-r1-startup-report.json`.
+Local evidence: `outputs/ptv3-shared-wam-v5/pretrain-nine-v5-20261019-r1/`
+contains `startup-report.json` and `ddp-smoke-result.json` (not tracked).
+
+Result: full-data four-GPU mixed pretraining has started, with real updates,
+published recoverable checkpoints and a completed first DEV evaluation.
+
+Decision: continue the authorized80k bounded run and use later fixed DEV
+panels to assess learning; keep the teacher/loss and v4 scale job unchanged
+in their current states (v4 stopped, v5 normal-aware/balanced variants disabled).
