@@ -31,7 +31,7 @@ def adapted_source():
         if source.count(old) != 1:
             raise RuntimeError('collector adaptation no longer applies: '+old[:100])
         source = source.replace(old,new)
-    replace("    args = parser.parse_args()", "    parser.add_argument('--socket', type=Path)\n    parser.add_argument('--replay', type=Path)\n    parser.add_argument('--server-pid', type=int, default=-1)\n    parser.add_argument('--controls', type=int, default=300)\n    args = parser.parse_args()\n    if not 1 <= args.controls <= 600: raise ValueError('bounded controls required')")
+    replace("    args = parser.parse_args()", "    parser.add_argument('--socket', type=Path)\n    parser.add_argument('--replay', type=Path)\n    parser.add_argument('--server-pid', type=int, default=-1)\n    parser.add_argument('--controls', type=int, default=300)\n    args = parser.parse_args()\n    if args.replay: args.replay=args.replay.resolve()\n    if args.socket: args.socket=args.socket.resolve()\n    if not 1 <= args.controls <= 600: raise ValueError('bounded controls required')")
     replace("    allowed = [ROOT/'outputs/ptv3-shared-wam']", "    allowed = [ROOT/'outputs/wam-rl-policy-v2']")
     replace("    if occupied:\n        raise RuntimeError('assigned GPU occupied: '+occupied)", "    shared_preflight(args.gpu,args.server_pid)")
     replace("    from isaacgym import gymtorch", "    import socket\n    from isaacgym import gymtorch")
