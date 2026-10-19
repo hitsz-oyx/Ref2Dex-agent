@@ -77,7 +77,13 @@ def main():
             for row in manifest['objects']:
                 with np.load(a.geometry/row['path'],allow_pickle=False) as z:geometries[row['key']]={k:z[k] for k in z.files}
         changed=False
-        for folder in sorted((a.hands/'sequences').iterdir()):
+        folders=sorted((a.hands/'sequences').iterdir())
+        priority=[]
+        for sid in (0,1,2,4,5,6,8,9,10):
+            first=next((f for f in folders if f.name.startswith(f's{sid}-') and '.partial' not in f.name),None)
+            if first is not None:priority.append(first)
+        ordered=priority+[f for f in folders if f not in priority]
+        for folder in ordered:
             if folder.name in done or '.partial' in folder.name or not (folder/'meta.json').exists():continue
             key=folder.name;meta=json.loads((folder/'meta.json').read_text())
             existing=a.output/key/'meta.json'
