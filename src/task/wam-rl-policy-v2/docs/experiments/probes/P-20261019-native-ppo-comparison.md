@@ -99,3 +99,11 @@ run_id: published-legacy-reset-audit-20261019-r1；git_commit: 218d6362。沿用
 审计产物：outputs/wam-rl-policy-v2/published-provenance-audit-20261019-r1/{panel-audit,checkpoint-identity,actor-equivalence}.json；动态诊断：outputs/wam-rl-policy/published-legacy-reset-audit-20261019-r1/。环境graspenv，Python3.8、Torch2.4.1+cu121，GPU6。
 
 来源：[官方README](https://github.com/PKU-EPIC/UniDexGrasp2)、[论文](https://arxiv.org/html/2304.00464)、[官方逐object-scale结果](https://github.com/PKU-EPIC/UniDexGrasp2/blob/6c9e710b04769bf5d9765e3233820101cb3d718f/results/state_based/train_set_results.yaml)。公开结果是不同采样协议的参考值，不与本地64场景视为配对实验。
+
+## 直接官方--test路径（2026-10-19）
+
+Decision：区分低分是否仍存在于原始任务+原始PPO.run(test)中，决定优先修复wrapper还是下沉资产/运行时。最小判别为官方表99.6%的jar-724fb.../0.06单物体、256环境、seed0、200步，GPU6/graspenv/600秒/2GiB。run_id: upstream-state-test-20261019-r1，代码2f101a29。下载固定上游任务/基类，使用上游train.py --test、配置解析、seed、原生reset和测试循环；只去掉未使用视觉/多智能体导入及无效agent_index读取。不采用aggregate扩容或我们任何eval reset修改。资产只软链接现有官方来源文件。该probe仍不证明资产及本地IsaacGym等于论文运行时。
+
+该直接上游测试完成：原始train.py --test → parse_task → process_ppo.test → PPO.run(is_testing)，原始任务/基类/VecTask reset，单jar 256环境成功124/256（48.4375%），官方对应表99.6%。原始循环运行200步，在第199步读取sticky successes。optimizer_steps=0。因最近wrapper、aggregate补丁、CPU RNG及桌面reset改动都不在此路径中，该复现差距不能只归因于这些适配。共享资产、运行时和上游发布权重/结果对应关系仍待隔离；非同初态配对实验。GPU6峰值采样2773MiB/52%，已释放。启动曾因旧IsaacGym中的np.float在当前NumPy不可用而失败，运行副本补充np.float=float兼容别名后成功，不修改系统或外部环境。
+
+官方确有环境与评估说明：Python3.8，论文IsaacGym Preview3/4并测试过4/4；cfg/shadow_hand_grasp.yaml给出200步、60Hz、substeps2、位置迭代8等；脚本加--test进入PPO.run测试分支。它不是独立eval.py，也不是一条自动遍历所有split并复现表格的完备评估流水线。README未锁定完整Torch/NumPy/驱动环境。此前我们复用了算法/任务主体，但用自己的bootstrap/多物体资产组织/评估包装，不能简称完全未改的官方端到端运行。此次直接上游诊断来源和兼容改动均列于run manifest。两臂初态匹配只支持本地比较公平，不能代替官方复现合格检查。
