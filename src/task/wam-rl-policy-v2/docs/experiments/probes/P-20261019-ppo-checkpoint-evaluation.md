@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [246]
 decision_changed_if_positive: continue training if fixed-panel performance improves
 decision_changed_if_negative: investigate plateau or regression before increasing training budget
-status: RUNNING
+status: COMPLETED
 run_id: checkpoint-eval-20261019-r3
 ---
 
@@ -127,3 +127,35 @@ Isaac Preview4。复用同一原生评估器，launcher只扩展GPU配置与多�
 并保留768场景原始计数作敏感性描述。报告实际保留数及对象覆盖，低于90%场景或丢失任何
 训练物体则不使用完整面板平台判据。没有声称修复底层reset/PhysX初始化差异。
 配对bootstrap按object cluster重采样、按保留场景数量加权，避免将同物体环境当独立物体。
+
+### 全96物体终点评估结果
+
+12/12 worker正常完成，总约494秒，每个256首回合，全部0 optimizer更新、0 workspace failure。
+四条件共同初态为731/768场景（panel0/1/2分别250/256/225），仍覆盖全部96物体；
+排除37场景的依据仅是obs/pose/hand/goal/四actor root与对象身份是否完全一致。
+未剔除的四轮共享相同731个场景。以下百分比均以731为分母：
+
+|累计轮数|原生曾成功|最终稳定保持|终态位置成功|平均回报|
+|---|---|---|---|---|
+|7000|609 (83.31%)|445 (60.88%)|520 (71.14%)|154.65|
+|8500|645 (88.24%)|486 (66.48%)|565 (77.29%)|165.45|
+|9500|622 (85.09%)|473 (64.71%)|555 (75.92%)|157.56|
+|10000|561 (76.74%)|415 (56.77%)|481 (65.80%)|140.97|
+
+8500→10000：原生曾成功−11.49pp（45赢129输），最终稳定−9.71pp（99赢170输）；
+物体cluster配对bootstrap95%区间分别[−14.90,−8.15]pp和[−14.50,−4.81]pp。
+9500→10000：原生曾成功−8.34pp、最终稳定−7.93pp，区间分别[−11.31,−5.42]pp、
+[−12.72,−3.11]pp。退化方向在这一固定TRAIN面板上明确，未满足≤3pp平台判据。
+
+全768场景未筛选的原生曾成功依次642/679/654/591（83.59/88.41/85.16/76.95%），
+最终稳定467/510/493/441（60.81/66.41/64.19/57.42%）；趋势一致。
+因此不能用少数reset初态不一致解释本次晚期回落，也不能把10000终点称作最佳或已收敛。
+8500为本次四个候选中的最佳，应保留作为当前候选；不宣称整个训练过程中全局最优，
+不自动延长PPO预算。下一步若继续本路线，先诊断后期优化/策略退化；本次没有定位其原因。
+单seed、TRAIN、原WAM12000/legacy协议，不是未见物体泛化，也未隔离WAM的净贡献。
+
+评估launcher代码829726a4/c3a208ed，分析代码f629b6d2；新增2项审计测试通过，
+覆盖未观测root差异排除与物体内完全相关样本的cluster区间，未修改活动训练。
+[完整比较](../../../../../../outputs/wam-rl-policy-v2/full-plateau-eval-20261019-r1/comparison.json)、
+[逐场景初态审计](../../../../../../outputs/wam-rl-policy-v2/full-plateau-eval-20261019-r1/initial-state-audit.json)、
+[趋势图](../../../../../../outputs/wam-rl-policy-v2/full-plateau-eval-20261019-r1/checkpoint-trend.png)。
