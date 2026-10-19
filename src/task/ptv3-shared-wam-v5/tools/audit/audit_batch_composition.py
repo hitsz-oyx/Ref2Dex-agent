@@ -43,11 +43,18 @@ def main():
     p.add_argument('--inputs', type=Path, required=True)
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--device', default='cuda:0')
+    p.add_argument('--max-memory-gib', type=float)
     p.add_argument('--git-commit', required=True)
     a = p.parse_args()
     a.output.mkdir(exist_ok=False)
     torch.set_num_threads(2)
     torch.cuda.set_device(a.device)
+    if a.max_memory_gib is not None:
+        free, total = torch.cuda.mem_get_info()
+        budget = int(a.max_memory_gib * 2**30)
+        if budget <= 0 or free - budget < 8 * 2**30:
+            raise ValueError('audit must leave at least8GiB beyond other GPU allocations')
+        torch.cuda.set_per_process_memory_fraction(budget / total)
     config = read_json(a.inputs / 'config.json')
     stats = read_json(a.inputs / 'stats.json')
     meta = read_json(a.inputs / 'export.json')
@@ -136,6 +143,7 @@ def main():
     report = dict(status='COMPLETED', git_commit=a.git_commit, training_commit='6334e1ea',
         checkpoint_step=step, python=sys.version, torch=torch.__version__, cuda=torch.version.cuda,
         gpu=torch.cuda.get_device_name(), eval_mode=True, seed=meta['seed'],
+        max_memory_gib=a.max_memory_gib,
         target_sources=meta['target_sources'], target_ids=meta['target_ids'],
         target_depths=meta['target_depths'], fixed_initial_depth=fixed_initial_depth,
         comparisons=outputs, cases=cases, elapsed_s=time.monotonic()-started,

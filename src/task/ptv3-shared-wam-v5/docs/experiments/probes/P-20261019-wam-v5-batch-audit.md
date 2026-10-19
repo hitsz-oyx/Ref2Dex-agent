@@ -47,8 +47,10 @@ Frozen inputs live under remote
 Copy one published checkpoint to an independent audit directory to protect
 it from training rotation. Local outputs:
 `outputs/ptv3-shared-wam-v5/batch-composition-20261019-r1/`.
-Bound total audit output4GiB, wall time1800s, free disk>=20GiB; local GPU0
-only, preserving at least two idle GPUs. Remote export is CPU-only. Do not
+Bound total audit output4GiB, wall time1800s, free disk>=20GiB. Prefer local
+GPU0, preserving at least two idle GPUs. If checkpoint transfer is too slow,
+use remote GPU1 with a14GiB allocator cap and at least8GiB additional free
+headroom; a CUDA OOM aborts the audit, not the training. Remote export is CPU-only. Do not
 write in the frozen training/data/code trees.
 
 Result: pending real-checkpoint inference; code and runtime contract review in progress.
