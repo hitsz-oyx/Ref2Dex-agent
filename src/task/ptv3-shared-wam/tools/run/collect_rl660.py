@@ -164,8 +164,9 @@ def main():
             receipt=json.loads((batch_root/'manifest.json').read_text())
             if receipt.get('status')!='COMPLETED' or receipt.get('force_contract',{}).get('schema')!='ref2dex.inspire-measured-forces.v1':
                 raise ValueError('cannot inherit incomplete or old force data')
-            link=out/'batches'/('inherited-'+batch_root.name)
+            link=out/'batches'/('inherited-'+batch_root.parents[1].name+'-'+batch_root.name)
             if not link.exists():link.symlink_to(batch_root)
+            if link.resolve()!=batch_root:raise ValueError('inherited batch name collision')
             path=(link/folder.relative_to(batch_root)).relative_to(out)
             completed.append(dict(record,path=str(path)))
         existing={r['sequence'] for r in completed}

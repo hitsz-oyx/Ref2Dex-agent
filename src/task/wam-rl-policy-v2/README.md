@@ -145,3 +145,16 @@ Shadow 为 current310/scheduled575。网络容量保持原配方，按命名列�
 旧 v4/v5 没有训练事件输入，接口会显式标记或拒绝，不能直接当成事件条件模型。
 六卡 PPO 继续停止，既有冻结模型和660归档保持。
 详细定义、实现边界与工程入口见[统一任务接口](docs/research/2026-10-19-measured-task-interface.md)。
+
+
+## 当前数据源纠正：checkpoint teacher的实测rollout
+
+以用户最新要求为准，task/goal读取同轮teacher执行的obj/contact，不读取其训练reference。
+已六卡完整回采660条并补齐力等原始state，最终raw为
+`outputs/wam-rl-policy-v2/inspire-teacher-rollout-20261019-r5/`，准入为
+`outputs/wam-rl-policy-v2/inspire-teacher-rollout-audit-20261019-r2/manifest.json`。
+筛选后563条连续前缀、60529动作；TRAIN覆盖50物体，其中46物体有保留的耦合段。
+TeacherRolloutCorpus/MeasuredInspirePolicy提供完整力、CAD shape encoder和task10的新接口。
+current421/scheduled686、Shadow隐藏层不变；完整训练入口仍需接线，未开新BC/PPO。
+旧reference条件缓存不再复用，旧319入口拒绝新force corpus以防静默丢字段。
+详见[当前实现](docs/research/2026-10-19-measured-task-interface.md)。

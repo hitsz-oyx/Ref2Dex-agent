@@ -9,19 +9,22 @@ d37e2320新增独立model/package/schema/recipe/训练入口；v5模型和生产
 [v6状态](../src/task/ptv3-shared-wam-v6/docs/STATE.md)、
 [实验卡](../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261019-wam-v6-event-continuation.md)。
 
-## 2026-10-19 统一TaskSpec与实测执行接口第一批通过，Inspire长训继续停止
+## 2026-10-19 按用户纠正改用teacher rollout目标，六卡补全660条并完成筛选
 
-新增TaskSpec、ACQUIRE/TRACK/RELEASE、task10、两机器人adapter和同轮力采集接口；
-Inspire含力有效位的current421/scheduled686，Shadow310/575，actor容量沿用Shadow。
-108项Task测试通过，真实双环境step/reset的力有效性、邻居隔离、PD/episode检查通过；
-两条新力归档采集成功，真实旧BC迁移动作差Shadow4.77e-7、Inspire1.79e-7。
-修复延迟抓取确认丢失路径起点；ACQUIRE只暂存候选几何证据，对外cursor保持冻结。
-50物体完美参考/合成反馈的路径及阶段测试50/50，不是机器人成功率。
-完整660旧示教重放：581进入TRACK，8条有少量确认进度，0路径/任务完成，不能视为新策略评估。
-旧660归档仍缺DOF力；真实示教与8mm/.12rad路径容差仍不相容，shape未训练、
-原生支撑反馈及新合同BC/PPO入口尚待接线，未恢复六卡长训。
-[实现与边界](../src/task/wam-rl-policy-v2/docs/research/2026-10-19-measured-task-interface.md)、
-[实验记录](../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-inspire-task-contract.md)。
+此前把DExplore训练reference当任务路径是实现错误；旧0/660不能用于判断当前路线可行性。
+新的task/goal及计划事件只来自checkpoint teacher同轮实测object/contact rollout，保留原始帧号。
+本地GPU0–5完成完整660/50物体、589 TRAIN/71 DEV回采，补齐DOF力18/有效位、连续接触力、
+刚体状态/物体速度、canonical动作/PD/tick及CAD512。16环境的四批PhysX故障经8环境补采补齐；
+有效596条通过只读链接继承，未覆盖任何旧数据，不能把失败run目录当作无引用数据删除。
+最终raw=inspire-teacher-rollout-20261019-r5，audit=inspire-teacher-rollout-audit-20261019-r2。
+660条字段/时钟/动作与PD工程检查全PASS；按实测失控/掉落、穿透、跳变及可对齐人工标注，
+带50帧失败前缓冲筛选连续前缀，保留563条/60529动作。TRAIN501条/54544动作覆盖50物体，
+其中46物体有前缀耦合段；DEV62条/5985动作覆盖42物体。不是机器人成功率。
+新TeacherRolloutCorpus与可训练shape encoder+同Shadow容量MLP已实现，current421/scheduled686；
+114项Task测试和GPU0八个真实episode输入检查通过，力字段保真误差0，尚未训练shape/新BC或PPO。
+旧参考条件的物理/τ缓存拒绝复用，旧319入口拒绝静默丢弃新力/形状/阶段字段。
+[实现与数据入口](../src/task/wam-rl-policy-v2/docs/research/2026-10-19-measured-task-interface.md)、
+[完整记录](../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-inspire-task-contract.md)。
 
 ## 2026-10-19 WAM-v5事件数据与checkpoint迁移准备完成，原训练继续
 

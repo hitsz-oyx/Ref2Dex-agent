@@ -33,6 +33,8 @@ def prepare(a):
         raise ValueError('complete admitted660 same-execution corpus required')
     if meta.get('task_goal_source')!=CONTRACT['goal_source'] or meta.get('admission_pending',True):
         raise ValueError('audited measured teacher-rollout goals required; training-reference corpus/cache is historical only')
+    if meta.get('capture_dof_force'):
+        raise ValueError('extended force corpus uses TeacherRolloutCorpus/MeasuredInspirePolicy421; legacy319 preparation would drop force/shape/task-phase fields')
     records=meta['records'];sizes={s:sum(r['frames']-1 for r in records if ('dev' if r['split']=='val' else r['split'])==s) for s in ('train','dev')}
     expected=sum(sizes.values())*(CURRENT_DIM+INPUT_DIM+12)*4
     if expected>1024**3:raise RuntimeError('unexpected cache allocation above1GiB')

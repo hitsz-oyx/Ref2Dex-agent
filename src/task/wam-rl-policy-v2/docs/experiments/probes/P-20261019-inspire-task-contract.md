@@ -207,3 +207,46 @@ canonical/applied动作与PD目标、原始tick、512点CAD几何；不拼接旧
 冻结采集器源码，2小时/4GB输出预算、20GiB磁盘保护，GPU6/7不启本任务。
 原始采集先保留，完成后按既有物理/rollout审计筛选与标记，不按reference误差或旧scheduler
 超时裁剪teacher动作，不启动PPO。先启动采集进程，再修正任务构造与新的字段准入。
+
+
+### Teacher-rollout纠正实施完成：全量660回采、筛选与新state读取
+
+最终raw run=`inspire-teacher-rollout-20261019-r5`；审计run=
+`inspire-teacher-rollout-audit-20261019-r2`。先按用户要求启动六卡，才修改任务/输入代码。
+采集复用官方checkpoint teacher，只生成数据，未训练BC/PPO或修改teacher权重。
+TaskSpec/goal改由同轮实测obj轨迹与接触导出；训练reference字段不参与任务/筛选。
+旧reference路径/容差不相容的0/660已被用户纠正为错误目标定义，撤销其作为当前路线blocker的判断。
+旧神经τ缓存和物理缓存含旧目标条件，禁止无声复用；新的extended-force corpus也不能走
+会丢force/shape/phase字段的旧319 BC入口。
+
+采集时序：67822fc5六卡初启，首step部分PhysX非法访问；3d61ed66复用已验证的一次reset提交，
+单独未消除；4f7034b8复用物理host8M/5缓冲，原故障批单独16条完成43.93秒，但并行仍会复现。
+53dc0815加入每批最多3次保留日志的重试，让健康worker继续，r4最终保留596条。
+四个剩余批次跨GPU仍失败。实测aggregate物体+桌面最多6个shape，未超过旧22容量，
+因此不能将崩溃归因于容量不足或宣称reset/buffer是唯一原因。
+原故障批的两个8环境半批均完整通过（32.97/36.16秒），单独bunny也通过21.56秒。
+9239f673新增仅继承已完成同轮receipt、补采missing membership的入口；r5用GPU0–5、8环境
+补齐缺失64条，122.94秒完成。596条通过只读链接复用，原始split仍589 TRAIN/71 DEV。
+这是数据生成batch配置调整，不是严格配对物理对照；实际每条来源/seed/环境数由receipt追踪。
+r4虽然整体FAILED，其596条是r5必要依赖，已加retained_by.json，不可清理删除。
+
+原始660/50物体全部字段工程PASS，165677条canonical命令。每条同轮保存q/dq、DOF force18/
+两个force有效位、完整body状态和连续contact、object位姿/速度/net force、hand11、action/applied/
+PD/tick与CAD512/法线。reset force无效和零值、后续有效，DOF大于5的真实值不裁剪。
+复用v2/audit_current_rollout的独立工程验证，通过include_reference=False去掉不相关参考条件；
+新增force schema/timing、实测失控/unsupported loss、几何穿透、过大单步及可对齐旧人工标注。
+失败50帧前缓冲与H4/future24窗口保护保持，BC使用连续安全前缀，任务也裁到同一实测前缀终点。
+原始数据完整保留，训练从sidecar mask剔除。旧人工判定只在同帧q/obj/hand对应时复用，
+纯tracking_error不作为新准入依据；接触/耦合/支撑仍明确是启发式。
+
+筛选后563条前缀、60529命令；TRAIN501条/54544命令/50物体，DEV62条/5985命令/42物体。
+TRAIN362条前缀含23043帧耦合、覆盖46物体；另4个物体当前保留前缀只有接近段，不宣称抓取覆盖齐全。
+非互斥异常帧：失去耦合且无支撑41294，过大单步1997，桌面穿透476，可对应人工不适用/待定259。
+这些是保守训练准入，不是成功率或失败真值，也没有按训练参考误差筛选。
+
+TeacherRolloutCorpus及MeasuredInspirePolicy新增：raw measured347+CAD512，joint PointNet形状64
+拼成robot411+task10=current421；加入规范τ264+valid为686。actor保持Shadow的
+1024/1024/512/512 ELU，力不受原始312裁剪；shape64是BC可训练特征，不伪造为已采集的传感器字段。
+114项Task测试通过；GPU0八个真实物体episode的421/686输入与forward均通过，2.75秒，
+新增力到首层保真误差0，0优化。形状梯度测试通过，但未训练shape或新BC，没有闭环成功结论。
+数据和审计均已完成，GPU已释放；后续将新数据/encoder/actor接入两阶段BC与官方PPO。

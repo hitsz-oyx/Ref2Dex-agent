@@ -25,6 +25,7 @@ def write(path,value):
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--corpus',type=Path,required=True);p.add_argument('--output',type=Path,required=True)
+    p.add_argument('--reuse-audit',type=Path,help='Reuse sidecars only when canonical same-execution source paths match')
     p.add_argument('--wait-seconds',type=int,default=7200);p.add_argument('--admit',action='store_true');a=p.parse_args()
     a.corpus=a.corpus.resolve();a.output=a.output.resolve()
     if a.output.exists() or a.corpus==a.output:raise ValueError('fresh separate audit output required')
@@ -42,6 +43,17 @@ def main():
         if annotation['verdict'] in ('unusable','uncertain') and annotation['reason']!='tracking_error':
             reviews.setdefault(annotation['sequence'],[]).append(annotation)
     started=time.monotonic();rows={};seen=set();timed_out=False
+    if a.reuse_audit:
+        while not a.reuse_audit.exists():
+            if time.monotonic()-started>=a.wait_seconds:raise TimeoutError('prior audit did not finish')
+            time.sleep(15)
+        prior=json.loads(a.reuse_audit.read_text())
+        if prior.get('schema')!=QUALITY_SCHEMA or prior.get('goal_source')!=GOAL_SOURCE:raise ValueError('different prior admission contract')
+        root=a.reuse_audit.resolve().parent
+        for row in prior['records']:
+            if row['engineering']!='PASS':continue
+            name=row['sequence'];(a.output/'sequences'/name).symlink_to(root/'sequences'/name)
+            rows[name]=row
     while True:
         manifest=json.loads((a.corpus/'manifest.json').read_text())
         for receipt_file in sorted((a.corpus/'batches').glob('*/manifest.json')):
@@ -52,7 +64,9 @@ def main():
             if receipt.get('force_contract',{}).get('schema')!='ref2dex.inspire-measured-forces.v1':raise ValueError('same-execution forces missing')
             for record in receipt['records']:
                 name=record['sequence'];source=receipt_file.parent/record['path']
-                if name in rows:raise ValueError('duplicate completed rollout '+name)
+                if name in rows:
+                    if Path(rows[name]['source']).resolve()!=source.resolve():raise ValueError('different physical execution for reused audit '+name)
+                    continue
                 folder=a.output/'sequences'/name;folder.mkdir()
                 try:
                     with np.load(source/'trajectory.npz',allow_pickle=False) as data:
