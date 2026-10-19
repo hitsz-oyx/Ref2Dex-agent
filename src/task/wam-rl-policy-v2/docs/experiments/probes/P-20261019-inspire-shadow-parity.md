@@ -280,3 +280,18 @@ nvidia-smi利用率上升。WAM计算变快后，CPU scheduler/物理RPC/reset�
 运算在adapter显式保持，实际RemoteInspireEnv的观测/reward/done严格rtol=atol=0通过。
 78项Task测试通过。默认JSON，新模式显式--state-transport packed并写入推理身份。
 拟在下一次完整更新边界保存r2后继续启用packed，算法/采样/物理/任务保持。
+
+
+r2已在iteration339完整边界停止，首轮和call300周期检查的六rank最大偏差均≤0.337mm。
+packed的r3/9662f3bc在第一个物理步、尚未产生PPO更新时，rank1 PhysX convex-plane
+CUDA kernel非法访问，其他peer按supervisor关闭；保留失败日志，不称codec在线通过。
+checkpoint339未受影响。代码审查发现首个simulate前Host初始化与collector reset连续调用setter，
+且索引owner被后一次reset替换。随安装Isaac Gym原始文档programming/tensors.html明确说明
+setters应在两次simulate间各调用一次、C++不持有Python引用。优先修复该确定合同缺口，
+并保留异步同步/PhysX碰撞实现为尚未排除的替代解释，不能仅凭静态审查认定唯一崩溃原因。
+
+修复仅在Inspire物理host内安装：逻辑reset与FK观测保持立即更新，将pending env集合合并，
+在pre_physics_step提交一次root/DOF setter，并保留索引张量到simulate之后；没有额外物理步、
+没有按时长sleep掩盖竞态，也不修改共享consequence reset或旧冻结运行。
+reset提交协议写入inference身份，显式migration记录。回归测试覆盖首次重复reset、
+子集并集、每步setter计数与传给Gym的索引owner生命周期。拟从同一339重复完整入口。

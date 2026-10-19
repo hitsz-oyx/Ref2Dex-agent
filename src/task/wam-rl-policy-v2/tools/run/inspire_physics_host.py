@@ -84,6 +84,8 @@ def main():
     runtime=a.output/'gym_runtime';asset=runtime/'dexplore/data/assets';asset.parent.mkdir(parents=True)
     asset.symlink_to('/home2/wyy/oyx_ws/dexplore/dexplore/data/assets')
     install_reset_patch()
+    from wam_rl_policy_v2.inspire_reset_submission import install_reset_submission
+    install_reset_submission(DexploreTask,gymtorch)
     original_load=DexploreTask._load_table
     def table(task,requested):
         exported=task.export_rl;task.export_rl=True
@@ -108,6 +110,7 @@ def main():
         native_ref_reward_used=False,native_ref_termination_used=False,source_sequences=len(files),
         source_sequence_names=[r['sequence'] for r in records],source_object_names=sorted({r['object'] for r in records}),
         state_transport=a.state_transport,
+        reset_submission='logical_FK_now_once_indexed_setters_before_simulate.v1',
         indexed_resets=0,steps=0,episode_action_mismatches=0,maximum_pd_error=0.)
     def save():
         (a.output/'manifest.json').write_text(json.dumps(audit,indent=2)+'\n')
@@ -195,6 +198,7 @@ def main():
                         # This counts motion initializations, not completed or
                         # successful trajectories; keep coverage visible live.
                         audit['motion_visits']=task._motion_sampler.visits.cpu().tolist()
+                        audit['reset_setter_submissions']=getattr(task,'_inspire_reset_setter_submissions',0)
                         save()
             audit.update(status='COMPLETED',elapsed_s=time.monotonic()-started,
                 motion_visits=task._motion_sampler.visits.cpu().tolist())

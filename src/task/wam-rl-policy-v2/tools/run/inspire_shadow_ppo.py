@@ -86,7 +86,8 @@ def main():
             task_goal='ordered full object SE3 path',task_reward='shadow_approach_with_ordered_path_tracking.v1',
             scheduler=env.inputs.schedulers[0].config.__dict__,source=str(a.cache),
             reset='explicit_indexed_reset_then_observation_then_policy.v1',native_controller=hello['audit']['controller'],native_dt=hello['audit']['native_dt_s'],
-            inference=dict(env.inputs.performance_contract(),state_transport=a.state_transport))
+            inference=dict(env.inputs.performance_contract(),state_transport=a.state_transport,
+                reset_submission=hello['audit'].get('reset_submission','legacy_immediate_setters')))
         if a.world_size>1:
             import torch.distributed as dist
             from datetime import timedelta
@@ -113,6 +114,8 @@ def main():
                 prior['inference'].setdefault('state_transport','json')
             if saved.get('execution_identity') is not None and 'inference' not in saved['execution_identity']:
                 prior['inference']['state_transport']='json'
+                prior['inference']['reset_submission']='legacy_immediate_setters'
+            if prior is not None:prior['inference'].setdefault('reset_submission','legacy_immediate_setters')
             migration=validate_execution(prior,identity,evaluating=a.evaluate,migration_reason=a.performance_migration_reason)
             if migration['changed'] and migration['differences']!=['inference']:
                 raise ValueError('performance migration may change only inference execution settings')

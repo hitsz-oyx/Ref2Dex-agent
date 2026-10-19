@@ -22,6 +22,9 @@ def main():
     p.add_argument('--shared-run',type=Path,help='Explicit project-owned BC coordinator process.json allowed to share GPUs')
     p.add_argument('--evaluate',action='store_true');p.add_argument('--evaluation-controls',type=int,default=300)
     p.add_argument('--model-gpu',type=int,default=6);p.add_argument('--physics-gpu',type=int,default=7)
+    p.add_argument('--wam-executor-mode',choices=['full_fp32','hand_fp32','hand_shared_tf32'],default='full_fp32')
+    p.add_argument('--wam-batch',type=int,default=128);p.add_argument('--performance-migration-reason')
+    p.add_argument('--state-transport',choices=['json','packed'],default='json')
     a=p.parse_args();out=a.output.resolve();a.cache=a.cache.resolve()
     if out.exists() or ROOT/'outputs/wam-rl-policy-v2' not in out.parents or not 2<=a.envs<=256 or not 0<a.seconds<=172800:
         raise ValueError('fresh bounded Task run required')
@@ -46,6 +49,7 @@ def main():
     sockdir=ROOT/'tmp'/('isppo-'+str(os.getpid()));sockdir.mkdir(mode=0o700);sock=sockdir/'s'
     state=dict(status='RUNNING',pid=os.getpid(),git_commit=commit,run_id=out.name,envs=a.envs,gpus=[a.model_gpu,a.physics_gpu],
         max_seconds=a.seconds,max_bytes=3*1024**3,children=[],started_at=time.strftime('%Y-%m-%dT%H:%M:%S%z'))
+    state['inference']=dict(mode=a.wam_executor_mode,batch=a.wam_batch,state_transport=a.state_transport)
     children=[];handles=[];started=time.monotonic();last=-30
     def save():
         path=out/'process.json';part=path.with_suffix('.part');part.write_text(json.dumps(state,indent=2)+'\n');part.replace(path)
@@ -69,7 +73,9 @@ def main():
     try:
         args=[MODEL,str(frozen/'tools/run/inspire_shadow_ppo.py'),'--cache',str(a.cache),'--output',str(out/'policy'),
             '--socket',str(sock),'--gpu',str(a.model_gpu),'--updates',str(a.updates),'--seconds',str(a.seconds),
-            '--bc' if a.bc else '--current-parent',str((a.bc or a.current_parent).resolve())]
+            '--bc' if a.bc else '--current-parent',str((a.bc or a.current_parent).resolve()),
+            '--wam-executor-mode',a.wam_executor_mode,'--wam-batch',str(a.wam_batch),'--state-transport',a.state_transport]
+        if a.performance_migration_reason:args.extend(['--performance-migration-reason',a.performance_migration_reason])
         if a.reset_probe:args.append('--reset-probe')
         if a.resume:args.extend(['--resume',str(a.resume.resolve())])
         if a.evaluate:args.extend(['--evaluate','--evaluation-controls',str(a.evaluation_controls)])
@@ -80,7 +86,7 @@ def main():
             time.sleep(1)
         args=[PHYSICS,str(frozen/'tools/run/inspire_physics_host.py'),'--cache',str(a.cache),'--output',str(out/'physics'),
             '--socket',str(sock),'--server-pid',str(server.pid),'--envs',str(a.envs),'--gpu',str(a.physics_gpu),'--seconds',str(a.seconds),
-            '--motions',str(a.motions)]
+            '--motions',str(a.motions),'--state-transport',a.state_transport]
         native=launch(args,'physics')
         while True:
             guard();codes=[p.poll() for p in children]
