@@ -57,7 +57,9 @@ def main():
                 path_complete=last.path_complete,measured_task_complete=last.task_complete,
                 failure_reason=last.failure_reason,confirmed_progress=last.path_progress,
                 missing_dof_force=missing_force,support_unknown=True))
-        if len(rows)%50==0:print(json.dumps(dict(sequences=len(rows),elapsed_s=time.monotonic()-started)),flush=True)
+        if len(rows)%50==0:print(json.dumps(dict(sequences=len(rows),elapsed_s=time.monotonic()-started,
+            nonzero_geometric_progress=sum(r['confirmed_progress']>0 for r in rows),
+            ever_track=sum(r['phase_frames'].get('TRACK',0)>0 for r in rows))),flush=True)
     report=dict(status='COMPLETED',engineering_only=True,annotation_schema=ANNOTATION_SCHEMA,
         git_commit=code_version,python=sys.executable,
         input=str(a.cache.resolve()),interaction_surface_points=512,elapsed_s=time.monotonic()-started,sequences=len(rows),

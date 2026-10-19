@@ -107,3 +107,21 @@ def test_shadow_position_goal_does_not_add_an_initial_orientation_constraint():
     d=scheduler.update(actual,0.,InteractionFeedback(grasp_established=True))
     np.testing.assert_allclose(task_condition(actual,d)[3:6],0,atol=1e-7)
     assert d.goal_type=='position_only'
+
+
+def test_geometry_is_observed_before_delayed_grasp_confirmation():
+    poses=reference();s=TaskScheduler(TaskSpec.from_reference(poses,source_fps=30,terminal_mode='HOLD'),points())
+    for t in range(11):
+        d=s.update(poses[t],t/30,InteractionFeedback(grasp_established=t==10))
+        if t<10:assert d.phase==Phase.ACQUIRE and not d.task_complete
+    assert d.phase==Phase.TRACK and d.path_progress>0
+    assert s.path.initial_acquired and d.source_cursor_frame>0
+
+
+def test_path_timeout_budget_does_not_include_acquisition_wait():
+    poses=reference();s=TaskScheduler(TaskSpec.from_reference(poses,source_fps=30,terminal_mode='HOLD'),points())
+    for t in range(13):
+        d=s.update(poses[0],float(t),InteractionFeedback())
+        assert not d.terminated
+    d=s.update(poses[0],13.,InteractionFeedback(grasp_established=True))
+    assert d.phase==Phase.TRACK and not d.terminated

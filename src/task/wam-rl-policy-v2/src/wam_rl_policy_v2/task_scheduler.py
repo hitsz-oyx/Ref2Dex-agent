@@ -61,7 +61,7 @@ class TaskScheduler:
 
     def reset(self):
         self.path.reset();self.phase=Phase.ACQUIRE;self.start_time=self.last_time=self.phase_since=None
-        self.track_time=0.;self.path_decision=None;self.settle_since=None;self.probe_origin=None
+        self.path_decision=None;self.settle_since=None;self.probe_origin=None
         self.failure_reason=None;self.complete=False;self.recovering=False;self.paid_events=set()
         self.plan_cursor_frame=float(self.spec.source_frames[0])
         self.acquire_source_origin=0.;self.event_index=0
@@ -92,6 +92,7 @@ class TaskScheduler:
         if feedback.grasp_established and feedback.released:raise ValueError('contradictory measured grasp/release feedback')
         if self.start_time is None:self.start_time=self.phase_since=now
         dt=0. if self.last_time is None else now-self.last_time;self.last_time=now;events=[]
+        paused_path_budget=self.phase==Phase.ACQUIRE
         if self.event_index<len(self.spec.events):
             kind=self.spec.events[self.event_index].kind
             observed=((kind==EventType.CONTACT and feedback.grasp_established and not self.last_grasp)
@@ -122,10 +123,18 @@ class TaskScheduler:
                     goal=self.probe_origin.copy();goal[:3,3]+=direction/np.linalg.norm(direction)*self.config.probe_distance_m
                     goal=self.path._bounded(actual,goal);probe=True
                 else:self.probe_origin=None
-            if self.phase==Phase.TRACK:
-                self.track_time+=max(dt,1e-9)
-                self.path_decision=self.path.update(actual,self.track_time,hand_points=hand_points)
+            if self.phase in (Phase.ACQUIRE,Phase.TRACK) and self.failure_reason is None:
+                # Observe geometry from the first real state, before the
+                # motion-coupling dwell confirms grasp. Path milestones are
+                # geometric evidence, not grasp or task-stage certificates.
+                # Preserve real observation dt for crossing bounds, while
+                # excluding acquisition waiting from path timeout budgets.
+                if paused_path_budget and self.path.start_time is not None:
+                    self.path.start_time+=dt;self.path.last_progress_time+=dt
+                self.path_decision=self.path.update(actual,now,hand_points=hand_points,
+                    execution_ready=False if self.recovering else None)
                 self.plan_cursor_frame=max(self.plan_cursor_frame,float(self.spec.source_frames[self.path_decision['projected_index']]))
+            if self.phase==Phase.TRACK:
                 goal=self.path_decision['goal_pose'].copy()
                 if self.path_decision['timed_out']:self.failure_reason='path_'+self.path_decision['reason']
                 at_end=self.path._reached(actual,self.path.poses[-1])
