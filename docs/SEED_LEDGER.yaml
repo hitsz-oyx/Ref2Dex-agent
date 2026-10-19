@@ -25,6 +25,11 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261019-inspire-shadow-parity:
+    seed_pool: probe
+    training_seed: 246
+    evaluation_seed: 246
+    reuse_reason: full-data embodiment adaptation of the existing Shadow recipe; exploratory TRAIN and DEV, not validation
   P-20261019-inspire-scheduled-executor:
     seed_pool: probe
     training_seed: 246

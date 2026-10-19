@@ -75,3 +75,40 @@ DExplore 官方 PPO 入口为 `third_party/DExplore/dexplore/run.py` → `build_
 
 当前关键证据缺口是**实际送 teacher 的 raw1442 和 normalized1442**。匹配 current721 不能单独替代这一对照，因为 teacher 使用 delta1+delta16；旧16行与新1行推理也应明确记录，在输入完全相同前不把首动作差异归因物理噪声或批大小。旧真实1442 已在 `outputs/ptv3-shared-wam-v2/full-teacher-cache-20261015-r1/train-full.npy`，可根据 manifest、train-sequence.npy、train-tick.npy 定位该序列 tick0。`ptv3-shared-wam-v2/tools/run/prepare_full_teacher_data.py` 有从同执行 body_state/reference_current 重建 delta0/1/16 的纯函数路径，旧缓存生产曾对 teacher action 做 <=2e-4 的重放门控。最小下一步应保存新 teacher 首次 raw/norm1442 对比旧行，再比较相同输入下 batch1/16/64 的 model 输出；在此之前不宣称已找到原因。
 
+## 用户修订：保持 Shadow 路线一致
+
+用户最新要求以成功的 Shadow 流程为准：BC 隐层 `1024/1024/512/512` + ELU、全 660 条 DExplore 数据、同一个 UniDex PPO 引擎及超参。**前文采用 DExplore 原 ref PPO 和旧 current-relative BC 主干的建议已被此要求取代**。DExplore 只提供物理仿真 host；graspenv 侧执行冻结 WAMv4、scheduler、新自训练 BC 及原 UniDex PPO。原生 teacher 不加载、不接管，DExplore 的 reference reward/reset 不参与学习。
+
+### current721 的确定无参考子集
+
+逐句核对 `compute_humanoid_observations_max()` 返回 `torch.cat`，在固定 16 个 key body、5 个 contact body 的 Inspire 合同下，**`native_current_obs[...,9:257]` 是 248 维纯实测物理子集**，不依赖 ref_obs：
+
+| current721 原始 slice（半开区间） | 维数 | 实际语义 |
+|---|---:|---|
+| `9:12` | 3 | rigid body 6 的世界系线速度 |
+| `12:15` | 3 | rigid body 6 的世界系角速度 |
+| `15:60` | 45 | 16 key-body 相对 body7 root 的位置，经 body7 heading inverse 旋转，删除首 key 的 xyz |
+| `60:156` | 96 | 16 key-body heading-local rotation6D；若 local_root_obs 开启，首6维按原函数替换为实测 root rotation6D，仍不依赖参考 |
+| `156:204` | 48 | 16 key-body heading-local 线速度 |
+| `204:252` | 48 | 16 key-body heading-local 角速度 |
+| `252:257` | 5 | 五个指定 contact body 的实测接触位：任一力分量 abs>0.1 |
+
+`0:3` 是 reference root position 减实测 body6，`3:9` 是 reference/body6 rotation6D 误差，必须排除。9:15 的 world/body6 与后续 heading/body7 语义不同，应在新输入 schema 中如实记载；五个 contact bits 也不是“手物稳定抓取证书”。实际 `key_body_ids`、`contact_body_ids` 和 local_root_obs 标志需绑定，不能仅按维度猜顺序。[原始函数](../../../../../third_party/DExplore/dexplore/env/tasks/base_dexplore_task.py)。
+
+这允许全量 BC 从已存 raw721 提取相同的无 ref 输入，在线则直接用 measured rigid-body/contact tensors 按原公式构造该子集，避免纯 sim host 为生成这个子集而额外计算含 ref 的完整721/1442。其他 q/dq、object pose/velocity 和最终 goal 若纳入新 state，必须分别声明，同离线使用相同定义；不能沿用旧721的名字称整个输入无参考。
+
+### indexed reset 与纯仿真 RPC 的确定边界
+
+现有 `install_reset_patch()` 的目标正是 GPU deferred setter + indexed reset，静态实现支持多个 env_ids：保留未重置环境 humanoid roots，单次提交 humanoid/target（有 sampler 时也包含 table）的 root indices 与 humanoid DOF indices，并保留 index tensor 到下一次仿真；用 URDF FK 更新重置环境刚体缓存、清除其旧接触、重新生成 reset observation。`task.reset(ids)`/`VecTaskPythonWrapper.reset(ids)` 本身不推进物理，也不在下一步偷偷 reset。**这是代码能力，不等于新多环境 RPC 已通过实际回归。**[reset patch](../../../consequence-evaluator/src/consequence_evaluator/native_reset.py)、[原生 reset/wrapper](../../../../../third_party/DExplore/dexplore/env/tasks/vec_task_wrappers.py)。
+
+纯 host 接入中确定需要处理的事项：
+
+1. **一拍一次合并 indexed reset。** 把所有待重置 IDs 合并后一次调用；不要在同一物理 tick 前反复调用 setter，再覆盖 `_consequence_root_indices`/`_consequence_dof_indices`。reset 后提交 deferred setter，不能立刻 refresh 旧 GPU physics tensors 覆盖新 q/root/FK 缓存，也不能插入未声明的 simulate。
+2. **新回合观测先于新动作。** host 将新 episode ID、tick、motion/object ID 及 FK/状态缓存返回；graspenv 只清空这些环境的 H4/scheduler/hold counters，history valid 从零开始。RPC action 带 episode/tick 校验，拒绝 reset 前动作。PPO 保留旧回合 terminal observation/reward/done，随后使用新 reset observation 采样下一动作；不得沿用官方 collector/player 外循环去执行自己的自动 env_reset。
+3. **覆盖原生 reference reward/reset 的实际调用点。** DexploreTask 的 `post_physics_step()` 不仅算 reward/reset，还更新 hist/HOI/ref observation、adaptive kappa 和 collision curriculum。纯 host 应保留 progress++、physics tensor refresh 与需要的测量，而停用 ref reward、ref contact/IG failure、adaptive统计与 curriculum；自身 task reward/终止由新 wrapper 定义。仅把 `_enable_early_termination=False` 不够，原生 episode length/reference observation 访问仍存在。
+4. **同 ID 的 reset 缓存要重建。** 原 patch 已清 `_contact_forces/_tar_contact_forces` 和 reset/terminate bits；原 reset 清 `_hist_obs/contact_reset`，但并未重建 `_curr_obs`。若 host 仍使用 HOI/energy/history字段，须在 reset 后从新状态重建，不能把旧 `_curr_obs` 复制为新 `_hist_obs`。纯 measured-state host 则不读取这些旧 ref-reward caches。上一步旧 PD target 不能当新动作；下一次 pre_physics_step 必须用新采样动作更新 target。
+5. **运动与物体身份对应。** `_reset_actors/_reset_target` 会读取 motion/reset reference 来初始化状态（作为已知初始场景允许保留），并在 sampler 下更新 table pose。全660数据需固定 motion→asset、canonical geometry 和参考路径映射；不能跨物体切换 data_id 而仍使用上一物体的几何/scheduler。保留原子 actor/DOF索引及 table/target rigid-body布局假设，indexed reset 不应改变其他环境。
+6. **动作与 RPC 结果不可变。** 12 个 independent command 显式扩成18维，传原生前 clone；原生手指 `(1+a)/2` 和 coupling 会改 action副本。host response 的 transition 和 reset measurement 分开复制，再发 bounded AF_UNIX 消息，避免观测 tensor alias 在下一 step 被覆盖。复用现有 seq/tick 和 peer PID 校验；每条消息上限随 batch 明确设置。
+
+所以上述 patch 可作为新 host 的 indexed-reset 基础，**不需要**照搬 Shadow 延迟 reset 的 zero-action 过渡来掩盖首动作错配；应先采用显式 reset→返回新观测→新动作的时序，再对“两环境只 reset 一个、另一环境状态/进度不受影响、回合首动作来自新观测”做必要集成验证。本段只读核对，未运行 GPU 或新增实现。
+
