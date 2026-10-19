@@ -156,6 +156,12 @@ def main():
         @torch.no_grad()
         def _run_export_rl(self,task):
             n = task.num_envs
+            if args.capture_dof_force:
+                shapes={name:task.gym.get_asset_rigid_shape_count(asset) for name,asset in zip(task.object_name,task._target_asset)}
+                table_shapes=task.gym.get_asset_rigid_shape_count(task._table_asset)
+                manifest['aggregate_shapes']=dict(objects=shapes,table=table_shapes,legacy_object_table_limit=22)
+                print(json.dumps(dict(event='AGGREGATE_SHAPES',**manifest['aggregate_shapes'])),flush=True)
+                write(out/'manifest.json',manifest)
             if n != len(names) or sorted(Path(p).name for p in task.motion_file) != sorted(names):
                 raise ValueError('one unique sequence per environment required')
             task._adaptive_kappa_enabled = False

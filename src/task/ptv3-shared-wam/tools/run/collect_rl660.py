@@ -68,9 +68,11 @@ def main():
     p.add_argument('--capture-dof-force',action='store_true')
     p.add_argument('--allow-monica-sharing',action='store_true')
     p.add_argument('--split-from',type=Path)
+    p.add_argument('--inherit-completed',type=Path,help='Reuse completed force batches from an owned partial corpus; collect missing sequences only')
     p.add_argument('--artifact-budget-bytes',type=int,default=4_000_000_000)
     a = p.parse_args()
     if a.capture_dof_force and not a.capture_current_observation:raise ValueError('force capture requires current measured states')
+    if a.inherit_completed and (not a.capture_dof_force or a.resume):raise ValueError('inherited completion requires a fresh force collection')
     out = a.output.resolve()
     gpus = a.gpus.split(',')
     allowed = [ROOT/'outputs/ptv3-shared-wam']
@@ -117,6 +119,7 @@ def main():
         if a.allow_monica_sharing:command.append('--allow-monica-sharing')
         if a.split_from:
             command.extend(['--split-from',str(a.split_from.resolve())])
+        if a.inherit_completed:command.extend(['--inherit-completed',str(a.inherit_completed.resolve())])
         if a.resume:
             command.append('--resume')
         with (scratch/'supervisor.log').open('x') as log:
@@ -148,8 +151,30 @@ def main():
         task_goal_source='same_execution_teacher_object_rollout' if a.capture_dof_force else 'legacy',
         inherited_split=inherited_split,artifact_budget_bytes=a.artifact_budget_bytes,
         split_from=str(a.split_from.resolve()) if a.split_from else None)
-    batches = [names[i:i+a.batch_size] for i in range(0,len(names),a.batch_size)]
     reused, completed, controller = set(), [], None
+    remaining=names
+    if a.inherit_completed:
+        parent=a.inherit_completed.resolve();prior=json.loads((parent/'manifest.json').read_text())
+        if (prior.get('status') not in ('FAILED','COMPLETED') or not prior.get('capture_dof_force')
+                or prior.get('inherited_split')!=inherited_split or prior.get('source_membership')!=str(source.resolve())):
+            raise ValueError('inherited corpus membership/force/split contract differs')
+        (out/'batches').mkdir()
+        for record in prior['records']:
+            folder=(parent/record['path']).resolve();batch_root=folder.parents[1]
+            receipt=json.loads((batch_root/'manifest.json').read_text())
+            if receipt.get('status')!='COMPLETED' or receipt.get('force_contract',{}).get('schema')!='ref2dex.inspire-measured-forces.v1':
+                raise ValueError('cannot inherit incomplete or old force data')
+            link=out/'batches'/('inherited-'+batch_root.name)
+            if not link.exists():link.symlink_to(batch_root)
+            path=(link/folder.relative_to(batch_root)).relative_to(out)
+            completed.append(dict(record,path=str(path)))
+        existing={r['sequence'] for r in completed}
+        if len(existing)!=len(completed) or existing-set(names):raise ValueError('duplicate/outside inherited membership')
+        remaining=[name for name in names if name not in existing]
+        manifest.update(inherited_completed_from=str(parent),records=completed)
+        for key in ('native_controller','observation_contract','force_contract'):
+            if key in prior:manifest[key]=prior[key]
+    batches = [remaining[i:i+a.batch_size] for i in range(0,len(remaining),a.batch_size)]
     prior_elapsed = 0.
     if previous is not None:
         if previous['source_membership'] != str(source.resolve()):
