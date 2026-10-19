@@ -65,6 +65,7 @@ def main():
         strata[split]=load_array(meta['strata'][split],mmap_mode='r')
     jobs=[(i,r) for i,r in enumerate(meta['sequences']) if r['source_id'] in selected]
     def one(job):
+        if time.monotonic()-started>a.seconds or (a.output/'STOP').exists():return None
         seqid,row=job;folder=Path(row['path'])
         pose=load_array(folder/'object_poses.npy',mmap_mode='r')
         valid=load_array(folder/'object_pose_valid.npy',mmap_mode='r')
@@ -86,6 +87,7 @@ def main():
     status='COMPLETED';failures=[]
     with (a.output/'sequences.jsonl').open('x') as stream,ThreadPoolExecutor(max_workers=a.workers) as pool:
         for result in pool.map(one,jobs):
+            if result is None:status='PARTIAL';break
             stream.write(json.dumps(result)+'\n');done+=1
             for rec in result['records']:
                 key=str(result['source_id'])+':'+rec['split'];total=totals.setdefault(key,{})
