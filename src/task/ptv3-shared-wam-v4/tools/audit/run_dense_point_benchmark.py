@@ -22,6 +22,7 @@ def main():
     p.add_argument('--main-run',type=Path,required=True);p.add_argument('--code-root',type=Path,required=True)
     p.add_argument('--fixture',type=Path,required=True);p.add_argument('--output',type=Path,required=True)
     p.add_argument('--benchmark-script',type=Path,required=True);p.add_argument('--seconds',type=int,default=540)
+    p.add_argument('--full-training-followup',action='store_true')
     a=p.parse_args()
     if not 60<=a.seconds<=540:raise ValueError('pause benchmark budget60..540 seconds')
     state=json.loads((a.main_run/'process.json').read_text())
@@ -81,17 +82,24 @@ print('watchdog resumed verified main job',flush=True)
         cases=[('baseline-10mm','baseline',.01,128),('geometry-10mm','geometry',.01,128),
                ('geometry-5mm','geometry',.005,128),('vertices-5mm-c128','full',.005,128),
                ('vertices-5mm-c2048','full',.005,2048),('baseline-5mm','baseline',.005,128)]
+        if a.full_training_followup:
+            cases=[('vertices-train-5mm-c128','full',.005,128),
+                   ('vertices-train-5mm-c2048','full',.005,2048)]
         env=dict(os.environ,CUDA_VISIBLE_DEVICES='0',OMP_NUM_THREADS='1',MKL_NUM_THREADS='1',
                  OPENBLAS_NUM_THREADS='1',PYTHONDONTWRITEBYTECODE='1',REF2DEX_BENCH_CODE_ROOT=str(a.code_root))
-        for name,mode,voxel,queries in cases:
+        position=0
+        while position<len(cases):
+            name,mode,voxel,queries=cases[position];position+=1
+            batch_size=64 if name.endswith('-b64') else 128
             remaining=a.seconds-(time.monotonic()-started)
             if remaining<25:
                 report['budget_exhausted_before']=name;break
             output=a.output/(name+'.json')
             command=[sys.executable,str(a.benchmark_script),'--fixture',str(a.fixture),'--checkpoint',str(parent),
                 '--output',str(output),'--case',name,'--mode',mode,'--voxel',str(voxel),
-                '--queries',str(queries),'--batch','128','--hands','1','--warmup','3','--steps','8']
+                '--queries',str(queries),'--batch',str(batch_size),'--hands','1','--warmup','3','--steps','8']
             if name=='baseline-10mm':command+=['--check-equivalence']
+            if a.full_training_followup:command+=['--skip-batch-inference']
             print(json.dumps(dict(stage='case-start',case=name,remaining_s=remaining)),flush=True)
             log=(a.output/(name+'.log')).open('w')
             child=subprocess.Popen(command,stdout=log,stderr=subprocess.STDOUT,env=env,start_new_session=True)
@@ -105,6 +113,10 @@ print('watchdog resumed verified main job',flush=True)
             print(json.dumps(dict(stage='case-done',case=name,status=entry['status'],
                 training=entry.get('training'),inference=entry.get('inference_batch1'))),flush=True)
             child=None
+            if a.full_training_followup and entry['status']=='OOM' and batch_size==128:
+                cases.append((name+'-b64',mode,voxel,queries))
+                if not any(case[0]=='baseline-5mm-b64' for case in cases):
+                    cases.append(('baseline-5mm-b64','baseline',.005,128))
         report['status']='COMPLETED'
     except BaseException as error:
         report.update(status='FAILED',error=repr(error))
