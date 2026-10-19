@@ -102,6 +102,10 @@ def prepare(args):
     replace('dexgrasp/autoencoding/PN_Model.py','from maniskill_learn.networks.backbones.pointnet import',
         'from algo.pn_utils.maniskill_learn.networks.backbones.pointnet import')
     replace('dexgrasp/cfg/train/universal_policy_state_based.yaml','  static_init: True','  static_init: False')
+    if args.preserve_training_hand_pose:
+        replace('dexgrasp/tasks/state_based_grasp.py',
+            'shadow_hand_start_pose.p = gymapi.Vec3(0.0, 0.0, self.table_dims.z + 0.2)',
+            'shadow_hand_start_pose.p = gymapi.Vec3(0.0, 0.08, self.table_dims.z + 0.2)')
     replace('dexgrasp/algo/pn_utils/maniskill_learn/utils/meta/__init__.py','from .magic_utils import *','')
     # Guard every optimizer step and collect passive evidence at upstream readout.
     hook='''    assert args.test and not args.train, 'Evaluation-only runner requires --test'
@@ -148,6 +152,7 @@ def prepare(args):
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         upstream_commit=PIN,mode='evaluation-only',gpu=args.gpu,envs=args.envs,seed=args.seed,
         object_code=args.object_code,scale=args.scale,upstream_row=index,command=command,
+        preserve_training_hand_pose=args.preserve_training_hand_pose,
         checkpoint=str(source/'results/state_based/model_best_isaacgym_3.pt'),
         seconds=args.seconds,artifact_limit_bytes=4*2**30,remote_zip_transferred=remote.transferred,
         compatibility_patches=patches,limitations=['Preview3 policy evaluated in Preview4',
@@ -167,6 +172,7 @@ def main():
     parser.add_argument('--seconds',type=int,default=900)
     parser.add_argument('--object-code',default='core/jar-724fb5eb32401b96ed681532841d3af9')
     parser.add_argument('--scale',type=float,default=.06)
+    parser.add_argument('--preserve-training-hand-pose',action='store_true',help='Preserve trained static-reset hand y=0.08 while using dynamic object resets')
     parser.add_argument('--prepare-only',action='store_true')
     parser.add_argument('--resume-prepared',action='store_true')
     args=parser.parse_args();args.output=args.output.resolve()

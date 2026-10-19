@@ -44,3 +44,5 @@ Transformer权重 + 动态PointNet编码器严格加载，在已审计的单jar�
 准备阶段依赖：`outputs/wam-rl-policy-v2/unigrasp-eval-20261019-r1/deps/`。
 
 准备r1发现官方下载FPS ZIP内部前缀为meshdatav3_pc_fps_new，修复路径映射后r2准备成功；r1未运行物理评估。补齐GPUtil/h5py/ipdb/addict/yapf/termcolor/nvidia-ml-py至独立deps目录，原环境未改。移除未使用sorcery debug导入，PointNet及Transformer严格加载。GPU6开始r2，256环境，采样约3.4GiB/53%。在接口已执行的基础上，追加单camera-9726.../.10、256环境/seed246/GPU7，同样900秒上限，run_id unigrasp-published-camera-20261019-r1；用于区分单个形状偶然性与可执行的本地多形状策略，不作为全面基准。
+
+动态fallback首轮：jar 57/256（22.27%），camera 29/256（11.33%），均optimizer_steps=0。审计发现原始Modes.static_init切换同时改变hand起点y=0.08→0，不能视作只更换物体初始化来源。追加Decision对照：相同两物体、seed246/256环境，动态物体初始化不变，只将手部构造起点恢复训练默认y=0.08m；GPU6/7、每进程900秒、同权重与官方test循环。run_id unigrasp-published-{jar,camera}-handpose-20261019-r1。结果无论正负均结束此轮兼容性尝试，不做基于成功率的参数搜索；需要原始静态测试包才能给出严格复现结论。
