@@ -634,6 +634,7 @@
 | [P-20261018-scheduled-batch-ppo](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261018-scheduled-batch-ppo.md) | Scheduled BC 的批量 PPO 试跑 | 见原卡 | 见原卡 | probes/COMPLETED |
 | [P-20261019-inspire-scheduled-executor](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-inspire-scheduled-executor.md) | P-20261019-inspire-scheduled-executor | 见原卡 | 见原卡 | probes/UNCLEAR |
 | [P-20261019-inspire-shadow-parity](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-inspire-shadow-parity.md) | P-20261019-inspire-shadow-parity | 见原卡 | 见原卡 | probes/RUNNING |
+| [P-20261019-inspire-task-contract](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-inspire-task-contract.md) | P-20261019-inspire-task-contract | 见原卡 | 见原卡 | probes/COMPLETED |
 | [P-20261019-native-ppo-comparison](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-native-ppo-comparison.md) | P-20261019-native-ppo-comparison | 见原卡 | 见原卡 | probes/COMPLETED |
 | [P-20261019-ppo-checkpoint-evaluation](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-ppo-checkpoint-evaluation.md) | P-20261019-ppo-checkpoint-evaluation | 见原卡 | 见原卡 | probes/COMPLETED |
 | [P-20261019-wam-final-swap](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-wam-final-swap.md) | P-20261019-wam-final-swap | 见原卡 | 见原卡 | probes/COMPLETED |
@@ -865,6 +866,12 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261015-v2-stage-grasp](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-v2-stage-grasp.md) | WAM-v2 微调阶段的实际抓取 Probe | COMPLETED；27组物理及最终独立审计全部完成。9阶段预测τ→R均held0；GTτ→R最好8k飞机27帧/杯子19帧，未达held45，局部UNPROMISING。 | 用户要求直接拿保留的微调权重沿用旧Task物理评估；不再延长训练。 | probes/UNPROMISING |
+
+## HF-v5-batch-composition
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261019-wam-v5-batch-audit](../../src/task/ptv3-shared-wam-v5/docs/experiments/probes/P-20261019-wam-v5-batch-audit.md) | Frozen WAM-v5 batch-composition and training-contract audit | the report's four engineering/structure concerns are confirmed; real | continue unchanged768 training. Before the next launch/resume, | probes/COMPLETED |
 
 ## HF-v5-contact-definition
 

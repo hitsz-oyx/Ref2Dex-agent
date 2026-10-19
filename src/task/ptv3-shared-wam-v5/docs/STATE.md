@@ -5,6 +5,21 @@
 再决定teacher/loss。用户现明确要求停scale、启动四卡v5；完整缓存已完成，四rank启动检查通过。
 本轮从头训练，不加入C→PPO、重定向或CEDex抓取数据。
 
+## 本次审查（真实checkpoint2000，训练继续）
+
+[batch/训练合同审计](experiments/probes/P-20261019-wam-v5-batch-audit.md)确认动态Hilbert深度
+的结构batch依赖、NCCL后fork风险、总目标best单一保留，以及CLI覆盖batch不进入resume合同。
+实际入口CPU微型续训复现了config batch1→实际batch2仍通过；不是当前正式global512接错。
+远端同Torch2.0.1/4090、固定2000步checkpoint，九源真实目标单独/8/128推理均通过：
+batch128相对单样本τ位移宏平均0.118mm、单点最大1.826mm、C最大差0.003906；
+重复单样本自身已有0.064mm平均波动，不能全归因于depth。真实depth9→10使首目标
+1726/1726个初层voxel的Hilbert patch成员改变；小早期面板不提供全量或后期误差上界。
+审计6.8s、allocated3.33GiB，独立GPU1进程限14GiB；主训练没有暂停或热改，随后仍推进到3000步。
+DEV20/1000/2000手EPE59.69/47.89/42.87mm，根点相对19.95/19.67/19.27mm；
+整体τ在改善，手型相对误差改善尚小。2000步总目标best与宏手EPE best重合，完整审计副本独立保留。
+结论：不据此停训。下次启动/恢复前应验证spawn/forkserver、绑定有效local/global batch，
+并另保留预定义τ候选；这些修复和四GPU恢复验证尚未实施。后续有意义checkpoint再复测batch敏感性。
+
 ## 当前四卡训练协议
 
 [训练Probe](experiments/probes/P-20261019-wam-v5-mixed-pretrain.md)按用户要求改为冻结6334e1ea代码，
