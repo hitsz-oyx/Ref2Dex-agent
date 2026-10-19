@@ -21,6 +21,7 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     for name in ('main-run','code-root','base-code-root','recipe','output'):p.add_argument('--'+name,type=Path,required=True)
     p.add_argument('--seconds',type=int,default=300);p.add_argument('--git-commit',required=True)
+    p.add_argument('--workers',type=int,default=0);p.add_argument('--batches',default='2,64,128')
     a=p.parse_args()
     if not 60<=a.seconds<=540:raise ValueError('bounded60..540 second pause required')
     state=read_json(a.main_run/'process.json')
@@ -68,13 +69,14 @@ for pid in (d['worker'],d['supervisor']):
         task=a.code_root/'src/task/ptv3-shared-wam-v5'
         env=dict(os.environ,CUDA_VISIBLE_DEVICES='0',REF2DEX_V5_BASE_CODE_ROOT=str(a.base_code_root),
             OPENBLAS_NUM_THREADS='1',OMP_NUM_THREADS='2',MKL_NUM_THREADS='2',PYTHONDONTWRITEBYTECODE='1')
-        for batch,steps in ((2,4),(64,8),(128,8)):
+        for batch in map(int,a.batches.split(',')):
+            steps=4 if batch==2 else 8
             remaining=a.seconds-(time.monotonic()-started)
             if remaining<30:break
             output=a.output/f'batch{batch}'
             command=[sys.executable,str(task/'tools/run/train_pretrain.py'),'--config',str(task/'configs/pretrain_joint21_surface2048_scale1024.json'),
                 '--manifest',str(a.recipe/'manifest.json'),'--stats',str(a.recipe/'stats.json'),'--output',str(output),
-                '--smoke','--steps',str(steps),'--batch-size',str(batch),'--git-commit',a.git_commit]
+                '--smoke','--steps',str(steps),'--batch-size',str(batch),'--workers',str(a.workers),'--git-commit',a.git_commit]
             log=(a.output/f'batch{batch}.log').open('w')
             child=subprocess.Popen(command,stdout=log,stderr=subprocess.STDOUT,start_new_session=True,env=env)
             try:code=child.wait(timeout=remaining)

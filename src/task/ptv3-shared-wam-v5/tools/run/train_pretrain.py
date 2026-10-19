@@ -5,6 +5,8 @@ import json
 import os
 from pathlib import Path
 import random
+import tempfile
+import multiprocessing
 import shutil
 import sys
 import time
@@ -67,7 +69,7 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     for name in ('config','manifest','stats','output'):p.add_argument('--'+name,type=Path,required=True)
     p.add_argument('--device',default='cuda:0');p.add_argument('--smoke',action='store_true')
-    p.add_argument('--steps',type=int);p.add_argument('--batch-size',type=int);p.add_argument('--workers',type=int,default=0)
+    p.add_argument('--steps',type=int);p.add_argument('--batch-size',type=int);p.add_argument('--workers',type=int,default=4)
     p.add_argument('--seed',type=int)
     p.add_argument('--resume',type=Path);p.add_argument('--git-commit',required=True);a=p.parse_args()
     config=read_json(a.config);stats=read_json(a.stats)
@@ -106,7 +108,12 @@ def main():
     wrapped=DDP(model,device_ids=[local] if device.startswith('cuda') else None) if world>1 else model
     kwargs=dict(dataset=dataset,batch_sampler=Steps(dataset,batch_size,seed,rank,first,last),collate_fn=collate,
                 num_workers=a.workers,pin_memory=device.startswith('cuda'))
-    if a.workers:kwargs.update(multiprocessing_context='fork',persistent_workers=True,prefetch_factor=2)
+    if a.workers:
+        ipc=Path('/dev/shm')/f'ptv3-wam-v5-{os.getuid()}'
+        ipc.mkdir(exist_ok=True,mode=0o700)
+        os.environ['TMPDIR']=str(ipc);tempfile.tempdir=str(ipc)
+        multiprocessing.current_process()._config['tempdir']=str(ipc)
+        kwargs.update(multiprocessing_context='fork',persistent_workers=True,prefetch_factor=2)
     loader=DataLoader(**kwargs)
     dev=V5Windows(a.manifest,'dev') if rank==0 and not a.smoke else None
     if rank==0:

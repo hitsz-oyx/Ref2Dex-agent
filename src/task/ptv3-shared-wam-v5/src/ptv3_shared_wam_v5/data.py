@@ -64,14 +64,14 @@ def sample_window(sequence,geometry,contact,tick,slot,source_id,sample_id):
 
 
 class V5Windows(Dataset):
-    def __init__(self,manifest,split,cache_size=2):
+    def __init__(self,manifest,split,cache_size=8):
         self.path=Path(manifest).resolve();self.meta=read_json(self.path);self.split=split
         if (self.meta.get('schema')!=DATA_SCHEMA or self.meta.get('status')!='FROZEN'
                 or self.meta.get('input_semantics')!=INPUT_SEMANTICS
                 or self.meta.get('label_semantics')!=LABEL_SEMANTICS):raise ValueError('frozen independent v5 overlay required')
         if split not in ('train','dev') or not 1<=cache_size<=8:raise ValueError('known split and bounded sequence cache required')
         self.index=load_array(self.meta['indices'][split],mmap_mode='r')
-        self.cache=OrderedDict();self.cache_size=cache_size
+        self.cache=OrderedDict();self.cache_size=cache_size;self.geometry_cache=OrderedDict()
         geometry=read_json(self.meta['geometry_manifest'])
         self.geometry={r['key']:r for r in geometry['objects']}
         self.geometry_root=Path(self.meta['geometry_manifest']).parent
@@ -88,14 +88,18 @@ class V5Windows(Dataset):
             contact={p.stem:load_array(p,mmap_mode='r') for p in cf.glob('*.npy')}
             self.cache[seq_id]=(seq,contact);self.cache.move_to_end(seq_id)
             while len(self.cache)>self.cache_size:self.cache.popitem(last=False)
+        self.cache.move_to_end(seq_id)
         return self.cache[seq_id]
 
     def __getitem__(self,index):
         seq_id,slot,tick=map(int,self.index[int(index)]);row=self.meta['sequences'][seq_id]
         seq,contact=self._sequence(seq_id)
         name=row['objects'][slot];key=f"s{row['source_id']}:{name}" if row['source_id']<3 else name
-        geo=self.geometry[key]
-        with load_array(self.geometry_root/geo['path'],allow_pickle=False) as z:geometry={k:z[k] for k in z.files}
+        if key not in self.geometry_cache:
+            geo=self.geometry[key]
+            with load_array(self.geometry_root/geo['path'],allow_pickle=False) as z:self.geometry_cache[key]={k:z[k] for k in z.files}
+            while len(self.geometry_cache)>64:self.geometry_cache.popitem(last=False)
+        self.geometry_cache.move_to_end(key);geometry=self.geometry_cache[key]
         return sample_window(seq,geometry,contact,tick,slot,row['source_id'],[seq_id,slot,tick])
 
     def draw(self,count,seed,step=0,rank=0):

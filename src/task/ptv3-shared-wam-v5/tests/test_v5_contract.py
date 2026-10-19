@@ -105,3 +105,26 @@ def test_v4_configuration_and_statistics_are_rejected():
     with pytest.raises(ValueError,match='v5'):SharedWAMV5(stats(),c,Geometry(8))
     c=config();s=stats();s['hand_points']=11
     with pytest.raises(ValueError,match='joint21'):SharedWAMV5(s,c,Geometry(8))
+
+
+def test_contact_broad_phase_preserves_positive_parts_and_distance_field():
+    rng=np.random.default_rng(17);vertices=rng.normal(0,.02,(100,3));parts=rng.integers(0,16,100,dtype=np.uint8)
+    queries=np.concatenate((vertices[:10],rng.normal(0,.1,(100,3))))
+    distance=np.linalg.norm(queries[:,None]-vertices[None],axis=-1);which=distance.argmin(-1);nearest=distance.min(-1)
+    expected=np.exp(-np.maximum(nearest-.003,0)/.01);expected[nearest>.033]=0
+    contact,labels=surface_contact(vertices,parts,queries)
+    np.testing.assert_array_equal(contact,expected.astype(np.float16))
+    np.testing.assert_array_equal(labels[contact>0],parts[which][contact>0])
+
+
+def test_shadow_joint21_matches_recorded_fk_and_has_distinct_thumb_cmc_mcp():
+    root=TASK.parents[2]
+    asset=root/'outputs/video-data-preparation/unidexgrasp-policy-assets-20261014-r1/assets/mjcf/open_ai_assets/hand/robot.xml'
+    recorded=root/'outputs/video-data-preparation/unidexgrasp-multi-replay-20261014-r2/trajectories/episode-00-env-000.npz'
+    if not asset.is_file() or not recorded.is_file():pytest.skip('local recorded Shadow audit assets unavailable')
+    from ptv3_shared_wam_v5.shadow import ShadowSurface
+    with np.load(recorded,allow_pickle=False) as z:q,origin,expected=z['q'],z['hand_root'],z['hand']
+    joints,valid,surface,sv,parts=ShadowSurface(asset).reconstruct(q,origin)
+    actual=joints[:,0,[0,2,5,9,13,17,4,8,12,16,20]]
+    np.testing.assert_allclose(actual,expected,atol=5e-5,rtol=0)
+    assert np.linalg.norm(joints[:,0,1]-joints[:,0,2],axis=-1).min()>.02
