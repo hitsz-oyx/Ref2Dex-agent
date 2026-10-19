@@ -608,3 +608,8 @@ allocations:
     seed_pool: probe
     evaluation_seed: 246
     reuse_reason: bounded release compatibility evaluation; different observations and initialization from WAM panels, not a paired comparison or validation
+
+  P-20261019-wam-v5-event-preparation:
+    seed_pool: probe
+    diagnostic_sampling_seed: 177
+    reuse_reason: source-diverse event annotation diagnostic; reused exploratory seed, no independent replication or model fit
