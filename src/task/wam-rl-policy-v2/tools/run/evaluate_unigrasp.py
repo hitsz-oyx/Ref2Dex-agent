@@ -120,7 +120,10 @@ def prepare(args):
     from tasks.hand_base.vec_task import VecTaskPython
     original_reset, original_step = VecTaskPython.reset, VecTaskPython.step
     audit_start = time.monotonic()
+    audit_task = None
     def observed_reset(self):
+        global audit_task
+        audit_task = self.task
         obs = original_reset(self)
         np.savez(audit_out/'initial-state.npz',observation=obs.cpu().numpy(),
             root=self.task.root_state_tensor.cpu().numpy())
@@ -140,6 +143,8 @@ def prepare(args):
     VecTaskPython.reset, VecTaskPython.step = observed_reset, observed_step
 '''
     replace('dexgrasp/run_online.py','    # start train or test process\n',hook+'\n    # start train or test process\n')
+    replace('dexgrasp/run_online.py','        train()\n',
+        '        try:\n            train()\n        finally:\n            if audit_task is not None:\n                audit_task.gym.destroy_sim(audit_task.sim)\n')
     model_folder=out/'runtime/Logs/Results/results_distill/random/universal_policy/state_based/distill_0000_3199_seed0'
     model_folder.mkdir(parents=True)
     (model_folder/'model_best.pt').symlink_to((source/'results/state_based/model_best_isaacgym_3.pt').resolve())
