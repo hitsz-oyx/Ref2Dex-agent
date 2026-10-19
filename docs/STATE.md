@@ -9,6 +9,9 @@ UniDexGrasp2 PPO引擎/超参，Inspire仅适配实测current312、12独立动�
 GPU输入构造20轮计时已通过；26个已结束回合中23个workspace失败、0个路径成功，
 不能将启动检查称为任务成功。现已在GPU6/7从iteration20续至10000上限，
 首轮恢复到21、均值/logprob误差0；steady约16.1s/轮，预计约45h，未有Inspire成功结论。
+另在GPU4/5完成确定性BC的64首回合/50 TRAIN物体检查：最终无越界高度保持0/64、
+目标附近保持1秒0/64、完整路径0/64。6个高度保持代理中5个后掉落、1个末态越界，
+不称抓取成功；初始q/物体状态与示教对应，尚需定位闭环误差。BC仍只是弱warmstart。
 Shadow原六卡训练r4已正常完成10000终点、进程全部退出，不再处于训练中。
 [当前实验](../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-inspire-shadow-parity.md)。
 

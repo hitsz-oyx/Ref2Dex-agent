@@ -171,3 +171,20 @@ Decision：全量BC warmstart在无探索噪声时是否已有抬升/保持能�
 仍构造同一H4/scheduler输入并检查workspace；已用非零输出网络回归逐位动作相同和越界规则相同。
 若权重非零或评估PPO，则正常预测WAM。该优化在评估manifest中显式记录，不能称WAM闭环增益。
 完整Task测试55项通过；当前长训冻结版本不热改。
+
+bc-eval-r1/78e1ba98已正常完成64/64个首回合、50个TRAIN物体、473全局控制拍，
+模型评估约171秒、0 optimizer更新；原生PD误差0、episode动作错配0。
+高度≥初始10cm且连续30拍为6/64，但其中5个后来掉落；剩余cup_drink回合末高度
+达到3.65m且workspace失败，不能称稳定抓取。最终高度保持且无workspace失败为0/64，
+目标附近连续保持1秒0/64，完整有序路径完成0/64，workspace失败15/64。
+63/64的参考路径曾要求≥10cm高度变化，故低结果不能主要解释为面板全是低高度任务。
+高度阈值可以把抛飞也算入，6/64只报告为高度代理，不能升级为抓取成功率。
+
+初始测量与各自示教首帧核对：64条不同序列，q/dq、object xyz/velocity误差0；
+physical248逐序列RMSE最大5.96e-8，object quat最大4.22e-8。
+这排除了明显初态输入漂移的解释，尚未定位闭环失败，也未验证整个采集/当前动力学逐拍一致。
+同名示教60/64曾升高10cm只是数据描述，不能当本次配对teacher成功率。
+结论：全量BC离线动作拟合已完成，但尚未形成可靠自主抓持/完整路径执行能力；
+PPO长训仍在运行，后续优先审查BC闭环误差与示教/执行动态对应，不能仅凭DEV MAE认可warmstart质量。
+汇总及逐回合证据在outputs/wam-rl-policy-v2/inspire-shadow-parity-20261019-bc-eval-r1/
+的summary.json、policy/evaluation.json和initial-state-diagnostics.json。
