@@ -28,3 +28,6 @@
 [submodule "third_party/simtoolreal-egodex-audit-20261013"]
 	path = third_party/simtoolreal-egodex-audit-20261013
 	url = https://github.com/tylerlum/simtoolreal.git
+[submodule "third_party/UniGraspTransformer"]
+	path = third_party/UniGraspTransformer
+	url = https://github.com/microsoft/UniGraspTransformer.git

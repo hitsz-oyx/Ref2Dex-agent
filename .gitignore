@@ -100,3 +100,6 @@ data/processed_data/stage2
 /Hot3DAria_download_urls.json
 /Hot3DQuest_download_urls.json
 /Hot3DAssets_download_urls.json
+
+# Local Codex project configuration may contain OAuth credentials.
+/.codex/
