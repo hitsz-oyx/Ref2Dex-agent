@@ -1,6 +1,6 @@
 # UniGraspTransformer 阅读笔记
 
-核查日期：2026-10-19；来源为官方论文、代码与 README，未运行该方法。
+核查日期：2026-10-19；来源为官方论文、代码与 README，后续已运行发布state策略的本地兼容评估，尚非论文环境严格复现。
 
 微软亚洲研究院的 CVPR 2025 工作。相对 UniDexGrasp++ 的复杂课程与反复 generalist/specialist 训练，它先用 PPO 训练逐物体专家、采集成功轨迹，再离线监督训练统一 Transformer。专家平均成功率 94.1%；每项采集 1000 条，共 320 万条、每条 200 步。论文称 3200 objects；不要直接将结果配置中的物体—尺度条目解释成 3200 个不同 object code。[论文 §3](https://arxiv.org/html/2412.02699v2#S3)
 
@@ -24,3 +24,5 @@
 研究判断：适合借鉴“高质量专家数据→较大执行器离线 BC”，以及把 native observation 与 WAM τ 分组编码的设计；现成策略没有 τ 条件，不能直接替代当前 τ executor。它研究通用抓取，也不直接解决我们的阶段调度、释放或几何轨迹跟踪。
 
 官方 README 指定论文使用 IsaacGym3、Python3.8、CUDA11.6、Ubuntu20.04、驱动550.107.02。IsaacGym4 提供3015个 dedicated policies，另185项加载失败；Gym4 universal policies 仍标为 Coming Soon。两版发布情况提示版本兼容值得核查，不能据此断言本仓库 UniDexGrasp++ 低成功率的根因。[官方 README](https://github.com/microsoft/UniGraspTransformer#v-test-pre-trained-models-isaacgym4)
+
+本地评估记录：Preview4/替代动态初态下，最终jar4/256、camera46/256；官方静态初态包缺失是协议限制，不能与论文表2直接比较。详见[实验卡](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-unigrasp-published-eval.md)。

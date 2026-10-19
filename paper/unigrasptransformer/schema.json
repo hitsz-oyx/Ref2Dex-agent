@@ -10,5 +10,6 @@
   ],
   "verification_date": "2026-10-19",
   "notes": "notes.md",
-  "scope": "官方论文、公开代码与 README；未下载权重、未运行复现实验。"
+  "scope": "官方论文/源码及本地发布state策略兼容评估；非论文环境严格复现。",
+  "evaluation_card": "src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-unigrasp-published-eval.md"
 }

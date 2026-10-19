@@ -632,6 +632,9 @@
 | [P-20261018-full-scheduled-current-bc](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261018-full-scheduled-current-bc.md) | 全量现有BC接入调度WAM | 见原卡 | 见原卡 | probes/COMPLETED |
 | [P-20261018-official-scheduled-mixed-ppo](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261018-official-scheduled-mixed-ppo.md) | 六卡混合物体：复用官方 PPO + 自训练 BC + WAM-v4 | 见原卡 | 见原卡 | probes/RUNNING |
 | [P-20261018-scheduled-batch-ppo](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261018-scheduled-batch-ppo.md) | Scheduled BC 的批量 PPO 试跑 | 见原卡 | 见原卡 | probes/COMPLETED |
+| [P-20261019-native-ppo-comparison](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-native-ppo-comparison.md) | P-20261019-native-ppo-comparison | 见原卡 | 见原卡 | probes/COMPLETED |
+| [P-20261019-ppo-checkpoint-evaluation](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-ppo-checkpoint-evaluation.md) | P-20261019-ppo-checkpoint-evaluation | 见原卡 | 见原卡 | probes/COMPLETED |
+| [P-20261019-wam-final-swap](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-wam-final-swap.md) | P-20261019-wam-final-swap | 见原卡 | 见原卡 | probes/COMPLETED |
 
 ## HF-shadow-bc-ppo
 
@@ -837,6 +840,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261014-unidexgrasp-local-admission](../../src/task/video-data-preparation/docs/experiments/probes/P-20261014-unidexgrasp-local-admission.md) | UniDexGrasp / ++ 刚体样例接入检查 | PROMISING（刚体几何接入Probe）。20对象320条回放产生TRAIN2560/dev640窗；全部3200窗合同与未来隔离通过，末0.5秒持续接近目标83条；真实GPU模型接线及正式训练准入待验证。 | 保留完整CAD/ShadowHand按需provider和成功/失败物理数据；六卡满额时不另启GPU，释放后先做真实Shared-WAM工程前向/反向，再扩对象；不将距离指标升级为稳定抓持或全库结论。 | probes/PROMISING |
 
+## HF-unigrasp-release-evaluation
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261019-unigrasp-published-eval](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-unigrasp-published-eval.md) | P-20261019-unigrasp-published-eval | 见原卡 | 见原卡 | probes/COMPLETED |
+
 ## HF-v2-base-residual-interface
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
@@ -867,6 +876,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261010-video-point-dynamics](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-video-point-dynamics.md) | Video point prediction without dense future hand labels | 见原卡 | distinguish premature clip-start track death from intrinsically poor | probes/UNPROMISING |
 | [P-20261011-video-motion-token](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-video-motion-token.md) | Metric-3D history motion-token Probe | 见原卡 | 见原卡 | probes/UNPROMISING |
+
+## HF-wam-capacity-scale
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261018-wam-v4-scale-1024](../../src/task/ptv3-shared-wam-v4/docs/experiments/probes/P-20261018-wam-v4-scale-1024.md) | WAM-v4 1024-width capacity probe | 见原卡 | 见原卡 | probes/PLANNED |
 
 ## HF-wam-interaction-head
 

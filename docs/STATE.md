@@ -1,3 +1,11 @@
+## 2026-10-19 UniGraspTransformer发布策略兼容评估完成
+
+官方state Transformer及PointNet严格加载，GPU6/7各256场景、200步、无训练更新。
+最终jar4/256、camera46/256；使用Preview4和动态物体初态（保留训练手起点）。
+官方静态初态包链接404，原环境为Preview3；因此尚未严格复现论文，不用于WAM优劣结论。
+本机旧native库退出崩溃已通过完成仿真/销毁sim后显式worker退出规避；未定位底层库根因。
+GPU6/7已释放，主训练未改。[实验卡](../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-unigrasp-published-eval.md)。
+
 ## 2026-10-19 官方baseline来源审计：发现复现差距
 
 当前16个object-scale全部属于官方TRAIN；官方逐物体结果均值92.54%，本地发布权重仅46.88%。
