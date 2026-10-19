@@ -48,6 +48,7 @@ def main():
     p.add_argument('--state-transport',choices=['json','packed'],default='json')
     p.add_argument('--sequence',help='Exact TRAIN motion for bounded canonical-command replay')
     p.add_argument('--fixed-motions-json',type=Path,help='Engineering replay only: exact collection batch membership, no object sampler')
+    p.add_argument('--extended-state',action='store_true',help='Measured DOF/contact forces and per-episode validity; legacy actor input is unchanged')
     a=p.parse_args();a.cache=a.cache.resolve();a.output=a.output.resolve();a.socket=a.socket.resolve()
     if a.output.exists() or ROOT/'outputs/wam-rl-policy-v2' not in a.output.parents or not 2<=a.envs<=256:
         raise ValueError('fresh bounded native host required')
@@ -121,7 +122,7 @@ def main():
         source_sequence_names=[r['sequence'] for r in records],source_object_names=sorted({r['object'] for r in records}),
         state_transport=a.state_transport,
         reset_submission='logical_FK_now_once_indexed_setters_before_simulate.v1',
-        indexed_resets=0,steps=0,episode_action_mismatches=0,maximum_pd_error=0.)
+        indexed_resets=0,steps=0,episode_action_mismatches=0,maximum_pd_error=0.,extended_state=a.extended_state)
     def save():
         (a.output/'manifest.json').write_text(json.dumps(audit,indent=2)+'\n')
     save()
@@ -158,6 +159,7 @@ def main():
             task.post_physics_step=post
             names=task.gym.get_actor_rigid_body_names(task.envs[0],task.humanoid_handles[0]);hand_ids=[names.index(x) for x in NATIVE_LINKS]
             episodes=np.zeros(a.envs,np.int64)
+            force_valid=torch.zeros(a.envs,dtype=torch.bool,device=task.device)
             def packet():
                 packet_started=time.perf_counter()
                 bodies=task._rigid_body_state.view(a.envs,-1,13)
@@ -166,6 +168,10 @@ def main():
                 result=(pack_state({k:v.cpu().numpy() for k,v in values.items()}) if a.state_transport=='packed'
                         else {k:v.cpu().tolist() for k,v in values.items()})
                 result.update(episodes=episodes.tolist(),sequences=[Path(task.motion_file[i]).name for i in task.data_id.cpu().tolist()])
+                if a.extended_state:
+                    result.update(dof_force=torch.where(force_valid[:,None],task.dof_force_tensor,0.).cpu().tolist(),
+                        contact_forces=torch.where(force_valid[:,None,None],task._contact_forces[:,task._contact_body_ids],0.).cpu().tolist(),
+                        dof_force_valid=force_valid.cpu().tolist(),contact_force_valid=force_valid.cpu().tolist())
                 audit['last_packet_build_s']=time.perf_counter()-packet_started
                 return result
             connection=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);connection.settimeout(min(180,a.seconds));connection.connect(str(a.socket))
@@ -189,6 +195,7 @@ def main():
                         if len(selected)!=len(np.unique(selected)) or (selected<0).any() or (selected>=a.envs).any():raise ValueError('invalid indexed reset')
                         reset_started=time.perf_counter()
                         task.reset(torch.as_tensor(selected,device=task.device));episodes[selected]+=1
+                        force_valid[torch.as_tensor(selected,device=task.device)]=False
                         audit['last_reset_s']=time.perf_counter()-reset_started
                         audit['indexed_resets']+=len(selected)
                     elif op=='step':
@@ -198,6 +205,7 @@ def main():
                         if action.shape!=(a.envs,18) or not torch.isfinite(action).all() or action.abs().max()>1.00001:raise ValueError('finite canonical18 action required')
                         original_action=action.clone();expected=pd_from_action(action,task._dof_pos,task._pd_action_offset,task._pd_action_scale)
                         physics_started=time.perf_counter();task.step(action.clone())
+                        force_valid[:]=True
                         pd_error=float((expected-actual_pd).abs().max());audit['maximum_pd_error']=max(audit['maximum_pd_error'],pd_error)
                         if not torch.equal(action,original_action) or not torch.equal(captured,action) or pd_error>1e-6:raise ValueError('canonical/PD corruption')
                         audit['last_physics_and_pd_check_s']=time.perf_counter()-physics_started

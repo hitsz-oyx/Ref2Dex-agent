@@ -135,3 +135,13 @@ Inspire吞吐选项由`launch_inspire_mixed_ppo.py`显式指定：
 
 旧`inspire_scheduled_probe.py`/`inspire_executor.py`是已归档的current986/小型单序列工程试跑，
 不作为全量路线的BC或PPO入口；其失败结果不代表上述完整Shadow配方。
+
+## 统一任务接口：第一批实现（尚未切换长训）
+
+新的 `TaskSpec → TaskController → task10 → ExecutorLayout` 实现已独立加入。
+当前阶段由实测反馈确认；DExplore 多个计划接触区间保留原始帧号，作为 WAM 意图接口。
+Inspire 新增同轮实测力及待训练的 shape64，含两项力有效位时 current421/scheduled686；
+Shadow 为 current310/scheduled575。网络容量保持原配方，按命名列迁移旧策略。
+旧 v4/v5 没有训练事件输入，接口会显式标记或拒绝，不能直接当成事件条件模型。
+六卡 PPO 继续停止，既有冻结模型和660归档保持。
+详细定义、实现边界与工程入口见[统一任务接口](docs/research/2026-10-19-measured-task-interface.md)。

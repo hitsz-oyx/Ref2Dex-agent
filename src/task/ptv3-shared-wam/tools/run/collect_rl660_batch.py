@@ -38,13 +38,17 @@ def main():
     parser.add_argument('--seed', type=int, default=120)
     parser.add_argument('--seconds', type=int, default=900)
     parser.add_argument('--capture-current-observation', action='store_true')
+    parser.add_argument('--capture-dof-force', action='store_true',help='Capture same-execution force and reset validity for the task executor')
+    parser.add_argument('--allow-monica-sharing',action='store_true',help='Use existing user-authorized light monica jobs; reject other occupants')
     parser.add_argument('--terminal-reference-clamp', action='store_true')
     args = parser.parse_args()
+    if args.capture_dof_force and not args.capture_current_observation:raise ValueError('force capture requires same-tick current-observation capture')
     out = args.output.resolve()
     names = json.loads(args.selection.read_text())
     allowed = [ROOT/'outputs/ptv3-shared-wam']
     if args.capture_current_observation:
         allowed.append(ROOT/'outputs/ptv3-shared-wam-v2')
+    if args.capture_dof_force:allowed.append(ROOT/'outputs/wam-rl-policy-v2')
     if (out.exists() or not any(p in out.parents for p in allowed)
             or not 1 <= len(names) <= 32 or len(set(names)) != len(names)
             or Path(sys.prefix).resolve() != RUNTIME.resolve()):
@@ -52,7 +56,11 @@ def main():
     occupied = subprocess.check_output(['nvidia-smi','-i',str(args.gpu),
         '--query-compute-apps=pid','--format=csv,noheader'],text=True).strip()
     if occupied:
-        raise RuntimeError('assigned GPU occupied: '+occupied)
+        owners=[subprocess.check_output(['ps','-o','user=','-p',pid.strip()],text=True).strip() for pid in occupied.splitlines()]
+        usage=subprocess.check_output(['nvidia-smi','-i',str(args.gpu),'--query-gpu=utilization.gpu,memory.used','--format=csv,noheader,nounits'],text=True)
+        utilization,memory=[int(value.strip()) for value in usage.strip().split(',')]
+        if not args.allow_monica_sharing or any(owner!='monica' for owner in owners) or utilization>25 or memory>1024:
+            raise RuntimeError('assigned GPU occupied outside authorized light monica sharing: '+occupied)
     source = ROOT/'data/processed_data/inspire_rl_object_dexplore'
     source_meta = json.loads((source/'manifest.json').read_text())
     geometric = Path(source_meta['source_geometric_root'])
@@ -110,6 +118,7 @@ def main():
         seed=args.seed,physical_gpu=args.gpu,fps=30,source_membership=str(source.resolve()),
         geometric_plan_root=str(geometric),official_generator=str(OFFICIAL),
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
+        shared_gpu_occupants=occupied.splitlines(),allow_monica_sharing=args.allow_monica_sharing,
         actor_role='official data generator only; no official weights in learned WAM/Chunk-R')
     manifest['capture_current_observation'] = args.capture_current_observation
     manifest['terminal_reference_clamp'] = args.capture_current_observation or args.terminal_reference_clamp
@@ -157,6 +166,12 @@ def main():
                     radius=np.asarray(np.sqrt(np.mean(np.sum((points-points.mean(0))**2,-1))),np.float32))
             logs = {k:[] for k in ('q','dq','hand','obj','velocity','action','applied','pd_targets')}
             state_fields = set(('q','dq','hand','obj','velocity'))
+            if args.capture_dof_force:
+                state_fields.update(('dof_force','dof_force_valid','contact_force_valid'))
+                manifest['force_contract']=dict(schema='ref2dex.inspire-measured-forces.v1',dof_dim=18,
+                    dof_units='native generalized force: N for prismatic / Nm for rotary',contact_units='N in world frame',
+                    timing='same execution state[t], before action[t]',reset='zero and invalid at frame zero; no reconstructed forces')
+                logs.update({k:[] for k in state_fields if k not in logs})
             if args.capture_current_observation:
                 if len(task._key_body_ids) != 16 or len(task._contact_body_ids) != 5 or task.obs_buf.shape[1] != 1442:
                     raise ValueError('pinned Inspire 16-key-body/5-contact/1442-observation contract required')
@@ -188,6 +203,10 @@ def main():
                 bodies = task._rigid_body_state.view(n,-1,13)
                 values = dict(q=task._dof_pos,dq=task._dof_vel,hand=bodies[:,ids,:3],
                     obj=poses(task._target_states),velocity=task._target_states[:,7:13])
+                if args.capture_dof_force:
+                    values.update(dof_force=task.dof_force_tensor.clone() if tick else torch.zeros_like(task.dof_force_tensor),
+                        dof_force_valid=torch.full((n,),tick>0,device=task.device,dtype=torch.bool),
+                        contact_force_valid=torch.full((n,),tick>0,device=task.device,dtype=torch.bool))
                 if args.capture_current_observation:
                     if not bool((task.progress_buf == tick).all()):
                         raise ValueError('unexpected reset/tick drift during same-execution capture')
