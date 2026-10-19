@@ -15,3 +15,4 @@ MANO_JOINTS_IN_21 = (0, 13, 14, 15, 16, 1, 2, 3, 17, 4, 5, 6, 18, 10, 11, 12, 19
 MANO_JOINT_TO_PART = (0, 4, 5, 6, 7, 8, 9, 13, 14, 15, 10, 11, 12, 1, 2, 3)
 INPUT_SEMANTICS = "v5.observed-joint21-surface778-object2048.h4.v1"
 LABEL_SEMANTICS = "v5.joint21-delta.surface-vertex-proximity16.r3mm-falloff10mm.v1"
+SAMPLING_SEMANTICS = "v5.inherited-main3-motion-strata-native-uniform.v1"

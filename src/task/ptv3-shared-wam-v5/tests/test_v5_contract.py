@@ -9,7 +9,7 @@ from torch import nn
 TASK=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(TASK/'src'))
 from ptv3_shared_wam_v5.contracts import SCHEMA,STATS_SCHEMA,SPARSE11_IN_21
-from ptv3_shared_wam_v5.data import sample_window,collate
+from ptv3_shared_wam_v5.data import sample_window,collate,V5Windows
 from ptv3_shared_wam_v5.model import SharedWAMV5
 from ptv3_shared_wam_v5.objectives import forecast_loss
 from ptv3_shared_wam_v5.preparation import surface_contact
@@ -128,3 +128,16 @@ def test_shadow_joint21_matches_recorded_fk_and_has_distinct_thumb_cmc_mcp():
     actual=joints[:,0,[0,2,5,9,13,17,4,8,12,16,20]]
     np.testing.assert_allclose(actual,expected,atol=5e-5,rtol=0)
     assert np.linalg.norm(joints[:,0,1]-joints[:,0,2],axis=-1).min()>.02
+
+
+def test_main3_sampling_keeps_motion_weights_and_native_missing_strata():
+    dataset=object.__new__(V5Windows)
+    dataset.pools={'0':np.arange(30),'1':np.arange(20)}
+    dataset.stratum_pools={'0':[np.arange(10),np.arange(10,20),np.arange(20,30)],
+                          '1':[np.arange(10),np.arange(10,20),np.empty(0,np.int64)]}
+    chosen=dataset.draw_source('0',50000,np.random.default_rng(2))
+    weights=np.bincount(chosen//10,minlength=3)/len(chosen)
+    np.testing.assert_allclose(weights,[.6,.2,.2],atol=.01)
+    chosen=dataset.draw_source('1',50000,np.random.default_rng(2))
+    weights=np.bincount(chosen//10,minlength=2)/len(chosen)
+    np.testing.assert_allclose(weights,[.75,.25],atol=.01)

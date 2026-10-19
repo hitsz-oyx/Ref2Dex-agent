@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import torch
 from torch.utils.data import Dataset
-from .contracts import DATA_SCHEMA,INPUT_SEMANTICS,LABEL_SEMANTICS
+from .contracts import DATA_SCHEMA,INPUT_SEMANTICS,LABEL_SEMANTICS,SAMPLING_SEMANTICS
 from .storage import read_json,load_array
 
 
@@ -78,6 +78,14 @@ class V5Windows(Dataset):
         source_ids=np.array([r['source_id'] for r in self.meta['sequences']])[self.index[:,0]]
         self.pools={str(s):np.flatnonzero(source_ids==s) for s in self.meta['source_ids']}
         self.pools={k:v for k,v in self.pools.items() if len(v)}
+        self.stratum_pools={}
+        if self.meta.get('sampling_semantics')==SAMPLING_SEMANTICS:
+            strata=load_array(self.meta['strata'][split],mmap_mode='r')
+            if strata.shape!=(len(self.index),):raise ValueError('one inherited stratum per window required')
+            for sid,pool in self.pools.items():
+                if int(sid)<3:self.stratum_pools[sid]=[pool[strata[pool]==k] for k in range(3)]
+        elif not self.meta.get('engineering_subset'):
+            raise ValueError('full v5 data must preserve inherited main3 motion strata')
 
     def __len__(self):return len(self.index)
 
@@ -108,8 +116,19 @@ class V5Windows(Dataset):
         sources=list(self.pools);weights=np.array([self.meta['source_probabilities'][s] for s in sources]);weights/=weights.sum()
         chosen=rng.choice(sources,count,p=weights);result=np.empty(count,np.int64)
         for sid in sources:
-            mask=chosen==sid;result[mask]=rng.choice(self.pools[sid],int(mask.sum()))
+            mask=chosen==sid;result[mask]=self.draw_source(sid,int(mask.sum()),rng)
         return result.tolist()
+
+    def draw_source(self,sid,count,rng):
+        if sid not in self.stratum_pools:return rng.choice(self.pools[sid],count)
+        pools=self.stratum_pools[sid]
+        weights=np.array([.6,.2,.2])*np.array([bool(len(pool)) for pool in pools])
+        if not weights.sum():raise ValueError('empty inherited source strata')
+        kinds=rng.choice(3,count,p=weights/weights.sum());result=np.empty(count,np.int64)
+        for k,pool in enumerate(pools):
+            mask=kinds==k
+            if mask.any():result[mask]=rng.choice(pool,int(mask.sum()))
+        return result
 
 
 def collate(samples):

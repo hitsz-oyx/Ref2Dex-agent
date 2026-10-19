@@ -76,6 +76,13 @@ Tools in `tools/run/` implement these stages:
    marked as an engineering subset. Dataset admission and subset scope are
    recorded independently.
 
+The final recipe preserves v4's source probabilities and main3 motion-stratum
+weights0.6/0.2/0.2 (renormalized over existing strata); native windows remain
+uniform within source. Categories are recovered by exact original window
+identity, not recomputed from new labels. The initial nine-sequence engineering
+GPU snapshot predates this sampler binding and used uniform windows within
+source; its timings are feasibility checks, not a matched training comparison.
+
 Writers publish atomic files/directories and explicitly set readable task-cache
 permissions to handle the NAS's observed mode000 files. Run manifests preserve
 the Python/PyTorch environment, code revision, paths and bounded runtime.
@@ -108,3 +115,7 @@ as v5.
 `tools/audit/run_gpu_smoke.py` supports the user's authorized temporary pause of
 the identified WAM process group. It checks process/GPU ownership, installs an
 independent resume watchdog, and restores training in `finally`.
+
+`tools/run/finalize_preparation.py` waits for hand/contact stages and freezes the
+final manifest and TRAIN statistics automatically. Incomplete inputs remain
+explicitly marked as a partial subset; it never launches training.
