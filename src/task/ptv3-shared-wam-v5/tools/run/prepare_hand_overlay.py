@@ -101,15 +101,27 @@ def main():
         for job in jobs:
             key=job['key']
             if key in records:continue
-            source_record=a.packets/'records'/(key+'.json')
-            if not source_record.exists():continue
-            record=read_json(source_record)
-            if job['source_id'] in (8,9) and record.get('surface_adapter')!='native-mano-v1':continue
-            if record['status']=='READY' and not (a.packets/record['packet']).exists():continue
+            direct_robot=job['source_id']==4
+            if direct_robot:
+                # q/root are already preserved in the authoritative remote
+                # payload. Do not wait for a redundant local annotation copy.
+                record=dict(status='READY',source_id=4)
+            else:
+                source_record=a.packets/'records'/(key+'.json')
+                if not source_record.exists():continue
+                record=read_json(source_record)
+                if job['source_id'] in (8,9) and record.get('surface_adapter')!='native-mano-v1':continue
+                if record['status']=='READY' and not (a.packets/record['packet']).exists():continue
             found=True
             try:
                 if record['status']!='READY':raise ValueError(record.get('reason','native parameters unavailable'))
-                with load_array(a.packets/record['packet'],allow_pickle=False) as z:packet={k:z[k] for k in z.files}
+                if direct_robot:
+                    # Original corpus stays read-only; this is not the derived
+                    # NAS permission-repair adapter.
+                    with np.load(job['payload'],allow_pickle=False) as z:
+                        packet=dict(q=z['q'],hand_root=z['hand_root'],robot=np.array('shadow-official-replay'))
+                else:
+                    with load_array(a.packets/record['packet'],allow_pickle=False) as z:packet={k:z[k] for k in z.files}
                 existing=a.output/'sequences'/key/'meta.json'
                 result=read_json(existing) if existing.exists() else prepare(job,packet,a)
                 record=dict(status='COMPLETED',**{k:result[k] for k in ('source_id','frames','joint_frames','surface_frames','alignment_max_error_m')})
