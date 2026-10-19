@@ -145,6 +145,9 @@ def run(task,snapshot,sim_step,actor,runtime,args):
         if packet.get('schema')!='ref2dex.scheduled-official-ppo.v1' or packet['conditioning']!=scheduled_conditioning_contract():raise ValueError('Official scheduled checkpoint required')
         ppo.actor_critic.load_state_dict(packet['model']);ppo.optimizer.load_state_dict(packet['optimizer'])
         completed=packet['iteration'];ppo.step_size=packet['step_size']
+    if getattr(args,'evaluate',False):
+        from .official_evaluation import evaluate
+        return evaluate(env,ppo.actor_critic,args,completed)
     if distributed_ready():
         for parameter in ppo.actor_critic.parameters():dist.broadcast(parameter.data,src=0)
     (args.output/'training-config.json').write_text(json.dumps(cfg,indent=2)+'\n')

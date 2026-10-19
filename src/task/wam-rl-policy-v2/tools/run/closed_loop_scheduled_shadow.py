@@ -21,6 +21,7 @@ def main():
  p.add_argument('--ppo-smoke',action='store_true',help='One on-policy rollout and bounded PPO update; engineering only')
  p.add_argument('--envs',type=int,default=1);p.add_argument('--ppo-updates',type=int,default=0)
  p.add_argument('--official-ppo',action='store_true')
+ p.add_argument('--evaluate',action='store_true',help='Deterministic first-episode evaluation; no optimizer updates')
  p.add_argument('--object-manifest',type=Path);p.add_argument('--rl-checkpoint',type=Path)
  p.add_argument('--rank',type=int,default=0);p.add_argument('--world-size',type=int,default=1)
  p.add_argument('--rendezvous',default='tcp://127.0.0.1:29671')
@@ -29,7 +30,8 @@ def main():
  if not 1<=a.episodes<=4 or not 1<=a.ticks<=180:raise ValueError('Bounded native probe required')
  if a.ppo_smoke and (a.episodes!=1 or a.ticks%4):raise ValueError('PPO smoke needs one episode and ticks divisible by4')
  if not 1<=a.envs<=(256 if a.official_ppo else 32) or not 0<=a.ppo_updates<=(10000 if a.official_ppo else 100):raise ValueError('Bounded batch pilot required')
- if a.envs>1 and not a.ppo_updates:raise ValueError('Batched execution requires PPO pilot')
+ if a.evaluate and (not a.official_ppo or not a.rl_checkpoint or a.ppo_updates or a.world_size!=1):raise ValueError('Evaluation requires official checkpoint, single rank and zero updates')
+ if a.envs>1 and not (a.ppo_updates or a.evaluate):raise ValueError('Batched execution requires PPO pilot')
  if a.ppo_updates and (a.ppo_smoke or a.ticks*a.envs%4):raise ValueError('Equal PPO minibatches required')
  if not 1<=a.world_size<=6 or not 0<=a.rank<a.world_size or a.save_every<1:raise ValueError('Bounded distributed rank required')
  if a.object_manifest:a.object_manifest=a.object_manifest.resolve()
@@ -72,6 +74,9 @@ def main():
   gymutil.parse_sim_config(cfg['sim'],sim)
   work=a.output/'runtime-work/dexgrasp';work.mkdir(parents=True)
   (work.parent/'assets').symlink_to(assets.resolve(),target_is_directory=True);os.chdir(work)
+  if a.evaluate:
+   random.seed(a.seed);np.random.seed(a.seed);torch.manual_seed(a.seed);torch.cuda.manual_seed_all(a.seed)
+   cfg['env']['random_time']=False
   task=Task(cfg,sim,gymapi.SIM_PHYSX,'cuda',0,True)
   env_objects=bind_environment_objects(task,objects)
   write_json(a.output/'env-objects.json',env_objects)
@@ -106,7 +111,7 @@ def main():
   cache=ROOT/'outputs/shadow-finetune/policy-data-full-20261015-r1';snap=ROOT/'outputs/ptv3-shared-wam-v4/local-control-snapshot-20261018-r1'
   runtime=V4Runtime(snap/'step12000-local.pt',env_objects,cache,dense_manifest=snap/'surface-manifest.json')
   manifest['wam_step']=runtime.step
-  if a.ppo_updates:
+  if a.ppo_updates or a.evaluate:
    if a.official_ppo:
     from wam_rl_policy_v2.official_bridge import run
    else:
