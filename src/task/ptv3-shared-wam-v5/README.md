@@ -107,9 +107,9 @@ real-data AdamW updates and writes timing/results only, with no model checkpoint
 It requires explicit `--config`, `--manifest`, `--stats`, `--output` and
 `--git-commit` paths. Full training additionally requires an admitted manifest
 and an allocated `--seed`; no full v5 training has been launched as part of
-preparing this code. DDP, source-macro DEV evaluation, exact same-world-size RNG
-resume and recent-checkpoint rotation are implemented; distributed startup has
-not yet been exercised for v5. v4 checkpoints/statistics cannot silently resume
+preparing this code. DDP, source-macro DEV evaluation, per-rank RNG restoration
+and recent-checkpoint rotation are implemented; distributed startup and bitwise
+resume equivalence have not yet been exercised for v5. v4 checkpoints/statistics cannot silently resume
 as v5.
 
 `tools/audit/run_gpu_smoke.py` supports the user's authorized temporary pause of

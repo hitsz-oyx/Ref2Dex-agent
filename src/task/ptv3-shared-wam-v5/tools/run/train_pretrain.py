@@ -107,7 +107,8 @@ def main():
         if device.startswith('cuda'):torch.cuda.set_rng_state(saved['random_state'][rank]['cuda'])
     wrapped=DDP(model,device_ids=[local] if device.startswith('cuda') else None) if world>1 else model
     kwargs=dict(dataset=dataset,batch_sampler=Steps(dataset,batch_size,seed,rank,first,last),collate_fn=collate,
-                num_workers=a.workers,pin_memory=device.startswith('cuda'))
+                num_workers=a.workers,pin_memory=device.startswith('cuda'),
+                generator=torch.Generator().manual_seed(seed*1009+rank))
     if a.workers:
         ipc=Path('/dev/shm')/f'ptv3-wam-v5-{os.getuid()}'
         ipc.mkdir(exist_ok=True,mode=0o700)

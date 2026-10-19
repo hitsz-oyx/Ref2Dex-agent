@@ -10,7 +10,9 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--input',type=Path,required=True);p.add_argument('--remote',required=True)
     p.add_argument('--ssh-key',required=True);p.add_argument('--known-hosts',required=True)
-    p.add_argument('--seconds',type=int,default=21600);a=p.parse_args()
+    p.add_argument('--seconds',type=int,default=21600)
+    p.add_argument('--no-completion-marker',action='store_true',help='secondary source stream must not terminate the primary corpus consumer')
+    a=p.parse_args()
     ssh=f'ssh -i {a.ssh_key} -p 22023 -o UserKnownHostsFile={a.known_hosts}'
     start=time.monotonic();passes=0
     while time.monotonic()-start<a.seconds and not (a.input/'SYNC_STOP').exists():
@@ -26,7 +28,8 @@ def main():
             for directory in ('packets','records'):
                 subprocess.run(['rsync','-az','--timeout=120','--exclude=*.part*','-e',ssh,
                     str(a.input/directory)+'/',a.remote+'/'+directory+'/'],check=True,timeout=300)
-            subprocess.run(['rsync','-az','-e',ssh,str(finished),a.remote+'/export-finished.json'],check=True,timeout=60)
+            if not a.no_completion_marker:
+                subprocess.run(['rsync','-az','-e',ssh,str(finished),a.remote+'/export-finished.json'],check=True,timeout=60)
             print(json.dumps(dict(status='COMPLETED',passes=passes,elapsed_s=time.monotonic()-start)),flush=True)
             return
         print(json.dumps(dict(status='SYNCING',passes=passes,elapsed_s=time.monotonic()-start)),flush=True)

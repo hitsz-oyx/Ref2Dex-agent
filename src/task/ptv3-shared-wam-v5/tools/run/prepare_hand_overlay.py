@@ -6,6 +6,7 @@ from pathlib import Path
 import shutil
 import sys
 import time
+from functools import lru_cache
 import numpy as np
 
 TASK=Path(__file__).resolve().parents[2]
@@ -13,6 +14,12 @@ sys.path.insert(0,str(TASK/'src'))
 from ptv3_shared_wam_v5.preparation import reconstruct,load_base,validate_alignment
 from ptv3_shared_wam_v5.contracts import DATA_SCHEMA,JOINT_NAMES,PART_NAMES
 from ptv3_shared_wam_v5.storage import read_json,load_array
+
+
+@lru_cache(maxsize=1)
+def shadow_surface(asset):
+    from ptv3_shared_wam_v5.shadow import ShadowSurface
+    return ShadowSurface(asset)
 
 
 def write(path,value):
@@ -23,8 +30,7 @@ def write(path,value):
 def prepare(job,packet,a):
     base=load_base(job)
     if 'robot' in packet:
-        from ptv3_shared_wam_v5.shadow import ShadowSurface
-        geometry=ShadowSurface(a.shadow_asset)
+        geometry=shadow_surface(str(a.shadow_asset))
         joints,jvalid,vertices,vvalid,parts=geometry.reconstruct(packet['q'],packet['hand_root'])
     else:
         joints,jvalid,vertices,vvalid,parts=reconstruct(packet,a.mano_root,a.device)
