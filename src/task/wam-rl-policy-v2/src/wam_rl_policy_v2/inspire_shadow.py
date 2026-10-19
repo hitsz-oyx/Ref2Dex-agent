@@ -69,8 +69,12 @@ def tau_world(trajectory,rotations):
 
 class BatchedInspireInputs:
     """Same ordered scheduler/WAM boundary, native H4 is already 30Hz."""
-    def __init__(self,runtime,references,batch=128):
+    def __init__(self,runtime,references,batch=128,inference_mode='full_fp32'):
+        if inference_mode not in ('full_fp32','hand_fp32','hand_shared_tf32') or not 1<=batch<=256:
+            raise ValueError('bounded explicit Inspire inference mode required')
         self.runtime,self.batch=runtime,batch
+        self.inference_mode=inference_mode
+        self.inference_audits=[];self.prediction_calls=0
         self.predict_trajectory=True
         self.histories=[deque(maxlen=4) for _ in references]
         self.schedulers=[None]*len(references)
@@ -121,8 +125,26 @@ class BatchedInspireInputs:
                 out[ids,-1]=1
                 continue
             with torch.inference_mode(),torch.autocast('cuda',enabled=False):
-                trajectory=self.runtime.predict(batch)['trajectory'].float().cpu().numpy()
+                if self.inference_mode=='full_fp32':prediction=self.runtime.predict(batch)
+                else:prediction=self.runtime.predict_hand(batch,shared_tf32=self.inference_mode=='hand_shared_tf32')
+                predicted=prediction['trajectory'].float()
+                # Startup and periodic real-state gates cover live histories,
+                # in addition to the offline multi-object precision audit.
+                if self.inference_mode!='full_fp32' and self.prediction_calls%300==0:
+                    reference=self.runtime.predict(batch)['trajectory'].float()
+                    error=float((predicted-reference).abs().max())
+                    audit=dict(call=self.prediction_calls,batch=len(ids),max_error_m=error,limit_m=.001)
+                    self.inference_audits.append(audit)
+                    if not torch.isfinite(predicted).all() or not error<=.001:
+                        raise ValueError('optimized Inspire WAM exceeds real-state 1mm precision gate: '+str(audit))
+                self.prediction_calls+=1
+                trajectory=predicted.cpu().numpy()
             self.timings['model_s']+=time.monotonic()-started
             out[ids,CURRENT_DIM:-1]=tau_world(trajectory,poses[ids,:3,:3]).reshape(len(ids),264)
             out[ids,-1]=1
         return dict(observation=out,workspace_invalid=invalid,scheduler=decisions)
+
+    def performance_contract(self):
+        return dict(mode=self.inference_mode,batch=self.batch,
+            geometry_math='fp32',shared_transformer_math='tf32' if self.inference_mode=='hand_shared_tf32' else 'fp32',
+            output_dtype='fp32',ppo_math='unchanged',live_gate_m=.001,live_gate_every_calls=300)

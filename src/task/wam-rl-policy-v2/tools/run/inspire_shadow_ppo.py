@@ -26,6 +26,8 @@ def main():
     p.add_argument('--evaluate',action='store_true');p.add_argument('--evaluation-controls',type=int,default=300)
     p.add_argument('--rank',type=int,default=0);p.add_argument('--world-size',type=int,default=1)
     p.add_argument('--rendezvous');p.add_argument('--stop-file',type=Path);p.add_argument('--save-every',type=int,default=20)
+    p.add_argument('--wam-executor-mode',choices=['full_fp32','hand_fp32','hand_shared_tf32'],default='full_fp32')
+    p.add_argument('--wam-batch',type=int,default=128);p.add_argument('--performance-migration-reason')
     a=p.parse_args();a.output=a.output.resolve();a.cache=a.cache.resolve();a.socket=a.socket.resolve()
     if a.output.exists() or ROOT/'outputs/wam-rl-policy-v2' not in a.output.parents or not 0<=a.updates<=10000:raise ValueError('fresh bounded Task output required')
     if a.current_parent and (a.updates>4 or a.resume):raise ValueError('expanded current BC is engineering-only, max4 updates')
@@ -73,6 +75,7 @@ def main():
         state['native_peer_pid']=peer_pid(connection)
         objects=[dict(object_code='dexplore/'+s.split('_')[1],scale=1) for s in hello['state']['sequences']]
         runtime=V4Runtime(meta['wam'],objects,a.cache,dense_manifest=a.cache/'surface-manifest.json',allow_geometry_replacement=True)
+        runtime.executor_batch=a.wam_batch;runtime.executor_inference_mode=a.wam_executor_mode
         if not a.current_parent:
             bound=packet['config']['wam_identity']
             if bound['wam']!=runtime.conditioning_identity or any(bound['geometry'].get(k)!=v for k,v in runtime.geometry_bindings.items()):raise ValueError('BC WAM/geometry binding differs')
@@ -80,7 +83,8 @@ def main():
         identity=dict(conditioning=CONTRACT,wam=runtime.conditioning_identity,geometry=runtime.geometry_bindings,
             task_goal='ordered full object SE3 path',task_reward='shadow_approach_with_ordered_path_tracking.v1',
             scheduler=env.inputs.schedulers[0].config.__dict__,source=str(a.cache),
-            reset='explicit_indexed_reset_then_observation_then_policy.v1',native_controller=hello['audit']['controller'],native_dt=hello['audit']['native_dt_s'])
+            reset='explicit_indexed_reset_then_observation_then_policy.v1',native_controller=hello['audit']['controller'],native_dt=hello['audit']['native_dt_s'],
+            inference=env.inputs.performance_contract())
         if a.world_size>1:
             import torch.distributed as dist
             from datetime import timedelta
@@ -99,7 +103,13 @@ def main():
         if a.resume:
             saved=torch.load(a.resume,map_location=runtime.device,weights_only=False)
             if saved.get('schema')!='ref2dex.inspire-shadow-official-ppo.v1':raise ValueError('Inspire Shadow PPO checkpoint required')
-            validate_execution(saved.get('execution_identity'),identity,evaluating=a.evaluate)
+            prior=saved.get('execution_identity')
+            if prior is not None and 'inference' not in prior:
+                prior=dict(prior,inference=dict(identity['inference'],mode='full_fp32',batch=128,shared_transformer_math='fp32'))
+            migration=validate_execution(prior,identity,evaluating=a.evaluate,migration_reason=a.performance_migration_reason)
+            if migration['changed'] and migration['differences']!=['inference']:
+                raise ValueError('performance migration may change only inference execution settings')
+            write(a.output/'resume-performance.json',migration)
             source_optimization=saved.get('optimization_contract','legacy-upstream-log-std-kl')
             if source_optimization not in ('legacy-upstream-log-std-kl',OPTIMIZATION_CONTRACT):raise ValueError('unknown optimization contract')
             write(a.output/'resume-optimization.json',dict(source=source_optimization,target=OPTIMIZATION_CONTRACT,
@@ -161,7 +171,9 @@ def main():
                 collection_s=locs['collection_time'],learning_s=locs['learn_time'],reward_mean=float(metrics[0]),
                 value_loss=float(metrics[1]),surrogate_loss=float(metrics[2]),
                 effective_std=float(ppo.actor_critic.log_std.exp().square().mean()),lr=ppo.step_size,
-                input_timings=env.input_timings,tau_input_weight_norm=float(ppo.actor_critic.actor.net[0].weight[:,CURRENT_DIM:-1].detach().norm()),
+                input_timings=env.input_timings,rollout_timings=env.rollout_timing_totals(),
+                inference=env.inputs.performance_contract(),inference_audits=env.inputs.inference_audits,
+                tau_input_weight_norm=float(ppo.actor_critic.actor.net[0].weight[:,CURRENT_DIM:-1].detach().norm()),
                 completed_episodes=int(counts[0]),ordered_path_successes=int(counts[1]),
                 ever_held1s=int(counts[2]),final_held1s=int(counts[3]),workspace_failures=int(counts[4]),
                 resets=env.reset_count,peak_cuda_mib=torch.cuda.max_memory_allocated()/2**20,

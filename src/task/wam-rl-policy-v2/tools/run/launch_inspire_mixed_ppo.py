@@ -29,6 +29,8 @@ def main():
     p.add_argument('--envs',type=int,default=256);p.add_argument('--updates',type=int,default=10000)
     p.add_argument('--seconds',type=int,default=172800);p.add_argument('--seed',type=int,default=246)
     p.add_argument('--reset-probe',action='store_true')
+    p.add_argument('--wam-executor-mode',choices=['full_fp32','hand_fp32','hand_shared_tf32'],default='full_fp32')
+    p.add_argument('--wam-batch',type=int,default=128);p.add_argument('--performance-migration-reason')
     a=p.parse_args();out=a.output.resolve();a.cache=a.cache.resolve();a.bc=a.bc.resolve()
     if out.exists() or ROOT/'outputs/wam-rl-policy-v2' not in out.parents:raise ValueError('fresh Task run required')
     if not 2<=len(set(a.gpus))==len(a.gpus)<=6 or any(g not in range(8) for g in a.gpus):raise ValueError('two to six distinct GPUs required')
@@ -53,7 +55,8 @@ def main():
         environments_per_rank=a.envs,environments=len(a.gpus)*a.envs,objects=sum(len(r['object_names']) for r in partitions),
         train_sequences=sum(len(r['sequence_names']) for r in partitions),updates=a.updates,seed=a.seed,resume=str(a.resume),
         max_seconds=a.seconds,max_bytes=3*2**30,rendezvous_port=port,children=[],partitions=partitions,
-        training='one synchronized official Shadow PPO; co-located frozen FP32 WAM and pure native physics; no hand-ref actor',
+        training='one synchronized official Shadow PPO; co-located frozen WAM and pure native physics; no hand-ref actor',
+        inference=dict(mode=a.wam_executor_mode,batch=a.wam_batch),performance_migration_reason=a.performance_migration_reason,
         started_at=time.strftime('%Y-%m-%dT%H:%M:%S%z'))
     write(out/'process.json',state)
     def launch(command,name,rank,gpu):
@@ -88,7 +91,8 @@ def main():
             command=[MODEL,'-u',str(frozen/'tools/run/inspire_shadow_ppo.py'),'--cache',str(a.cache),'--bc',str(a.bc),
                 '--output',str(folder/'policy'),'--socket',str(sock),'--gpu',str(gpu),'--updates',str(a.updates),'--seconds',str(a.seconds),
                 '--seed',str(a.seed),'--rank',str(rank),'--world-size',str(len(a.gpus)),'--rendezvous','tcp://127.0.0.1:'+str(port),
-                '--stop-file',str(out/'STOP')]
+                '--stop-file',str(out/'STOP'),'--wam-executor-mode',a.wam_executor_mode,'--wam-batch',str(a.wam_batch)]
+            if a.performance_migration_reason:command+=['--performance-migration-reason',a.performance_migration_reason]
             if a.resume:command+=['--resume',str(a.resume.resolve())]
             if a.reset_probe:command+=['--reset-probe']
             servers.append(launch(command,'policy-%d'%rank,rank,gpu))

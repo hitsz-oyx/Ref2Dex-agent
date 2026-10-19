@@ -93,5 +93,16 @@ Inspire冻结WAM使用FP32：真实输入的bf16 batch64/single差超过1mm，FP
 新Inspire训练修正上游adaptive KL与其平方scale_tril分布的失配；采样分布及官方其他PPO
 超参保留，优化合同与旧checkpoint迁移单独记录，详见后期退化诊断实验卡。
 
+Inspire吞吐选项由`launch_inspire_mixed_ppo.py`显式指定：
+`--wam-executor-mode hand_shared_tf32 --wam-batch 256`保留FP32几何编码，
+仅共享Transformer的矩阵乘法允许TF32，读取相同的手轨迹头，省去执行器不用的scene/C读出。
+默认仍为`full_fp32`/128；不改变PPO、奖励、频率或环境数。
+数学设置在预测返回或异常时恢复，不影响Actor/Critic更新；启动及每300次预测用真实状态
+对照完整FP32前向，仍执行1mm门槛。推理模式写入execution identity，切换须显式
+`--performance-migration-reason`，仅允许该项差异，其他身份不匹配仍拒绝续训。
+参考路径初始化批量验证相同SE3条件并保持路径数组逐位一致。
+`tools/audit/benchmark_inspire_inference.py`提供50 TRAIN物体的固定H4计时/精度检查；
+在线日志的`rollout_timings`区分物理RPC、WAM、scheduler、indexed reset及传输。
+
 旧`inspire_scheduled_probe.py`/`inspire_executor.py`是已归档的current986/小型单序列工程试跑，
 不作为全量路线的BC或PPO入口；其失败结果不代表上述完整Shadow配方。

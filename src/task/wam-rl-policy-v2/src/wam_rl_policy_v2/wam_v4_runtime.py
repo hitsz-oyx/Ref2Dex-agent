@@ -9,7 +9,7 @@ SE(3) goal delta.  This module owns that boundary and keeps the summary
 from __future__ import annotations
 
 import os
-from contextlib import nullcontext
+from contextlib import nullcontext, contextmanager
 import hashlib
 import io
 import json
@@ -39,6 +39,31 @@ V4_SCHEMA = "ref2dex.ptv3-shared-wam.v4"
 DENSE_SCHEMAS = ("ref2dex.wam-v4-dense-surface.v1", "ref2dex.wam-v4-dense-surface.v2")
 HAND_SLOTS = ("right", "left")
 SUMMARY_DIM = 2304
+
+
+@contextmanager
+def shared_tf32_math(model, enabled):
+    """Scope TF32 to shared Transformer inference; restore before geometry/PPO.
+
+    The runtime is single-threaded. No precision setting escapes the prediction,
+    including on a failed encoder call. Hooks leave checkpoint parameters intact.
+    """
+    if not enabled:
+        yield
+        return
+    previous = torch.backends.cuda.matmul.allow_tf32
+    handles = []
+    def before(_module, _inputs):
+        torch.backends.cuda.matmul.allow_tf32 = True
+    def after(_module, _inputs, _output):
+        torch.backends.cuda.matmul.allow_tf32 = previous
+    try:
+        handles.append(model.interaction.register_forward_pre_hook(before))
+        handles.append(model.interaction.register_forward_hook(after, always_call=True))
+        yield
+    finally:
+        for handle in handles: handle.remove()
+        torch.backends.cuda.matmul.allow_tf32 = previous
 
 
 def _normal_transform(normals, rotation):
@@ -322,17 +347,19 @@ class V4Runtime:
             return self.model(batch, return_shared=True)
 
     @torch.inference_mode()
-    def predict_hand(self, batch):
+    def predict_hand(self, batch, *, shared_tf32=False):
         """Exact hand head for tau-only executors; skip unused scene/C readouts.
 
         Keep the identical geometry/shared encoder, normalization and mask.
         Call predict() when downstream consumers require scene or C outputs.
         """
-        shared, _, geometry = self.model.encode(batch)
-        offset = geometry['tokens'].shape[1]
-        hand_z = self.model.hand_future(shared[:, offset:offset+22]).reshape(len(shared),24,2,11,3)
-        mask = batch['start_hand_valid'][:,None,...,None]
-        return dict(trajectory=torch.where(mask,self.model.normalizer.denormalize('hand',hand_z),0.))
+        from .deferred_checks import checked_prediction
+        with shared_tf32_math(self.model, shared_tf32), checked_prediction() if getattr(self,'defer_checks',False) else nullcontext():
+            shared, _, geometry = self.model.encode(batch)
+            offset = geometry['tokens'].shape[1]
+            hand_z = self.model.hand_future(shared[:, offset:offset+22]).reshape(len(shared),24,2,11,3)
+            mask = batch['start_hand_valid'][:,None,...,None]
+            return dict(trajectory=torch.where(mask,self.model.normalizer.denormalize('hand',hand_z),0.))
 
     @torch.inference_mode()
     def summary(self, batch):

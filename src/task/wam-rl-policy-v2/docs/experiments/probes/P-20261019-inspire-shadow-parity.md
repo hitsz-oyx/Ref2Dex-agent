@@ -233,3 +233,32 @@ optimization_contract显式绑定actual-KL版本；从161旧optimizer迁移的�
 不自动扩预算，保留周期checkpoint可继续。actual rollout KL首轮0.0140，随后例0.0137，
 旧proxy同轮仅0.00852；这里只确认校准度量运行，不据此声称任务成功或退化已恢复。
 旧两卡的主动停止另写stop-result.json，原始FAILED/InterruptedError日志保留，不覆盖历史证据。
+
+
+### 六卡在线吞吐修订（2026-10-19，用户授权）
+
+工程问题：提高相同1536环境、官方PPO配方及WAM权重下的实际吞吐，不以额外计算抬高利用率。
+当前旧mixed6-r1的最近20轮无干扰计时约18.56s/update，采集16.5–17.9s；
+30秒采样GPU0–5平均利用率分别67.1/80.5/51.1/61.0/68.0/55.2%。
+该运行已在完整更新边界停止，保存iteration300，12个peer均正常退出。
+
+最低成本工程对照：只用既有50 TRAIN物体、每物体8个实测H4，400窗口，无策略更新。
+旧训练停止后的GPU0独占模型计时（graspenv/Torch2.4.1+cu121，3次重复）：
+full_fp32/batch128中位2.25195s，hand_fp32/batch256为2.14039s；
+仅共享Transformer启用TF32、hand-only/batch256为1.20616s，推理吞吐约1.87倍。
+相对完整FP32最大轨迹偏差0.42784mm、repeat0.35611mm、batch/single0.23855mm，
+均通过原1mm门槛；同实测current及物体旋转下iteration300均值动作最大变化0.00059044。
+这不是动作逐位相同或学习效果等价的证明，也不从离线推理倍数推断整轮倍数。
+全模型TF32在前一争抢计时中误差接近1mm，因此没有选用；保留FP32几何编码和head。
+
+另一个实际CPU热点为reset时逐帧参考位姿校验：212帧参考构造100次，旧实现
+2.456/2.489/2.531s，批量等价检查0.0901/0.0902/0.0904s，约27.6倍；
+poses/path_points/arc/milestones逐位一致，单实例状态及interaction history不共享。
+
+新入口默认仍为full_fp32/128，优化模式须显式指定并作为execution identity记录；
+旧checkpoint仅在显式performance migration时允许该项差异，WAM/几何/奖励/动作等不匹配仍拒绝。
+TF32仅包围共享Transformer调用，异常和正常返回均恢复；PPO math、采样分布及actual-KL合同不变。
+启动和每300次预测对真实状态重跑完整FP32，超过1mm即拒绝继续；没有静默降低门槛。
+70项Task测试通过，新增批量参考验证、precision作用域异常恢复及真实adapter门槛反例。
+固定输入与计时产物：outputs/wam-rl-policy-v2/inspire-throughput-20261019-r1/，当前约77MiB；
+不生成视频，不修改外部数据，保留两张卡。拟从iteration300用新冻结版本续训，在线比较整轮耗时。

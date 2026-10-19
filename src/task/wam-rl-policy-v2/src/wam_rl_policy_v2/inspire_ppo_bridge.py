@@ -1,7 +1,9 @@
 """Shadow official PPO environment adapter for pure measured Inspire physics."""
 from pathlib import Path
 from types import SimpleNamespace
+from collections import deque
 import json
+import time
 import numpy as np
 import torch
 from scipy.spatial.transform import Rotation
@@ -50,7 +52,8 @@ class RemoteInspireEnv:
             with np.load(Path(row['source'])/'trajectory.npz') as z:self.references[row['sequence']]=z['reference_obj'].copy()
             self.objects_by_sequence[row['sequence']]=row['object']
         references=[self.references[s] for s in self.native['sequences']]
-        self.inputs=BatchedInspireInputs(runtime,references)
+        self.inputs=BatchedInspireInputs(runtime,references,
+            batch=getattr(runtime,'executor_batch',128),inference_mode=getattr(runtime,'executor_inference_mode','full_fp32'))
         self.previous=np.zeros((self.num_envs,12),np.float32);self.initial_z=np.zeros(self.num_envs)
         self.progress=np.zeros(self.num_envs);self.longest=np.zeros(self.num_envs,int);self.streak=np.zeros(self.num_envs,int)
         self.dropped=np.zeros(self.num_envs,bool);self.ever_complete=np.zeros(self.num_envs,bool)
@@ -58,6 +61,7 @@ class RemoteInspireEnv:
         self.longest_lift=np.zeros(self.num_envs,int);self.lift_dropped=np.zeros(self.num_envs,bool)
         self.observations=np.zeros((self.num_envs,INPUT_DIM),np.float32);self.decisions=[None]*self.num_envs
         self.workspace=np.zeros(self.num_envs,bool);self.steps=0;self.reset_count=0
+        self.step_timings=deque(maxlen=8)
         self.reset_probe=reset_probe;self.reset_audits=[]
         self.completed_episodes=0;self.successes=0;self.ever_held=0;self.final_held=0;self.workspace_failures=0
         self._refresh(range(self.num_envs),reset=True)
@@ -91,15 +95,19 @@ class RemoteInspireEnv:
     def get_state(self):return torch.zeros(self.num_envs,0,device=self.runtime.device)
 
     def step(self,actions,id=0):
+        started=time.perf_counter()
         source_episodes=list(self.native['episodes']);raw=actions.detach().cpu().numpy().copy()
         canonical=np.clip(raw,-1,1).astype(np.float32)
+        transferred=time.perf_counter()
         self.native=self.rpc('step',action=expand_action(canonical).tolist(),episodes=source_episodes)['state']
+        simulated=time.perf_counter()
         if self.native['episodes']!=source_episodes:raise ValueError('native physics changed episode during policy step')
         self.previous[:]=canonical
         objects=self._refresh(range(self.num_envs));self.steps+=1
         # A subsequent partial reset may replace inputs.timings with a tiny
         # startup-only call. Report the actual full-environment policy tick.
         self.input_timings=dict(self.inputs.timings)
+        refreshed=time.perf_counter()
         reward,self.progress=shadow_path_reward(objects,np.asarray(self.native['hand']),canonical,self.initial_z,self.decisions,self.progress)
         complete=np.array([d['complete'] for d in self.decisions]);self.ever_complete|=complete
         timed_out=np.array([d['timed_out'] for d in self.decisions])
@@ -128,6 +136,7 @@ class RemoteInspireEnv:
                 termination_reason='wam_workspace' if self.workspace[i] else 'scheduler_timeout' if timed_out[i] else 'horizon_or_engineering_reset')
             self.completed_episodes+=1;self.successes+=episode_results[int(i)]['ordered_path_success']
             self.ever_held+=int(self.longest[i]>=30);self.final_held+=int(self.streak[i]>=30);self.workspace_failures+=int(self.workspace[i])
+        reward_finished=time.perf_counter()
         if len(ids):
             before=np.asarray(terminal_episodes);old_ticks=np.asarray(self.native['tick']);unaffected=np.setdiff1d(np.arange(self.num_envs),ids)
             self.native=self.rpc('reset',ids=ids.tolist())['state'];after=np.asarray(self.native['episodes']);new_ticks=np.asarray(self.native['tick'])
@@ -137,7 +146,17 @@ class RemoteInspireEnv:
             if len(self.reset_audits)<32:self.reset_audits.append(dict(step=self.steps,ids=ids.tolist(),old_episodes=before.tolist(),new_episodes=after.tolist(),new_ticks=new_ticks.tolist()))
         info=dict(episode_results=episode_results,action_source_episode=source_episodes,execution_episode=terminal_episodes,
             next_observation_episode=list(self.native['episodes']),terminal_observation=terminal[ids],transition_valid=torch.ones(self.num_envs,dtype=torch.bool,device=self.runtime.device))
-        return torch.tensor(self.observations,device=self.runtime.device),torch.tensor(reward,device=self.runtime.device),torch.tensor(done,dtype=torch.long,device=self.runtime.device),info
+        reset_finished=time.perf_counter()
+        result=(torch.tensor(self.observations,device=self.runtime.device),torch.tensor(reward,device=self.runtime.device),torch.tensor(done,dtype=torch.long,device=self.runtime.device),info)
+        self.step_timings.append(dict(action_to_host_s=transferred-started,physics_rpc_s=simulated-transferred,
+            observation_s=refreshed-simulated,reward_and_termination_s=reward_finished-refreshed,
+            indexed_reset_s=reset_finished-reward_finished,return_to_device_s=time.perf_counter()-reset_finished,
+            scheduler_s=self.input_timings['scheduler_s'],input_s=self.input_timings['input_s'],model_s=self.input_timings['model_s']))
+        return result
+
+    def rollout_timing_totals(self):
+        if not self.step_timings:return {}
+        return {key:sum(row[key] for row in self.step_timings) for key in self.step_timings[0]}
 
 
 def make_shadow_ppo(root,output,env,packet,seed):

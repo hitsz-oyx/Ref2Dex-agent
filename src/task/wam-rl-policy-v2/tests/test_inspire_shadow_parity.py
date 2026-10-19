@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import pytest
 from wam_rl_policy_v2.inspire_shadow import (
     CURRENT_DIM,INPUT_DIM,CURRENT_SCHEMA,CONTRACT,expanded_model,initialize_scheduled,
     current_state,measured_from_legacy,object_state,tau_world,WAM_TO_NATIVE,
@@ -120,3 +121,35 @@ def test_zero_condition_bc_elision_preserves_actions_and_workspace_termination()
             assert first['observation'][:,-1].tolist()==second['observation'][:,-1].tolist()==[1,1]
         if tick==4:assert second['workspace_invalid'].tolist()==[False,True]
     assert full.calls==2 and elided.calls==0
+
+
+@pytest.mark.parametrize('error',[0.,.002])
+def test_optimized_inspire_uses_live_full_forward_precision_gate(error):
+    from wam_rl_policy_v2.inspire_shadow import BatchedInspireInputs
+    class Runtime:
+        device='cpu';config=dict(voxel_origin_m=[-2]*3,voxel_m=.01)
+        calls=0;hand_calls=0
+        def predict(self,batch):
+            self.calls+=1
+            return dict(trajectory=torch.full((len(batch['start_hand']),24,2,11,3),.01))
+        def predict_hand(self,batch,*,shared_tf32):
+            assert shared_tf32
+            self.hand_calls+=1
+            return dict(trajectory=torch.full((len(batch['start_hand']),24,2,11,3),.01+error))
+    runtime=Runtime()
+    surface=np.random.default_rng(246).normal(size=(512,3)).astype(np.float32)*.02
+    normals=np.zeros_like(surface);normals[:,2]=1
+    runtime.geometry=[(surface,normals,surface[:32],surface[:128],normals[:128])]
+    pose=np.eye(4)[None];target=pose.copy();target[:,2,3]=.2
+    inputs=BatchedInspireInputs(runtime,[np.stack((pose[0],target[0]))],inference_mode='hand_shared_tf32',batch=256)
+    def tick(t):return inputs.observation(np.zeros((1,CURRENT_DIM)),pose,np.zeros((1,11,3)),np.array([t]))
+    for t in range(3):tick(t)
+    if error:
+        with pytest.raises(ValueError,match='1mm precision gate'):tick(3)
+    else:
+        result=tick(3)
+        assert result['observation'][0,-1]==1
+        assert runtime.calls==runtime.hand_calls==1
+        tick(4)
+        assert runtime.calls==1 and runtime.hand_calls==2
+    assert inputs.inference_audits[0]['max_error_m']==pytest.approx(error,abs=1e-8)

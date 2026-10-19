@@ -21,6 +21,18 @@ def _pose(value):
     return value.copy()
 
 
+def _poses(values):
+    """Validate a whole reference with the same per-pose tolerances as _pose."""
+    values = np.asarray(values, dtype=np.float64)
+    if (values.ndim != 3 or values.shape[1:] != (4, 4) or not len(values)
+            or not np.isfinite(values).all()
+            or not np.allclose(values[:, 3], [0, 0, 0, 1], atol=1e-6)
+            or not np.allclose(values[:, :3, :3].transpose(0, 2, 1) @ values[:, :3, :3], np.eye(3), atol=1e-5)
+            or not np.isclose(np.linalg.det(values[:, :3, :3]), 1, atol=1e-5).all()):
+        raise ValueError('finite proper SE(3) pose required')
+    return values.copy()
+
+
 def transform_points(pose, points):
     return np.asarray(points) @ pose[:3, :3].T + pose[:3, 3]
 
@@ -98,7 +110,7 @@ class OrderedGoalScheduler:
             raise ValueError('explicit position_only or se3_pose goal required')
         self.goal_type = goal_type
         self.config = config or SchedulerConfig()
-        self.poses = np.stack([_pose(p) for p in reference_poses])
+        self.poses = _poses(reference_poses)
         if goal_type == 'position_only':
             self.poses[:, :3, :3] = self.poses[0, :3, :3]
         self.times = np.asarray(reference_times_s, dtype=np.float64).copy()
@@ -109,7 +121,7 @@ class OrderedGoalScheduler:
                 or len(self.points) < 3 or not np.isfinite(self.points).all()
                 or np.linalg.matrix_rank(self.points-self.points.mean(0)) < 2):
             raise ValueError('ordered timestamps and noncollinear same-ID object points required')
-        self.path_points = np.stack([transform_points(p, self.points) for p in self.poses])
+        self.path_points = self.points @ self.poses[:, :3, :3].transpose(0, 2, 1) + self.poses[:, None, :3, 3]
         steps = np.linalg.norm(np.diff(self.path_points, axis=0), axis=-1).mean(-1)
         self.arc = np.r_[0., np.cumsum(steps)]
         required = set(int(i) for i in mandatory_indices)
