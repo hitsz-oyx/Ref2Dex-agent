@@ -91,6 +91,10 @@ class TaskScheduler:
 
     def _release_expected(self,actual,planned):
         if self.phase==Phase.RELEASE:return True
+        if self.spec.terminal_mode==TerminalMode.RELEASE and planned==self.spec.events[-1]:
+            # Arrival alone does not request terminal release: path settling
+            # must first authorize the explicit RELEASE phase.
+            return False
         if self.phase!=Phase.TRACK or self.recovering or self.plan_cursor_frame<planned.source_frame:
             return False
         # Intermediate planned releases also need confirmed path context and
