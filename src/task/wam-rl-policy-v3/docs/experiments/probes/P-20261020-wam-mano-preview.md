@@ -514,3 +514,52 @@ GPUs4/5/6. Inference180s, raw-point visualization300s, final150MiB/transient512M
 disk floor20GiB. Artifacts `outputs/wam-rl-policy-v3/wam-task-feedback-20261020-r1/`;
 exact commands/resources/logs `tmp/wam-task-feedback/`. No training, native
 physics or checkpoint changes. The original fixed-goal artifact stays read-only.
+
+### Generated-state TaskController result
+
+Implementation7cdb91b2 completed inference in21.34s, peak allocated403.07MiB.
+It generated447 future frames through tick450 (15s), then the unchanged scheduler
+terminated with acquire_timeout; all451 observed ticks remain ACQUIRE, with
+zero TRACK/RELEASE/grasp-established ticks. Initial full24 forecast differs from
+the fixed-goal baseline by at most0.00647mm. Comparing the same447 consumed ticks:
+
+| Quantity | Fixed recorded-controller goals | Generated-state TaskController goals |
+| --- | ---: | ---: |
+| Mean hand/recorded-teacher error | 687.33mm | 664.59mm |
+| Mean object translation error | 58.25mm | 111.65mm |
+
+The mean hand distance falls only3.3%; acquisition is not recovered. The generated
+nearest-fingertip/object-point gap never falls below648.85mm. Every local goal
+has exactly zero translation relative to the current generated object: ACQUIRE
+holds the object where it is while waiting for acquisition. Thus a drifting
+generated object also moves this hold goal; this feedback does not anchor it
+to the measured world. The difference from the original goal translation averages
+112.23mm, so this is not merely an unchanged-goal run.
+
+Independent reconstruction confirms exact generated H4 hand/object inputs and
+hand forecast reconstruction; independently composed rigid poses differ by at
+most2.98e-8 (float32 state storage). A separately instantiated TaskController
+replayed over generated states reproduces every goal exactly and matches all
+phase/termination flags; force_valid is always false. This verifies scheduler
+integration, not physical execution. The gap result makes lack of acquisition
+visible independently of the absence of force feedback.
+
+Decision: merely replacing the recorded goal sequence with the current
+state-dependent scheduler does not fix this single free-rollout case. The
+current v4 consumes object spatial goals, without phase or planned contact/
+release tokens. Meanwhile the actual686 actor independently receives task10
+(including phase) alongside tau and measured robot state. Standalone WAM plus
+TaskController therefore omits a meaningful part of the actual policy/physics
+loop; its failure cannot establish that the full loop fails, nor can measured-H4
+accuracy excuse tau drift or replace evaluation of tau tracking and grasping.
+
+- [Full21.7s raw-point video](../../../../../../outputs/wam-rl-policy-v3/wam-task-feedback-20261020-r1/scheduler-comparison.mp4)
+- [Hand/object error and hand-object gap](../../../../../../outputs/wam-rl-policy-v3/wam-task-feedback-20261020-r1/scheduler-comparison.png)
+- [Run, scheduler trace and protocol](../../../../../../outputs/wam-rl-policy-v3/wam-task-feedback-20261020-r1/result.json)
+- [Independent history/rigid/TaskController audit](../../../../../../outputs/wam-rl-policy-v3/wam-task-feedback-20261020-r1/data-audit.json)
+
+The full651-frame1200×400 H.264 video decodes correctly. The adaptive lane
+explicitly freezes and labels its terminal state after15s; this tail is excluded
+from metrics. Plot and terminal video frame were visually inspected. Final
+artifacts3.24MB; GPU7 returns to the existing6699MiB workload. No training,
+checkpoint changes, force fabrication, GT grasp injection or native execution.

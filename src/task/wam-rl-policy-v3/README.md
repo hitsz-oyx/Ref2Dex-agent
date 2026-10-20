@@ -40,6 +40,10 @@ Shadow current300 / scheduled565 的主要实验继续位于 [v2](../wam-rl-poli
   可生成相同时间戳的对照。四例真实H4平均误差降至0.82–2.44mm，但预测H4回填全部更差，
   缩短重预测间隔没有修复自由滚动。[对照视频](../../../outputs/wam-rl-policy-v3/wam-train-stride1-20261020-r1/train-cases-stride1-vs8.mp4)
   与[误差曲线](../../../outputs/wam-rl-policy-v3/wam-train-stride1-20261020-r1/train-rollout-errors.png)。
+- `tools/audit/probe_wam_task_feedback_rollout.py`：相同apple初始H4与24/8口径，逐生成帧调用
+  当前TaskController重算goal；明确motion-only反馈，无接触力/物理执行。
+  [21.7秒对照视频](../../../outputs/wam-rl-policy-v3/wam-task-feedback-20261020-r1/scheduler-comparison.mp4)
+  中右栏15秒ACQUIRE超时后明确冻结显示；该单例未恢复抓取或消除偏移。
 - `tools/run/prepare_shadow_task_labels.py`：全量UniDex同轮实测任务回放，输出task10，提前启动Current310。
 - `tools/run/train_current_bc.py prepare-scheduled --task-goal`：task10与WAM共用TaskController决策的新575缓存；旧565 τ不复用。
 - `tools/run/train_shadow_task_bc_ddp.py`：三卡实际训练Current310/Scheduled575，新增goal权重参与优化；global2048按683/683/682分配并按样本数加权梯度。
