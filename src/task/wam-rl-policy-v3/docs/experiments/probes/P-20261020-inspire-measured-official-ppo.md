@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [246, 247, 248]
 decision_changed_if_positive: continue the measured goal WAM policy improvement route
 decision_changed_if_negative: diagnose measured training dynamics before adding scale or changing the method
-status: RUNNING
+status: PAUSED
 run_id: inspire-measured-gpu-recheck-20261020-r1
 ---
 
@@ -217,3 +217,28 @@ mismatches also0,48 natural terminals/resets exercised by that point. Future
 code46015eb3 corrects the first-resumed-update logging condition; the active
 fa10fcd5 snapshot is not hot-patched. This observability correction does not
 change the policy update or native physics.
+
+### GPU recheck result and final paused state
+
+The three-rank test completed all16 updates,215→231,320 optimizer steps per
+rank,128 real native controls per rank,global196608 transitions. All six
+workers and supervisor exited normally;GPU4/5/6 were released. The production
+run remains user-paused atCPU215; theGPU231 test checkpoint is separately
+retained. No automatic long-training resume took place.
+
+Across the test335 natural terminals/reset transitions occurred, all workspace
+failures; complete task successes0 within this128-control window. This is not
+a full-episode policy success-rate evaluation. Native PD error, source-episode
+mismatch, behavior log-prob replay and measured rank synchronization errors0.
+Indexed reset setter submissions66/70/71 across128 controls per rank. Final
+checkpoint official-iteration-231.pt is61,158,880 bytes, fully CPU loaded,
+model and optimizer tensors finite, every Adam state advanced320 steps and
+frozen CAD encoder is unchanged. Identity differs fromCPU215 only in the
+explicitly authorized physical backend.
+
+Steady rank0 iteration time (excluding first2) is 36.75s.103 samples every5s
+measuredGPU utilization37.55/38.67/33.25% and peak total15,240MiB per card.
+The GPU path is operational in this bounded test; this does not identify or
+prove elimination of the prior intermittent first-step failure. Raw acceptance,
+resources and per-rank curves are in the recheck output. Current status PAUSED
+refers to the research training, while the diagnostic itself is COMPLETED.

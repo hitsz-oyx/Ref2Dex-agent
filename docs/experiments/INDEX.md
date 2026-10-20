@@ -638,7 +638,7 @@
 | [P-20261019-inspire-scheduled-executor](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261019-inspire-scheduled-executor.md) | P-20261019-inspire-scheduled-executor | 见原卡 | 见原卡 | probes/UNCLEAR |
 | [P-20261019-inspire-shadow-parity](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261019-inspire-shadow-parity.md) | P-20261019-inspire-shadow-parity | 见原卡 | 见原卡 | probes/RUNNING |
 | [P-20261019-inspire-task-contract](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261019-inspire-task-contract.md) | P-20261019-inspire-task-contract | 见原卡 | re-audit the same immutable660 raw executions, preserving all other | probes/COMPLETED |
-| [P-20261020-inspire-measured-official-ppo](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-inspire-measured-official-ppo.md) | P-20261020-inspire-measured-official-ppo | 见原卡 | can the actually measured goal+WAM observation support policy | probes/RUNNING |
+| [P-20261020-inspire-measured-official-ppo](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-inspire-measured-official-ppo.md) | P-20261020-inspire-measured-official-ppo | 见原卡 | can the actually measured goal+WAM observation support policy | probes/PAUSED |
 | [P-20261020-wam-mano-preview](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-wam-mano-preview.md) | P-20261020-wam-mano-preview | 见原卡 | 见原卡 | probes/COMPLETED |
 
 ## HF-shadow-bc-ppo

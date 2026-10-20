@@ -1,12 +1,14 @@
 # 当前状态
 
-用户最新要求暂停主训并重试GPU PhysX。CPU后备r2已在累计215轮完整更新边界保存，
-三rank及三个native进程均退出；official-iteration-215.pt(61,158,368bytes)完整读取、
-模型有限且optimizer21份state齐全。原长训保持暂停，不能因诊断启动而称已恢复。
-新有界run inspire-measured-gpu-recheck-20261020-r1从215显式迁移cpu→gpu，GPU4/5/6
-各512环境、全501 TRAIN/50物体、同WAM/BC/optimizer和官方超参，限额16轮/1200s。
-仅允许backend身份变化，其他身份差异仍拒绝；source checkpoint以hardlink保留，
-迁移写入manifest/checkpoint，代码fa10fcd5冻结。结束后退出，不自动恢复长训。
+用户要求的暂停及GPU复测均已完成。CPU后备r2保存累计215轮后退出，原长训仍暂停。
+GPU4/5/6各512环境、全501 TRAIN/50物体，从215模型/optimizer显式迁移cpu→gpu，
+冻结fa10fcd5，完成16轮到231（各320次优化、128 native控制），六worker全部正常退出，
+GPU4/5/6已释放。335次workspace终止/reset，未出现PhysX崩溃；PD、source错配、
+log-prob重放及220轮实测同步误差0。这是短时运行稳定性结果，不是完整任务成功率，
+128控制内完整任务成功0；不能称历史间歇故障已定位或彻底修复。
+GPU231 checkpoint61,158,880bytes完整校验通过，model/optimizer有限、Adam各推进320步、
+CAD encoder不变，CPU215另行保留；不自动恢复长训。稳态约36.75s/轮、峰值每卡15,240MiB，
+利用率均值33–39%，WAM及CPU task构造仍为主要耗时。详见本Task实验卡和recheck acceptance.json。
 
 用户要求优先启动PPO，指定GPU4/5/6。目标为官方UniDex PPO、最新r3准入和Scheduled686
 DEV-best父模型，每rank512环境/合计1536，总rollout12288、minibatch3072，匹配原Shadow
