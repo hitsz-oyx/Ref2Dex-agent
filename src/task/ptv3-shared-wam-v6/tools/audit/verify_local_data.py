@@ -30,7 +30,7 @@ def main():
     for row in registry['objects']:
         with np.load(data/'geometry'/row['path']) as archive:geometry[row['key']]=archive['surface'].copy()
     source_counts={};maximum_alignment=0.;contact_difference=0.;geometry_checks=0;reader_windows=0
-    arrays_checked=0;frames_checked=0
+    arrays_checked=0;frames_checked=0;masked_nonfinite_poses=0;event_arrays_checked=0
     for i,row in enumerate(manifest['sequences']):
         if time.monotonic()-start>600:raise TimeoutError('ten-minute verification bound')
         folder=Path(row['path']);cf=Path(row['contact_path']);meta=json.loads((folder/'meta.json').read_text())
@@ -43,7 +43,11 @@ def main():
         if c.shape!=(n,objects,2048) or parts.shape!=c.shape or valid.shape!=(n,objects):raise ValueError('contact shape')
         if c.dtype!=np.float16 or parts.dtype!=np.uint8:raise ValueError('contact dtype')
         for name,value in arrays.items():
-            if np.issubdtype(value.dtype,np.floating) and not np.isfinite(value).all():raise ValueError('nonfinite sequence array: '+name)
+            if name=='object_poses':
+                known=arrays['object_pose_valid'];finite=np.isfinite(value).all((-1,-2))
+                masked_nonfinite_poses+=int((~known&~finite).sum());meaningful=value[known]
+            else:meaningful=value
+            if np.issubdtype(value.dtype,np.floating) and not np.isfinite(meaningful).all():raise ValueError('nonfinite valid sequence array: '+name)
             arrays_checked+=1
         if not np.isfinite(c).all() or c.min()<0 or c.max()>1 or parts.max()>15:raise ValueError('contact range')
         if np.any(c[~valid]) or np.any(valid[~arrays['observed_frame']]):raise ValueError('masked/synthetic contact leaked')
@@ -54,6 +58,10 @@ def main():
         e={name:np.load(ep/(name+'.npy'),mmap_mode='r') for name in ('event_type','event_delta_steps','event_valid')}
         if any(a.shape!=(n,objects) for a in e.values()) or not np.isin(e['event_type'],[0,1,2]).all():raise ValueError('event encoding')
         if not np.isfinite(e['event_delta_steps']).all() or np.any(e['event_delta_steps'][e['event_valid']]<0):raise ValueError('event time')
+        for path in ep.glob('*.npy'):
+            values=np.load(path,mmap_mode='r')
+            if values.shape!=(n,objects) or not np.isfinite(values).all():raise ValueError('event auxiliary array')
+            event_arrays_checked+=1
         # Brute-force world-space distances, independent of the preparation
         # KD tree and its bounding-box pruning. Check strongest contacts too.
         candidates=np.flatnonzero(valid.any(1))
@@ -94,6 +102,7 @@ def main():
                 reader_windows+=1
     result=dict(status='PASS',checked_sequences=len(manifest['sequences']),source_counts=source_counts,
         frames_checked=frames_checked,hand_arrays_fully_read=arrays_checked,reader_windows=reader_windows,
+        event_arrays_fully_read=event_arrays_checked,masked_nonfinite_object_poses=masked_nonfinite_poses,
         independent_bruteforce_contact_queries=geometry_checks,maximum_contact_confidence_difference=contact_difference,
         maximum_source_alignment_error_m=maximum_alignment,masked_contact_and_event_encoding_valid=True,
         training_allowed=False,original_v6_resume_ready=False,normalizer_replaced=False,
