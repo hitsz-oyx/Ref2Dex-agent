@@ -45,6 +45,14 @@ CPU geometry/observer replay; no neural computation is needed.
   Old retained data include coupling in365/501 TRAIN and44/62 DEV prefixes,
   with23043/2541 coupled command rows. Not all old BC data lack grasping.
 
+Re-audit completed at56339e41 in409.70s:660 engineering PASS,563 retained prefixes,
+60529→62605 commands (TRAIN56418/DEV6187 before active gating),208 prefixes longer,
+none shorter. All660 executions have some support frames (71522 total); the
+259 matched human-review frames are preserved. No safety threshold was relaxed.
+comparison-to-v1.json records the changes. The two old fixed-panel prefixes
+remain52/49: their first actual coupling is later than the safe prefix, so they
+are approach-only examples even after correct support. No new DExplore training.
+
 ## Original contract and historical probes
 
 ### UniDex data/interface separation probe (2026-10-20)
@@ -72,6 +80,48 @@ cannot prove that all DExplore failures are caused by data.
   interpretation. Report native/ever-held/final-stable/drop/workspace separately.
 - only native state/action dimension and60Hz clock differ; same MLP capacity,
   native reward, upstream deterministic actor inference and simulator controls.
+
+#### UniDex results and contact-source correction
+
+r1 at90118e05 completed both64-scene first-episode evaluations: baseline565
+native-ever46/final-stable32, task575 native-ever45/final-stable30. Only53/64
+scenes have bitwise identical initial native300/pose/hand/goal/full root. The
+common53 give38 native-ever and27 final-stable in both arms. The one task575
+workspace failure is among the11 unmatched scenes. comparison.json preserves
+both all-scene counts and the diagnostic intersection; no full-panel paired
+benefit/degradation claim. PPO10000 is a retained endpoint, not the previously
+best8500; the purpose is an executable interface control, not model selection.
+
+The new Shadow adapter initially supplied the existing6D force sensor vector.
+Installed Isaac Gym documentation (programming/forcesensors.html) specifies
+external/contact AND internal solver forces; this is not pure contact. r2 at
+63b0f58a only adds gating evidence and is historical diagnostic. Corrected9db09ec4
+acquires/refreshes net_contact_force_tensor at the five distal bodies, matching
+the contact-force meaning used by Inspire. Native actor300 sensor inputs remain
+unchanged; only TaskController feedback changes. No threshold was changed.
+
+r3 with actual contact forces completed in66.39s onGPU7:47/64 native-ever,
+34/64 ever-held60,29/64 final-stable,0 workspace failures;0 optimizer updates.
+Only11 environments ever enterTRACK.23 of29 final-stable environments never
+enterTRACK, and no environment confirms a path milestone. WAM/task10 point goal
+max discrepancy2.10e-9m. These are independent reset realizations, so r2/r3
+success counts are not a matched policy comparison.
+
+Of1595 near-finger+contact+moving observations,1209 exceed the relative-hand
+speed limit and1262 exceed the relative/object-speed ratio test. Counts overlap;
+they are not independent causes or grasp certificates. Among final-stable
+environments, only1204/5800 observations have two fingertips within18mm of the
+sampled object surface. This points to geometry/observability and conservative
+motion gates, not proof of a single threshold fix. Also the scheduler8mm arrival
+tolerance and two-endpoint0/1 path milestones differ from native5cm success.
+
+Decision: do not attribute all Inspire failure to its dataset or scale training
+yet. Align task-stage/readiness and success semantics on the known executing
+Shadow control, then consider matched learned575 training. These zero task
+columns do not prove that task10 or WAM independently improves performance.
+Evidence: unidex-task-goal-20261020-r1/comparison.json and
+unidex-task-goal-20261020-r3/feedback-analysis.json, task-diagnostics.json,
+evaluation.json, task-migration.json. All bounded GPU jobs ended.137 tests pass.
 
 ### Historical implementation
 

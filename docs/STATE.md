@@ -10,6 +10,13 @@ NAS reboot-preparation目录额外hard-link固定末步并准备严格三卡恢�
 
 ## 2026-10-20 goal/task10执行路线迁移到 wam-rl-policy-v3
 
+追加UniDex对照：按用户要求先排除数据因素。v3以PPO565零扩展为575（新task列未训练），
+净接触力版64首回合原生曾成功47、最终稳定29，但23个稳定场景未进入TRACK，路径进度全0。
+新增链路可执行，不能将DExplore零进度全归咎于数据；先校准阶段门控与8mm/原生5cm口径差异。
+两组初轮仅53/64初态相同，共同场景均38原生成功/27最终稳定，不作全64严格配对优劣。
+另外修正DExplore桌板局部Y薄轴被误作Z的支撑计算；660条全量重审完成，命令60529→62605，
+208条前缀增长，schema v2防止混用旧τ/准入。137项Task测试通过，无新增长训；详见[v3状态](../src/task/wam-rl-policy-v3/docs/STATE.md)。
+
 用户要求分离路线：Inspire及新增TaskController/measured421/686的BC/PPO、审计与实验卡迁至v3，
 包名wam_rl_policy_v3，新输出outputs/wam-rl-policy-v3。v2保留UniDex/Shadow300/565及其官方PPO，
 恢复Shadow-only MLP，保留reset/KL等有效修复。数据和权重不搬动、不覆盖；用户ref文档原位保留。
