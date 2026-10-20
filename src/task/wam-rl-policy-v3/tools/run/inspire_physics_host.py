@@ -47,6 +47,7 @@ def main():
     p.add_argument('--object-manifest',type=Path)
     p.add_argument('--admission-manifest',type=Path,help='Restrict motion sampling to admitted same-execution TRAIN prefixes')
     p.add_argument('--synchronize-setters',action='store_true',help='Complete Torch reset/PD writes before handing buffers to PhysX')
+    p.add_argument('--physics-backend',choices=['gpu','cpu'],default='gpu',help='PhysX backend; policy/WAM remain on their assigned GPU')
     p.add_argument('--state-transport',choices=['json','packed'],default='json')
     p.add_argument('--sequence',help='Exact TRAIN motion for bounded canonical-command replay')
     p.add_argument('--fixed-motions-json',type=Path,help='Engineering replay only: exact collection batch membership, no object sampler')
@@ -122,7 +123,9 @@ def main():
     native.create_rlgpu_env=create
     original_parse=native.parse_sim_params
     def parse(*args,**kwargs):
-        sim=original_parse(*args,**kwargs);sim.physx.max_gpu_contact_pairs=8*1024*1024;sim.physx.default_buffer_size_multiplier=5.;return sim
+        sim=original_parse(*args,**kwargs);sim.physx.max_gpu_contact_pairs=8*1024*1024;sim.physx.default_buffer_size_multiplier=5.
+        if a.physics_backend=='cpu':sim.use_gpu_pipeline=False;sim.physx.use_gpu=False;sim.physx.num_threads=8
+        return sim
     native.parse_sim_params=parse
     started=time.monotonic();audit=dict(schema='ref2dex.inspire-physics-host.v1',status='RUNNING',
         python=sys.executable,torch=torch.__version__,gpu=a.gpu,envs=a.envs,seed=a.seed,
@@ -131,7 +134,7 @@ def main():
         source_sequence_names=[r['sequence'] for r in records],source_object_names=sorted({r['object'] for r in records}),
         state_transport=a.state_transport,
         reset_submission='logical_FK_now_once_indexed_setters_before_simulate.v1',
-        indexed_resets=0,steps=0,episode_action_mismatches=0,maximum_pd_error=0.,extended_state=a.extended_state,synchronize_setters=a.synchronize_setters)
+        indexed_resets=0,steps=0,episode_action_mismatches=0,maximum_pd_error=0.,extended_state=a.extended_state,synchronize_setters=a.synchronize_setters,physics_backend=a.physics_backend)
     def save():
         (a.output/'manifest.json').write_text(json.dumps(audit,indent=2)+'\n')
     save()
@@ -195,7 +198,7 @@ def main():
             def before(action):
                 nonlocal captured
                 captured=action.clone();result=pre(action)
-                if a.synchronize_setters:torch.cuda.synchronize(task.device)
+                if a.synchronize_setters and str(task.device).startswith('cuda'):torch.cuda.synchronize(task.device)
                 return result
             def convert(action):
                 nonlocal actual_pd
@@ -248,7 +251,7 @@ def main():
     cfg=ROOT/'outputs/consequence-evaluator/baseline-transfer-inputs-20261007-r1/cfg/inspire.yaml'
     sys.argv=[sys.argv[0],'--task','Dexplore_Inspire','--cfg_env',str(cfg),'--cfg_train',str(NATIVE/'data/cfg/train/rlg/inspire.yaml'),
         '--test','--checkpoint','Base','--headless','--motion_file',str(geometric),'--num_envs',str(a.envs),'--seed',str(a.seed),
-        '--sim_device','cuda:0','--rl_device','cuda:0','--pipeline','gpu','--graphics_device_id','0','--num_threads','1','--output_path',str(a.output/'native')]
+        '--sim_device','cpu' if a.physics_backend=='cpu' else 'cuda:0','--rl_device','cuda:0','--pipeline','cpu' if a.physics_backend=='cpu' else 'gpu','--graphics_device_id','0','--num_threads','1','--output_path',str(a.output/'native')]
     signal.signal(signal.SIGALRM,lambda *_:(_ for _ in ()).throw(TimeoutError('native host deadline')));signal.alarm(a.seconds)
     try:
         os.chdir(runtime);native.main()
