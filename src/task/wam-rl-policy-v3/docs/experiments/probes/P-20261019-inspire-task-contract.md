@@ -406,3 +406,32 @@ TeacherRolloutCorpus及MeasuredInspirePolicy新增：raw measured347+CAD512，jo
 114项Task测试通过；GPU0八个真实物体episode的421/686输入与forward均通过，2.75秒，
 新增力到首层保真误差0，0优化。形状梯度测试通过，但未训练shape或新BC，没有闭环成功结论。
 数据和审计均已完成，GPU已释放；后续将新数据/encoder/actor接入两阶段BC与官方PPO。
+
+
+### Fresh UniDex BC and Inspire diagnosis protocol (2026-10-20)
+
+Decision: distinguish a broken reusable BC learning/execution path from
+Inspire sampling, demonstration coverage and closed-loop drift. User explicitly
+requests new UniDex BC training, rather than another old-weight evaluation.
+
+- run_id: unidex-fresh-bc-20261020-r1; task wam-rl-policy-v3, branch main.
+- Freeze the committed v3 trainer before launch; each child records git_commit.
+- GPU6, graspenv Python3.8/Torch2.4.1+cu121, seed241, no loaded policy weights.
+- Current300: full existing current cache, 50k updates from random initialization.
+  Scheduled565: full predicted-WAM12000 cache, 50k updates initialized exclusively
+  from this run's newly trained Current300 best. No PPO updates.
+- Both stages: Shadow 1024/1024/512/512 ELU, AdamW3e-4/wd1e-5, batch2048,
+  standardized L1, half startup tick<8 and half full TRAIN sampling.
+- Existing immutable caches: 1,536,897 TRAIN/354,761 DEV rows; no new tau cache.
+  Two-hour deadline per stage, <2GiB new artifacts, 20GiB free-disk floor;
+  GPU4/5 remain idle. Selection uses the existing fixed object-balanced DEV panel.
+- Evaluate new Scheduled BC in the same 16-object/64-scene native TRAIN panel,
+  seed246, WAM12000, corrected reset/common workspace/position_only. Report
+  ever-native and final-held separately. This trains 565, not new task10 columns.
+
+Inspire next probes use corrected support admission v2 and select TRAIN lift
+motions by teacher coupled-prefix coverage before looking at student outcomes.
+Compare canonical teacher command replay, teacher-state BC errors and autonomous
+rollout. Then compare uniform versus physical-time-matched startup sampling,
+keeping corrected corpus, random initialization, model, seed and budget equal.
+Old support-v1 tau is excluded from new support-v2 training.
