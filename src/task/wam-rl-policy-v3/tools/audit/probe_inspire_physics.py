@@ -25,12 +25,13 @@ def main():
     p.add_argument('--envs',type=int,default=16)
     p.add_argument('--steps',type=int,default=8)
     p.add_argument('--gpu',type=int,default=7)
-    p.add_argument('--resets',type=int,default=2)
+    p.add_argument('--resets',type=int,default=1,help='Collector resets after the host startup reset; official PPO uses one')
     p.add_argument('--seed',type=int,default=246)
     p.add_argument('--sync',action='store_true')
     p.add_argument('--extended',action='store_true')
     p.add_argument('--action',choices=['zero','noise'],default='zero')
     p.add_argument('--memcheck',action='store_true')
+    p.add_argument('--backend',choices=['gpu','gpu-cpu','cpu'],default='gpu')
     a=p.parse_args();out=a.output.resolve()
     if out.exists() or ROOT/'outputs/wam-rl-policy-v3' not in out.parents or not 2<=a.envs<=512 or not 1<=a.steps<=128 or not 0<=a.resets<=3:
         raise ValueError('fresh bounded native-only diagnostic required')
@@ -40,7 +41,7 @@ def main():
     cmd=[Path('/home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train/bin/python'),'-u',a.host.resolve(),
          '--cache',ROOT/'outputs/wam-rl-policy-v2/inspire-shadow-parity-20261019-r1/cache',
          '--output',out/'native','--socket',address,'--server-pid',os.getpid(),
-         '--gpu',a.gpu,'--envs',a.envs,'--seed',a.seed,'--seconds',240,'--state-transport','packed',
+         '--gpu',a.gpu,'--envs',a.envs,'--seed',a.seed,'--seconds',240,'--state-transport','packed','--physics-backend',a.backend,
          '--admission-manifest',ROOT/'outputs/wam-rl-policy-v3/inspire-teacher-rollout-audit-20261020-r3/manifest.json']
     if a.object_manifest:cmd+=['--object-manifest',a.object_manifest.resolve()]
     else:cmd+=['--sequence',a.sequence]

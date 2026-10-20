@@ -47,7 +47,7 @@ def main():
     p.add_argument('--object-manifest',type=Path)
     p.add_argument('--admission-manifest',type=Path,help='Restrict motion sampling to admitted same-execution TRAIN prefixes')
     p.add_argument('--synchronize-setters',action='store_true',help='Complete Torch reset/PD writes before handing buffers to PhysX')
-    p.add_argument('--physics-backend',choices=['gpu','cpu'],default='gpu',help='PhysX backend; policy/WAM remain on their assigned GPU')
+    p.add_argument('--physics-backend',choices=['gpu','gpu-cpu','cpu'],default='gpu',help='gpu-cpu keeps GPU PhysX with CPU tensor exchange; policy/WAM remain on GPU')
     p.add_argument('--state-transport',choices=['json','packed'],default='json')
     p.add_argument('--sequence',help='Exact TRAIN motion for bounded canonical-command replay')
     p.add_argument('--fixed-motions-json',type=Path,help='Engineering replay only: exact collection batch membership, no object sampler')
@@ -125,6 +125,7 @@ def main():
     def parse(*args,**kwargs):
         sim=original_parse(*args,**kwargs);sim.physx.max_gpu_contact_pairs=8*1024*1024;sim.physx.default_buffer_size_multiplier=5.
         if a.physics_backend=='cpu':sim.use_gpu_pipeline=False;sim.physx.use_gpu=False;sim.physx.num_threads=8
+        elif a.physics_backend=='gpu-cpu':sim.use_gpu_pipeline=False;sim.physx.use_gpu=True
         return sim
     native.parse_sim_params=parse
     started=time.monotonic();audit=dict(schema='ref2dex.inspire-physics-host.v1',status='RUNNING',
@@ -145,7 +146,7 @@ def main():
         @torch.no_grad()
         def run(self):
             env=create();task=env.task
-            if a.physics_backend=='cpu':
+            if a.physics_backend!='gpu':
                 # Upstream motion loading hardcodes CUDA even with a CPU sim.
                 # Keep all reference/index caches beside the actual sim tensors.
                 def cpu(value):
@@ -263,7 +264,7 @@ def main():
     cfg=ROOT/'outputs/consequence-evaluator/baseline-transfer-inputs-20261007-r1/cfg/inspire.yaml'
     sys.argv=[sys.argv[0],'--task','Dexplore_Inspire','--cfg_env',str(cfg),'--cfg_train',str(NATIVE/'data/cfg/train/rlg/inspire.yaml'),
         '--test','--checkpoint','Base','--headless','--motion_file',str(geometric),'--num_envs',str(a.envs),'--seed',str(a.seed),
-        '--sim_device','cpu' if a.physics_backend=='cpu' else 'cuda:0','--rl_device','cuda:0','--pipeline','cpu' if a.physics_backend=='cpu' else 'gpu','--graphics_device_id','0','--num_threads','1','--output_path',str(a.output/'native')]
+        '--sim_device','cuda:0' if a.physics_backend=='gpu' else 'cpu','--rl_device','cuda:0','--pipeline','gpu' if a.physics_backend=='gpu' else 'cpu','--graphics_device_id','0','--num_threads','1','--output_path',str(a.output/'native')]
     signal.signal(signal.SIGALRM,lambda *_:(_ for _ in ()).throw(TimeoutError('native host deadline')));signal.alarm(a.seconds)
     try:
         os.chdir(runtime);native.main()
