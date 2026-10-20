@@ -174,24 +174,28 @@ def prepare(args):
     expected=sum(r['estimated_bytes'] for r in selected.values())
     # No transport archive, no second expanded copy. Per-sequence staging
     # renames atomically; reserve the largest sequence once more for safety.
-    peak=expected+max(r['estimated_bytes'] for r in selected.values())+512*1024**2
+    peak=expected+4*max(r['estimated_bytes'] for r in selected.values())+512*1024**2
     if peak>8*GIB:raise ValueError('bounded necessary subset exceeds8GiB; do not start')
     capacity(out,peak+20*GIB)
     destination=out/'data'
-    if destination.exists():raise ValueError('fresh preparation directory required')
-    destination.mkdir();start=time.monotonic();deadline=start+3600
+    if destination.exists() and not args.resume_preparation:raise ValueError('fresh preparation directory or explicit resume required')
+    destination.mkdir(exist_ok=args.resume_preparation);start=time.monotonic();deadline=start+3600
     git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
     receipt=dict(status='PREPARING',run_id=out.name,work_version='local-v6-data-subset.v1',
         git_commit=git_commit,python=sys.version,torch=torch.__version__,
-        scope='all1132 planned GRAB sequences + one complete sequence/split for other sources; not remote frozen admission',
+        scope='all1132 planned GRAB sequences + up to3 complete sequences/split for other sources; not remote frozen admission',
         selected_sequences=len(selected),estimated_final_bytes=expected,estimated_peak_bytes=peak,
         floor_bytes=20*GIB,user_hard_floor_bytes=15*GIB,budget_bytes=8*GIB,
-        device='CPU deterministic MANO/FK and geometry preprocessing; no neural training',
+        device='CPU deterministic MANO/FK and geometry preprocessing; four bounded workers, torch2threads; no neural training',
         source_read_only=True,training_allowed=False,training_launched=False,
         missing_for_original_resume=['remote frozen v6/v5 manifests and binding metadata','original admitted window/stratum indices','original TRAIN normalizer JSON'])
+    if (out/'preparation.json').exists():
+        old=json.loads((out/'preparation.json').read_text())
+        receipt['previous_preparation']=dict(git_commit=old['git_commit'],status=old['status'],
+            reason=old.get('stop_reason','explicit resume of owned preparation'))
     save(out/'preparation.json',receipt)
     for name in ('hands','contacts','geometry','sources','packets','windows','events/sequences','recipe'):
-        (destination/name).mkdir(parents=True)
+        (destination/name).mkdir(parents=True,exist_ok=args.resume_preparation)
     hands=destination/'hands';contacts=destination/'contacts';geometry=destination/'geometry';recipe=destination/'recipe'
     selected_jobs=[];main3=ROOT/'outputs/cm-pointflow-effect-pretrain/pointworld-main3-sharedstats-20261009/data'
     mainmeta=json.loads((main3/'processed/manifest.json').read_text());indices={}
@@ -202,8 +206,15 @@ def prepare(args):
     for key,row in selected.items():
         job=jobs[key];sid=job['source_id'];n=row['frames'];new_windows={}
         source=Path(job['sequence_folder']) if sid<3 else Path(job['payload'])
-        (destination/'sources'/key).symlink_to(source,target_is_directory=source.is_dir())
-        if row['packet']:(destination/'packets'/(key+'.npz')).symlink_to(row['packet'])
+        link=destination/'sources'/key
+        if link.is_symlink():
+            if link.resolve()!=source.resolve():raise ValueError('existing source link changed')
+        else:link.symlink_to(source,target_is_directory=source.is_dir())
+        if row['packet']:
+            link=destination/'packets'/(key+'.npz')
+            if link.is_symlink():
+                if link.resolve()!=Path(row['packet']).resolve():raise ValueError('existing annotation link changed')
+            else:link.symlink_to(row['packet'])
         for split in row['split']:
             if sid<3:
                 original=indices[(sid,split)];take=original[original[:,0]==job['sequence_id']]
@@ -217,23 +228,31 @@ def prepare(args):
             # Keep bounded explicit windows; full sequence geometry is retained.
             if len(window)>32:
                 take=np.linspace(0,len(window)-1,32,dtype=int);window=window[take];categories=categories[take]
-            target=destination/'windows'/(key+'-'+split+'.npy');np.save(target,window)
-            np.save(target.with_name(target.stem+'-strata.npy'),categories)
+            target=destination/'windows'/(key+'-'+split+'.npy')
+            category_path=target.with_name(target.stem+'-strata.npy')
+            for path,value in [(target,window),(category_path,categories)]:
+                if path.exists():np.testing.assert_array_equal(np.load(path),value)
+                else:np.save(path,value)
             new_windows[split]=str(target.resolve())
         job=dict(job,windows=new_windows,window_origin='local baseline/safe stride8 engineering windows, not remote frozen filter')
         selected_jobs.append(job)
-    save(destination/'plan.json',dict(jobs=selected_jobs,original_plan=str(args.plan.resolve()),
-        engineering_subset=True,training_allowed=False,source_probabilities=plan['source_probabilities']))
+    new_plan=dict(jobs=selected_jobs,original_plan=str(args.plan.resolve()),engineering_subset=True,
+        training_allowed=False,source_probabilities=plan['source_probabilities'])
+    if (destination/'plan.json').exists():
+        if json.loads((destination/'plan.json').read_text())!=new_plan:raise ValueError('resume plan changed')
+    else:save(destination/'plan.json',new_plan)
     geo_origin=ROOT/'outputs/ptv3-shared-wam-v5/object-surfaces-20261019-r2'
     registry=json.loads((geo_origin/'manifest.json').read_text());needed=set()
     for job in selected_jobs:
         needed.update('s%d:%s'%(job['source_id'],name) if job['source_id']<3 else name for name in job['objects'])
     registry['objects']=[r for r in registry['objects'] if r['key'] in needed]
     if {r['key'] for r in registry['objects']}!=needed:raise ValueError('required original CAD cache missing')
-    geometries={};(geometry/'geometry').mkdir()
+    geometries={};(geometry/'geometry').mkdir(exist_ok=args.resume_preparation)
     for row in registry['objects']:
         original=geo_origin/row['path'];target=geometry/row['path'];capacity(out,original.stat().st_size)
-        shutil.copy2(original,target)
+        if target.exists():
+            if target.read_bytes()!=original.read_bytes():raise ValueError('existing geometry changed')
+        else:shutil.copy2(original,target)
         with np.load(target,allow_pickle=False) as z:values={k:z[k] for k in z.files}
         if values['surface'].shape!=(2048,3) or not all(np.isfinite(v).all() for v in values.values()):raise ValueError('invalid object geometry')
         values['identity']=array_identity(values);geometries[row['key']]=values
@@ -241,7 +260,7 @@ def prepare(args):
     save(geometry/'manifest.json',registry)
     hc=bind_cache(hands,'hand',dict(protocol='local reconstruction with original v5 implementation',
         plan=metadata_identity(destination/'plan.json'),original_plan=str(args.plan.resolve())))
-    (hands/'sequences').mkdir()
+    (hands/'sequences').mkdir(exist_ok=args.resume_preparation)
     cc=bind_cache(contacts,'contact',dict(protocol=LABEL_SEMANTICS,hands=str(hands.resolve()),hand_cache=hc['identity'],
         geometry_manifest=metadata_identity(geometry/'manifest.json')))
     tools=TASK.parent/'ptv3-shared-wam-v5/tools/run'
@@ -252,20 +271,27 @@ def prepare(args):
         shadow_asset=ROOT/'third_party/UniGraspTransformer/dexgrasp/hand_assets/open_ai_assets/hand/robot.xml',
         device='cpu',cache_contract=hc)
     sequences=[];all_indices={'train':[],'dev':[]};all_strata={'train':[],'dev':[]};failures=[];source_counts={};minimum_free=shutil.disk_usage(out).free
-    for job in selected_jobs:
+    def process_job(job):
         key=job['key'];row=selected[key]
         if time.monotonic()>deadline:raise TimeoutError('one-hour preparation limit')
         if (out/'STOP').exists():raise InterruptedError('preparation STOP requested')
-        free=capacity(out,row['estimated_bytes']*2+256*1024**2)
-        minimum_free=min(minimum_free,free)
+        free=capacity(out,row['estimated_bytes']*8+256*1024**2)
         try:
-            if row['packet']:
-                with np.load(row['packet'],allow_pickle=False) as z:packet={k:z[k] for k in z.files}
-            else:
-                with np.load(job['payload'],allow_pickle=False) as z:packet=dict(q=z['q'],hand_root=z['hand_root'],robot=np.array('shadow-official-replay'))
-            hm=hand_tool.prepare(job,packet,options)
-            cm=contact_tool.prepare(hands/'sequences'/key,hm,geometries,contacts,cc)
             folder=hands/'sequences'/key;cf=contacts/key
+            if (folder/'meta.json').exists():
+                hm=json.loads((folder/'meta.json').read_text())
+                if hm['cache_contract']!=hc['identity']:raise ValueError('existing hand cache binding changed')
+            else:
+                if row['packet']:
+                    with np.load(row['packet'],allow_pickle=False) as z:packet={k:z[k] for k in z.files}
+                else:
+                    with np.load(job['payload'],allow_pickle=False) as z:packet=dict(q=z['q'],hand_root=z['hand_root'],robot=np.array('shadow-official-replay'))
+                hm=hand_tool.prepare(job,packet,options)
+            if (cf/'meta.json').exists():
+                cm=json.loads((cf/'meta.json').read_text())
+                if cm['cache_contract']!=cc['identity'] or cm['hand_identity']!=metadata_identity(folder/'meta.json'):
+                    raise ValueError('existing contact cache binding changed')
+            else:cm=contact_tool.prepare(folder,hm,geometries,contacts,cc)
             jvalid=np.load(folder/'joint_valid.npy',mmap_mode='r')
             known=np.load(folder/'object_pose_valid.npy',mmap_mode='r')
             selected_windows={}
@@ -276,15 +302,20 @@ def prepare(args):
                 categories=np.load(Path(path).with_name(Path(path).stem+'-strata.npy'))[admit]
                 if len(window):selected_windows[split]=(window,categories)
             if not selected_windows:raise ValueError('no usable engineering H4/K24 windows')
-            sid=job['source_id'];index=len(sequences)
-            sequences.append(dict(key=key,source_id=sid,path=str(folder.resolve()),contact_path=str(cf.resolve()),objects=job['objects'],
-                hand_meta_identity=metadata_identity(folder/'meta.json'),contact_meta_identity=metadata_identity(cf/'meta.json')))
+            return (dict(key=key,source_id=job['source_id'],path=str(folder.resolve()),contact_path=str(cf.resolve()),objects=job['objects'],
+                hand_meta_identity=metadata_identity(folder/'meta.json'),contact_meta_identity=metadata_identity(cf/'meta.json')),selected_windows,free,None)
+        except (OSError,MemoryError):
+            (out/'STOP').touch();raise
+        except Exception as exc:return None,None,free,dict(key=key,reason=repr(exc))
+    with ThreadPoolExecutor(max_workers=4) as pool:
+      for result in pool.map(process_job,selected_jobs):
+        row,selected_windows,free,failure=result;minimum_free=min(minimum_free,free)
+        if failure:failures.append(failure)
+        else:
+            sid=row['source_id'];index=len(sequences);sequences.append(row)
             source_counts[str(sid)]=source_counts.get(str(sid),0)+1
             for split,(window,categories) in selected_windows.items():
                 all_indices[split].append(np.column_stack((np.full(len(window),index),window)).astype(np.int32));all_strata[split].append(categories)
-        except (OSError,MemoryError):raise
-        except Exception as exc:
-            failures.append(dict(key=key,reason=repr(exc)))
         if (len(sequences)+len(failures))%25==0 or failures:
             save(out/'preparation-progress.json',dict(completed=len(sequences),failed=failures,total=len(selected_jobs),free_bytes=shutil.disk_usage(out).free,elapsed_s=time.monotonic()-start))
             print(json.dumps(dict(completed=len(sequences),failures=len(failures),total=len(selected_jobs))),flush=True)
@@ -333,6 +364,7 @@ def main():
     parser.add_argument('--stage',choices=('inventory','prepare'),required=True)
     parser.add_argument('--plan',type=Path,default=ROOT/'tmp/wam-v5/plan-compact.json')
     parser.add_argument('--output',type=Path,required=True)
+    parser.add_argument('--resume-preparation',action='store_true',help='Reuse only unchanged, completed owned cache bindings.')
     args=parser.parse_args()
     if args.stage=='inventory':inventory(args)
     else:prepare(args)
