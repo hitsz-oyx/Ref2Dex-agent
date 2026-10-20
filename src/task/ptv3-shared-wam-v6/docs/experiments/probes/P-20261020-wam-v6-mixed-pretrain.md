@@ -254,3 +254,23 @@ This is a changed batch/world training regime and not equal sample exposure
 or a bitwise continuation of world4. Keep fixed DEV reporting and original
 80000/cumulative604800s bounds.
 Decision: continue active three-GPU r2 under the guarded capacity contract.
+
+
+### Owned residual-worker escalation after user retry request
+
+Verified every old residual TID, including3083624 in zombie-leader3083586.
+All residual live threads have PF_EXITING set and empty process command lines.
+Targeted tgkill(SIGCONT) then tgkill(SIGKILL) returned success for each verified
+old live thread. GPU allocations did not change. Across about4.24s, each of
+four residual live threads accumulated about4.24s kernel CPU time and0 user
+CPU time. This supports a stuck kernel exit-cleanup path; specific driver stack
+cannot be confirmed because /proc/PID/stack and syscall reads are denied.
+The old contexts remain in NVML while read-only fuser lists only new training
+workers, so broad fuser -k would hit active training rather than selectively
+release the residual allocations. No MPS service was running. UID1006 has zero
+effective/permitted capabilities; no system reset or driver operation attempted.
+
+Receipt: remote outputs/gpu-fault-audit-20261020-r1/thread-wake-kill-and-cpu-audit.json;
+small copy under the matching local output directory. New three-GPU training
+was untouched. For administrator recovery prerequisites see
+[NVIDIA nvidia-smi documentation](https://docs.nvidia.com/deploy/nvidia-smi/index.html).
