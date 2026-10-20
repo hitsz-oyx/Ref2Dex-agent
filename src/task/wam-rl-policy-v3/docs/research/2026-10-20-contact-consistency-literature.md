@@ -8,6 +8,8 @@
 
 本次视频和 train probe 使用的是 WAM-v4 step80000。当前 [model.py](../../../ptv3-shared-wam-v4/src/ptv3_shared_wam_v4/model.py) 的 contact 分支读取共享特征与 object latent，没有读取解码后的未来手/物体坐标；[objectives.py](../../../ptv3-shared-wam-v4/src/ptv3_shared_wam_v4/objectives.py) 分别监督位置与 contact，没有几何一致性项。已有 [train rollout probe](../experiments/probes/P-20261020-wam-mano-preview.md) 显示四个训练样例的真实历史短期误差较小，而预测历史回填会漂移；这支持检查 rollout 鲁棒性，但尚未区分 contact 的贡献。
 
+同日新增24→1对照后，四例真实历史平均误差降至0.82–2.44mm，而持续预测回填误差全部高于24→8。针对漂移的近期优先级应调整为生成历史下的转移/时间一致性；以下几何一致性方案仍是待审计的独立方向，不能称已找到漂移主因。实验结果与回填审计见同一张 probe 卡。只把 τ 输入一个可学习 contact MLP 也不自动约束几何；应由预测手与预测物体共同重算 proximity，并让监督/一致性误差向两种运动输出传梯度。
+
 ## 直接 WAM 证据
 
 ### PointWAM：共享表示与联合监督，未给出接触硬约束

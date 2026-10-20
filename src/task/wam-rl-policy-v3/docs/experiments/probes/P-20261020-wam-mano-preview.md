@@ -411,3 +411,71 @@ comparison plots. Use the existing0.1mm numerical gate and report the actual
 maximum coordinate difference; do not claim bitwise equality. Inference uses
 implementation5432958c; this numerical comparison/visualization gate is recorded
 in its own subsequent commit.
+
+### Consume-one result
+
+Inference5432958c completed in116.90s, peak allocated CUDA401.25MiB; no stop in
+any case. GPU7 returned to the existing6699MiB workload after inference. Plots/
+videos use ed3149ac and compare the original stride8 artifact with the new
+stride1 run on identical timestamps. All original exported input fields still
+match exactly; initial full24 coordinate differences are0.00237–0.01932mm,
+below the0.1mm gate. These are numerical comparisons, not bitwise equality.
+
+Mean hand EPE across the same consumed timestamps (mm):
+
+| TRAIN case | Measured H4 / stride8 | Measured H4 / stride1 | Predicted H4 / stride8 | Predicted H4 / stride1 |
+| --- | ---: | ---: | ---: | ---: |
+| eyeglasses_lift | 4.56 | 0.82 | 67.07 | 523.55 |
+| bowl_pass_1 | 12.71 | 2.44 | 220.00 | 432.21 |
+| stamp_lift | 5.46 | 0.95 | 52.19 | 777.48 |
+| stanfordbunny_lift | 7.71 | 1.42 | 43.79 | 283.40 |
+
+Stride1 improves measured-history errors but worsens all four generated-history
+continuations. Final stride1 hand errors are1447.01/903.35/1062.90/898.95mm.
+Object translation means also increase from23.58/2.06/36.32/5.23mm to
+70.67/6.10/79.85/189.81mm. In the bowl case, after24 consumed steps the hand
+error is435.42mm while object translation error is8.68mm; a common object-frame
+translation alone still cannot explain the hand error. At the very first
+step the four hand errors are only0.93–2.57mm, increasing to39.99–51.79mm by
+step8 under recursive stride1. This is not simply an initially inaccurate
+first-step forecast.
+
+An independent audit confirms each of the565 generated-history inputs equals
+the preceding stored prediction; hand reconstruction is exact and independently
+recomputed SVD pose composition differs by at most2.22e-15. There is no hidden
+observation refresh or trajectory smoothing. Post-hoc velocity/acceleration
+statistics are saved as diagnostics: stride1 mean accelerations are higher
+than the recorded histories, but this does not establish differentiation noise
+as the unique cause or as a causal mediator.
+
+Decision: changing8 to1 is not a sufficient fix for this free-rollout failure.
+The contrast prioritizes generated-history transition/temporal consistency over
+merely shortening open-loop chunks. The one-shot24-step predictor is not trained
+to enforce equivalence between its kth output and k recursive first outputs;
+rebuilding H4 velocities/accelerations from its own states can therefore move
+the model into a different input distribution. Contact/geometry coupling remains
+a separate unmeasured candidate, not an established main cause. Do not infer that
+larger execution chunks generally outperform per-observation replanning: actual
+execution refreshes history with measured states, whose control result improves
+here. Replanning frequency also refreshes the same t+24 goal function more often;
+this probe does not isolate feedback frequency from that accompanying change.
+
+Goal clarification: actual TaskScheduler uses measured object/hand state and
+interaction feedback, not clock-only reference replay. The earlier Inspire
+generated-history video fixed goals from the measured-controller recording;
+it never ran a virtual TaskScheduler on generated states. This TRAIN cadence
+probe instead uses the training-defined true object pose at each anchor+24.
+Neither an object goal nor its coordinate conversion enforces a hand posture,
+contact, or a physically executable transition. Current v4 and v6 contact
+readouts use shared features and object latent, without decoded future hand/
+scene coordinates. The current measured686 executor invokes predict_hand and
+does not use C to correct trajectories.
+
+- [Stride8/stride1 error curves](../../../../../../outputs/wam-rl-policy-v3/wam-train-stride1-20261020-r1/train-rollout-errors.png)
+- [Recorded / predicted-H4 stride8 / predicted-H4 stride1 video](../../../../../../outputs/wam-rl-policy-v3/wam-train-stride1-20261020-r1/train-cases-stride1-vs8.mp4)
+- [Matched comparison](../../../../../../outputs/wam-rl-policy-v3/wam-train-stride1-20261020-r1/stride-comparison.json)
+- [History/coordinate audit](../../../../../../outputs/wam-rl-policy-v3/wam-train-stride1-20261020-r1/data-audit.json)
+- [Early error and derivative diagnostics](../../../../../../outputs/wam-rl-policy-v3/wam-train-stride1-20261020-r1/cadence-diagnostics.json)
+
+Full H.264 decode passes:1200×400,581 frames,38.734s slow2x playback. Error plot
+and a video frame were visually inspected. No training or checkpoint changes.
