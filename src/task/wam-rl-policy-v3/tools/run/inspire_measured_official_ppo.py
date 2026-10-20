@@ -41,6 +41,7 @@ def main():
  try:
   connection,_=listener.accept();connection.settimeout(600);hello=receive(connection);state['native_peer_pid']=peer_pid(connection)
   if not hello['audit'].get('extended_state') or hello['audit'].get('state_transport')!='packed':raise ValueError('native measured packed state required')
+  state['status']='INITIALIZING_MODELS';write(a.output/'manifest.json',state)
   native=unpack_state(hello['state']);objects=[dict(object_code='dexplore/'+s.split('_')[1],scale=1.) for s in native['sequences']]
   runtime=V4Runtime(packet['config']['wam'],objects,a.geometry_cache.resolve(),dense_manifest=a.geometry_cache/'surface-manifest.json',allow_geometry_replacement=True,device='cuda:0')
   env=MeasuredOfficialEnv(connection,hello,a.audit_manifest.resolve(),runtime,model,reset_probe=a.reset_probe,batch=a.wam_batch,shared_tf32=a.shared_tf32)

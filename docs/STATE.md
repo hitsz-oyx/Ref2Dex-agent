@@ -1,3 +1,16 @@
+## 2026-10-20 Inspire measured686正式三卡PPO已开始更新
+
+按用户指定GPU4/5/6各512环境，总1536，官方UniDex PPO的8步/5epochs/4minibatches及
+1024/1024/512/512容量，global rollout12288与原Shadow六卡×256对齐。沿用完整501 TRAIN
+序列/50物体、r3准入、Scheduled686 DEV-best和WAM80000；actor为BC初始化，critic新建。
+GPU PhysX首步接触核间歇崩溃，r1无更新已停止；r2明确改用CPU PhysX后备，神经推理/优化仍在
+三张指定GPU，不能称严格GPU物理复现。CPU异步reset通过，三rank各完成至少2次同步更新/
+40 optimizer steps，参数同步误差0、source错配0，首个61MB checkpoint完整校验通过。
+约32s/轮、10k预计89h，48h预算先保存停止，可后续续训；暂不能判断成功率或WAM净收益。
+[实验卡](../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-inspire-measured-official-ppo.md)。
+WAM完整24步的Gym/MANO近似预览也已完成，拟合残差均值22.83mm，不等于真实执行。
+[可视化卡](../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-wam-mano-preview.md)。
+
 ## 2026-10-20 WAM-v6为用户重启正常停于23758，NAS末步已验证
 
 三卡r2已own STOP正常保存step023758.pt（1186363152bytes），CPU完整读取、模型有限、568份

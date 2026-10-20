@@ -1,5 +1,30 @@
 # 当前状态
 
+用户要求优先启动PPO，指定GPU4/5/6。目标为官方UniDex PPO、最新r3准入和Scheduled686
+DEV-best父模型，每rank512环境/合计1536，总rollout12288、minibatch3072，匹配原Shadow
+六rank×256规模。两环境GPU物理异步reset已完成2迭代/40次优化，env0/1分别step2/4 reset，
+其他时钟不动，动作跨回合错配0、logprob重放误差0；154项Task测试通过。
+r1三rank在首个物理控制遇到PhysX convexPlaneNphase_Kernel非法访问，没有训练更新，已停止。
+有界诊断中全50物体512环境单rank完成2次官方更新；256环境也会失败，不支持简单OOM解释。
+提交83c746ce将扩展状态数组每snapshot转换一次并增加TF32数值检查；全24步误差0.377mm，
+小于1mm门槛。同步reset/PD写入仍不能消除所有GPU接触核崩溃，不能声称GPU PhysX已修复。
+r2已采用并通过CPU PhysX后备（8物理线程/rank），PPO与WAM仍在GPU4/5/6；物体覆盖、环境数、
+动作/频率、网络、reward及PPO超参保持上述协议。CPU异步reset通过，三rank已完成同步参数更新。
+实际状态以outputs/wam-rl-policy-v3/inspire-measured-official-20261020-r2/manifest.json为准；
+启动不等于已有策略更新。物理后端与WAM推理设置纳入checkpoint续训身份，禁止静默切换。
+
+当前r2三rank各已完成至少2迭代/40 optimizer steps，参数同步误差0、source错配0，
+全501 TRAIN/50物体/1536环境已核对；真实自然workspace终止也经过indexed reset。
+首个rank0 checkpoint official-iteration-1.pt(61,158,108 bytes)已完整CPU读取并校验有限，
+包含actor/critic/optimizer/CAD和实际backend身份。第二迭代约32秒，10k估计89h；
+本轮48h上限会先保存停止，不能称10k将在48h内完成。已有成功数不足以判断学习成效。
+
+并行WAM/MANO预览已完成，GPU7已释放：outputs/wam-rl-policy-v3/wam-mano-preview-20261020-r1/
+有preview-middle.png、preview-contact-sheet.png和preview-slow4x.mp4。首个TRACK tick68，
+WAM完整24步、相同物体回放和相机；真实Inspire FK最大误差0.00181mm，MANO为近似拟合，
+残差均值22.83/max45.17mm，图中已明确标注。合成MANO回收误差0.0217mm，产物3.8MiB。
+不将人手拟合表面、未来teacher差异或画面接触解释为真实物理执行或WAM因果收益。
+
 最新DExplore goal+WAM BC已完成：inspire-scheduled686-bc-20261020-r4使用r3准入及其
 startup_half Current421 best(step7000)，重建62605行同源τ并冻结WAM80000。
 GPU6/7缓存440.6s、GPU6训练50k/600.8s；保留全部56036 TRAIN/6081 DEV active行。
