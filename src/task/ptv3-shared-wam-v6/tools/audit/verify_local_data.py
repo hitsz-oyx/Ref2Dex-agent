@@ -60,7 +60,13 @@ def main():
         if not np.isfinite(e['event_delta_steps']).all() or np.any(e['event_delta_steps'][e['event_valid']]<0):raise ValueError('event time')
         for path in ep.glob('*.npy'):
             values=np.load(path,mmap_mode='r')
-            if values.shape!=(n,objects) or not np.isfinite(values).all():raise ValueError('event auxiliary array')
+            if path.stem=='transitions':
+                if values.ndim!=2 or values.shape[1]!=3:raise ValueError('event transition table shape')
+                if len(values) and (np.any(values[:,0]<0) or np.any(values[:,0]>=n)
+                        or np.any(values[:,1]<0) or np.any(values[:,1]>=objects)
+                        or not np.isin(values[:,2],[1,2]).all()):raise ValueError('event transition table bounds')
+            elif values.shape!=(n,objects):raise ValueError('event auxiliary array shape: '+path.name)
+            if not np.isfinite(values).all():raise ValueError('event auxiliary array values')
             event_arrays_checked+=1
         # Brute-force world-space distances, independent of the preparation
         # KD tree and its bounding-box pruning. Check strongest contacts too.
