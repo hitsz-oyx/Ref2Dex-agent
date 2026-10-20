@@ -25,12 +25,14 @@ def write_rgb_png(path, pixels):
                      +chunk(b'IDAT',zlib.compress(raw,3))+chunk(b'IEND',b''))
 
 
-def tracking_camera(teacher_hand,object_pose,predicted_hand=None):
+def tracking_camera(teacher_hand,object_pose,predicted_hand=None,predicted_object_pose=None):
     """Shared camera encloses both hands and object, including early approach."""
     import numpy as np
     center=np.asarray(object_pose)[:3,3]
     parts=[np.asarray(teacher_hand),center[None]+np.array([[-.06,-.06,-.06],[.06,.06,.06]])]
     if predicted_hand is not None:parts.append(np.asarray(predicted_hand))
+    if predicted_object_pose is not None:
+        parts.append(np.asarray(predicted_object_pose)[:3,3][None]+np.array([[-.06,-.06,-.06],[.06,.06,.06]]))
     points=np.concatenate(parts)
     target=(points.min(0)+points.max(0))/2
     radius=float(np.linalg.norm(points-target,axis=-1).max())
@@ -71,7 +73,8 @@ def main():
     started = time.monotonic()
     data = np.load(output / 'preview.npz')
     metadata = json.loads((output / 'manifest.json').read_text())
-    rolling=metadata.get('preview_mode')=='rolling_measured_history'
+    autoregressive=metadata.get('preview_mode')=='rolling_predicted_history'
+    rolling=metadata.get('preview_mode') in ('rolling_measured_history','rolling_predicted_history')
     frame_count=len(data['teacher_q'])
     valid=data['prediction_valid'] if rolling else np.ones(frame_count,bool)
     mesh_ids=np.flatnonzero(valid)
@@ -186,7 +189,7 @@ def main():
     if min(hand_ids) < 0:
         raise ValueError('teacher semantic landmark link absent')
     frames, fk_errors, camera_poses = [], [], []
-    mano_by_frame=dict(zip(mesh_ids,manoes));previous_mano=None
+    mano_by_frame=dict(zip(mesh_ids,manoes));previous_mano=None;previous_camera=None
     for tick in range(frame_count):
         if time.monotonic()-started>300:raise TimeoutError('five-minute render deadline')
         joints = gym.get_actor_dof_states(envs[0], hand, gymapi.STATE_ALL)
@@ -194,7 +197,8 @@ def main():
         joints['vel'] = 0
         gym.set_actor_dof_states(envs[0], hand, joints, gymapi.STATE_ALL)
         for lane in range(2):
-            actor_pose(envs[lane], objects[lane], transform(data['object_poses'][tick]))
+            object_pose=data['display_object_poses'][tick] if autoregressive and lane==1 else data['object_poses'][tick]
+            actor_pose(envs[lane], objects[lane], transform(object_pose))
             if rolling:actor_pose(envs[lane],goals[lane],transform(data['goal_poses'][max(0,int(data['anchor_tick'][tick]))] if valid[tick] else data['goal_poses'][tick]))
         if previous_mano is not None:
             hidden=gymapi.Transform();hidden.p=gymapi.Vec3(0,0,-10)
@@ -203,7 +207,12 @@ def main():
         if previous_mano is not None:actor_pose(envs[1],previous_mano,gymapi.Transform())
         if rolling:
             eye,center=tracking_camera(data['teacher_hand'][tick],data['object_poses'][tick],
-                data['target_hand'][tick] if valid[tick] else None)
+                data['target_hand'][tick] if valid[tick] else None,
+                data['display_object_poses'][tick] if autoregressive else None)
+            if autoregressive:
+                if previous_camera is not None:
+                    eye=.85*previous_camera[0]+.15*eye;center=.85*previous_camera[1]+.15*center
+                previous_camera=(eye.copy(),center.copy())
             camera_poses.append(np.r_[eye,center])
             for env,sensor in zip(envs,cameras):
                 gym.set_camera_location(sensor,env,gymapi.Vec3(*eye),gymapi.Vec3(*center))
@@ -237,6 +246,10 @@ def main():
                   physics='kinematic setters only; no physics integration; all roots fixed and collision geometry removed',
                   exit_workaround='flush completed outputs then os._exit(0): legacy Gym runtime crashes during teardown')
     if rolling:report['camera_policy']='shared follow camera enclosing teacher hand, raw forecast hand and object; no prediction coordinates changed'
+    if autoregressive:
+        report.update(object='left recorded teacher; right rigid-projected WAM object prediction',
+            camera_policy='same camera in both lanes; exponential camera-only smoothing .15; includes predicted object; hand/object outputs unchanged',
+            right='MANO fitted to predicted-history autoregressive WAM24/display8')
     (output / 'render-manifest.json').write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps(report), flush=True)
     if report['fk_max_mm'] > 2:

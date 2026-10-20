@@ -88,3 +88,27 @@ def rolling_windows(frame_count, *, history=4, stride=8):
         raise ValueError('H4 and at least one future frame; stride in1..24 required')
     return [(anchor,np.arange(anchor+1,min(anchor+stride+1,frame_count)))
             for anchor in range(history-1,frame_count-1,stride)]
+
+
+def forecast_object_poses(query,displacements,world_from_anchor):
+    """Project the same-ID32 point forecasts onto rigid poses; report distortion."""
+    query=np.asarray(query,np.float64);delta=np.asarray(displacements,np.float64)
+    anchor=np.asarray(world_from_anchor,np.float64)
+    if query.shape!=(32,3) or delta.shape!=(24,32,3) or anchor.shape!=(4,4):
+        raise ValueError('canonical32 queries, full24 scene displacements and current SE3 required')
+    if not np.isfinite(np.r_[query.ravel(),delta.ravel(),anchor.ravel()]).all():
+        raise ValueError('finite object forecast required')
+    if not np.allclose(anchor[:3,:3].T@anchor[:3,:3],np.eye(3),atol=1e-5) or not np.isclose(np.linalg.det(anchor[:3,:3]),1):
+        raise ValueError('proper current object rotation required')
+    center=query.mean(0);source=query-center;poses=[];residuals=[]
+    for displacement in delta:
+        target=query+displacement;mean=target.mean(0)
+        u,s,vt=np.linalg.svd(source.T@(target-mean))
+        if s[1]<1e-10:raise ValueError('degenerate object query geometry')
+        rotation=vt.T@u.T
+        if np.linalg.det(rotation)<0:vt[-1]*=-1;rotation=vt.T@u.T
+        translation=mean-rotation@center
+        local=np.eye(4);local[:3,:3]=rotation;local[:3,3]=translation
+        poses.append(anchor@local)
+        residuals.append(np.linalg.norm(query@rotation.T+translation-target,axis=-1).mean())
+    return np.asarray(poses),np.asarray(residuals)

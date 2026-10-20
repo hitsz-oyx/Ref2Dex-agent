@@ -13,7 +13,8 @@ def main():
     from PIL import Image,ImageDraw,ImageFont
     meta=json.loads((out/'manifest.json').read_text())
     render=json.loads((out/'render-manifest.json').read_text())
-    if meta.get('preview_mode')!='rolling_measured_history' or render['status']!='COMPLETED' or render['fk_max_mm']>2:
+    autoregressive=meta.get('preview_mode')=='rolling_predicted_history'
+    if meta.get('preview_mode') not in ('rolling_measured_history','rolling_predicted_history') or render['status']!='COMPLETED' or render['fk_max_mm']>2:
         raise ValueError('verified rolling camera render required')
     with np.load(out/'preview.npz') as z:
         anchors=z['anchor_tick'].copy();horizons=z['horizon_frame'].copy();valid=z['prediction_valid'].copy()
@@ -24,8 +25,8 @@ def main():
             w,h=raw.size;frame=Image.new('RGB',(w,h+150),'#151b24');frame.paste(raw,(0,70))
         draw=ImageDraw.Draw(frame)
         draw.text((16,10),'Measured teacher / native Inspire',font=font,fill='#dde4ec')
-        draw.text((w//2+16,10),'WAM24 / show8 / fitted MANO',font=font,fill='#40d4eb')
-        draw.text((16,39),'Measured H4 refreshed every8 frames; same recorded object in both lanes',font=small,fill='#a9b7c8')
+        draw.text((w//2+16,10),'WAM24 / show8 / '+('predicted history' if autoregressive else 'fitted MANO'),font=font,fill='#40d4eb')
+        draw.text((16,39),'Old predicted hand + object feed the next H4; no measured-state reset after tick3' if autoregressive else 'Measured H4 refreshed every8 frames; same recorded object in both lanes',font=small,fill='#a9b7c8')
         if valid[i]:
             offset=int(horizons[i]);anchor=int(anchors[i])
             text='t=%.2fs | tick%d | replan anchor%d | forecast frame%d/8 (+%.3fs)'%(i/30,i,anchor,offset,offset/30)
@@ -33,9 +34,9 @@ def main():
             draw.text((16,h+104),'Raw WAM vs teacher %.1fmm | MANO fit %.1fmm | %s'%(meta['per_frame_prediction_error_mm'][i],meta['per_frame_fit_mean_mm'][i],
                 'NEW PREDICTION' if offset==1 else 'same prediction chunk'),font=small,fill='#f7cc6b')
         else:
-            reason='H4 startup: no forecast yet' if i<4 else 'Outside admitted prefix: teacher replay only'
+            reason='H4 startup: no forecast yet' if i<4 else ('Rollout stopped: '+str(meta.get('rollout_stop')) if autoregressive else 'Outside admitted prefix: teacher replay only')
             draw.text((16,h+80),'t=%.2fs | tick%d | %s'%(i/30,i,reason),font=small,fill='#f7cc6b')
-        draw.text((16,h+128),'Recorded-observation forecast review; no robot execution. MANO is approximate. No output smoothing.',font=small,fill='#a9b7c8')
+        draw.text((16,h+128),'Autoregressive forecast / fixed replayed goals; no physics. MANO and object SE3 are approximate.' if autoregressive else 'Recorded-observation forecast review; no robot execution. MANO is approximate. No output smoothing.',font=small,fill='#a9b7c8')
         return frame
     selected=[int(valid.nonzero()[0][0]),min(68,n-1),min(180,n-1),min(360,n-1),min(540,n-1),n-1]
     stills=[labeled(i) for i in selected]

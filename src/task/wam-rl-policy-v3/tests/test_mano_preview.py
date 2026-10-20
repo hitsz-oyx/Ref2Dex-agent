@@ -80,3 +80,28 @@ def test_shared_camera_covers_distant_approach_and_zoomed_contact():
  assert np.linalg.norm(eye1-target1)>np.linalg.norm(eye2-target2)
  assert -.6<target1[1]<-.4
  assert np.isfinite(np.r_[eye1,target1,eye2,target2]).all()
+
+
+def test_predicted_object_recovers_rigid_motion_in_current_anchor():
+ from wam_rl_policy_v3.mano_preview import forecast_object_poses
+ query=np.random.default_rng(246).normal(size=(32,3))*.03
+ local=np.eye(4);local[:3,:3]=Rotation.from_euler('xyz',[.2,-.1,.3]).as_matrix();local[:3,3]=[.02,.03,.01]
+ delta=query@local[:3,:3].T+local[:3,3]-query
+ anchor=np.eye(4);anchor[:3,:3]=Rotation.from_euler('y',.8).as_matrix();anchor[:3,3]=[1,2,3]
+ poses,residual=forecast_object_poses(query,np.tile(delta,(24,1,1)),anchor)
+ np.testing.assert_allclose(poses,np.broadcast_to(anchor@local,(24,4,4)),atol=1e-10)
+ assert residual.max()<1e-10
+ # Chaining uses the OLD predicted pose as its next anchor, not original truth.
+ next_poses,_=forecast_object_poses(query,np.tile(delta,(24,1,1)),poses[7])
+ np.testing.assert_allclose(next_poses[0],anchor@local@local,atol=1e-10)
+
+
+def test_object_projection_reports_nonrigid_shape_error_and_rejects_nan():
+ from wam_rl_policy_v3.mano_preview import forecast_object_poses
+ query=np.random.default_rng(246).normal(size=(32,3))*.03
+ delta=np.tile(query*.5,(24,1,1))
+ poses,residual=forecast_object_poses(query,delta,np.eye(4))
+ assert residual.min()>.005
+ np.testing.assert_allclose(np.linalg.det(poses[:,:3,:3]),1,atol=1e-10)
+ delta[0,0,0]=np.nan
+ with pytest.raises(ValueError):forecast_object_poses(query,delta,np.eye(4))

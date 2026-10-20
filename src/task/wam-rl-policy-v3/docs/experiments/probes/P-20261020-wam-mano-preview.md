@@ -183,3 +183,41 @@ decode passes. Approach/contact/lift PNGs and labeled stills were visually
 inspected. r2's own artifacts occupy52,768,641 bytes, plus reused r1 mesh assets,
 within the declared budget. Both rendering workers have exited and GPU7 memory
 returned to the pre-run6699MiB belonging to the existing shared workload.
+
+## Predicted-history continuation (2026-10-20)
+
+User requests retaining the old prediction rather than resetting to recorded
+measurements. Decision: determine whether prediction-to-observation resets
+dominate the visible discontinuities, and whether this model can sustain a
+visually interpretable free rollout. The cheapest discriminator is the same
+single clip/checkpoint, WAM24/display8, changing only the history source. This
+does not train or establish execution validity. Run
+`wam-mano-autoregressive-20261020-r1`, work_version=`wam-mano-autoregressive-v1`,
+freezes its implementation commit in the manifest before launching.
+
+Only actual frames0..3 seed H4. Every subsequent hand history comes from the
+previous hand forecasts, and object history from the scene head's32 same-ID
+point displacement predictions rigid-projected to proper SE3 without scale.
+The projection residual is retained for every full24 forecast. No future
+measured object/hand, teacher q or MANO fitted surface feeds the model.
+Hand and scene prediction heads share the same forward, masks and normalization.
+Raw hand points are neither blended nor translated to match ground truth.
+
+To preserve the previous external instructions, replay exactly the previous
+measured-controller spatial goal sequence; hold the last goal after tick544.
+Those instructions are a fixed comparison input, not virtual feedback or an
+independent goal policy. Do not claim this is an autonomous TaskController or
+closed-loop execution. Teacher futures remain only in the left comparison and
+diagnostic metrics. Roll through all651 recording frames when numerical bounds
+permit. An out-of-workspace/nonfinite prediction stops new rollout with an
+explicit reason, rather than silently restoring ground truth.
+
+Right object now follows the model-derived rigid pose, not the teacher. MANO
+uses the same fixed current-only scale and bounded fits. Two lanes share a
+camera with .15 exponential smoothing of camera parameters only; hand/object
+outputs remain unmodified. Budget/env/checkpoint/seed/geometry/license rules
+remain as above: GPU7 permitted sharing, prep1200s/render300s/encode300s,
+final150MiB/transient512MiB,20GiB disk floor. Logs/resource samples belong in
+`tmp/wam-autoregressive-preview/`, outputs in the run's Task output directory.
+Thirteen focused tests pass, including proper composition of two predicted
+object transforms, nonrigid residual reporting and NaN rejection.
