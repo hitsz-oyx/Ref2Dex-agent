@@ -140,3 +140,46 @@ graspenv for inference/fitting/encoding and pinned dexplore_v120_train for Gym.
 Original raw/checkpoint/native/licensed assets stay read-only. Commands/logs and
 resource samples go under `tmp/wam-rolling-preview/`; artifacts under
 `outputs/wam-rl-policy-v3/wam-mano-rolling-20261020-r1/`.
+
+### Full-recording result
+
+User explicitly selected recorded measured observations for subsequent H4.
+Implementation `72331532`, prepared against `3656f0bb`:68 forecasts at anchors
+3,11,...539,542 consumed frames4..545; the last chunk contains6 frames. All24
+outputs of each forecast remain in `preview.npz`. Preparation148.4s, allocated
+CUDA peak401.14MiB. A separate CPU audit reconstructs every displayed raw point
+from its own anchor/rotation/displacement and matches exactly (max difference0).
+Teacher object poses and native q match the original archive exactly.
+
+First r1 render's full-path camera made the hand too small and could miss early
+approach; it is a framing diagnostic, not the review artifact. Camera fix
+`b45a3551` renders r2 using the same cached predictions/meshes, without repeating
+inference or fitting. r2 has a hard-linked prediction archive and symlink to
+r1 MANO assets: retain those source assets. Both lanes use the same moving camera
+enclosing measured hand, raw predicted hand and object. No camera adjustment
+changes point coordinates. Initial distant approach is shown wide; contact is
+shown close, including the full object lift. Native replay FK mean0.000547mm,
+max0.002387mm over651 frames; render40.1s. The replay does not integrate physics.
+
+- [Full21.7s video](../../../../../../outputs/wam-rl-policy-v3/wam-mano-rolling-20261020-r2/rolling.mp4)
+- [Full43.4s slow2x video](../../../../../../outputs/wam-rl-policy-v3/wam-mano-rolling-20261020-r2/rolling-slow2x.mp4)
+- [Stage contact sheet](../../../../../../outputs/wam-rl-policy-v3/wam-mano-rolling-20261020-r2/rolling-contact-sheet.png)
+- [Prediction/stitch audit](../../../../../../outputs/wam-rl-policy-v3/wam-mano-rolling-20261020-r2/data-audit.json)
+
+Across this one TRAIN recording's542 displayed predictions, mean raw11-point
+distance to recorded teacher is28.53mm and per-frame mean-distance p95 is97.24mm.
+MANO mean fitting residual is22.92mm, separately reported. Chunk-boundary mean
+point displacement averages59.48mm, max271.97mm; these include real motion and
+forecast correction, not a pure prediction-error metric. Jumps are preserved.
+The spatial goal is not a promise to follow the teacher's exact future timing;
+these numbers do not establish model-wide accuracy, physical validity or utility.
+Eleven focused visualization/tau tests pass, including complete coverage,
+trimmed tails, PNG roundtrip, shared camera framing and the original frame/clock
+contracts. Warmup0..3 and excluded tail546..650 are labeled teacher-only.
+
+Encoding completed with H.2641280×710:651 frames/21.7s at original speed and
+1302 frames/43.4s at slow2x. ffprobe checks both files; full original-speed
+decode passes. Approach/contact/lift PNGs and labeled stills were visually
+inspected. r2's own artifacts occupy52,768,641 bytes, plus reused r1 mesh assets,
+within the declared budget. Both rendering workers have exited and GPU7 memory
+returned to the pre-run6699MiB belonging to the existing shared workload.

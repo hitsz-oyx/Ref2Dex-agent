@@ -21,6 +21,9 @@ Shadow current300 / scheduled565 的主要实验继续位于 [v2](../wam-rl-poli
   `encode_wam_rolling_preview.py`：整段录制的WAM24/展示前8帧滚动预览；每8帧以当时实测H4
   重新预测，逐拍重放同源TaskController得到goal。保留全部原始录制，H4启动和准入前缀外
   只显示教师，不补造预测。输出原速和2倍慢放；这不是机器人闭环执行，也不回填预测状态。
+  已生成 [21.7秒原速](../../../outputs/wam-rl-policy-v3/wam-mano-rolling-20261020-r2/rolling.mp4)
+  和 [43.4秒慢放](../../../outputs/wam-rl-policy-v3/wam-mano-rolling-20261020-r2/rolling-slow2x.mp4)，
+  两栏共用跟随镜头，字幕显示重预测anchor及使用的第1–8帧。
 - `tools/run/prepare_shadow_task_labels.py`：全量UniDex同轮实测任务回放，输出task10，提前启动Current310。
 - `tools/run/train_current_bc.py prepare-scheduled --task-goal`：task10与WAM共用TaskController决策的新575缓存；旧565 τ不复用。
 - `tools/run/train_shadow_task_bc_ddp.py`：三卡实际训练Current310/Scheduled575，新增goal权重参与优化；global2048按683/683/682分配并按样本数加权梯度。
