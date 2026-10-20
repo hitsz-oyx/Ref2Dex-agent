@@ -102,7 +102,7 @@ def quota_snapshot():
         result=library.quotactl(ctypes.c_int((0x800007<<8)|kind),ctypes.c_char_p(b'/dev/md0'),ctypes.c_int(identifier),ctypes.byref(value))
         error=ctypes.get_errno()
         results.append(dict(kind=name,id=identifier,result=result,errno=error,
-            interpretation='no active quota' if result and error==3 else 'unverified: permission denied' if result and error==1 else os.strerror(error) if result else 'queried',
+            interpretation='no quota record returned (ESRCH); limit not established' if result and error==3 else 'unverified: permission denied' if result and error==1 else os.strerror(error) if result else 'queried',
             values={k:getattr(value,k) for k,_ in value._fields_} if not result else None))
     return results
 

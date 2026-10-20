@@ -1,4 +1,14 @@
-# WAM v6 state — 2026-10-20
+# WAM v6 state — 2026-10-21
+
+## 2026-10-21 Local data subset prepared; no training
+
+Fresh source-header inventory covers39526 sequences. Target /home2 (/dev/md0)
+started228.10GiB free; current about222.35GiB. Prepared and independently verified
+1177 complete sequences (GRAB1132 plus45 across the other8 sources),5.69GiB,
+33672 TRAIN/3356 DEV bounded engineering windows. No deletion or training;
+training_allowed=false. Original frozen recipe/window indices/strata/stats remain
+unavailable, so strict step23758 resume is not ready. Details and artifacts:
+[local preparation record](research/2026-10-21-local-data-preparation.md).
 
 
 Post-reboot resume requested, currently blocked on SSH connectivity. Three
