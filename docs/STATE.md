@@ -1,3 +1,16 @@
+## 2026-10-20 WAM-v6已按用户要求改用三卡继续训练
+
+GPU0–2独立CUDA及三rank NCCL通过，GPU3仍reset故障但已排除。冻结d43b662d从17000显式
+world4→3迁移；local128→64/global512→192，保留568份optimizer、原LR/warmup、rank0–2 RNG、
+模型与24步归一化。8步恢复到17008通过DEV/保存/三rank签名，CPU核对564原状态计数17008、
+4事件状态1888和统计逐值不变。新长训threegpu-r2已核验17120，约2.034更新/s、九源均采样，
+新进程allocated约10.14GiB；总物理显存含旧残留约38–40GiB，selected利用率83–100%。
+到80k含DEV/存盘初估10–12h，保留原累计7日上限；batch减少，不是原512曝光量的等价续训。
+56项测试通过；具名failed-run分享入口核对旧退出worker身份、空闲/健康和至少20GiB容量，拒绝未知进程。
+未做系统reset，数据排除候选仍未应用。
+[当前状态](../src/task/ptv3-shared-wam-v6/docs/STATE.md)、
+[三卡协议及实测](../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261020-wam-v6-mixed-pretrain.md)。
+
 ## 2026-10-20 WAM-v6硬件故障停训，17000完整checkpoint可恢复
 
 约北京时间00:35中断，最后日志17300；09:36核对GPU3明确requires reset/Recovery Action Reset，

@@ -1,13 +1,35 @@
 # WAM v6 state — 2026-10-20
 
-Current status update: training is STOPPED by a GPU fault, not running.
-At about2026-10-20 00:35 Beijing, the run failed after last logged17300;
-GPU3 reports GPU requires reset / GPU Recovery Action Reset. Supervisor also
-failed parsing [N/A] utilization. Latest complete checkpoint is step017000.pt.
-progress.json still says RUNNING but is stale; process.json FAILED is decisive.
-No sudo/GPU reset/system operations performed; administrator recovery is needed
-before restoring the original four-GPU/world4 contract. Do not report an active
-completion ETA while hardware is blocked.
+Current status: RUNNING on three healthy remote GPUs0/1/2, as explicitly
+requested by the user who cannot resetGPU3. New run:
+pretrain-nine-v6-events-threegpu-20261020-r2, frozen d43b662d, supervisor3114372.
+Explicit world4→3 transition from original complete17000 preserved model,
+568 optimizer states, elapsed/warmup/selection, RNG ranks0–2 and unchanged
+24-step normalizers. Batch changed local128→64/global512→192; LR remains1e-4.
+Original80k/cumulative604800s ceiling remains. Lower per-update exposure means
+this is not equivalent to the old global512 training schedule.
+
+Single-GPU CUDA checks and3-rank NCCL all-reduce passed.8-update recovery
+17001→17008 passed DEV, full saves and3 equal parameter signatures. CPU checkpoint
+audit:564 old states at17008,4 event states at1888,3 RNG payloads, strict
+world3/global192 binding and exact horizon-normalizer buffers. Long run resumed
+that actual checkpoint; verified17120 at2.034updates/s (about0.49s/update),
+nine sources seen, no new failure. Recovery allocated peak9.95GiB; long first
+window peak10.14GiB. Physical memory about38–40GiB includes old25–27GiB retained
+contexts; it is not all new-process memory. Selected GPUs83–100% utilization.
+Remaining80k initially estimated10–12h including DEV/saves; step-only ETA8.6h
+omits periodic overhead. No event-efficacy/80k reliability claim.
+
+Original GPU3 still reports requires reset and is excluded from CUDA/NCCL and
+supervisor health decisions. Guarded sharing verifies only the failed run's
+recorded owned worker PIDs, UID/start time, orphan/empty exiting command lines,
+pending termination, zero utilization and>=20GiB free capacity before launch;
+unknown/live work is rejected. No reset/system operation performed.56 v5/v6
+tests passed in17.96s. Frozen original checkpoints and data remain untouched.
+
+Historical four-GPU failure: around00:35 Beijing after last logged17300,
+supervisor failed parsing[N/A] and model reported nonfinite valid observation.
+The stale old progress.json is not active training. Original17000 retained.
 
 At17000 DEV objective1.281051, handEPE32.784425mm, trajectory score16.892473mm;
 prior16129 values1.286467/33.167013/17.007955. Event-on minus unknown handEPE
@@ -33,7 +55,7 @@ Verified RUNNING at16520, global512, loss0.77588,1.114 updates/s, peak allocated
 estimated17–19h including scheduled DEV/saves; progress ETA itself omits some
 periodic overhead. Neither full completion nor event efficacy is established.
 
-Model/config/recipe remain unchanged:768/12heads/12layers,joint21/H4/K24/30Hz,
+Model architecture and data recipe remain unchanged:768/12heads/12layers,joint21/H4/K24/30Hz,
 surface778/object2048,voxel5mm, original TRAIN-only horizon normalization,
 AdamW LR1e-4, existing warmup history and optimizer/RNG/elapsed. Restore moved
 568 fused AdamW step tensors to parameter devices; strict local128/global512
@@ -79,7 +101,7 @@ not a matched-training causal gain. Combined v5/v6 suite48 tests passed;
 observed-frame clock/masks. No model/training code changed for this switch.
 
 Remote root:/mnt/ugreen_nas/storage/oyx_storage/ptv3-shared-wam-v6-20261019-r1/.
-Current run:outputs/ptv3-shared-wam-v6/pretrain-nine-v6-events-20261020-r1/.
+Historical four-GPU run:outputs/ptv3-shared-wam-v6/pretrain-nine-v6-events-20261020-r1/.
 Switch:outputs/switch-to-v6-20261020-r1/report.json.
 Motion scan:outputs/target-motion-audit-20261020-r1/summary.json.
 Forensics and candidate exclusions:outputs/target-motion-forensics-20261020-r1/.
@@ -87,3 +109,10 @@ Small report/plot copies:outputs/ptv3-shared-wam-v6/pretrain-nine-v6-events-2026
 
 [Current training and diagnosis](experiments/probes/P-20261020-wam-v6-mixed-pretrain.md)
 · [completed readiness check](experiments/probes/P-20261019-wam-v6-event-continuation.md).
+
+
+Current remote three-GPU artifacts:
+outputs/three-gpu-continuation-controller-20261020-r1/report.json (transition and checkpoint audit),
+outputs/ptv3-shared-wam-v6/three-gpu-recovery-20261020-r1/ (completed8updates),
+outputs/ptv3-shared-wam-v6/pretrain-nine-v6-events-threegpu-20261020-r2/ (active).
+Local small receipts:outputs/ptv3-shared-wam-v6/three-gpu-recovery-20261020-r1/.

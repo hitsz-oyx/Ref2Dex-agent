@@ -5,7 +5,7 @@ experiment_id: P-20261020-wam-v6-mixed-pretrain
 date: 2026-10-20
 task: ptv3-shared-wam-v6
 branch: main
-git_commit: d37e2320
+git_commit: d43b662d
 claim_id: C1
 hypothesis_family: HF-v6-event-pretraining
 probe_index_in_family: 1
@@ -13,11 +13,14 @@ seed_pool: probe
 seeds: [170,171]
 decision_changed_if_positive: retain event-conditioned checkpoints for downstream execution and a matched efficacy comparison
 decision_changed_if_negative: revisit event conditioning or upstream label quality before downstream use
-status: FAILED
-run_id: pretrain-nine-v6-events-20261020-r1
+status: RUNNING
+run_id: pretrain-nine-v6-events-threegpu-20261020-r2
 ---
 
-# Continue four-GPU WAM v6 event-conditioned pretraining
+# Continue WAM v6 event-conditioned pretraining
+
+Active r2 uses three healthy GPUs0–2, local64/global192, frozen d43b662d.
+The original four-GPU r1 failed; its protocol/results remain below for provenance.
 
 Classification: Decision Probe, requested by the user after the completed
 1016-update readiness check. Determine whether continued event-conditioned
@@ -29,7 +32,7 @@ data rebuild, or hyperparameter search is required to start.
 
 ## Protocol and identity
 
-Resume the completed readiness run's resume-recovery/step016136.pt, frozen
+Original four-GPU r1 resumed the completed readiness run's resume-recovery/step016136.pt, frozen
 training code d37e2320, original model weights/optimizer/RNG/elapsed. Preserve
 768/12heads/12layers,joint21/H4/K24/30Hz,surface778/object2048,PTv3 voxel5mm,
 TRAIN-only24-step normalization and original九源 sampling. Event encoder50304
@@ -144,7 +147,7 @@ outputs/target-motion-forensics-20261020-r1/{focal-sequence.json,candidate-exclu
 Small local copies/plot live in outputs/ptv3-shared-wam-v6/pretrain-nine-v6-events-20261020-r1/.
 Two diagnostic regression tests pass: future-only runaway caught with clean
 prefix preserved; rigid coordinate invariance; observed clock and masks.
-Decision: recover GPU3, then strict-resume step17000; retain sparse cleanup candidates.
+At the failure audit the proposed next step was GPU3 repair; the user subsequently authorized three-GPU recovery below.
 
 Bounded readiness evidence is in
 [P-20261019-wam-v6-event-continuation](P-20261019-wam-v6-event-continuation.md).
@@ -188,7 +191,7 @@ No automatic4→3GPU/world change or scratch restart was made.
 
 Remote CPU/hardware receipts: outputs/gpu-fault-audit-20261020-r1/.
 Recovery parent: outputs/ptv3-shared-wam-v6/pretrain-nine-v6-events-20261020-r1/step017000.pt.
-Next action depends on external GPU repair; training remains stopped.
+At that audit the original world4 run remained stopped; subsequent user-authorized world3 recovery is below.
 
 
 ## Authorized three-GPU recovery protocol
@@ -221,3 +224,33 @@ long run. Per-phase fresh outputs, original checkpoints untouched. Observe
 new-process allocated memory separately from old retained-context memory;
 only selectedGPU0–2 health controls the new supervisor. Fixed GPU3 status must
 not abort otherwise healthy selected devices.
+
+
+Three-GPU recovery8 passed:17001→17008, three identical parameter signatures,
+full DEV and complete checkpoints. Peak allocated9.9484GiB; GPU forward+loss
+136.619ms/backward311.065ms/optimizer29.056ms (sum476.74ms). Full loop includes
+startup/dual DEV/save and must not be equated with steady update time. Final
+checkpoint CPU audit verified original564 optimizer states at17008, event4 at1888,
+3 RNG payloads, exact old horizon-normalization buffers and retained topology
+provenance. Combined56 v5/v6 tests passed in17.96s; scoped code/config checks pass.
+
+Remote controller outputs/three-gpu-continuation-controller-20261020-r1/ includes
+transition/, recovery-launch.log, long-launch.log, progress.json/report.json.
+Short recovery outputs/ptv3-shared-wam-v6/three-gpu-recovery-20261020-r1/.
+Long run outputs/ptv3-shared-wam-v6/pretrain-nine-v6-events-threegpu-20261020-r2/.
+All under the existing remote v6 root. Local small receipts:
+outputs/ptv3-shared-wam-v6/three-gpu-recovery-20261020-r1/.
+
+
+Three-GPU long continuation confirmed RUNNING at17120, about2.034updates/s,
+all9 source IDs present; global192/world3/LR1e-4. Supervisor3114372. First-window
+allocated peak10.14GiB, physical about38–40GiB/card including retained old
+contexts; selected utilization83–100%. Initial remaining80k ETA10–12h including
+scheduled DEV and saves (step-only estimate8.6h). Original frozen data and sparse
+exclusion candidates remain unchanged. Actual checkpoint/provenance audit is
+retained in controller report; recovery transitioned forward through17008 and
+its updates are consumed by the long run. GPU3 is still faulted but excluded.
+This is a changed batch/world training regime and not equal sample exposure
+or a bitwise continuation of world4. Keep fixed DEV reporting and original
+80000/cumulative604800s bounds.
+Decision: continue active three-GPU r2 under the guarded capacity contract.
