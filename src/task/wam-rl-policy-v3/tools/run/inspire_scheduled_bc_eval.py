@@ -99,6 +99,9 @@ def main():
         if not hello["audit"].get("extended_state"): raise ValueError("scheduled BC requires --extended-state")
         state["native_peer_pid"] = peer_pid(connection)
         native = unpack_state(hello["state"]); sequences = list(native["sequences"])
+        np.savez_compressed(a.output / 'initial-state.npz', **{
+            key: np.asarray(native[key]) for key in ('q','dq','physical','objects','hand','tick','table_pose')
+        })
         if len(set(sequences)) != len(sequences) or any(sequence not in by_sequence for sequence in sequences):
             raise ValueError("native sequence is outside audited TRAIN corpus")
         objects = [dict(object_code="dexplore/" + sequence.split("_")[1], scale=1) for sequence in sequences]

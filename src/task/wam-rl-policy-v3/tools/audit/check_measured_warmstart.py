@@ -81,12 +81,30 @@ def main():
     assert tau_gradient > 0 and valid_gradient > 0
     torch.nn.utils.clip_grad_norm_(scheduled.parameters(),1.); optimizer.step()
     assert torch.count_nonzero(scheduled.actor.net[0].weight[:,421:]) > 0
+    # Check CUDA arithmetic after tau weights become nonzero, not just the parent invariant.
+    import copy
+    grouped = copy.deepcopy(scheduled)
+    scheduled.zero_grad(set_to_none=True); grouped.zero_grad(set_to_none=True)
+    unique_points = torch.as_tensor(np.stack([p['points'][0] for p in pieces]), device='cuda')
+    shape_ids = torch.as_tensor(np.concatenate([np.full(len(p['action']), i, np.int64)
+                                               for i,p in enumerate(pieces)]), device='cuda')
+    expanded_prediction = scheduled(values['measured'],values['task'],values['points'],tau=values['tau'],tau_valid=mask)
+    shared_prediction = grouped(values['measured'],values['task'],unique_points,tau=values['tau'],tau_valid=mask,shape_index=shape_ids)
+    shared_error = float((expanded_prediction-shared_prediction).abs().max())
+    assert shared_error < 3e-6
+    ((expanded_prediction-values['action'])/scheduled.actor.y_scale).abs().mean().backward()
+    ((shared_prediction-values['action'])/grouped.actor.y_scale).abs().mean().backward()
+    gradient_error = 0.
+    for old,new in zip(scheduled.parameters(),grouped.parameters()):
+        torch.testing.assert_close(old.grad,new.grad,rtol=2e-4,atol=1e-5)
+        gradient_error = max(gradient_error, float((old.grad-new.grad).abs().max()))
     result = dict(status='COMPLETED',schema='ref2dex.measured-warmstart-audit.v1',
         git_commit=os.environ.get('REF2DEX_CODE_COMMIT') or subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         python=sys.executable,torch=torch.__version__,gpu=args.gpu,parent=str(args.parent.resolve()),parent_step=packet['step'],
         source_manifest=str(args.manifest.resolve()),tau_cache=str(args.tau_cache.resolve()),sequences=sequences,
         objects=len(objects),rows=len(mask),initial_output_max_error=equality_error,initial_added_nonzero_weights=new_nonzero,
         first_tau_gradient_max=tau_gradient,first_valid_gradient_max=valid_gradient,shape_report=shape,
+        shared_shape_output_max_error=shared_error,shared_shape_gradient_max_error=gradient_error,
         optimizer_steps=1,checkpoint_saved=False,task_success_claim=False)
     out.mkdir(parents=True);(out/'report.json').write_text(json.dumps(result,indent=2)+'\n')
     print(json.dumps(result),flush=True)

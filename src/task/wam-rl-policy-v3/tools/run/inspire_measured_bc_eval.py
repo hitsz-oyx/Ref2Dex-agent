@@ -133,6 +133,9 @@ def main():
             raise ValueError("measured BC requires native --extended-state")
         state["native_peer_pid"] = peer_pid(connection)
         native = unpack_state(hello["state"])
+        np.savez_compressed(args.output / 'initial-state.npz', **{
+            key: np.asarray(native[key]) for key in ('q','dq','physical','objects','hand','tick','table_pose')
+        })
         sequences = list(hello["state"]["sequences"])
         if len(set(sequences)) != len(sequences) or any(sequence not in by_sequence for sequence in sequences):
             raise ValueError("native sequence is outside the audited TRAIN corpus")
