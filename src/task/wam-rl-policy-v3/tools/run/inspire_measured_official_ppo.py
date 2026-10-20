@@ -99,7 +99,7 @@ def main():
    state.update(iteration=completed+locs['it']+1,elapsed_s=time.monotonic()-started,collection_s=locs['collection_time'],learning_s=locs['learn_time'],value_loss=float(locs['mean_value_loss']),surrogate_loss=float(locs['mean_surrogate_loss']),lr=ppo.step_size,completed_episodes=int(counts[0]),successes=int(counts[1]),workspace_failures=int(counts[2]),resets=int(counts[3]),reset_audits=env.reset_audits,source_mismatches=env.source_mismatches,
     tau_weight_norm=float(actor.net[0].weight[:,421:685].detach().norm()),task_weight_norm=float(actor.net[0].weight[:,411:421].detach().norm()),max_goal_error_m=env.max_goal_error,timings=env.timings,inference_audit=env.inference_audit,peak_cuda_mib=torch.cuda.max_memory_allocated()/2**20,
     eta_s=(locs['collection_time']+locs['learn_time'])*(a.updates-locs['it']-1))
-   if state['iteration']==1 or state['iteration']%20==0:
+   if state['iteration']==completed+1 or state['iteration']%20==0:
     state['parameter_sync_error']=parameter_sync_error(ppo.actor_critic)
     if state['parameter_sync_error']!=0:raise ValueError('rank parameter mismatch')
    write(a.output/'progress.json',state)
