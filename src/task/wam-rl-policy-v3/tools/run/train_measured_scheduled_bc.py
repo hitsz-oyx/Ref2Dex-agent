@@ -99,7 +99,14 @@ def main():
     @torch.no_grad()
     def evaluate():
         model.eval(); pred=model(dv['measured'],dv['task'],dv['points'][dv['object_id']],tau=dv['tau'],tau_valid=dv['valid']); e=(pred-dv['action']).abs(); model.train(); return dict(command_mae=float(e.mean()),root_mae=float(e[:,:6].mean()),finger_mae=float(e[:,6:].mean()),shape_train=model.shape_report(tr['points']),shape_dev=model.shape_report(dv['points']))
-    write(out/'initial-dev.json',evaluate())
+    initial = evaluate()
+    write(out/'initial-dev.json', initial)
+    # The exact Current421 expansion is a valid baseline, even if tau never helps.
+    best = initial['command_mae']
+    initial_packet = dict(schema=manifest['schema'],step=0,model=model.state_dict(),optimizer=optimizer.state_dict(),
+        config=manifest,torch_rng=torch.get_rng_state(),cuda_rng=torch.cuda.get_rng_state(),numpy_rng=rng.bit_generator.state)
+    for name in ('best.pt', 'latest.pt'):
+        torch.save(initial_packet,out/(name+'.part'));(out/(name+'.part')).replace(out/name)
     for step in range(1,a.steps+1):
         if time.monotonic()-started>a.seconds or (out/'STOP').exists(): raise TimeoutError('owned scheduled stop')
         ids=torch.as_tensor(rng.integers(0,len(tr['action']),size=a.batch),device=device,dtype=torch.long)

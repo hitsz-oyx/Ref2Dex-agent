@@ -31,6 +31,9 @@ def main():
     from wam_rl_policy_v3.teacher_dataset import TeacherRolloutCorpus
 
     torch.set_num_threads(2); torch.manual_seed(246)
+    receipt = json.loads((args.tau_cache/'manifest.json').read_text())
+    if receipt.get('status') != 'COMPLETED':
+        raise ValueError('completed immutable cache required for warmstart audit')
     layout = json.loads((args.tau_cache/'layout.json').read_text())
     if layout.get('schema') != TAU_LAYOUT_SCHEMA or layout.get('goal_contract') != GOAL_CONTRACT:
         raise ValueError('corrected shared-goal tau cache required')

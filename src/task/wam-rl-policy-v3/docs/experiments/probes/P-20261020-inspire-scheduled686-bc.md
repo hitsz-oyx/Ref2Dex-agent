@@ -19,3 +19,15 @@ command MAE was 0.036683 at step 1,000 (root 0.016646, finger 0.056720);
 the final step was 0.052845.  The best checkpoint is retained for later
 closed-loop comparison.  These are offline action errors and do not establish
 that tau improves physical task success.
+
+
+## Corrected training boundary in v3
+
+The historical r1 initialization retained random tau/valid columns. Its small
+DEV differences cannot be used as a clean WAM ablation. The repaired trainer
+uses `initialize_current`, zeros all 265 new columns, and admits only shared
+TaskController-goal layout v2. Step0 is saved as both best/latest before updates,
+so the exact parent remains selectable if condition training degrades DEV.
+Shape feature distribution diagnostics are logged at evaluation. Capacity,
+optimizer and the 50k maximum remain the Shadow recipe; no new long BC run is
+started as part of the engineering repair.
