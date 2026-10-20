@@ -7,7 +7,7 @@ from .task_spec import TaskSpec
 from .task_annotations import GOAL_SOURCE
 from .task_runtime import TaskController
 from .robot_adapter import InspireAdapter
-from .teacher_quality import QUALITY_SCHEMA
+from .teacher_quality import QUALITY_SCHEMA,TABLE_SUPPORT_CONTRACT
 
 
 class TeacherRolloutCorpus:
@@ -15,8 +15,9 @@ class TeacherRolloutCorpus:
         self.manifest_path=Path(audit_manifest);self.root=self.manifest_path.parent
         self.manifest=json.loads(self.manifest_path.read_text())
         if (self.manifest.get('schema')!=QUALITY_SCHEMA or self.manifest.get('status')!='COMPLETED'
-                or not self.manifest.get('training_allowed') or self.manifest.get('goal_source')!=GOAL_SOURCE):
-            raise ValueError('complete measured teacher-rollout admission required')
+                or not self.manifest.get('training_allowed') or self.manifest.get('goal_source')!=GOAL_SOURCE
+                or self.manifest.get('table_support_contract')!=TABLE_SUPPORT_CONTRACT):
+            raise ValueError('complete measured teacher-rollout admission with corrected table support required')
         if split not in ('train','dev'):raise ValueError('TRAIN/DEV split required')
         self.records=[r for r in self.manifest['records'] if ('dev' if r['split']=='val' else r['split'])==split
             and r['engineering']=='PASS' and r['training_prefix_commands']>0]

@@ -26,3 +26,15 @@ def test_support_requires_table_geometry_and_current_net_force():
     support,gap,inside=table_support(pose,points,table,bounds,np.array([[0,0,1]]*3))
     assert support.tolist()==[True,False,False] and inside.all()
     assert gap[2]<-.02
+
+
+def test_support_handles_native_table_with_thin_y_axis_and_downward_local_normal():
+    pose=np.repeat(np.eye(4)[None],3,0);pose[:,2,3]=[.825,.9,.825];pose[2,0,3]=.5
+    points=np.array([[-.01,-.01,-.02],[.01,.01,-.02],[0,0,.02]])
+    # DExplore's tabletop mesh lies in local XZ; its local -Y faces world +Z.
+    table=np.array([0,0,.8,0,np.sqrt(.5),-np.sqrt(.5),0])
+    bounds=np.array([[-.225,-.00274,-.27],[.225,.00274,.27]])
+    support,gap,inside=table_support(pose,points,table,bounds,np.array([[0,0,1]]*3))
+    assert support.tolist()==[True,False,False]
+    assert inside.tolist()==[True,True,False]
+    np.testing.assert_allclose(gap[:2],[.00226,.07726],atol=1e-8)

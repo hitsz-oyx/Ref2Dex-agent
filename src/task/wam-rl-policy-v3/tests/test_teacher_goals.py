@@ -3,7 +3,7 @@ import json
 import numpy as np
 
 from wam_rl_policy_v3.teacher_dataset import TeacherRolloutCorpus
-from wam_rl_policy_v3.teacher_quality import QUALITY_SCHEMA
+from wam_rl_policy_v3.teacher_quality import QUALITY_SCHEMA,TABLE_SUPPORT_CONTRACT
 from wam_rl_policy_v3.task_annotations import GOAL_SOURCE
 from wam_rl_policy_v3.task_spec import TaskSpec
 from wam_rl_policy_v3.task_runtime import TaskController
@@ -33,9 +33,18 @@ def build_teacher_fixture(tmp_path):
     (source.parents[1]/'manifest.json').write_text(json.dumps(dict(observation_contract=dict(contact_body_ids=list(range(5))))))
     manifest = tmp_path/'audit/manifest.json'
     manifest.write_text(json.dumps(dict(schema=QUALITY_SCHEMA, status='COMPLETED', training_allowed=True,
-        goal_source=GOAL_SOURCE, records=[dict(sequence=name, source=str(source), sidecar='sequences/'+name,
+        goal_source=GOAL_SOURCE, table_support_contract=TABLE_SUPPORT_CONTRACT, records=[dict(sequence=name, source=str(source), sidecar='sequences/'+name,
         training_prefix_commands=n, split='train', engineering='PASS')])))
     return manifest, packet, poses, points, hands, valid, n
+
+
+def test_corpus_rejects_previous_support_contract_before_loading_rows(tmp_path):
+    import pytest
+    manifest,*_=build_teacher_fixture(tmp_path)
+    packet=json.loads(manifest.read_text());packet['schema']='ref2dex.teacher-measured-rollout-admission.v1'
+    packet.pop('table_support_contract');manifest.write_text(json.dumps(packet))
+    with pytest.raises(ValueError,match='corrected table support'):
+        TeacherRolloutCorpus(manifest,'train')
 
 
 def test_cache_goal_replay_uses_the_identical_task_decisions_as_actor_inputs(tmp_path):

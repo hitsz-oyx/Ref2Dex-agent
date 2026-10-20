@@ -7,12 +7,13 @@ import json
 import os
 from pathlib import Path
 import sys
+import subprocess
 import time
 import numpy as np
 
-TASK=Path(__file__).resolve().parents[2];ROOT=TASK.parents[2]
+TASK=Path(__file__).resolve().parents[2];ROOT=Path(os.environ.get('REF2DEX_RUN_ROOT',TASK.parents[2])).resolve()
 sys.path.insert(0,str(TASK/'src'))
-from wam_rl_policy_v3.teacher_quality import QUALITY_SCHEMA,failure_masks,measured_failures,table_support
+from wam_rl_policy_v3.teacher_quality import QUALITY_SCHEMA,TABLE_SUPPORT_CONTRACT,failure_masks,measured_failures,table_support
 from wam_rl_policy_v3.task_annotations import task_from_teacher_archive,GOAL_SOURCE
 from wam_rl_policy_v3.task_feedback import FeedbackObserver
 from wam_rl_policy_v3.robot_adapter import InspireAdapter
@@ -49,7 +50,8 @@ def main():
             if time.monotonic()-started>=a.wait_seconds:raise TimeoutError('prior audit did not finish')
             time.sleep(15)
         prior=json.loads(a.reuse_audit.read_text())
-        if prior.get('schema')!=QUALITY_SCHEMA or prior.get('goal_source')!=GOAL_SOURCE:raise ValueError('different prior admission contract')
+        if (prior.get('schema')!=QUALITY_SCHEMA or prior.get('goal_source')!=GOAL_SOURCE
+                or prior.get('table_support_contract')!=TABLE_SUPPORT_CONTRACT):raise ValueError('different prior admission/support contract; re-audit required')
         root=a.reuse_audit.resolve().parent
         for row in prior['records']:
             if row['engineering']!='PASS':continue
@@ -140,7 +142,10 @@ def main():
         time.sleep(15)
     complete=manifest['status']=='COMPLETED' and len(rows)==660 and not timed_out
     report=dict(schema=QUALITY_SCHEMA,status='COMPLETED' if complete else 'INCOMPLETE',training_allowed=bool(complete and any(r['training_prefix_commands'] for r in rows.values())),
+        task='wam-rl-policy-v3',run_id=a.output.name,experiment_id='P-20261019-inspire-task-contract',
+        git_commit=os.environ.get('REF2DEX_CODE_COMMIT') or subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         corpus=str(a.corpus),python=sys.executable,elapsed_s=time.monotonic()-started,sequences=len(rows),goal_source=GOAL_SOURCE,
+        table_support_contract=TABLE_SUPPORT_CONTRACT,
         quality_uses_training_reference=False,shape_features='CAD512 captured; learned shape64 is produced by the later BC encoder',
         policy=dict(preceding_failure_frames=50,history=4,horizon=24,max_crossing_translation_m=.08,max_crossing_rotation_rad=.7,
             support_tolerance_m=.02,penetration_tolerance_m=.02,no_motion_coupling='exclude manipulation example',training='safe prefix only'),

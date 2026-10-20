@@ -17,6 +17,36 @@ status: COMPLETED
 run_id: inspire-task7-fit-20261019-r1
 ---
 
+## 2026-10-20 table support geometry repair
+
+Blocker: the native tabletop mesh is thin along local Y, and local -Y faces
+world +Z. The previous proxy assumed local +Z and local XY footprint.
+Every old retained sequence had support=False throughout. The real-orientation
+regression fails before repair and passes after selecting the thin-axis face
+pointing against gravity, its tangent footprint, and its force normal. The
+online BC support proxy uses the same repaired function.
+
+Decision: re-audit the same immutable660 raw executions, preserving all other
+failure thresholds,50-frame safety prebuffer, human review filters and split.
+If prefixes/tasks change, old BC/tau results remain historical and cannot be
+silently mixed with corrected data. Do not weaken filters. Cheapest test is
+CPU geometry/observer replay; no neural computation is needed.
+
+- run_id: inspire-teacher-rollout-audit-20261020-r3; task wam-rl-policy-v3,
+  branch main, frozen git_commit in launch/manifest.
+- source: outputs/wam-rl-policy-v2/inspire-teacher-rollout-20261019-r5/.
+- output: outputs/wam-rl-policy-v3/inspire-teacher-rollout-audit-20261020-r3/.
+- runtime: graspenv Python3.8/Torch2.4.1, CPU replay, bounded1800s,
+  no GPU job/checkpoint, old audit/raw/cache read-only.
+- admission schema v2 + explicit table-support contract; current corpus loader
+  and auditor reject v1 inputs and sidecar reuse.
+- full v3 suite135 tests passed. The old fixed two-motion panel had52/49 command
+  prefixes but teacher first coupling84/55, so cannot alone screen transport.
+  Old retained data include coupling in365/501 TRAIN and44/62 DEV prefixes,
+  with23043/2541 coupled command rows. Not all old BC data lack grasping.
+
+## Original contract and historical probes
+
 用户ref1审计修订。Blocker：相同实测状态/终点而局部路径不同，在H4启动或τ被移除时，
 旧577输入逐位相同；实际BatchedInspireInputs回归在旧代码失败。另复现静止接近物体而
 无路径进度可每拍获得0.775奖励。优先补任务信息，保留全量数据和Shadow网络/PPO配方。

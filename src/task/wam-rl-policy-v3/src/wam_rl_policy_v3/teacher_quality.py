@@ -1,7 +1,8 @@
 """Measured rollout admission; no comparison to DExplore training references."""
 import numpy as np
 
-QUALITY_SCHEMA='ref2dex.teacher-measured-rollout-admission.v1'
+QUALITY_SCHEMA='ref2dex.teacher-measured-rollout-admission.v2'
+TABLE_SUPPORT_CONTRACT='ref2dex.table-support.thin-axis-world-up.v1'
 
 
 def failure_masks(bad_frames,*,preceding_frames=50,history=4,horizon=24):
@@ -30,15 +31,25 @@ def measured_failures(poses,coupled,lost,supported,support_gap,footprint):
 def table_support(poses,points,table_pose,table_bounds,object_force):
     from scipy.spatial.transform import Rotation
     p=np.asarray(poses);points=np.asarray(points);table=np.asarray(table_pose)
+    bounds=np.asarray(table_bounds)
     rotation=Rotation.from_quat(table[3:7]).as_matrix();gaps=[];footprints=[]
+    # Tabletop meshes may lie in local XY or XZ. The thin dimension is the
+    # normal; select its face pointing against gravity, including negative axes.
+    normal_axis=int(np.argmin(bounds[1]-bounds[0]))
+    sign=1. if rotation[2,normal_axis]>=0 else -1.
+    normal=sign*rotation[:,normal_axis]
+    if normal[2]<.5:raise ValueError('tabletop thin-axis normal must face world up')
+    tangent_axes=[axis for axis in range(3) if axis!=normal_axis]
+    top=bounds[1,normal_axis] if sign>0 else -bounds[0,normal_axis]
     for lo in range(0,len(p),128):
         batch=p[lo:lo+128]
         world=points[None]@batch[:,:3,:3].transpose(0,2,1)+batch[:,None,:3,3]
         local=(world-table[:3])@rotation;center=local.mean(1)
-        gaps.extend(local[:,:,2].min(1)-table_bounds[1,2])
-        footprints.extend(((center[:,:2]>=table_bounds[0,:2])&(center[:,:2]<=table_bounds[1,:2])).all(1))
+        gaps.extend((sign*local[:,:,normal_axis]).min(1)-top)
+        footprints.extend(((center[:,tangent_axes]>=bounds[0,tangent_axes])
+                          &(center[:,tangent_axes]<=bounds[1,tangent_axes])).all(1))
     gaps=np.asarray(gaps);footprints=np.asarray(footprints)
     # This is a conservative geometry/net-force proxy, not pairwise contact.
-    normal_force=np.asarray(object_force)@rotation[:,2]
+    normal_force=np.asarray(object_force)@normal
     supported=footprints&(np.abs(gaps)<=.02)&(normal_force>1e-4)
     return supported,gaps,footprints
