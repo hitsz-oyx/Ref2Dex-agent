@@ -53,22 +53,23 @@ def main():
   from wam_rl_policy_v3.bc_mlp import NormalizedCommandMLP
   actor=NormalizedCommandMLP(686,312,12).cuda();actor.load_state_dict(model.actor.state_dict(),strict=True);ppo.actor_critic.actor=actor
   ppo.optimizer=torch.optim.Adam(ppo.actor_critic.parameters(),lr=cfg['learn']['optim_stepsize'])
+  identity=dict(source=str(a.audit_manifest.resolve()),bc=str(a.bc.resolve()),wam=packet['config']['wam'],geometry=str(a.geometry_cache.resolve()),world_size=a.world_size,envs=env.num_envs,physics_backend=hello['audit'].get('physics_backend','gpu'),wam_batch=a.wam_batch,shared_tf32=a.shared_tf32)
   completed=0
   if a.resume:
    saved=torch.load(a.resume,map_location='cuda',weights_only=False)
-   if saved['schema']!='ref2dex.inspire-measured-official-ppo.v1' or saved['identity']!=dict(source=str(a.audit_manifest.resolve()),bc=str(a.bc.resolve()),wam=packet['config']['wam'],geometry=str(a.geometry_cache.resolve()),world_size=a.world_size,envs=env.num_envs):raise ValueError('PPO resume identity changed')
+   if saved['schema']!='ref2dex.inspire-measured-official-ppo.v1' or saved['identity']!=identity:raise ValueError('PPO resume identity changed')
    ppo.actor_critic.load_state_dict(saved['model']);ppo.optimizer.load_state_dict(saved['optimizer']);ppo.step_size=saved['step_size'];completed=saved['iteration']
   if a.world_size>1:
    for value in ppo.actor_critic.state_dict().values():dist.broadcast(value,src=0)
   torch.manual_seed(a.seed+a.rank)
-  state.update(status='RUNNING',envs_per_rank=env.num_envs,total_envs=env.num_envs*a.world_size,global_rollout=env.num_envs*a.world_size*8,config=cfg,wam=packet['config']['wam'],geometry=str(a.geometry_cache.resolve()),cad_frozen=True,wam_batch=a.wam_batch,shared_tf32=a.shared_tf32,native_object_names=hello['audit']['source_object_names'])
+  state.update(status='RUNNING',physics_backend=identity['physics_backend'],envs_per_rank=env.num_envs,total_envs=env.num_envs*a.world_size,global_rollout=env.num_envs*a.world_size*8,config=cfg,wam=packet['config']['wam'],geometry=str(a.geometry_cache.resolve()),cad_frozen=True,wam_batch=a.wam_batch,shared_tf32=a.shared_tf32,native_object_names=hello['audit']['source_object_names'])
   write(a.output/'manifest.json',state)
   def save(_=None):
    if a.rank:return
    iteration=state['iteration'];dest=a.output/('official-iteration-%d.pt'%iteration)
    if dest.exists():return
    part=dest.with_suffix('.pt.part');torch.save(dict(schema='ref2dex.inspire-measured-official-ppo.v1',model=ppo.actor_critic.state_dict(),optimizer=ppo.optimizer.state_dict(),step_size=ppo.step_size,iteration=iteration,config=cfg,
-    identity=dict(source=str(a.audit_manifest.resolve()),bc=str(a.bc.resolve()),wam=packet['config']['wam'],geometry=str(a.geometry_cache.resolve()),world_size=a.world_size,envs=env.num_envs),shape=model.shape.state_dict(),bc_step=packet['step'],resume='model/optimizer with fresh episodes'),part);part.replace(dest)
+    identity=identity,shape=model.shape.state_dict(),bc_step=packet['step'],resume='model/optimizer with fresh episodes'),part);part.replace(dest)
    prune_checkpoints(a.output,final_iteration=completed+a.updates)
   original_update=ppo.update;original_step=ppo.optimizer.step
   def step(*args,**kwargs):
