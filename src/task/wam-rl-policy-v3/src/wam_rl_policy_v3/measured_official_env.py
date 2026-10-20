@@ -25,7 +25,7 @@ def check_indexed_reset(before,after,ids):
 
 
 class MeasuredOfficialEnv:
-    def __init__(self,connection,hello,manifest,runtime,model,*,reset_probe=False,batch=128):
+    def __init__(self,connection,hello,manifest,runtime,model,*,reset_probe=False,batch=256,shared_tf32=False):
         from gym import spaces
         self.connection=connection;self.native=unpack_state(hello['state']);self.runtime=runtime;self.model=model
         self.device=runtime.device;self.num_envs=len(self.native['q']);self.num_environments=self.num_envs
@@ -33,7 +33,7 @@ class MeasuredOfficialEnv:
         self.observation_space=spaces.Box(-np.inf,np.inf,shape=(686,),dtype=np.float32)
         self.state_space=spaces.Box(-np.inf,np.inf,shape=(0,),dtype=np.float32);self.action_space=spaces.Box(-1,1,shape=(12,),dtype=np.float32)
         self.task=SimpleNamespace(cfg={'seed':246},max_episode_length=1800,random_time=False)
-        self.batch=batch;self.reset_probe=reset_probe;self.steps=0;self.reset_count=0;self.completed_episodes=0;self.successes=0;self.workspace_failures=0
+        self.batch=batch;self.shared_tf32=shared_tf32;self.inference_audit=None;self.reset_probe=reset_probe;self.steps=0;self.reset_count=0;self.completed_episodes=0;self.successes=0;self.workspace_failures=0
         self.reset_audits=[];self.source_mismatches=0;self.max_goal_error=0.;self.tau_valid_count=0;self.timings={}
         audit_path=Path(manifest);audit=json.loads(audit_path.read_text());self.records={};self.shape_features={}
         if audit.get('schema')!='ref2dex.teacher-measured-rollout-admission.v2' or audit.get('status')!='COMPLETED':raise ValueError('corrected completed corpus required')
@@ -66,6 +66,12 @@ class MeasuredOfficialEnv:
     def _refresh(self,indices,*,reset=False):
         started=time.perf_counter();ids=list(indices);native=self.native
         if not ids:return
+        # Convert the extended JSON fields once per snapshot, rather than
+        # converting the full environment array inside every environment loop.
+        for key,dtype in [('dof_force',np.float32),('contact_forces',np.float32),
+                          ('dof_force_valid',np.bool_),('contact_force_valid',np.bool_),
+                          ('object_contact_force',np.float64),('table_pose',np.float64)]:
+            native[key]=np.asarray(native[key],dtype=dtype)
         objects=np.asarray(native['objects'],np.float32);hand=InspireAdapter.canonical_hand(np.asarray(native['hand'],np.float64))
         poses=np.repeat(np.eye(4)[None],self.num_envs,0);poses[:,:3,:3]=Rotation.from_quat(objects[:,3:7]).as_matrix();poses[:,:3,3]=objects[:,:3]
         measured=[];tasks=[];shape=[];samples=[];sample_ids=[];rotations=[]
@@ -105,7 +111,13 @@ class MeasuredOfficialEnv:
         with torch.inference_mode(),torch.autocast('cuda',enabled=False):
             for lo in range(0,len(samples),self.batch):
                 part=samples[lo:lo+self.batch];batch={k:v.to(self.device) for k,v in collate_v4(part).items()}
-                trajectory=self.runtime.predict_hand(batch)['trajectory'].float().cpu().numpy()
+                prediction=self.runtime.predict_hand(batch,shared_tf32=self.shared_tf32)['trajectory']
+                if self.shared_tf32 and self.inference_audit is None:
+                    reference=self.runtime.predict_hand(batch,shared_tf32=False)['trajectory']
+                    difference=float((prediction-reference).abs().max())
+                    self.inference_audit=dict(batch=len(part),full_trajectory_max_error_m=difference,limit_m=.001)
+                    if difference>.001:raise ValueError('optimized WAM differs by more than1mm')
+                trajectory=prediction.float().cpu().numpy()
                 predicted=tau_world(trajectory,np.asarray(rotations[lo:lo+self.batch]))
                 chosen=sample_ids[lo:lo+self.batch];tau[chosen]=predicted;valid[chosen]=True
             raw=torch.as_tensor(np.asarray(measured,np.float32),device=self.device)

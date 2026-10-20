@@ -12,7 +12,7 @@ def main():
  p=argparse.ArgumentParser(description=__doc__)
  for arg in ['bc','audit-manifest','geometry-cache','output','socket']:p.add_argument('--'+arg,type=Path,required=True)
  p.add_argument('--gpu',type=int,required=True);p.add_argument('--rank',type=int,default=0);p.add_argument('--world-size',type=int,default=1);p.add_argument('--rendezvous')
- p.add_argument('--updates',type=int,default=10000);p.add_argument('--seconds',type=int,default=172800);p.add_argument('--seed',type=int,default=246);p.add_argument('--reset-probe',action='store_true');p.add_argument('--resume',type=Path)
+ p.add_argument('--wam-batch',type=int,default=256);p.add_argument('--shared-tf32',action='store_true');p.add_argument('--updates',type=int,default=10000);p.add_argument('--seconds',type=int,default=172800);p.add_argument('--seed',type=int,default=246);p.add_argument('--reset-probe',action='store_true');p.add_argument('--resume',type=Path)
  a=p.parse_args();a.output=a.output.resolve();a.socket=a.socket.resolve()
  if a.output.exists() or ROOT/'outputs/wam-rl-policy-v3' not in a.output.parents or ROOT/'tmp' not in a.socket.parents or not 1<=a.updates<=10000 or not 30<=a.seconds<=172800:raise ValueError('fresh bounded PPO paths/budget required')
  a.output.mkdir(parents=True);a.socket.parent.mkdir(parents=True,exist_ok=True)
@@ -43,7 +43,7 @@ def main():
   if not hello['audit'].get('extended_state') or hello['audit'].get('state_transport')!='packed':raise ValueError('native measured packed state required')
   native=unpack_state(hello['state']);objects=[dict(object_code='dexplore/'+s.split('_')[1],scale=1.) for s in native['sequences']]
   runtime=V4Runtime(packet['config']['wam'],objects,a.geometry_cache.resolve(),dense_manifest=a.geometry_cache/'surface-manifest.json',allow_geometry_replacement=True,device='cuda:0')
-  env=MeasuredOfficialEnv(connection,hello,a.audit_manifest.resolve(),runtime,model,reset_probe=a.reset_probe,batch=128)
+  env=MeasuredOfficialEnv(connection,hello,a.audit_manifest.resolve(),runtime,model,reset_probe=a.reset_probe,batch=a.wam_batch,shared_tf32=a.shared_tf32)
   official=prepare_official(ROOT,a.output,masked_resets=False,correct_distribution_kl=True);sys.path.insert(0,str(official))
   spec=importlib.util.spec_from_file_location('measured_official_process',official/'utils/process_sarl.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
   cfg=yaml.safe_load((official/'cfg/ppo/config.yaml').read_text());cfg['seed']=a.seed;cfg['policy'].update(backbone_type='pn',freeze_backbone=False,obs_dim=686)
@@ -61,7 +61,7 @@ def main():
   if a.world_size>1:
    for value in ppo.actor_critic.state_dict().values():dist.broadcast(value,src=0)
   torch.manual_seed(a.seed+a.rank)
-  state.update(status='RUNNING',envs_per_rank=env.num_envs,total_envs=env.num_envs*a.world_size,global_rollout=env.num_envs*a.world_size*8,config=cfg,wam=packet['config']['wam'],geometry=str(a.geometry_cache.resolve()),cad_frozen=True)
+  state.update(status='RUNNING',envs_per_rank=env.num_envs,total_envs=env.num_envs*a.world_size,global_rollout=env.num_envs*a.world_size*8,config=cfg,wam=packet['config']['wam'],geometry=str(a.geometry_cache.resolve()),cad_frozen=True,wam_batch=a.wam_batch,shared_tf32=a.shared_tf32,native_object_names=hello['audit']['source_object_names'])
   write(a.output/'manifest.json',state)
   def save(_=None):
    if a.rank:return
@@ -90,7 +90,7 @@ def main():
   def log(locs):
    counts=reduce(torch.tensor([env.completed_episodes,env.successes,env.workspace_failures,env.reset_count],device='cuda',dtype=torch.float64),'sum')
    state.update(iteration=completed+locs['it']+1,elapsed_s=time.monotonic()-started,collection_s=locs['collection_time'],learning_s=locs['learn_time'],value_loss=float(locs['mean_value_loss']),surrogate_loss=float(locs['mean_surrogate_loss']),lr=ppo.step_size,completed_episodes=int(counts[0]),successes=int(counts[1]),workspace_failures=int(counts[2]),resets=int(counts[3]),reset_audits=env.reset_audits,source_mismatches=env.source_mismatches,
-    tau_weight_norm=float(actor.net[0].weight[:,421:685].detach().norm()),task_weight_norm=float(actor.net[0].weight[:,411:421].detach().norm()),max_goal_error_m=env.max_goal_error,timings=env.timings,peak_cuda_mib=torch.cuda.max_memory_allocated()/2**20,
+    tau_weight_norm=float(actor.net[0].weight[:,421:685].detach().norm()),task_weight_norm=float(actor.net[0].weight[:,411:421].detach().norm()),max_goal_error_m=env.max_goal_error,timings=env.timings,inference_audit=env.inference_audit,peak_cuda_mib=torch.cuda.max_memory_allocated()/2**20,
     eta_s=(locs['collection_time']+locs['learn_time'])*(a.updates-locs['it']-1))
    if state['iteration']==1 or state['iteration']%20==0:
     state['parameter_sync_error']=parameter_sync_error(ppo.actor_critic)

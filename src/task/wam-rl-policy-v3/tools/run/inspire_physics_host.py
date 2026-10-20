@@ -46,6 +46,7 @@ def main():
     p.add_argument('--seconds',type=int,default=1800);p.add_argument('--motions',type=int,default=0)
     p.add_argument('--object-manifest',type=Path)
     p.add_argument('--admission-manifest',type=Path,help='Restrict motion sampling to admitted same-execution TRAIN prefixes')
+    p.add_argument('--synchronize-setters',action='store_true',help='Complete Torch reset/PD writes before handing buffers to PhysX')
     p.add_argument('--state-transport',choices=['json','packed'],default='json')
     p.add_argument('--sequence',help='Exact TRAIN motion for bounded canonical-command replay')
     p.add_argument('--fixed-motions-json',type=Path,help='Engineering replay only: exact collection batch membership, no object sampler')
@@ -130,7 +131,7 @@ def main():
         source_sequence_names=[r['sequence'] for r in records],source_object_names=sorted({r['object'] for r in records}),
         state_transport=a.state_transport,
         reset_submission='logical_FK_now_once_indexed_setters_before_simulate.v1',
-        indexed_resets=0,steps=0,episode_action_mismatches=0,maximum_pd_error=0.,extended_state=a.extended_state)
+        indexed_resets=0,steps=0,episode_action_mismatches=0,maximum_pd_error=0.,extended_state=a.extended_state,synchronize_setters=a.synchronize_setters)
     def save():
         (a.output/'manifest.json').write_text(json.dumps(audit,indent=2)+'\n')
     save()
@@ -193,7 +194,9 @@ def main():
             captured=actual_pd=None;pre,pd=task.pre_physics_step,task._action_to_pd_targets
             def before(action):
                 nonlocal captured
-                captured=action.clone();return pre(action)
+                captured=action.clone();result=pre(action)
+                if a.synchronize_setters:torch.cuda.synchronize(task.device)
+                return result
             def convert(action):
                 nonlocal actual_pd
                 actual_pd=pd(action).clone();return actual_pd
