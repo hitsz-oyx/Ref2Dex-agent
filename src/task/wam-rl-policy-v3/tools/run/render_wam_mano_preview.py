@@ -25,6 +25,19 @@ def write_rgb_png(path, pixels):
                      +chunk(b'IDAT',zlib.compress(raw,3))+chunk(b'IEND',b''))
 
 
+def tracking_camera(teacher_hand,object_pose,predicted_hand=None):
+    """Shared camera encloses both hands and object, including early approach."""
+    import numpy as np
+    center=np.asarray(object_pose)[:3,3]
+    parts=[np.asarray(teacher_hand),center[None]+np.array([[-.06,-.06,-.06],[.06,.06,.06]])]
+    if predicted_hand is not None:parts.append(np.asarray(predicted_hand))
+    points=np.concatenate(parts)
+    target=(points.min(0)+points.max(0))/2
+    radius=float(np.linalg.norm(points-target,axis=-1).max())
+    direction=np.array([-.32,-.30,.27]);direction/=np.linalg.norm(direction)
+    return target+direction*max(.48,3.2*radius),target
+
+
 def visual_urdf(source, destination):
     """Copy only the description; keep licensed/native mesh files read-only."""
     tree = ET.parse(str(source))
@@ -172,7 +185,7 @@ def main():
                 for name in body_names]
     if min(hand_ids) < 0:
         raise ValueError('teacher semantic landmark link absent')
-    frames, fk_errors = [], []
+    frames, fk_errors, camera_poses = [], [], []
     mano_by_frame=dict(zip(mesh_ids,manoes));previous_mano=None
     for tick in range(frame_count):
         if time.monotonic()-started>300:raise TimeoutError('five-minute render deadline')
@@ -188,6 +201,12 @@ def main():
             actor_pose(envs[1],previous_mano,hidden)
         previous_mano=mano_by_frame.get(tick)
         if previous_mano is not None:actor_pose(envs[1],previous_mano,gymapi.Transform())
+        if rolling:
+            eye,center=tracking_camera(data['teacher_hand'][tick],data['object_poses'][tick],
+                data['target_hand'][tick] if valid[tick] else None)
+            camera_poses.append(np.r_[eye,center])
+            for env,sensor in zip(envs,cameras):
+                gym.set_camera_location(sensor,env,gymapi.Vec3(*eye),gymapi.Vec3(*center))
         # Setters update articulation FK. Do not integrate unactuated visual-only
         # zero-inertia links: that would turn a kinematic replay into a new rollout.
         states = gym.get_actor_rigid_body_states(envs[0], hand, gymapi.STATE_POS)
@@ -205,7 +224,9 @@ def main():
             if tick%100==0:print(json.dumps(dict(stage='render',frame=tick,total=frame_count,elapsed_s=time.monotonic()-started)),flush=True)
         else:frames.append(frame)
     fk_errors = np.asarray(fk_errors)
-    if rolling:np.save(output/'fk-errors.npy',fk_errors)
+    if rolling:
+        np.save(output/'fk-errors.npy',fk_errors)
+        np.save(output/'camera-poses.npy',np.asarray(camera_poses))
     else:np.savez_compressed(output / 'camera-frames.npz', frames=np.asarray(frames), fk_errors_m=fk_errors)
     report = dict(status='COMPLETED' if fk_errors.max() <= .002 else 'FAILED',
                   python=sys.executable, gpu=args.gpu, frames=frame_count, camera_hz=30,
@@ -215,6 +236,7 @@ def main():
                   object='measured future object poses for comparison only', path='gold teacher object path; larger gold local goal',
                   physics='kinematic setters only; no physics integration; all roots fixed and collision geometry removed',
                   exit_workaround='flush completed outputs then os._exit(0): legacy Gym runtime crashes during teardown')
+    if rolling:report['camera_policy']='shared follow camera enclosing teacher hand, raw forecast hand and object; no prediction coordinates changed'
     (output / 'render-manifest.json').write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps(report), flush=True)
     if report['fk_max_mm'] > 2:

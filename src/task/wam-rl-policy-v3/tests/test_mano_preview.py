@@ -65,3 +65,18 @@ def test_native_png_writer_roundtrip(tmp_path):
  pixels=np.arange(90,dtype=np.uint8).reshape(5,6,3)
  destination=tmp_path/'frame.png';renderer.write_rgb_png(destination,pixels)
  np.testing.assert_array_equal(np.asarray(Image.open(destination)),pixels)
+
+
+def test_shared_camera_covers_distant_approach_and_zoomed_contact():
+ import importlib.util
+ from pathlib import Path
+ path=Path(__file__).resolve().parents[1]/'tools/run/render_wam_mano_preview.py'
+ spec=importlib.util.spec_from_file_location('camera_renderer',path)
+ renderer=importlib.util.module_from_spec(spec);spec.loader.exec_module(renderer)
+ obj=np.eye(4);obj[:3,3]=[0,-1,.85]
+ near=np.tile([0,-1,.9],(11,1));far=near+[0,1,0]
+ eye1,target1=renderer.tracking_camera(far,obj,far+[.1,0,0])
+ eye2,target2=renderer.tracking_camera(near,obj,near)
+ assert np.linalg.norm(eye1-target1)>np.linalg.norm(eye2-target2)
+ assert -.6<target1[1]<-.4
+ assert np.isfinite(np.r_[eye1,target1,eye2,target2]).all()
