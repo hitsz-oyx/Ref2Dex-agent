@@ -479,3 +479,38 @@ does not use C to correct trajectories.
 
 Full H.264 decode passes:1200×400,581 frames,38.734s slow2x playback. Error plot
 and a video frame were visually inspected. No training or checkpoint changes.
+
+## Generated-state TaskController goal Decision probe (2026-10-20)
+
+User asks whether using our current Task scheduler in the generated-state video
+can fix the drift. Distinguish a fixed recorded-goal schedule mismatch from
+drift that persists under state-dependent task goals. If a fresh TaskController
+corrects the hand approach and maintains motion coupling, prioritize scheduler
+integration; otherwise do not describe scheduler refresh as a sufficient fix.
+Cheapest check: reuse the original Inspire apple H4, step80000 checkpoint,
+dense geometry, complete task instruction and24/8 cadence, changing goal source
+to the current TaskController observed at every generated tick.
+
+Run `wam-task-feedback-20261020-r1`, work_version
+`wam-task-feedback-rollout-v1`. Only first4 hand/object states come from the
+recording. A new TaskController starts from those states; later hand/object
+poses and object linear/angular velocities come only from the generated
+sequence. No contact-force prediction exists: explicitly force_valid=False,
+supported=None, using the existing motion-only observer, never a fabricated
+force/GT grasp flag or predicted C as a physical certificate. This is a
+counterfactual scheduler diagnostic, not the force-observed native loop.
+
+Current scheduler termination stops new forecasts even mid-chunk. The source
+video clock is retained with an explicit frozen terminal display; missing
+predictions are never scored. Compare fixed versus adaptive goals on common
+consumed frames, plus hand-object gap, phase/grasp flags and progress. Check
+input histories and rigid composition independently. A lower teacher error
+alone is insufficient to call acquisition or execution solved. WAM-v4 lacks
+planned-event conditioning even though TaskController emits an event plan.
+
+Implementation committed before run. Environment graspenv Python3.8 /
+Torch2.4.1+cu121; GPU7 short sharing with monica as permitted, no use of PPO
+GPUs4/5/6. Inference180s, raw-point visualization300s, final150MiB/transient512MiB,
+disk floor20GiB. Artifacts `outputs/wam-rl-policy-v3/wam-task-feedback-20261020-r1/`;
+exact commands/resources/logs `tmp/wam-task-feedback/`. No training, native
+physics or checkpoint changes. The original fixed-goal artifact stays read-only.
