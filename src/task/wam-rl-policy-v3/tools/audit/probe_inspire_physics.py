@@ -63,10 +63,12 @@ def main():
             for _ in range(a.resets):
                 send(connection,dict(op='reset',ids=list(range(a.envs))))
                 state=unpack_state(receive(connection)['state'])
+            import numpy as np
+            np.savez_compressed(out/'initial-state.npz',**{k:state[k] for k in ['q','dq','physical','objects','hand','tick']})
+            (out/'initial-sequences.json').write_text(json.dumps(state['sequences'])+'\n')
             for tick in range(a.steps):
                 old=list(state['episodes'])
                 if a.action=='noise':
-                    import numpy as np
                     from wam_rl_policy_v3.inspire_contract import expand_action
                     if tick==0:rng=np.random.RandomState(a.seed)
                     action=expand_action(np.clip(rng.normal(0,.64,(a.envs,12)),-1,1).astype(np.float32)).tolist()
