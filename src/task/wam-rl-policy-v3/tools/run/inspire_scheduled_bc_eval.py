@@ -62,7 +62,7 @@ def main():
     from wam_rl_policy_v3.robot_adapter import InspireAdapter
     from wam_rl_policy_v3.task_runtime import TaskController
     from wam_rl_policy_v3.teacher_dataset import TeacherRolloutCorpus
-    from wam_rl_policy_v3.measured_execution import online_support, run_single_episode_batch
+    from wam_rl_policy_v3.measured_execution import online_support, run_single_episode_batch, record_bc_decision, save_bc_trace
     from wam_rl_policy_v3.goal_scheduler import rigid_goal_delta
     from wam_rl_policy_v3.measured_execution import environment_geometry, GOAL_CONTRACT, task_wam_goal
     from wam_rl_policy_v3.task_spec import TaskSpec
@@ -127,6 +127,7 @@ def main():
         state["seed"] = a.seed
         reward_totals = np.zeros(len(sequences), np.float64); reward_last_parts = [None] * len(sequences)
         transitions = [[] for _ in sequences]; pending = [None] * len(sequences)
+        decision_trace = []
 
         def observe_and_predict(snapshot):
             nonlocal tau_valid_count, force_valid_count, max_goal_task_error
@@ -214,7 +215,9 @@ def main():
                         pending[index] = dict(observation=observation[index], action=output[index],
                                               logp=logp[index], mean=behavior_mean[index],
                                               std=behavior_std[index], value=values[index])
-            action = output.clamp(-1, 1).cpu().numpy().astype(np.float32); previous[:] = action
+            action = output.clamp(-1, 1).cpu().numpy().astype(np.float32)
+            record_bc_decision(decision_trace, snapshot, measured, tasks, action, tau=taus, tau_valid=tau_valid)
+            previous[:] = action
             return action, snapshot
 
         action, native = observe_and_predict(native)
@@ -234,6 +237,7 @@ def main():
         )
         state["max_goal_task_error_m"] = max_goal_task_error
         state["termination_policy"] = "stop_batch_at_first_task_terminal"
+        save_bc_trace(a.output / 'first100-decisions.npz', decision_trace, completed)
         state["stop_reason"] = "task_terminal" if terminal_records else "control_budget"
         send(connection, dict(op="close")); receive(connection)
         if ppo_actor is not None and completed:

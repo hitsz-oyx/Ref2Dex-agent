@@ -7,6 +7,26 @@ GOAL_CONTRACT = 'ref2dex.measured-task-controller-goal.v1'
 TAU_LAYOUT_SCHEMA = 'ref2dex.measured-scheduled-tau-layout.v2'
 
 
+def record_bc_decision(trace, snapshot, measured, task, command, *, tau=None, tau_valid=None):
+    """Keep at most the first 100 decisions for physical BC diagnosis."""
+    if len(trace) >= 100:
+        return
+    row = {key: np.asarray(snapshot[key]).copy() for key in ('q', 'dq', 'objects', 'hand', 'tick')}
+    row.update(measured=np.asarray(measured).copy(), task=np.asarray(task).copy(),
+               command=np.asarray(command).copy())
+    if tau is not None:
+        row.update(tau=np.asarray(tau).copy(), tau_valid=np.asarray(tau_valid).copy())
+    trace.append(row)
+
+
+def save_bc_trace(path, trace, completed):
+    if trace:
+        arrays = {key: np.stack([row[key] for row in trace]) for key in trace[0]}
+        # The final observation also produces an unused decision at termination.
+        arrays['applied'] = np.arange(len(trace)) < completed
+        np.savez_compressed(path, **arrays)
+
+
 def task_wam_goal(pose, local_goal_pose, task, query_points):
     """Check the actual WAM goal against the actor's independently packed task6."""
     from scipy.spatial.transform import Rotation

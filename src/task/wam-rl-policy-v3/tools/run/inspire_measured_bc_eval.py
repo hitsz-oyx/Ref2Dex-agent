@@ -87,7 +87,7 @@ def main():
     from wam_rl_policy_v3.robot_adapter import InspireAdapter
     from wam_rl_policy_v3.task_runtime import TaskController
     from wam_rl_policy_v3.teacher_dataset import TeacherRolloutCorpus
-    from wam_rl_policy_v3.measured_execution import online_support, run_single_episode_batch
+    from wam_rl_policy_v3.measured_execution import online_support, run_single_episode_batch, record_bc_decision, save_bc_trace
 
     torch.set_num_threads(2)
     torch.manual_seed(args.seed); np.random.seed(args.seed)
@@ -168,6 +168,7 @@ def main():
         reward_last_parts = [None] * len(sequences)
         transitions = [[] for _ in sequences]
         pending = [None] * len(sequences)
+        decision_trace = []
 
         def observe_and_predict(snapshot):
             nonlocal force_valid_count
@@ -268,6 +269,7 @@ def main():
                                               logp=logp[index], mean=behavior_mean[index],
                                               std=behavior_std[index], value=values[index])
             action = output.clamp(-1, 1).cpu().numpy().astype(np.float32)
+            record_bc_decision(decision_trace, snapshot, measured, tasks, action)
             previous[:] = action
             return action, snapshot
 
@@ -292,6 +294,7 @@ def main():
             send=send, receive=receive, expand_action=expand_action,
         )
         state["termination_policy"] = "stop_batch_at_first_task_terminal"
+        save_bc_trace(args.output / 'first100-decisions.npz', decision_trace, completed)
         state["stop_reason"] = "task_terminal" if terminal_records else "control_budget"
         send(connection, dict(op="close"))
         receive(connection)
