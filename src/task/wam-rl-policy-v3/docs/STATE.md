@@ -19,6 +19,14 @@ r2已采用并通过CPU PhysX后备（8物理线程/rank），PPO与WAM仍在GPU
 包含actor/critic/optimizer/CAD和实际backend身份。第二迭代约32秒，10k估计89h；
 本轮48h上限会先保存停止，不能称10k将在48h内完成。已有成功数不足以判断学习成效。
 
+用户要求复核源码/运行环境后，已对照NVlabs官方源码并实测import：物理仍为与旧972轮
+相同的Torch2.0.1+cu118/rl-games1.1.4，WAM/PPO独立Torch2.4.1；vendor含本地采样、
+桌面reset、shape索引修正，不能称完全官方原样。新增native-only有界复现入口及GPU PhysX/
+CPU tensor独立诊断选项。12组检查均未再现历史错误，包括完整512环境真实PPO2轮、
+CUDA memcheck16环境0错误、4/5/6并发native，以及512环境128控制/32次子集reset。
+这没有识别唯一根因或证明GPU长训稳定，不切换当前CPU后备。结果与限制在本卡及
+outputs/wam-rl-policy-v3/inspire-physx-provenance-20261020-r1/result-summary.json。
+
 并行WAM/MANO预览已完成，GPU7已释放：outputs/wam-rl-policy-v3/wam-mano-preview-20261020-r1/
 有preview-middle.png、preview-contact-sheet.png和preview-slow4x.mp4。首个TRACK tick68，
 WAM完整24步、相同物体回放和相机；真实Inspire FK最大误差0.00181mm，MANO为近似拟合，

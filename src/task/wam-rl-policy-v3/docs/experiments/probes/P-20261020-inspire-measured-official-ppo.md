@@ -122,3 +122,64 @@ physical GPUs4/5/6, peak total allocation11,480MiB per card. Utilization remains
 intermittent; the measured causal state/task packing and WAM calls dominate the
 collector, so high GPU utilization is not yet achieved. Four synchronized
 iterations/80 optimizer steps per rank were reached during this sampling.
+
+## User-requested source/runtime audit and GPU fault recheck
+
+Decision/Blocker diagnostic: distinguish a recent Torch/runtime change from a
+native tensor/reset or contact-scene failure before accepting a GPU-backend fix.
+Read-only official NVlabs/dexplore main sources were fetched and compared under
+`tmp/inspire-physx-diagnosis-20261020-r1/upstream/`; no upstream files overwritten.
+Primary sources: [official README](https://github.com/NVlabs/dexplore/blob/main/README.md),
+[requirements](https://github.com/NVlabs/dexplore/blob/main/requirement.txt),
+[Inspire task](https://github.com/NVlabs/dexplore/blob/main/dexplore/env/tasks/dexplore_inspire.py).
+Requirements specify torch>=1.8.1, rl-games1.1.4; README example uses CUDA11.6,
+not a unique exact Torch version. Our native environment differs from that
+installation example, but did not change between old mixed6/r4 and this run:
+both manifests name dexplore_v120_train/bin/python, Torch2.0.1+cu118. Live import
+also verifies Python3.8.10, CUDA11.8, NumPy1.23.5, rl-games1.1.4. WAM/PPO runs
+separately in graspenv/Torch2.4.1+cu121, also the same as old mixed6/r4.
+
+The vendor is official-derived, not an unmodified official experiment. Local
+changes include complete motion export, object-balanced motion sampling and
+per-motion table resets, plus a body-to-collision-shape ownership correction in
+Inspire. The official PD mapping is unchanged. The host additionally replaces
+reset observations with measured/FK caches, coalesces indexed setters, exposes
+measured force/state, and bypasses DExplore's policy/reward/termination. Those
+adaptations cannot be excluded as fault triggers simply because PhysX reports
+the eventual error. The reset-submission implementation and vendor physics
+files are unchanged from old dd694523; new inputs/pool/env-count are different.
+Old mixed6/r4 actually stopped at cumulative iteration972 with5072 native steps
+per rank, beyond the earlier card's interim360 report.
+
+Bounded reproducible diagnostic entry:
+`tools/audit/probe_inspire_physics.py`; fresh output, seed246 engineering repeats,
+no WAM or learned policy, fixed canonical commands, actual native clocks checked.
+Official-PPO check separately uses frozen120279df and the same BC/WAM inputs.
+GPU7 was initially free and subsequently shared with monica's new task within
+available memory; no other task changed/killed. Short concurrent native probes
+on4/5/6 ran alongside the unchanged active three-rank training and exited.
+
+All12 cases in `outputs/wam-rl-policy-v3/inspire-physx-provenance-20261020-r1/result-summary.json`
+completed without the historical crash: stamp16; known subset16 objects/512 envs
+with zero/noise actions; complete50-object512-env actual official PPO2 updates /
+40 optimizer steps; CUDA memcheck16 envs/two controls (ERROR SUMMARY:0 errors);
+GPU PhysX with CPU tensors512 envs; two ordinary GPU-tensor512-env repeats;
+three simultaneous native512-env tests on4/5/6; and512 envs/128 controls with32
+asymmetric partial resets. The stress test checks unchanged live episode IDs
+and clocks after each selected reset. Native PD/source checks remain enabled.
+
+GPU-tensor repeats have identical recorded initial sequences and q/dq/physical/
+object/hand/tick arrays. GPU PhysX CPU-tensor initial q/dq/object/tick also match;
+physical248 max difference1.73e-6 and hand2.38e-7m. This is only initial-state
+adapter evidence, not full-trajectory physical equivalence. The new explicit
+`--physics-backend gpu-cpu` separates GPU physics from CPU state exchange per
+installed Isaac Gym programming/tensors.html; it is a diagnostic option only.
+
+Conclusion: no unique cause identified and no claim the GPU backend is fixed.
+These bounded checks do not reproduce the prior intermittent first-step crash,
+and do not establish long multi-rank GPU-PhysX training stability. Do not attribute
+it to a recent Torch upgrade or generic PPO divergence. Native adaptation and
+startup/contact conditions remain candidates. The active CPU-PhysX three-rank
+training remains frozen and unchanged; no silent backend migration performed.
+All154 existing Task tests pass on the audited changes. Diagnostic artifacts
+are bounded and initial snapshots are small; no new neural caches or videos.
