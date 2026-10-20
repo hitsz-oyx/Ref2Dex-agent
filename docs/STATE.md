@@ -17,6 +17,12 @@ Current310随机训练50k，再接同源Scheduled575训练50k；全1891658行tas
 与310仅61/64全同；共同61场景最终稳定20→23/26。属于执行复现，不是WAM净收益或泛化证据。
 149项测试通过，运行全部结束，产物4.3GiB；[实验记录](../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261019-inspire-task-contract.md)。
 
+用户追加的最新DExplore goal+WAM BC也已完成：r3审计数据重建62605行τ，Current421
+startup_half best(step7000)接Scheduled686训练50k，WAM80000冻结。配对6081行DEV父模型
+0.04012、末态0.05318，DEV-best仍step0；四条TRAIN运动/300控制的抬升5cm持续30帧代理
+由父模型2/4变为末态1/4，窗口内完整任务均0/4，三臂全部初态逐位一致。本轮未见改善，
+不作为WAM净收益或全回合失败结论。GPU6/7已释放、无PPO；[结果卡](../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-inspire-scheduled686-bc.md)。
+
 追加从头学习：UniDex Current300随机初始化50k，再训练WAM条件Scheduled565 50k，
 同64初态原生曾成功35、最终稳定26（40.625%），无历史BC/PPO初始化；证明565训练可复现，
 不代表新task10已学会或WAM独立收益。Inspire修正支撑v2的完整active数据56036/6081行，

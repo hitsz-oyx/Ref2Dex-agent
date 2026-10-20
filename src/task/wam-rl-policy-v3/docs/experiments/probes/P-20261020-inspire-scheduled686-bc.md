@@ -205,3 +205,69 @@ This is not matched-budget WAM attribution or full-episode validation.
   Compare initial physical snapshots explicitly, and distinguish lift5cm/30frame
   proxy from full TaskController completion. Best/endpoint predeclared; no
   checkpoint reselection using the native outcomes.
+
+### r4 completed: no improvement from this addition
+
+Frozen5a790409, same runtime/seed/source as predeclared. Preparation59.14s;
+all50000 updates completed in600.77s onGPU6, sampled utilization around90–92%,
+1335MiB. No data rows were dropped for invalid tau: TRAIN56036 (54534 valid,
+1502 invalid), DEV6081 (5895 valid,186 invalid). Shared differentiable CAD and
+startup_half/AdamW recipe were preserved. The early training audit atstep6000
+already measured nonzero tau/valid weights0.04315/0.05184; endpoint maximum
+new tau/valid weight is0.19829. This is actual WAM-conditioned training.
+
+Independent paired DEV arithmetic (same6081 rows/FP32 inference):
+
+| Subset | Current421 parent | Scheduled DEV-best(step0) | Scheduled endpoint(step50000) |
+| --- | ---: | ---: | ---: |
+| All6081 | 0.04012461 | 0.04012461 | 0.05317855 |
+| Valid5895 | 0.03841408 | 0.03841408 | 0.05201800 |
+| Invalid186 | 0.09433743 | 0.09433743 | 0.08996065 |
+
+DEV-best remainsstep0, with all added tau/valid weights exactly0. It retains
+the learned parent goal columns but cannot count as WAM learning or benefit.
+The trained50k endpoint increases aggregate DEV error while training loss falls;
+this is consistent with overfitting, not a unique diagnosis of the cause.
+Do not discard the endpoint or select it using native outcomes after the fact.
+
+Four fixed TRAIN motions, seed246,300controls/10s,0 PPO updates:
+
+| Policy | Motions with lift>=5cm for>=30 frames | Full task completed within window |
+| --- | ---: | ---: |
+| Current421 parent (existing evaluation) | 2/4 | 0/4 |
+| Scheduled DEV-best(step0) | 2/4 | 0/4 |
+| Scheduled endpoint(step50000) | 1/4 | 0/4 |
+
+All initialq/dq/physical/object/hand/tick/table arrays agree bitwise across the
+three arms. Native PD error0,episode-action mismatches0,physical248 error
+2.98e-7; no native reference observation/reward/termination is consumed.
+Each Scheduled run produces1192 valid tau observations, including the unused
+last observation. Shared goal errors are6.74e-9/6.25e-9m. Both reach300 controls.
+
+Endpoint's stamp reaches38.47cm maximum lift and184 consecutive lift5cm frames;
+toothpaste/waterbottle do not cross5cm, and apple crosses for only14 frames.
+Parent's two qualifying motions arewaterbottle/apple. These height proxies
+are not force-closure certification or unseen-object success rates. Confirmed
+path progress remains tiny: endpoint maximum0.004748;step0 maximum0.009769.
+Do not describe sub-percent progress as full task success. Tasks can extend
+beyond300 controls, so0/4 here is a bounded-window result, not full-episode
+proof of failure.
+
+The step0 expansion differs from parent DEV commands by mean3.606e-8 and
+their physical traces still diverge after contact despite identical starts.
+The cause of that execution sensitivity is not isolated; do not attribute
+step0's trajectory/partial-progress differences to learned WAM influence.
+
+Decision: this corrected-data WAM addition did not resolve current imitation/
+closure weakness. Keep the actual50k model as evidence and retain the parent/
+step0 DEV selection. Do not launch another undifferentiated50k or long PPO
+from this result. A benefit claim still needs matched continued-current budget
+and a broader physical test; no extra ablation/seed was launched here.
+
+Artifacts: outputs/wam-rl-policy-v3/inspire-wam-goal-bc-20261020-r4/
+{manifest.json,comparison.json,paired-dev-best.json,paired-dev-latest.json,
+evaluation-best/,evaluation-latest/,early-training-audit.json}; model outputs
+in inspire-scheduled686-bc-20261020-r4/{best.pt,latest.pt}; cache64MiB/model40MiB/
+comparison+native6MiB. All owned children exited;GPU6/7 are free. Frozen
+implementation was unchanged from previously tested v3; new protocol/result
+Markdown and structured checks pass. No new checkpoint overwritten, no videos.

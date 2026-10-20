@@ -59,3 +59,12 @@ commit in manifest, <=6h deadline, owned STOP,20GiB disk floor. Cache plus BC
 and bounded no-video evaluation outputs are limited to500MiB this run.
 Invalid/inactive/startup rows remain zero with explicit validity; Scheduled
 training keeps all task-active commands, including invalid tau rows.
+
+### r4 completed
+
+Frozen5a790409 completed both shards on GPU6/7 in440.59s. All563 sequences /
+62605 commands are covered (TRAIN56418/DEV6187); WAM-valid active rows are
+54534/5895. TRAIN1502/DEV186 active invalid rows remain real BC supervision,
+with zero tau and validity false. Independent task10/point-goal discrepancy
+maximum7.61315e-8m. Receipts bind the same source r3 and frozen WAM80000.
+Cache size64MiB; no old tau, raw data, checkpoint or external source was changed.

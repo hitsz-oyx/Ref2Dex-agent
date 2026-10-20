@@ -1,9 +1,15 @@
 # 当前状态
 
-用户追加要求在最新DExplore数据上加入WAM训练。已准备inspire-scheduled686-bc-20261020-r4：
-父模型为r3准入数据训练的startup_half Current421 best(step7000)，重建同源τ缓存r4，
-冻结WAM80000；GPU6/7缓存、GPU6训练50k，保留GPU4/5空闲。新运行不复用旧60529行τ。
-预算、选择及评估协议见P-20261020-inspire-scheduled686-bc，进度见outputs对应manifest。
+最新DExplore goal+WAM BC已完成：inspire-scheduled686-bc-20261020-r4使用r3准入及其
+startup_half Current421 best(step7000)，重建62605行同源τ并冻结WAM80000。
+GPU6/7缓存440.6s、GPU6训练50k/600.8s；保留全部56036 TRAIN/6081 DEV active行。
+独立同6081行DEV：父模型0.04012461、Scheduled DEV-best(step0)0.04012461、50k末态0.05317855。
+best新增τ权重仍0，不能当WAM学习收益；末态τ权重最大0.19829，是真实训练结果。
+相同四条TRAIN运动、300控制窗口、三臂初始q/dq/physical/object/hand/tick/table逐位相同：
+抬升>=5cm连续30帧代理为Current2/4、step0扩展2/4、50k末态1/4；窗口内完整任务均0/4。
+本轮未见WAM改善，但不是匹配训练预算归因或全回合泛化评估。输出约110MiB、GPU6/7已释放，
+未启动PPO。结果见outputs/wam-rl-policy-v3/inspire-wam-goal-bc-20261020-r4/comparison.json
+及P-20261020-inspire-scheduled686-bc实验卡。
 
 用户纠正后的当前任务是实际训练UniDex新goal+BC，不能再以旧565结果代替。
 run=unidex-task-bc-20261020-r1，三卡DDP GPU5/6/7（本次用户明确授权），
