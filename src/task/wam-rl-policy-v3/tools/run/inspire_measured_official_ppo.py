@@ -13,7 +13,9 @@ def main():
  for arg in ['bc','audit-manifest','geometry-cache','output','socket']:p.add_argument('--'+arg,type=Path,required=True)
  p.add_argument('--gpu',type=int,required=True);p.add_argument('--rank',type=int,default=0);p.add_argument('--world-size',type=int,default=1);p.add_argument('--rendezvous')
  p.add_argument('--wam-batch',type=int,default=256);p.add_argument('--shared-tf32',action='store_true');p.add_argument('--updates',type=int,default=10000);p.add_argument('--seconds',type=int,default=172800);p.add_argument('--seed',type=int,default=246);p.add_argument('--reset-probe',action='store_true');p.add_argument('--resume',type=Path)
+ p.add_argument('--migrate-physics-backend',action='store_true',help='Explicit new experiment identity: allow only the physical backend to differ from --resume')
  a=p.parse_args();a.output=a.output.resolve();a.socket=a.socket.resolve()
+ if a.migrate_physics_backend and not a.resume:p.error('--migrate-physics-backend requires --resume')
  if a.output.exists() or ROOT/'outputs/wam-rl-policy-v3' not in a.output.parents or ROOT/'tmp' not in a.socket.parents or not 1<=a.updates<=10000 or not 30<=a.seconds<=172800:raise ValueError('fresh bounded PPO paths/budget required')
  a.output.mkdir(parents=True);a.socket.parent.mkdir(parents=True,exist_ok=True)
  os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu),OMP_NUM_THREADS='2',OPENBLAS_NUM_THREADS='2',REF2DEX_DEEP_OPT='all',TMPDIR=str(a.socket.parent),PYTHONDONTWRITEBYTECODE='1',NCCL_P2P_DISABLE='1')
@@ -58,8 +60,11 @@ def main():
   completed=0
   if a.resume:
    saved=torch.load(a.resume,map_location='cuda',weights_only=False)
-   if saved['schema']!='ref2dex.inspire-measured-official-ppo.v1' or saved['identity']!=identity:raise ValueError('PPO resume identity changed')
+   if saved['schema']!='ref2dex.inspire-measured-official-ppo.v1':raise ValueError('PPO resume schema changed')
+   from wam_rl_policy_v3.resume_identity import validate_resume_identity
+   migration=validate_resume_identity(saved['identity'],identity,migrate_physics=a.migrate_physics_backend)
    ppo.actor_critic.load_state_dict(saved['model']);ppo.optimizer.load_state_dict(saved['optimizer']);ppo.step_size=saved['step_size'];completed=saved['iteration']
+   state.update(resume_from=str(a.resume.resolve()),resume_iteration=completed,physics_migration=migration)
   if a.world_size>1:
    for value in ppo.actor_critic.state_dict().values():dist.broadcast(value,src=0)
   torch.manual_seed(a.seed+a.rank)
@@ -70,7 +75,7 @@ def main():
    iteration=state['iteration'];dest=a.output/('official-iteration-%d.pt'%iteration)
    if dest.exists():return
    part=dest.with_suffix('.pt.part');torch.save(dict(schema='ref2dex.inspire-measured-official-ppo.v1',model=ppo.actor_critic.state_dict(),optimizer=ppo.optimizer.state_dict(),step_size=ppo.step_size,iteration=iteration,config=cfg,
-    identity=identity,shape=model.shape.state_dict(),bc_step=packet['step'],resume='model/optimizer with fresh episodes'),part);part.replace(dest)
+    identity=identity,shape=model.shape.state_dict(),bc_step=packet['step'],resume='model/optimizer with fresh episodes',source_checkpoint=state.get('resume_from'),physics_migration=state.get('physics_migration')),part);part.replace(dest)
    prune_checkpoints(a.output,final_iteration=completed+a.updates)
   original_update=ppo.update;original_step=ppo.optimizer.step
   def step(*args,**kwargs):
