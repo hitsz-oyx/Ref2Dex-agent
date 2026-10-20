@@ -6,13 +6,21 @@ Current310随机初始化50k后，Scheduled575继承本轮已学goal的310再训
 完整1536897 TRAIN/354761 DEV，task10与WAM来自同一次TaskController，旧565 τ不复用。
 同轮旧记录没有net-contact字段，离线/在线统一显式motion-only反馈；当前速度由原生观测
 yaw与角速度缩放解码，不使用未来，也不把总力传感器或applied wrist force冒充接触力。
-全量task10已完成，TRAIN428972/DEV99248行非零goal；已完成τ部分694595行task10逐位一致。
-三卡梯度按683/683/682加权为同一global2048均值。310已完成50k更新约262s，三卡参数差0；
-新goal第2步有非零梯度，平移goal权重最大改变0.288。149项Task测试通过。
+全量task10/τ缓存已完成，TRAIN428972/DEV99248行非零goal；全1891658行task10逐位一致。
+三卡梯度按683/683/682加权为同一global2048均值。310/575各完成50k更新约262/270s，
+三卡参数差均0；310新goal第2步、575第1步有非零梯度，575末态τ权重最大改变0.213。
+几何goal依赖审计保留phase/progress，仅置零SE3列即可改变输出；不是只学常数阶段偏置。
+149项Task测试通过。
 原生入口已支持直接载入训练310/575，zero_expansion=False，不再把零扩展评估叫训练复现。
-自动流程/当前进度见outputs/wam-rl-policy-v3/unidex-task-bc-20261020-r1/manifest.json。
-310已实际原生评估64个固定TRAIN场景，原生曾成功32/64、最终稳定21/64，workspace失败0；
-zero_expansion=False、task_columns_learned=True。575的同源τ缓存已恢复，最终575结果仍待训练评估。
+自动流程已COMPLETED，产物outputs/wam-rl-policy-v3/unidex-task-bc-20261020-r1/，4.3GiB。
+固定16个TRAIN物体/64场景：310(step50k)原生曾成功32、最终稳定21；575 DEV-best(step49k)
+为33/24，预声明50k末态为38/29。三臂workspace失败均0，task_columns_learned=True、
+zero_expansion=False，纯BC且无PPO更新；不事后用闭环结果替代DEV选择规则。
+两个575 checkpoint的64初态逐位相同；与310的全状态只有61/64相同，不能称全64严格配对。
+共同61场景原生曾成功31→32/35、最终稳定20→23/26。这里只复现新goal BC的实际执行，
+不能证明WAM净收益或未见物体泛化。确认路径进度达1分别9/7/9，与原生成功指标仍须区分；
+最终稳定但未进入TRACK仍有3/3/1个场景。完整comparison.json保留逐项初态检查和分母。
+训练/评估已全部退出，不从这些结果自动启动Inspire长PPO。
 
 新增用户要求的从头学习对照：UniDex Current300 随机初始化50k，再以本轮新父模型训练
 Scheduled565 50k，不加载历史BC/PPO。新BC在同一16个TRAIN物体/64初态中原生曾成功35，

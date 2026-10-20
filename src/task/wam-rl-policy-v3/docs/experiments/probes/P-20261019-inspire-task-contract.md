@@ -676,3 +676,62 @@ measure action changes and per-block weight movement from seeded initialization
 (or learned310 parent for575). This checks geometric-goal use beyond a constant
 phase bias. It is dependence evidence, not a causal method-gain or execution
 ablation claim. Never select checkpoints using this audit.
+
+### Completed actual learned-goal UniDex BC reproduction
+
+Run unidex-task-bc-20261020-r1 is COMPLETED. Execution frozen at29276ad3;
+cache9d43de2b/labels59347276; graspenv Python3.8/Torch2.4.1+cu121.
+Three-card GPU5/6/7 DDP completed50k updates per stage. Fitting took~262s
+Current310/~270s Scheduled575; all-rank parameter differences were exactly0.
+All1891658 task10 sidecar rows equal575 cache columns300:310 bitwise.
+This uses the complete admitted strict corpus1536897 TRAIN/354761 DEV rows,
+not a four-sequence subset or the previous565 tau. Bounded outputs total4.3GiB.
+
+Current310 DEV best isstep50000, command MAE0.0194803. Scheduled575 DEV best
+isstep49000, MAE0.0168990; the predeclaredstep50000 endpoint is0.0171906.
+Task weights update from step2 in310 and step1 in575;575 latest maximum
+task-weight change0.297735 and tau-weight change0.212663 from its310 expansion.
+Both train goal columns, rather than merely accepting extra zero columns.
+The isolated geometric-goal audit keepsphase/progress unchanged and only zeros
+the local SE3 coordinates:1644/6208 fixed DEV rows have nonzero goals;
+310/575-best nonzero-row mean command changes0.0003260/0.0003559,
+maxima0.2910/0.3617. Translation-weight movements0.28824/0.24189 establish
+actual geometric conditioning beyond phase bias; these are dependence checks,
+not a claim of useful causal gain.
+
+Direct native pure-BC evaluation, same16 TRAIN objects/64 first episodes,
+seed246, corrected reset, position-only/common_workspace,0 PPO updates:
+
+| Policy | BC step | Native ever | Ever held60 | Final stable | Drop after hold |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Current310 | 50000 | 32/64 | 22/64 | 21/64 | 1/64 |
+| Scheduled575 DEV best | 49000 | 33/64 | 24/64 | 24/64 | 0/64 |
+| Scheduled575 predeclared endpoint | 50000 | 38/64 | 30/64 | 29/64 | 1/64 |
+
+All declarations state task_columns_learned=True,zero_expansion=False;
+no PPO checkpoint/optimizer was used. No workspace failures in any arm.
+Final-position success counts28/30/35 remain distinct from stable holding.
+The two575 initial robot300/pose/hand/goal/full-root states match exactly64/64;
+Current310 versus either575 matches61/64 (scenes11/12/20 differ). Thus do not
+call all64 a strict paired Current-vs-Scheduled comparison. On the common61
+scenes, native ever31→32/35 and final stable20→23/26. Full comparison.json
+stores each initial-state field, differing scene ids and matched denominators.
+Do not replace the DEV checkpoint-selection rule after observing these results.
+
+This resolves the requested Blocker: actually trained new goal+BC executes
+grasp/lift/hold on UniDex; old565/zero-expanded575 evidence is no longer the
+only evidence. It does not isolate goal or WAM net benefit:575 receives another
+50k updates after310, native300 already carries the final position, this is one
+seed on TRAIN objects, and3 initial states differ. Confirmed path progress reaches1
+on9/7/9 scenes, versus native success32/33/38; final-stable scenes that never
+enterTRACK number3/3/1. Do not equate the native5cm success gate with complete
+TaskController8mm progress, or conclude that all Inspire failure is due to data.
+No extra ablation, seed, PPO, or another cache was launched from these results.
+
+Artifacts under outputs/wam-rl-policy-v3/unidex-task-bc-20261020-r1:
+manifest.json/comparison.json;current/,scheduled/ bounded best/latest;
+current-evaluation-best/,scheduled-evaluation-best/,scheduled-evaluation-latest/;
+current-geometric-goal-audit.json/scheduled-geometric-goal-audit.json.
+All supervisor/cache/DDP/evaluation children exited.149 v3 tests passed;
+changed Python/Markdown/structured checks pass. Global verifier still has only
+the six pre-existing trajectory-policy card metadata failures recorded above.

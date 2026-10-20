@@ -10,10 +10,12 @@ NAS reboot-preparation目录额外hard-link固定末步并准备严格三卡恢�
 
 ## 2026-10-20 goal/task10执行路线迁移到 wam-rl-policy-v3
 
-用户明确要求复现新增goal+BC：现已开始unidex-task-bc-20261020-r1三卡DDP，
-Current310随机训练再接Scheduled575；新增task10真实优化、τ同源重算，旧565结果不冒充新goal。
-完整task10已就绪，约28%行有非零局部goal；310已完成50k更新，实际原生32/64曾成功、
-21/64最终稳定，直接加载已学goal且无零扩展。149项测试通过；575缓存/训练评估继续。
+用户要求的新增goal+BC已实际完成：unidex-task-bc-20261020-r1使用授权GPU5/6/7三卡DDP，
+Current310随机训练50k，再接同源Scheduled575训练50k；全1891658行task10与τ缓存逐位对应，
+新增goal/τ权重真实优化，直接载入且无零扩展、无PPO更新。64个TRAIN场景中，310原生曾成功32、
+最终稳定21；575 DEV-best49000为33/24，预声明50k末态为38/29。575两模型64初态全同，
+与310仅61/64全同；共同61场景最终稳定20→23/26。属于执行复现，不是WAM净收益或泛化证据。
+149项测试通过，运行全部结束，产物4.3GiB；[实验记录](../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261019-inspire-task-contract.md)。
 
 追加从头学习：UniDex Current300随机初始化50k，再训练WAM条件Scheduled565 50k，
 同64初态原生曾成功35、最终稳定26（40.625%），无历史BC/PPO初始化；证明565训练可复现，
