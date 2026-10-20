@@ -1,3 +1,13 @@
+## 2026-10-20 WAM-v6硬件故障停训，17000完整checkpoint可恢复
+
+约北京时间00:35中断，最后日志17300；09:36核对GPU3明确requires reset/Recovery Action Reset，
+旧supervisor/torchrun已退出，progress.json的RUNNING已过期。恢复原四卡需管理员修复GPU，未做系统reset。
+完整17000已保留；DEV handEPE32.784mm、τ指标16.892mm，较16129小幅改善。监控对[N/A]解析
+另有确定缺陷，已修复并通过3项测试；不能把修复监控等同恢复GPU。17301–17320四rank共10240
+CPU样本已重放，检查输入均有限，尚不能证明非有限GPU观测报错的唯一原因。
+[当前状态](../src/task/ptv3-shared-wam-v6/docs/STATE.md)、
+[失败及恢复边界](../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261020-wam-v6-mixed-pretrain.md)。
+
 ## 2026-10-20 WAM-v2 measured TaskReward bridge smoke passes
 
 The task-local measured `TaskController -> TaskReward` adapter is now wired into

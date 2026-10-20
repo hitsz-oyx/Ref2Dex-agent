@@ -21,8 +21,23 @@ def write(path,value):
 
 
 def gpu_rows():
-    raw=subprocess.check_output(['nvidia-smi','--query-gpu=index,utilization.gpu,memory.used','--format=csv,noheader,nounits'],text=True)
-    return {int(s.split(',')[0]):dict(utilization=int(s.split(',')[1]),memory_mib=int(s.split(',')[2])) for s in raw.splitlines()}
+    raw=subprocess.check_output(['nvidia-smi','--query-gpu=index,utilization.gpu,memory.used,temperature.gpu','--format=csv,noheader,nounits'],text=True,timeout=20)
+    def number(value):
+        try:return int(value.strip())
+        except ValueError:return None
+    rows={}
+    for line in raw.splitlines():
+        fields=line.split(',')
+        if len(fields)!=4:raise ValueError('unexpected GPU telemetry columns')
+        rows[int(fields[0])]=dict(utilization=number(fields[1]),memory_mib=number(fields[2]),
+            temperature_c=number(fields[3]),requires_reset='requires reset' in line.lower())
+    return rows
+
+
+def require_released(rows,gpus):
+    if any(g not in rows or rows[g]['requires_reset'] or rows[g]['memory_mib'] is None
+           or rows[g]['memory_mib']>256 for g in gpus):
+        raise ValueError('requested GPUs must be healthy and released by prior training')
 
 
 def main():
@@ -38,7 +53,7 @@ def main():
     gpus=list(map(int,a.gpus.split(',')))
     if len(gpus)!=4 or len(set(gpus))!=4:raise ValueError('four distinct GPU IDs required')
     initial=gpu_rows()
-    if any(g not in initial or initial[g]['memory_mib']>256 for g in gpus):raise ValueError('requested GPUs must be released by prior training')
+    require_released(initial,gpus)
     config=read_json(a.config);manifest=validate_recipe(a.manifest,a.stats)
     if not manifest.get('training_allowed') or manifest.get('engineering_subset') or manifest.get('pending_sequences',0):
         raise ValueError('complete admitted data required; never launch on arriving cache subset')
@@ -72,13 +87,16 @@ def main():
             state['torchrun_pid']=child.pid
             while child.poll() is None:
                 elapsed=time.monotonic()-started
+                sampled=gpu_rows()
+                faults=[g for g in gpus if sampled[g]['requires_reset']]
+                if faults:state['hardware_fault']=dict(requires_reset_gpus=faults)
                 limit=min(config['max_seconds'],900 if a.recovery_probe_updates else 2400) if (a.recovery_probe_updates or a.continuation_updates) else config['max_seconds']
-                stop=bool(requested) or (a.output/'STOP').exists() or elapsed>limit or shutil.disk_usage(a.output).free<20*2**30
+                stop=bool(requested) or bool(faults) or (a.output/'STOP').exists() or elapsed>limit or shutil.disk_usage(a.output).free<20*2**30
                 if stop and deadline is None:
                     (a.output/'STOP').touch();deadline=time.monotonic()+180
-                    state.update(status='STOPPING',stop_reason=requested or 'STOP/deadline/free-space boundary')
+                    state.update(status='STOPPING',stop_reason=state.get('hardware_fault') or requested or 'STOP/deadline/free-space boundary')
                 if deadline and time.monotonic()>deadline:raise TimeoutError('training did not finish controlled stop within180s')
-                state.update(elapsed_s=elapsed,gpu=gpu_rows())
+                state.update(elapsed_s=elapsed,gpu=sampled)
                 progress=a.output/'progress.json'
                 if progress.exists():
                     row=read_json(progress);state['progress']=row

@@ -14,7 +14,11 @@ initialized event residual adds50304 parameters without new tokens, points or
 KNN. Joint21/K24,2048 object/C queries,778 samples per hand,5mm PTv3 and original
 TRAIN-only horizon normalization remain unchanged.
 
-Current operation (2026-10-20): the user chose continuing v6 after the readiness
+Current status (2026-10-20): stopped after GPU3 reported requires reset;
+latest complete checkpoint17000 is retained. Administrator GPU recovery is
+needed before strict four-GPU resume. The stale progress RUNNING is not live.
+
+Historical startup (2026-10-20): the user chose continuing v6 after the readiness
 check. v5 saved/stopped at15723; v6 strict-resumed its own16136 checkpoint into
 pretrain-nine-v6-events-20261020-r1. See the
 [current training and target audit](docs/experiments/probes/P-20261020-wam-v6-mixed-pretrain.md).

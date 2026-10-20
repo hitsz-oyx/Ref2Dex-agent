@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [170,171]
 decision_changed_if_positive: retain event-conditioned checkpoints for downstream execution and a matched efficacy comparison
 decision_changed_if_negative: revisit event conditioning or upstream label quality before downstream use
-status: RUNNING
+status: FAILED
 run_id: pretrain-nine-v6-events-20261020-r1
 ---
 
@@ -144,9 +144,48 @@ outputs/target-motion-forensics-20261020-r1/{focal-sequence.json,candidate-exclu
 Small local copies/plot live in outputs/ptv3-shared-wam-v6/pretrain-nine-v6-events-20261020-r1/.
 Two diagnostic regression tests pass: future-only runaway caught with clean
 prefix preserved; rigid coordinate invariance; observed clock and masks.
-Decision: continue the authorized v6 run, retain explicit sparse cleanup candidates.
+Decision: recover GPU3, then strict-resume step17000; retain sparse cleanup candidates.
 
 Bounded readiness evidence is in
 [P-20261019-wam-v6-event-continuation](P-20261019-wam-v6-event-continuation.md).
 No matched training arm, independent replication, robot success or event net
 benefit is claimed. Event annotations are proximity teachers, not force labels.
+
+
+## 2026-10-20 failure and recovery boundary
+
+At about00:35 Beijing (2026-10-19 16:35UTC), the supervisor recorded FAILED:
+ValueError converting utilization [N/A] to int. Training's final log reports
+nonfinite valid observation at clean(scene_points,point_valid); last regular
+log17300, loss0.771962. Latest complete checkpoint17000 is retained; uncheckpointed
+updates after it cannot be assumed recoverable. No result.json was published.
+
+At09:36 Beijing, nvidia-smi explicitly reported GPU3 requires reset and GPU
+Recovery Action Reset. All GPU utilizations were idle or unavailable despite
+stale allocated contexts. Old supervisor/torchrun exited; recorded worker PIDs
+remain in exiting/zombie states. No unknown tasks killed, no system-level reset
+attempted. Administrator recovery of the node/GPU is required before restoring
+four-GPU training. Running status/ETA in stale progress.json is not live evidence.
+
+DEV17000: source-macro objective1.2810514953; handEPE32.784425mm;
+trajectory score16.892473mm (short6.228554/root-relative17.506836/contact26.942029).
+Compared with16129, modest continued improvement. Conditioned minus unknown
+handEPE−0.051441mm; no matched training efficacy claim.
+
+CPU replay of actual next20 TRAIN draws17301–17320,4 ranks,10240 samples:
+scene_points,xyz,start_hand/history,dense_hand/history,features,goal_object_points
+all finite. This narrows the data-input hypothesis but cannot identify actual
+failed rank/step or certify CUDA memory/intermediates. The GPU reset and model
+error may be related; sole causality is not established. The earlier inherited
+Shadow extreme finite targets are a separate recorded issue.
+
+Supervisor reproduction with mocked actual [N/A] telemetry failed2 tests before
+fix. Fix records unavailable numbers as None, recognizes explicit reset status,
+rejects unhealthy/unconfirmed-free launch, and issues controlled STOP on reset
+while retaining fault reason. Unknown utilization alone does not trigger reset.
+3 targeted tests pass. The frozen failed d37e2320 snapshot is not modified.
+No automatic4→3GPU/world change or scratch restart was made.
+
+Remote CPU/hardware receipts: outputs/gpu-fault-audit-20261020-r1/.
+Recovery parent: outputs/ptv3-shared-wam-v6/pretrain-nine-v6-events-20261020-r1/step017000.pt.
+Next action depends on external GPU repair; training remains stopped.

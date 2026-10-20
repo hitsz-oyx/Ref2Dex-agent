@@ -1,6 +1,29 @@
 # WAM v6 state — 2026-10-20
 
-User now requests continuing v6. v5 after-v6-probe-r3 saved/stopped normally at
+Current status update: training is STOPPED by a GPU fault, not running.
+At about2026-10-20 00:35 Beijing, the run failed after last logged17300;
+GPU3 reports GPU requires reset / GPU Recovery Action Reset. Supervisor also
+failed parsing [N/A] utilization. Latest complete checkpoint is step017000.pt.
+progress.json still says RUNNING but is stale; process.json FAILED is decisive.
+No sudo/GPU reset/system operations performed; administrator recovery is needed
+before restoring the original four-GPU/world4 contract. Do not report an active
+completion ETA while hardware is blocked.
+
+At17000 DEV objective1.281051, handEPE32.784425mm, trajectory score16.892473mm;
+prior16129 values1.286467/33.167013/17.007955. Event-on minus unknown handEPE
+is−0.051441mm; same-model diagnostic only. Replayed next20 draws17301–17320 on
+all4 ranks:10240 CPU samples, checked observed scene/hand/history/dense/features
+and goal inputs all finite. Actual failed rank/step is unlogged, so this does
+not prove device-memory or every intermediate valid. Hardware fault is a leading
+explanation, not an established sole cause of the nonfinite observation error.
+
+Local supervisor now handles missing telemetry as None, records reset faults,
+refuses unhealthy/unconfirmed-free GPUs, and requests controlled STOP on reset.
+3 targeted regression tests pass; this patch cannot repair a failed GPU and
+has not hot-edited the frozen failed run.
+
+The following startup observations are historical:
+User requested continuing v6. v5 after-v6-probe-r3 saved/stopped normally at
 15723; its complete checkpoint remains available. Strict v6 continuation uses
 the learned event model's own readiness checkpoint16136, frozen d37e2320,
 not a new v5 migration. Current four-GPU run:

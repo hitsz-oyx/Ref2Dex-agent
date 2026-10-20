@@ -895,7 +895,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261020-wam-v6-mixed-pretrain](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261020-wam-v6-mixed-pretrain.md) | Continue four-GPU WAM v6 event-conditioned pretraining | 见原卡 | continue the authorized v6 run, retain explicit sparse cleanup candidates. | probes/RUNNING |
+| [P-20261020-wam-v6-mixed-pretrain](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261020-wam-v6-mixed-pretrain.md) | Continue four-GPU WAM v6 event-conditioned pretraining | 见原卡 | recover GPU3, then strict-resume step17000; retain sparse cleanup candidates. | probes/FAILED |
 
 ## HF-v6-event-training-readiness
 
