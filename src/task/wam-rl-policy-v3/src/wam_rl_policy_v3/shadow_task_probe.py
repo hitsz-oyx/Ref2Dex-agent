@@ -98,13 +98,14 @@ class TaskScheduledOfficialEnv(ScheduledOfficialEnv):
                     near=evidence['near_fingers']>=2
                     force=evidence['force_count'] is not None and evidence['force_count']>=2
                     speed=evidence['object_speed_mps'];relative=evidence['relative_hand_speed_mps']
-                    moving=speed is not None and speed>.004
+                    config=scheduler.controller.observer.motion.config
+                    moving=speed is not None and speed>config.minimum_object_speed_mps
                     for key,value in [('near2',near),('force2',force),('contact_candidate',near and force),
                             ('moving',moving),('near_force_moving',near and force and moving),('motion_coupled',evidence['coupled'])]:
                         self.evidence[key][i]+=int(value)
                     if near and force and moving and relative is not None:
-                        self.evidence['speed_limit_reject'][i]+=int(relative>=.04)
-                        self.evidence['relative_ratio_reject'][i]+=int(relative>.001+.35*speed)
+                        self.evidence['speed_limit_reject'][i]+=int(relative>=config.relative_speed_limit_mps)
+                        self.evidence['relative_ratio_reject'][i]+=int(relative>config.coupling_noise_mps+config.coupling_relative_ratio*speed)
         return torch.cat((legacy[:,:300],legacy.new_tensor(np.stack(tasks)),legacy[:,300:]),1)
 
     def step(self,*args,**kwargs):
@@ -141,6 +142,7 @@ def run(task,snapshot,sim_step,actor,runtime,args):
         source_checkpoint=str(args.rl_checkpoint),iteration=weights['iteration'],layout=LAYOUT.packet(),
         mode='model-only evaluation; new task columns zero; optimizer not loaded',
         task_goal='same TaskController decision feeds task10 and WAM',
+        contact_source='Isaac Gym net_contact_force_tensor at five distal bodies; world force N',
         terminal_policy='keep final task goal until native episode ends',
         geometry=runtime.geometry_identity),indent=2)+'\n')
     reports=evaluate(env,policy,args,weights['iteration'])

@@ -100,6 +100,10 @@ def main():
          'robot0:thdistal','robot0:ffdistal','robot0:mfdistal','robot0:rfdistal','robot0:lfdistal']
   ids=[task.gym.find_actor_rigid_body_index(task.envs[0],task.shadow_hands[0],name,gymapi.DOMAIN_ACTOR) for name in names]
   if min(ids)<0:raise ValueError('Missing Shadow landmark')
+  contact_tensor=None
+  if a.task_controller:
+   from isaacgym import gymtorch
+   contact_tensor=gymtorch.wrap_tensor(task.gym.acquire_net_contact_force_tensor(task.sim)).view(a.envs,-1,3)
   offsets=torch.tensor([[0,0,.0275]]+[[0,0,.026]]*4,device='cuda')
   def snapshot():
    rigid=task.rigid_body_states[:,ids];hand=rigid[:,:,:3].clone()
@@ -142,7 +146,11 @@ def main():
    def batch_snapshot():
     rigid=task.rigid_body_states[:,ids];hand=rigid[:,:,:3].clone()
     hand[:,6:]+=quat_apply(rigid[:,6:,3:7].reshape(-1,4),offsets.repeat(a.envs,1)).reshape(a.envs,5,3)
-    measured=torch.cat((task.object_linvel,task.object_angvel,task.vec_sensor_tensor.reshape(a.envs,5,6)[:,:,:3].flatten(1)),1)
+    forces=torch.zeros(a.envs,5,3,device='cuda')
+    if contact_tensor is not None:
+     task.gym.refresh_net_contact_force_tensor(task.sim)
+     forces=contact_tensor[:,ids[6:]]
+    measured=torch.cat((task.object_linvel,task.object_angvel,forces.flatten(1)),1)
     if a.official_ppo and os.environ.get('REF2DEX_DEEP_OPT') in ('sync','all'):
      # One device-to-host boundary; the official bridge already owns native obs.
      packed=torch.cat((task.object_pose,hand.flatten(1),task.goal_pos,measured),1).detach().cpu().numpy()
