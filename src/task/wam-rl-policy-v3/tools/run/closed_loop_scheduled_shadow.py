@@ -26,7 +26,7 @@ def main():
  p.add_argument('--native-evaluation',action='store_true',help='Evaluate the historical official 300D policy without WAM conditioning')
  p.add_argument('--evaluate',action='store_true',help='Deterministic first-episode evaluation; no optimizer updates')
  p.add_argument('--bc-evaluation',action='store_true',help='Evaluate only --policy BC weights; never load an RL checkpoint or construct PPO')
- p.add_argument('--task-controller',action='store_true',help='Evaluation-only task10/WAM goals; zero-expand the existing Shadow PPO model')
+ p.add_argument('--task-controller',action='store_true',help='Use TaskController goals; trained310/575 BC loads directly, legacy565 migrates explicitly')
  p.add_argument('--object-manifest',type=Path);p.add_argument('--rl-checkpoint',type=Path)
  p.add_argument('--wam-checkpoint',type=Path);p.add_argument('--wam-surface-manifest',type=Path)
  p.add_argument('--allow-wam-geometry-replacement',action='store_true',help='Evaluation only: explicitly substitute the local geometry manifest')

@@ -65,3 +65,42 @@ def test_uneven_three_rank_bc_gradients_equal_the_single_global_batch():
         grads.append([p.grad.clone() for p in local.parameters()])
     for i,parameter in enumerate(model.parameters()):
         torch.testing.assert_close(sum(g[i] for g in grads)/3,parameter.grad,rtol=1e-6,atol=1e-7)
+
+
+def test_trained575_actor_loads_goal_weights_directly_without_zero_expansion():
+    from wam_rl_policy_v3.scheduled_executor import BCWarmStartActor
+    from wam_rl_policy_v3.shadow_task_contract import SCHEDULED_SCHEMA
+    model=TaskShadowMLP(True)
+    with torch.no_grad():
+        model.net[0].weight[:,300:310].fill_(.123)
+        model.net[-1].weight.normal_(0,.01)
+    packet=dict(schema=SCHEDULED_SCHEMA,model=model.state_dict(),task_columns_trained=True,
+                config=dict(conditioning=conditioning()))
+    actor=BCWarmStartActor(packet)
+    assert actor.task_model and actor.actor.input_dim==575
+    torch.testing.assert_close(actor.actor.net[0].weight[:,300:310],model.net[0].weight[:,300:310],rtol=0,atol=0)
+    inputs=torch.randn(8,575)
+    torch.testing.assert_close(actor(inputs),model(inputs),rtol=0,atol=0)
+
+
+def test_current310_keeps_new_episode_observation_and_goal_without_wam_prediction():
+    from types import SimpleNamespace
+    from test_episode_boundaries import DelayedResetBase
+    from wam_rl_policy_v3.shadow_task_probe import TaskCurrentOfficialEnv
+    base=DelayedResetBase();poses=np.repeat(np.eye(4)[None],2,axis=0)
+    points=np.random.default_rng(7).normal(size=(32,3))*.01
+    runtime=SimpleNamespace(device='cpu',geometry=[(points,None,points)]*2)
+    runtime.predict=lambda *args:(_ for _ in ()).throw(AssertionError('Current310 must not run WAM'))
+    snapshot=lambda:dict(pose=poses.copy(),hand=np.ones((2,11,3)),goal=np.tile([0,0,.2],(2,1)),velocity=np.zeros((2,6)))
+    env=TaskCurrentOfficialEnv(base,snapshot,runtime,termination_policy='native')
+    observation=env.reset()
+    assert observation.shape==(2,310) and env.inputs is None
+    np.testing.assert_array_equal(observation.numpy()[:,307:310],[[1,0,0],[1,0,0]])
+    for tick in range(3):
+        action=torch.ones(2,24)*.25;action[:,0]=observation[:,0]+.25
+        observation,reward,done,info=env.step(action)
+        if tick==1:assert not info['transition_valid'][0] and info['transition_valid'][1]
+    assert base.trace[1][0][0].abs().max()==0
+    assert base.trace[2][0][0,0]==1.25
+    assert env.schedulers[0].controller.observer.last_time==1/60
+    assert env.schedulers[1].controller.observer.last_time==3/60

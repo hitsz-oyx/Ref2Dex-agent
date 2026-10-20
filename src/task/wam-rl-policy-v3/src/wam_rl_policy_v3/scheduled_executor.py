@@ -24,7 +24,18 @@ for the sampled action when computing probability ratios.
     def __init__(self, packet, initial_std=.05):
         super().__init__()
         from .bc_mlp import CurrentMLP,SCHEDULED_SCHEMA,SCHEDULED_DIM
-        self.current_model = packet.get('schema') == SCHEDULED_SCHEMA
+        from .shadow_task_contract import CURRENT_SCHEMA as TASK_CURRENT,SCHEDULED_SCHEMA as TASK_SCHEDULED,conditioning
+        self.task_model=packet.get('schema') in (TASK_CURRENT,TASK_SCHEDULED)
+        self.current_model = self.task_model or packet.get('schema') == SCHEDULED_SCHEMA
+        if self.task_model:
+            from .bc_mlp import TaskShadowMLP
+            with_tau=packet['schema']==TASK_SCHEDULED
+            if packet.get('config',{}).get('conditioning')!=conditioning(with_tau) or not packet.get('task_columns_trained'):
+                raise ValueError('actually trained task10 BC with its matching conditioning required')
+            self.actor=TaskShadowMLP(with_tau)
+            self.actor.load_state_dict(packet['model'],strict=True)
+            self.log_std=nn.Parameter(torch.full((24,),float(np.log(initial_std))))
+            return
         if self.current_model:
             from .control_contracts import scheduled_conditioning_contract
             declared=packet.get('config',{}).get('conditioning')

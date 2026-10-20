@@ -97,6 +97,15 @@ def main():
             parent = torch.load(a.parent.resolve(), map_location='cpu', weights_only=False)
             if parent.get('config',{}).get('conditioning') != conditioning(False):
                 raise ValueError('Current310 parent must share the exact task contract')
+            if (parent['config'].get('base_cache')!=cache['identity']['base']
+                    or parent['config'].get('source')!=cache['source']
+                    or parent['config'].get('dense')!=cache['identity']['dense']):
+                raise ValueError('Current310 and Scheduled575 data/geometry identities differ')
+            for key in ('x_mean','x_scale','y_mean','y_scale'):
+                actual=parent['model'][key]
+                expected=getattr(model,key).detach().cpu()
+                if key.startswith('x_'):expected=expected[:310]
+                if not torch.equal(actual,expected):raise ValueError('parent normalization changed: '+key)
             inherited = bool(parent.get('task_columns_trained'))
             if not inherited: raise ValueError('parent task10 columns have not actually learned')
             model.initialize_task_current(parent)
