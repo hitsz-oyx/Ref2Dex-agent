@@ -75,6 +75,9 @@ class TaskScheduledOfficialEnv(ScheduledOfficialEnv):
         self.observation_space=spaces.Box(low=-np.inf,high=np.inf,shape=(575,),dtype=np.float32)
         self.phase_counts=np.zeros((self.num_envs,3),np.int64)
         self.max_progress=np.zeros(self.num_envs);self.first_done=np.zeros(self.num_envs,bool)
+        self.evidence={name:np.zeros(self.num_envs,np.int64) for name in (
+            'observed','near2','force2','contact_candidate','moving','near_force_moving',
+            'speed_limit_reject','relative_ratio_reject','motion_coupled')}
 
     def scheduler(self,state,index):return TaskGoalScheduler(state,index,self.runtime.geometry[index])
 
@@ -89,6 +92,19 @@ class TaskScheduledOfficialEnv(ScheduledOfficialEnv):
             if not self.first_done[i]:
                 self.phase_counts[i,int(decision.phase)]+=1
                 self.max_progress[i]=max(self.max_progress[i],decision.path_progress)
+                evidence=scheduler.controller.observer.last_evidence
+                if evidence is not None and not decision.terminated:
+                    self.evidence['observed'][i]+=1
+                    near=evidence['near_fingers']>=2
+                    force=evidence['force_count'] is not None and evidence['force_count']>=2
+                    speed=evidence['object_speed_mps'];relative=evidence['relative_hand_speed_mps']
+                    moving=speed is not None and speed>.004
+                    for key,value in [('near2',near),('force2',force),('contact_candidate',near and force),
+                            ('moving',moving),('near_force_moving',near and force and moving),('motion_coupled',evidence['coupled'])]:
+                        self.evidence[key][i]+=int(value)
+                    if near and force and moving and relative is not None:
+                        self.evidence['speed_limit_reject'][i]+=int(relative>=.04)
+                        self.evidence['relative_ratio_reject'][i]+=int(relative>.001+.35*speed)
         return torch.cat((legacy[:,:300],legacy.new_tensor(np.stack(tasks)),legacy[:,300:]),1)
 
     def step(self,*args,**kwargs):
@@ -130,5 +146,6 @@ def run(task,snapshot,sim_step,actor,runtime,args):
     reports=evaluate(env,policy,args,weights['iteration'])
     (args.output/'task-diagnostics.json').write_text(json.dumps(dict(phase_counts=env.phase_counts.tolist(),
         max_progress=env.max_progress.tolist(),goal_task_error_m=max(s.max_goal_error for s in env.inputs.schedulers),
+        evidence_frames={k:v.tolist() for k,v in env.evidence.items()},
         task_columns_learned=False),indent=2)+'\n')
     return reports

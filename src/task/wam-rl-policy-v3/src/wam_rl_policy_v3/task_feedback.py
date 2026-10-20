@@ -34,6 +34,7 @@ class FeedbackObserver:
     def reset(self):
         self.motion.reset();self.candidate_since=self.release_since=self.no_force_since=None
         self.last_time=None;self.had_grasp=False
+        self.last_evidence=None
 
     def update(self,pose,hand,velocity,now,*,contact_forces=None,force_valid=False,supported=None,workspace_ok=True):
         now=float(now)
@@ -47,6 +48,7 @@ class FeedbackObserver:
             forces=np.asarray(contact_forces)
             if forces.shape!=(5,3) or not np.isfinite(forces).all():raise ValueError('five measured contact forces in newtons required')
             count=int((np.linalg.norm(forces,axis=-1)>=self.contact_force_n).sum())
+        self.last_evidence=dict(observed,force_count=count)
         contact_observed=bool(count is not None and count>=2 and observed['near_fingers']>=2)
         if contact_observed:
             if self.candidate_since is None:self.candidate_since=now
