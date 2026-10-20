@@ -160,8 +160,8 @@ class ScheduledOfficialEnv:
         self.last_episode_results={};self.initialization_steps=0
         self.final_successful_episodes=self.final_held_episodes=self.drop_episodes=0
 
-    def augment(self,native,reset_ids):
-        state=self.snapshot()
+    def augment(self,native,reset_ids,*,state=None):
+        state=self.snapshot() if state is None else state
         if self.inputs is None and not self.native_only:
             schedulers=[]
             for i in range(self.num_envs):schedulers.append(self.scheduler(state,i))

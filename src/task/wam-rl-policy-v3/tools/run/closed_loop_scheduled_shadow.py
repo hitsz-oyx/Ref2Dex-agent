@@ -25,6 +25,7 @@ def main():
  p.add_argument('--native-checkpoint-iteration',type=int,default=None,help='Known local finetuning iteration; omit for published weights')
  p.add_argument('--native-evaluation',action='store_true',help='Evaluate the historical official 300D policy without WAM conditioning')
  p.add_argument('--evaluate',action='store_true',help='Deterministic first-episode evaluation; no optimizer updates')
+ p.add_argument('--task-controller',action='store_true',help='Evaluation-only task10/WAM goals; zero-expand the existing Shadow PPO model')
  p.add_argument('--object-manifest',type=Path);p.add_argument('--rl-checkpoint',type=Path)
  p.add_argument('--wam-checkpoint',type=Path);p.add_argument('--wam-surface-manifest',type=Path)
  p.add_argument('--allow-wam-geometry-replacement',action='store_true',help='Evaluation only: explicitly substitute the local geometry manifest')
@@ -42,6 +43,7 @@ def main():
  if a.native_evaluation and not a.evaluate:raise ValueError('Native checkpoint comparison is evaluation-only')
  if a.allow_wam_geometry_replacement and not a.evaluate:raise ValueError('Geometry replacement is evaluation-only')
  if a.evaluate and (not a.official_ppo or not a.rl_checkpoint or a.ppo_updates or a.world_size!=1):raise ValueError('Evaluation requires official checkpoint, single rank and zero updates')
+ if a.task_controller and (not a.evaluate or a.native_evaluation or a.goal_type!='position_only' or not a.checkpoint_migration_reason):raise ValueError('Task probe needs explicit position-only evaluation migration')
  if a.envs>1 and not (a.ppo_updates or a.evaluate):raise ValueError('Batched execution requires PPO pilot')
  if a.ppo_updates and (a.ppo_smoke or a.ticks*a.envs%4):raise ValueError('Equal PPO minibatches required')
  if not 1<=a.world_size<=6 or not 0<=a.rank<a.world_size or a.save_every<1:raise ValueError('Bounded distributed rank required')
@@ -66,7 +68,7 @@ def main():
  from wam_rl_policy_v3.local_goal_metrics import local_goal_outcomes
  torch.set_num_threads(2)
  signal.signal(signal.SIGALRM,lambda *_:(_ for _ in ()).throw(TimeoutError('native loop deadline')));signal.alarm(a.seconds)
- commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
+ commit=os.environ.get('REF2DEX_CODE_COMMIT') or subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
  manifest=dict(status='RUNNING',git_commit=commit,python=sys.executable,torch=torch.__version__,gpu=a.gpu,
     rank=a.rank,world_size=a.world_size,object_manifest=str(a.object_manifest),resume=str(a.rl_checkpoint),seed=a.seed,ticks=8 if a.official_ppo else a.ticks,episodes=a.episodes,envs=a.envs,ppo_updates=a.ppo_updates,policy=str(a.policy),scope='native interface engineering; not policy success validation')
  write_json(a.output/'manifest.json',manifest);started=time.monotonic();task=None
@@ -131,20 +133,25 @@ def main():
     goal_type=a.goal_type,termination_policy=a.termination_policy,checkpoint_migration_reason=a.checkpoint_migration_reason)
   manifest['wam_step']=runtime.step
   if a.ppo_updates or a.evaluate:
-   if a.official_ppo:
+   if a.task_controller:
+    from wam_rl_policy_v3.shadow_task_probe import run
+   elif a.official_ppo:
     from wam_rl_policy_v3.official_bridge import run
    else:
     from wam_rl_policy_v3.scheduled_ppo_loop import run
    def batch_snapshot():
     rigid=task.rigid_body_states[:,ids];hand=rigid[:,:,:3].clone()
     hand[:,6:]+=quat_apply(rigid[:,6:,3:7].reshape(-1,4),offsets.repeat(a.envs,1)).reshape(a.envs,5,3)
+    measured=torch.cat((task.object_linvel,task.object_angvel,task.vec_sensor_tensor.reshape(a.envs,5,6)[:,:,:3].flatten(1)),1)
     if a.official_ppo and os.environ.get('REF2DEX_DEEP_OPT') in ('sync','all'):
      # One device-to-host boundary; the official bridge already owns native obs.
-     packed=torch.cat((task.object_pose,hand.flatten(1),task.goal_pos),1).detach().cpu().numpy()
+     packed=torch.cat((task.object_pose,hand.flatten(1),task.goal_pos,measured),1).detach().cpu().numpy()
      return dict(pose=object_poses(packed[:,:7,None].transpose(0,2,1))[:,0],
-       hand=packed[:,7:40].reshape(a.envs,11,3),goal=packed[:,40:43])
+       hand=packed[:,7:40].reshape(a.envs,11,3),goal=packed[:,40:43],velocity=packed[:,43:49],contact_forces=packed[:,49:64].reshape(a.envs,5,3))
+    measured=measured.detach().cpu().numpy()
     return dict(pose=object_poses(task.object_pose.detach().cpu().numpy()[:,None])[:,0],
-      hand=hand.cpu().numpy().copy(),current=task.obs_buf.cpu().numpy().copy(),goal=task.goal_pos.cpu().numpy().copy())
+      hand=hand.cpu().numpy().copy(),current=task.obs_buf.cpu().numpy().copy(),goal=task.goal_pos.cpu().numpy().copy(),
+      velocity=measured[:,:6],contact_forces=measured[:,6:].reshape(a.envs,5,3))
    manifest.update(envs=a.envs,ppo_updates=a.ppo_updates,scope='official UniDex PPO with scheduled565 BC/WAM' if a.official_ppo else 'custom truncated PPO pilot')
    write_json(a.output/'manifest.json',manifest)
    if a.world_size>1:

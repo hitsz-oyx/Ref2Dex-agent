@@ -8,7 +8,7 @@ from scipy.spatial.transform import Rotation
 from .wam_v4_runtime import v4_online_samples, collate_v4
 from .tau_contract import v4_trajectory_to_student
 from .batched_geometry import native_tau,online_batch,workspace_valid
-from .goal_scheduler import update_schedulers
+from .goal_scheduler import update_schedulers,OrderedGoalScheduler
 
 
 class BatchedScheduledInputs:
@@ -41,11 +41,12 @@ class BatchedScheduledInputs:
         for history, now in zip(self.histories,times):
             if history and not np.isclose(now-history[-1][0],1/60,atol=1e-6,rtol=0):
                 raise ValueError('consecutive 60Hz history required; reset the affected environment')
-        decisions=update_schedulers(self.schedulers,poses,times,hands,fast_geometry=os.environ.get('REF2DEX_DEEP_OPT') in ('cpu','all')) if self.pipeline in ('scheduler','all') else []
+        fast_scheduler=self.pipeline in ('scheduler','all') and all(isinstance(s,OrderedGoalScheduler) for s in self.schedulers)
+        decisions=update_schedulers(self.schedulers,poses,times,hands,fast_geometry=os.environ.get('REF2DEX_DEEP_OPT') in ('cpu','all')) if fast_scheduler else []
         objects_now=np.concatenate((poses[:,:3,3],Rotation.from_matrix(poses[:,:3,:3].copy()).as_quat()),axis=-1)
         for i, scheduler in enumerate(self.schedulers):
             pose=poses[i]
-            if self.pipeline not in ('scheduler','all'):decisions.append(scheduler.update(pose,float(times[i]),hand_points=hands[i]))
+            if not fast_scheduler:decisions.append(scheduler.update(pose,float(times[i]),hand_points=hands[i]))
             obj=objects_now[i]
             self.histories[i].append((float(times[i]),obj,hands[i].copy()))
         ready=[i for i,h in enumerate(self.histories) if len(h)==7]

@@ -47,6 +47,34 @@ CPU geometry/observer replay; no neural computation is needed.
 
 ## Original contract and historical probes
 
+### UniDex data/interface separation probe (2026-10-20)
+
+User requests UniDexGrasp before more Inspire tuning. Decision: if the known
+Shadow565 PPO works but the task10 adapter fails under the same native initial
+states, investigate TaskController/goal changes independently of DExplore data.
+If both work, retain the new boundary for subsequent matched training; this
+cannot prove that all DExplore failures are caused by data.
+
+- run_id: unidex-task-goal-20261020-r1; same experiment/task/seed246/main.
+- existing full UniDex BC parent plus trained PPO10000, no retraining/updates.
+- GPU6 baseline565, GPU7 task575;16 fixed TRAIN object-scales,64 initial scenes,
+  deterministic first complete native episode; common position_only goal,
+  corrected reset, common_workspace termination and frozen WAM80000/local geometry.
+- task575 uses robot300/task10/world tau264/valid1; exactly the shared
+  TaskController used by Inspire. Native force5/velocity6 provide feedback.
+- actor/critic task columns zero, named legacy columns/normalization preserved;
+  no optimizer migration or learned-task-column claim. WAM goal changes to
+  shared TaskController local goal; new goal columns themselves are untrained.
+- bounded900s per worker, total1200s; outputs only
+  outputs/wam-rl-policy-v3/unidex-task-goal-20261020-r1/. Leave GPU4/5 free;
+  existing GPU0–3 tasks are untouched. Frozen source/commands/PIDs in run manifest.
+- require initial robot300/pose/hand/goal/full root identity before matched
+  interpretation. Report native/ever-held/final-stable/drop/workspace separately.
+- only native state/action dimension and60Hz clock differ; same MLP capacity,
+  native reward, upstream deterministic actor inference and simulator controls.
+
+### Historical implementation
+
 用户ref1审计修订。Blocker：相同实测状态/终点而局部路径不同，在H4启动或τ被移除时，
 旧577输入逐位相同；实际BatchedInspireInputs回归在旧代码失败。另复现静止接近物体而
 无路径进度可每拍获得0.775奖励。优先补任务信息，保留全量数据和Shadow网络/PPO配方。
