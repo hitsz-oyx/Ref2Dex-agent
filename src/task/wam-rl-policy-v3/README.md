@@ -1,7 +1,8 @@
 # WAM-RL Policy v3：显式任务 goal 的 BC/PPO
 
 本 Task 承载 `teacher rollout TaskSpec → TaskController → task10 / WAM goal → BC/PPO`。
-当前执行器是 Inspire current421 / scheduled686，包名 `wam_rl_policy_v3`；
+当前执行器包括 Inspire current421 / scheduled686 与 UniDex task-current310 / task-scheduled575，
+包名 `wam_rl_policy_v3`；
 Shadow current300 / scheduled565 的主要实验继续位于 [v2](../wam-rl-policy-v2/README.md)。
 共同容量、官方 PPO 适配与几何工具在此保留独立代码副本，不从 v2 包动态导入。
 
@@ -10,10 +11,16 @@ Shadow current300 / scheduled565 的主要实验继续位于 [v2](../wam-rl-poli
 - `tools/run/train_measured_scheduled_bc.py`：严格零扩展的 Scheduled686 BC，packet v2。
 - `tools/run/inspire_measured_bc_eval.py`、`inspire_scheduled_bc_eval.py`：有界单回合原生评估及采样 PPO collector smoke。
 - `tools/run/inspire_physics_host.py`：同轮实测 state/force/support 与原生 PD。
+- `tools/run/prepare_shadow_task_labels.py`：全量UniDex同轮实测任务回放，输出task10，提前启动Current310。
+- `tools/run/train_current_bc.py prepare-scheduled --task-goal`：task10与WAM共用TaskController决策的新575缓存；旧565 τ不复用。
+- `tools/run/train_shadow_task_bc_ddp.py`：三卡实际训练Current310/Scheduled575，新增goal权重参与优化；global2048按683/683/682分配并按样本数加权梯度。
+- `tools/audit/audit_shadow_task_goal.py`：分别检查几何goal、进度、phase权重变化，固定phase/progress的几何goal依赖性检查。
 - `tools/run/closed_loop_scheduled_shadow.py --task-controller --evaluate`：UniDex575维对照，
-  复用已训练565维PPO，task10零扩展且与WAM同一决策；仅评估，不迁移optimizer。
+  历史565维PPO仍只支持显式零扩展；不能将其解释为新增goal已训练。
 - 同入口 `--bc-evaluation --evaluate --official-ppo`：直接测 `--policy` 的BC均值，
-  禁止传 `--rl-checkpoint`，不创建PPO/critic/optimizer；可选 `--task-controller` 检查575维接线。
+  禁止传 `--rl-checkpoint`，不创建PPO/critic/optimizer。训练后的310/575配合
+  `--task-controller`直接载入，保持所有已学goal权重，声明`zero_expansion=False`；
+  310不运行神经τ预测，575检查训练绑定的WAM/geometry路径。
 - [接口与证据](docs/research/2026-10-19-measured-task-interface.md)。
 - [当前状态与新缓存](docs/STATE.md)。
 - [迁移清单](docs/migration.json)。
@@ -30,11 +37,28 @@ Shadow current300 / scheduled565 的主要实验继续位于 [v2](../wam-rl-poli
 
 已修复：新增265列清零；task10/WAM共享目标；训练采样动作；单回合终止收尾；
 实时支撑反馈；按环境绑定几何；shaping/GAE统一 γ=.96。
-桌面支撑使用实际mesh薄轴向上的面、切向范围和法向力；Shadow任务反馈使用净接触力，
-不将包含内部solver力的六维力传感器读数冒充接触力。
+桌面支撑使用实际mesh薄轴向上的面、切向范围和法向力。Shadow在线诊断可使用净接触力；
+继承的UniDex BC记录未保存net-contact，310/575训练合同显式采用离线/在线一致的motion-only
+反馈，不将applied腕部力或包含solver力的六维总力传感器冒充接触力。
 多回合训练仍需显式 reset 后重新观察/采样；旧 Inspire launchers 只用于历史路线，
 不作为新421/686长训入口。当前不据旧 Scheduled BC 的微小 DEV 差异推断 WAM 收益。
 
 ```bash
 PYTHONPATH=src/task/wam-rl-policy-v3/src python3 -m pytest -q src/task/wam-rl-policy-v3/tests
 ```
+
+三卡训练入口（`--output`必须是本Task的新目录）：
+
+```bash
+CUDA_VISIBLE_DEVICES=5,6,7 NCCL_P2P_DISABLE=1 \
+  /home2/wyy/miniconda3/envs/graspenv/bin/python -m torch.distributed.run \
+  --standalone --nproc_per_node=3 \
+  src/task/wam-rl-policy-v3/tools/run/train_shadow_task_bc_ddp.py \
+  --data outputs/wam-rl-policy-v3/unidex-task-bc-20261020-r1/task-labels \
+  --output outputs/wam-rl-policy-v3/new-goal-bc-run/current \
+  --stage current --steps 50000 --batch 2048 --seed 241 --physical-gpus 5 6 7
+```
+
+完成同源575缓存后，将stage改为`scheduled`、data指向该缓存，且`--parent`必须指向
+同源310训练的best checkpoint。父模型的数据、几何、归一化和task合同必须一致。
+当前原生结果和限制见[实验卡](docs/experiments/probes/P-20261019-inspire-task-contract.md)。

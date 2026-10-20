@@ -10,7 +10,7 @@ claim_id: C1
 hypothesis_family: HF-scheduled-wam-executor
 probe_index_in_family: 12
 seed_pool: probe
-seeds: [246]
+seeds: [241, 242, 246]
 decision_changed_if_positive: train the full-data task-conditioned BC and official PPO under the repaired contract
 decision_changed_if_negative: repair the first observation or native replay mismatch before further PPO scaling
 status: COMPLETED

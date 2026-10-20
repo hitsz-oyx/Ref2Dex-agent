@@ -7,11 +7,12 @@ Current310随机初始化50k后，Scheduled575继承本轮已学goal的310再训
 同轮旧记录没有net-contact字段，离线/在线统一显式motion-only反馈；当前速度由原生观测
 yaw与角速度缩放解码，不使用未来，也不把总力传感器或applied wrist force冒充接触力。
 全量task10已完成，TRAIN428972/DEV99248行非零goal；已完成τ部分694595行task10逐位一致。
-三卡梯度按683/683/682加权为同一global2048均值，真实NCCL smoke参数差0；当前310
-正在实际优化，新goal第2步有非零梯度并已发生权重改变。149项Task测试通过。
+三卡梯度按683/683/682加权为同一global2048均值。310已完成50k更新约262s，三卡参数差0；
+新goal第2步有非零梯度，平移goal权重最大改变0.288。149项Task测试通过。
 原生入口已支持直接载入训练310/575，zero_expansion=False，不再把零扩展评估叫训练复现。
 自动流程/当前进度见outputs/wam-rl-policy-v3/unidex-task-bc-20261020-r1/manifest.json。
-最终原生成功率须等实际新模型评估，尚无本轮goal+BC成功率结论。
+310已实际原生评估64个固定TRAIN场景，原生曾成功32/64、最终稳定21/64，workspace失败0；
+zero_expansion=False、task_columns_learned=True。575的同源τ缓存已恢复，最终575结果仍待训练评估。
 
 新增用户要求的从头学习对照：UniDex Current300 随机初始化50k，再以本轮新父模型训练
 Scheduled565 50k，不加载历史BC/PPO。新BC在同一16个TRAIN物体/64初态中原生曾成功35，
