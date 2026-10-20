@@ -31,6 +31,11 @@ Shadow current300 / scheduled565 的主要实验继续位于 [v2](../wam-rl-poli
   已生成 [预测回填原速视频](../../../outputs/wam-rl-policy-v3/wam-mano-autoregressive-20261020-r1/rolling.mp4)
   和 [2倍慢放](../../../outputs/wam-rl-policy-v3/wam-mano-autoregressive-20261020-r1/rolling-slow2x.mp4)。
   这一条初始化的重预测交界更平顺，但手没有接近物体，未生成教师式抓取过程；不能将平顺当准确。
+- `tools/audit/probe_wam_train_rollout.py`：4个实际WAM TRAIN GRAB初始窗口及同源序列对照，
+  双手、训练定义的true object t+24 goal，比较真实H4与旧预测H4的24/8滚动。
+  [误差曲线](../../../outputs/wam-rl-policy-v3/wam-train-rollout-20261020-r1/train-rollout-errors.png)
+  和 [三栏对照视频](../../../outputs/wam-rl-policy-v3/wam-train-rollout-20261020-r1/train-cases.mp4)。
+  初始前8帧EPE4.05–10.47mm，持续回填的整段教师轨迹复现误差显著增大；不作泛化或物理执行结论。
 - `tools/run/prepare_shadow_task_labels.py`：全量UniDex同轮实测任务回放，输出task10，提前启动Current310。
 - `tools/run/train_current_bc.py prepare-scheduled --task-goal`：task10与WAM共用TaskController决策的新575缓存；旧565 τ不复用。
 - `tools/run/train_shadow_task_bc_ddp.py`：三卡实际训练Current310/Scheduled575，新增goal权重参与优化；global2048按683/683/682分配并按样本数加权梯度。

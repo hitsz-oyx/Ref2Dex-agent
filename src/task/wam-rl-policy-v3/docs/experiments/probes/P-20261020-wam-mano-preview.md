@@ -300,3 +300,74 @@ graspenv Python3.8/Torch2.4.1+cu121, float32, single-sample forward. Frozen code
 commit and run command/resources go into the manifest and
 `tmp/wam-train-rollout/`; outputs under the declared run in this Task. Video
 compares raw22-point hands and32 object query points to isolate MANO fit error.
+
+### Actual TRAIN result and diagnosis
+
+Frozen implementation `97466e01` completed all4 cases in26.04s, peak CUDA
+401.25MiB; no rollout stop. Native TRAIN-cache fields match exactly. Rebuilding
+the initial model inputs from sequence history changes the predicted coordinate
+by only0.00205–0.00585mm, below the predeclared0.1mm gate. An independent audit
+verifies every subsequent free-history H4 equals the stored previous predictions,
+hand-coordinate reconstruction is exact, and independent rigid SVD composition
+differs by at most2.22e-15. No future measured hand/object state is substituted
+for free-rollout history; future object poses are explicitly supplied goals.
+
+| Cached TRAIN case | Continuation length | First forecast first8 EPE | Repeated real-H4 mean EPE | Free-H4 mean EPE | Free-H4 final EPE |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| eyeglasses_lift | 6.13s | 5.98mm | 4.56mm | 67.07mm | 33.31mm |
+| bowl_pass_1 | 1.60s | 6.20mm | 12.71mm | 220.00mm | 638.57mm |
+| stamp_lift | 6.13s | 4.05mm | 5.46mm | 52.19mm | 121.60mm |
+| stanfordbunny_lift | 5.50s | 10.47mm | 7.71mm | 43.79mm | 111.05mm |
+
+EPE is mean Euclidean distance across the two actual11-point hand slots, in mm.
+First full24 EPE ranges7.69–23.54mm; first8 beats both hold and constant velocity
+on all4 initial windows. These are known TRAIN examples, not a held-out score.
+Repeated-H4/free-H4 rows compare the same consumed frames and same external
+true object-t+24 goal sequence within each case. Durations include initial H4.
+
+The bowl free rollout exceeds50mm around0.8s and100mm around0.87s. At relative
+1s, hand EPE is248.19mm while object translation error is1.794mm: a common
+rigid-coordinate drift is not an adequate account of that hand discrepancy.
+Cached H4 velocity/acceleration norms do not show a universal explosion above
+the corresponding teacher histories; do not claim derivative blow-up as an
+established cause. The first free chunk remains close to the repeated-real-H4
+chunk, with divergence becoming material in later predictions.
+
+Code-supported interpretation: `training.py` draws observed windows, runs one
+forward and applies `forecast_loss`. `objectives.py` contains per-point hand/
+scene squared error and contact/part classification, without a multi-chunk
+generated-history loss, cross-window consistency loss or physical contact
+constraint. The full24 temporal head is a direct time-embedding readout, not an
+integrated simulator. Object endpoint goals do not uniquely specify future
+hand decisions; C and hand/scene are parallel outputs rather than a hard
+coupling constraint. This supports generated-history distribution drift and
+unobserved future hand decisions as explanations; it does not isolate a unique
+cause or prove that adding a rollout loss will fix it.
+
+The earlier Inspire free rollout has a separate immediate problem: at its
+initial real-H4 anchor3, future frame8 already has103.72mm point error before
+any feedback, versus6.30–14.76mm at frame8 in these TRAIN cases. Both embodiment
+and goal semantics differ, so this comparison cannot separately attribute their
+contributions. Current WAM training provenance includes GRAB and Shadow robot
+data, not these Inspire teacher episodes. The TRAIN result establishes that
+long free-rollout non-reproduction is not limited to that Inspire clip.
+
+Large free-history distance from the recorded trajectory means the model does
+not reproduce that trajectory. Once generated states diverge, the recorded
+future is not a unique physically correct future for the counterfactual state;
+these numbers alone do not establish that every generated alternative is
+physically invalid. Nor do they establish a BC/PPO utility conclusion. The next
+research decision is to assess short real-observation tau separately from
+standalone free rollout; no new training was launched from this diagnosis.
+
+- [Four-case error curves](../../../../../../outputs/wam-rl-policy-v3/wam-train-rollout-20261020-r1/train-rollout-errors.png)
+- [Combined raw-point comparison video, slow2x](../../../../../../outputs/wam-rl-policy-v3/wam-train-rollout-20261020-r1/train-cases.mp4)
+- [Full results and protocol scope](../../../../../../outputs/wam-rl-policy-v3/wam-train-rollout-20261020-r1/result.json)
+- [Independent input/coordinate audit](../../../../../../outputs/wam-rl-policy-v3/wam-train-rollout-20261020-r1/data-audit.json)
+
+The combined1200×400 H.264 video contains581 frames/38.734s of2x-slow playback,
+and passes complete decoding. Left is recorded TRAIN, middle uses real H4 at
+every replan, right uses old prediction H4. Both predicted lanes show their own
+rigid-projected object32 points. A fixed common camera is used per case. Total
+artifacts3.82MB, with no MANO fitting confound. GPU work ended; visualization
+used CPU plotting. Runtime/resource logs remain in `tmp/wam-train-rollout/`.
