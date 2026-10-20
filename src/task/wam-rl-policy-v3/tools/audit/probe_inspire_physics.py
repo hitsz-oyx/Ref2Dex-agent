@@ -32,8 +32,9 @@ def main():
     p.add_argument('--action',choices=['zero','noise'],default='zero')
     p.add_argument('--memcheck',action='store_true')
     p.add_argument('--backend',choices=['gpu','gpu-cpu','cpu'],default='gpu')
+    p.add_argument('--partial-reset-every',type=int,default=0)
     a=p.parse_args();out=a.output.resolve()
-    if out.exists() or ROOT/'outputs/wam-rl-policy-v3' not in out.parents or not 2<=a.envs<=512 or not 1<=a.steps<=128 or not 0<=a.resets<=3:
+    if out.exists() or ROOT/'outputs/wam-rl-policy-v3' not in out.parents or not 2<=a.envs<=512 or not 1<=a.steps<=128 or not 0<=a.resets<=3 or not 0<=a.partial_reset_every<=a.steps:
         raise ValueError('fresh bounded native-only diagnostic required')
     out.mkdir(parents=True);scratch=ROOT/'tmp'/out.name;scratch.mkdir()
     address=scratch/'s';listener=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM)
@@ -51,7 +52,7 @@ def main():
         cmd=[Path('/usr/local/cuda-11.8/bin/compute-sanitizer'),'--tool','memcheck',
              '--error-exitcode','97','--log-file',out/'memcheck.log']+cmd
     info=dict(status='RUNNING',git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
-              argv=list(map(str,cmd)),steps=0,resets=a.resets,canonical_action=a.action,wam=False,ppo=False)
+              argv=list(map(str,cmd)),steps=0,resets=a.resets,canonical_action=a.action,wam=False,ppo=False,partial_reset_calls=0)
     def save():(out/'manifest.json').write_text(json.dumps(info,indent=2)+'\n')
     save();connection=None;child=None;started=time.monotonic()
     try:
@@ -68,6 +69,7 @@ def main():
             (out/'initial-sequences.json').write_text(json.dumps(state['sequences'])+'\n')
             for tick in range(a.steps):
                 old=list(state['episodes'])
+                previous_tick=state['tick'].copy()
                 if a.action=='noise':
                     from wam_rl_policy_v3.inspire_contract import expand_action
                     if tick==0:rng=np.random.RandomState(a.seed)
@@ -75,8 +77,18 @@ def main():
                 else:action=[[0.]*18 for _ in range(a.envs)]
                 send(connection,dict(op='step',episodes=old,action=action))
                 state=unpack_state(receive(connection)['state'])
-                if old!=state['episodes'] or not (state['tick']==tick+1).all():
+                if old!=state['episodes'] or not (state['tick']==previous_tick+1).all():
                     raise ValueError('native action/clock mismatch')
+                if a.partial_reset_every and (tick+1)%a.partial_reset_every==0:
+                    ids=np.arange(a.envs)[np.arange(a.envs)%4==info['partial_reset_calls']%4]
+                    before=state
+                    send(connection,dict(op='reset',ids=ids.tolist()))
+                    state=unpack_state(receive(connection)['state'])
+                    expected=np.array(before['episodes']);expected[ids]+=1
+                    expected_tick=before['tick'].copy();expected_tick[ids]=0
+                    if not (expected==state['episodes']).all() or not (expected_tick==state['tick']).all():
+                        raise ValueError('indexed reset changed a live episode or clock')
+                    info['partial_reset_calls']+=1
                 info['steps']=tick+1;save()
             send(connection,dict(op='close'));receive(connection)
             child.wait(timeout=30)
