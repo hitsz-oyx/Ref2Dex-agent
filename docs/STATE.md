@@ -6,7 +6,9 @@
 迁移前冻结1f9ae236的GPU6/7原生修复检查已通过：Current450拍在终止处正常结束，
 Scheduled以banana/apple完成60拍，PD误差0、跨回合错配0；仅工程验证，无策略改善结论。
 v2的59项、v3的127项测试通过。ref1_2确认的零扩展与双调度源问题已修复，追加真实父checkpoint
-梯度/goal一致性及shape漂移审计，准备重建v3的统一goal τ缓存，无BC/PPO长训。
+梯度/goal一致性及shape漂移审计。v3完整新τ缓存406秒完成，有效TRAIN52660/DEV5693，
+点目标最大差7.61e-8m；真实8物体256行零扩展最大输出差2.38e-7，tau/valid首步梯度非零。
+未启动BC/PPO长训；实际最新产物与边界见[v3状态](../src/task/wam-rl-policy-v3/docs/STATE.md)。
 [新入口](../src/task/wam-rl-policy-v3/README.md)。
 
 ## 2026-10-20 Inspire measured接口审计修复

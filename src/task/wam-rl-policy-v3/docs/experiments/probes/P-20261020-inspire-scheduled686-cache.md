@@ -32,3 +32,16 @@ TeacherRolloutCorpus causal replay; no raw teacher recapture is required.
 Layout v2 records the shared-goal contract and completion receipts bind source
 admission and frozen WAM. Two disjoint workers use GPU6/7, bounded to 21600 s each.
 This is an engineering repair of conditioning, not a WAM-benefit experiment.
+
+
+### Corrected full cache result
+
+Frozen da9f5b8b completed `outputs/wam-rl-policy-v3/inspire-scheduled686-cache-20261020-r2/`
+on GPU6/7 in 406.14 s including process startup. All 563 admitted prefixes and
+60,529 row identities are retained; 52,660 TRAIN and 5,693 DEV rows are active
+and WAM-valid. Inactive/startup/workspace-invalid rows stay zero/invalid. Every
+predicted input checks independently packed task6 against WAM point displacements;
+maximum discrepancy was 7.613e-8 m (limit 1e-6). Both shard receipts bind the
+original measured admission and the same frozen v4 step80000. No teacher data
+were recollected and no neural checkpoint was overwritten. These counts are
+conditioning admission, not manipulation success.

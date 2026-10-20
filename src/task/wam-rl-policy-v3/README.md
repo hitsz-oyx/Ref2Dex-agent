@@ -11,6 +11,7 @@ Shadow current300 / scheduled565 的主要实验继续位于 [v2](../wam-rl-poli
 - `tools/run/inspire_measured_bc_eval.py`、`inspire_scheduled_bc_eval.py`：有界单回合原生评估及采样 PPO collector smoke。
 - `tools/run/inspire_physics_host.py`：同轮实测 state/force/support 与原生 PD。
 - [接口与证据](docs/research/2026-10-19-measured-task-interface.md)。
+- [当前状态与新缓存](docs/STATE.md)。
 - [迁移清单](docs/migration.json)。
 - 用户审计参考原目录的 `docs/user/ref1_2.md`；用户原文仍在 v2 目录。
 

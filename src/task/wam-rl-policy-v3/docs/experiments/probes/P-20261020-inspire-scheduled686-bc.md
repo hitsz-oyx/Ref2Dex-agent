@@ -31,3 +31,13 @@ so the exact parent remains selectable if condition training degrades DEV.
 Shape feature distribution diagnostics are logged at evaluation. Capacity,
 optimizer and the 50k maximum remain the Shadow recipe; no new long BC run is
 started as part of the engineering repair.
+
+
+The real-parent regression at 94ce4175 used Current421 best step3000 and 256
+active/new-tau-valid rows from eight TRAIN objects. Initial output max error was
+2.384e-7 and all added weights were exactly zero. One engineering AdamW step
+produced nonzero tau/valid gradients (max 0.014186/0.004477) and updated the new
+columns; no checkpoint was saved. Parent normalized shape features had p99 2.48
+and maximum 3.24 on this panel. This small panel does not exclude broader shape
+shift or establish grasping. Report:
+`outputs/wam-rl-policy-v3/inspire-current421-warmstart-audit-20261020-r1/report.json`.

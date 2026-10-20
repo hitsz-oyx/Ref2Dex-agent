@@ -132,3 +132,11 @@ remain. Historical artifacts remain read-only in their original directories.
 User ref1_2's two definite defects are repaired. Additional shape drift and
 per-action signed/directional diagnostics instrument the learning questions;
 no architectural or hyperparameter change is justified by those questions alone.
+
+
+The migrated da9f5b8b native check also completed at
+`outputs/wam-rl-policy-v3/inspire-measured-interface-fixes-20261020-r2/`:
+450 Current controls ending at actual task timeout, 60 Scheduled controls with
+banana/apple, PD error zero, episode mismatch zero, task/WAM goal max discrepancy
+6.59e-9 m. Sampled log-prob replay errors were 1.14e-5/6.68e-6. Both actor candidates
+were rolled back, so only collector correctness is established, not policy learning.

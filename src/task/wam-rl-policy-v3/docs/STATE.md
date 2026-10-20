@@ -14,8 +14,15 @@ PD误差0、跨episode动作错配0；Scheduled task10/WAM点目标最大差6.59
 Scheduled 使用的是未训练的精确 Current421 扩展，仅用于接口检查，不能视为新BC表现。
 PPO两组actor候选都被KL门槛回退，没有策略改善结论。
 
-同一teacher准入数据下的统一goal τ缓存正在GPU6/7重建；旧双调度源缓存及旧Scheduled权重保留，
-不能静默进入新训练。现有 Current421 best 仍可作为父策略，不需为迁移重训。
-下一步对新缓存做真实父checkpoint输出等价/首步梯度审计，再考虑重训Scheduled BC。
+统一goal τ缓存已在GPU6/7完成，约406秒，路径为
+outputs/wam-rl-policy-v3/inspire-scheduled686-cache-20261020-r2；563条前缀/60529行，
+有效TRAIN52660、DEV5693，task10/WAM点目标最大差7.61e-8m。
+旧双调度源缓存及旧Scheduled权重保留，不能静默进入新训练。
+真实Current421 best(step3000)在8物体256条新条件样本上的零扩展检查通过：
+输出最大差2.38e-7，新增非零权重数0，首步tau/valid梯度最大0.01419/0.00448。
+该检查只做1次工程optimizer更新，不保存checkpoint。shape标准化特征p99=2.48、max=3.24，
+仅此小面板未见幅值爆炸，不能排除全量或后期漂移。完整报告为
+outputs/wam-rl-policy-v3/inspire-current421-warmstart-audit-20261020-r1/report.json。
+现有Current421 best仍可作为父策略，不需为迁移重训；下一步可重训正确条件的Scheduled BC。
 新训练保留step0基线并记录shape特征漂移；不因ref1_2提出的学习风险修改容量或50k配方。
 当前工具只有有界单回合collector，尚不作为多回合长PPO训练入口。

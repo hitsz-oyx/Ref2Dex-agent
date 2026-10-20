@@ -1,5 +1,8 @@
 # Teacher rollout任务与实测执行接口
 
+本路线现位于wam-rl-policy-v3；Shadow主实验保留在v2，历史产物只读复用。
+当前完整状态见[STATE](../STATE.md)。
+
 最新修复（2026-10-20）：τ与task10统一消费TaskController局部目标；
 新增τ缓存layout v2、Scheduled BC packet v2，旧v1保留但不得静默复用。
 Current421扩展时新增列置零；PPO采样动作、支撑反馈、终止批次与γ一致性已补充回归。
