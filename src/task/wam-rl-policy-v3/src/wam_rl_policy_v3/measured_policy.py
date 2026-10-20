@@ -45,9 +45,13 @@ class MeasuredInspirePolicy(nn.Module):
                     normalized_abs_p99=float(torch.quantile(normalized.abs().flatten(), .99)),
                     normalized_abs_max=float(normalized.abs().max()))
 
-    def forward(self,measured,task,object_points,*,tau=None,tau_valid=None):
+    def forward(self,measured,task,object_points,*,tau=None,tau_valid=None,shape_index=None):
         if measured.shape[-1]!=347 or task.shape!=measured.shape[:-1]+(10,):raise ValueError('measured347/task10 required')
         feature=self.shape(object_points)
+        if shape_index is not None:
+            if shape_index.shape != measured.shape[:-1]:
+                raise ValueError('one CAD feature index per measured observation required')
+            feature=feature[shape_index]
         robot=torch.cat((measured[...,:345],feature,measured[...,345:]),-1)
         parts=[robot,task]
         if self.with_tau:

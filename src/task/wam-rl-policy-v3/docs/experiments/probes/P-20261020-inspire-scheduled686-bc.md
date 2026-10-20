@@ -41,3 +41,29 @@ columns; no checkpoint was saved. Parent normalized shape features had p99 2.48
 and maximum 3.24 on this panel. This small panel does not exclude broader shape
 shift or establish grasping. Report:
 `outputs/wam-rl-policy-v3/inspire-current421-warmstart-audit-20261020-r1/report.json`.
+
+
+## Corrected full-data retraining: r2
+
+- classification: Decision Probe; distinguish whether repaired shared-goal tau
+  can improve matched DEV imitation/closed-loop behavior over the exact parent.
+- next decision: better DEV and physical progress supports a bounded policy
+  improvement probe; a step0 win or no closed-loop progress prioritizes causal
+  error/conditioning diagnosis before multi-hour PPO. No WAM attribution claim.
+- cheapest test: reuse immutable admitted data and v2 tau layout; retrain only
+  Scheduled686 from Current421 best, keep step0 in selection, then paired DEV and
+  the same fixed TRAIN native panel. Do not retrain Current421 or recapture data.
+- task: wam-rl-policy-v3; branch: main.
+- run_id: inspire-scheduled686-bc-20261020-r2.
+- git_commit: supplied by REF2DEX_CODE_COMMIT in the frozen run manifest.
+- inputs: original measured admission, v3 shared-goal cache r2, Current421 best step3000.
+- recipe: 50000 steps, batch2048, AdamW3e-4/weight_decay1e-5, seed247,
+  hidden1024/1024/512/512 ELU, joint CAD encoder, gamma not applicable to BC.
+- engineering: differentiable CAD encoding once per episode point cloud per
+  minibatch and gather back to rows; no frozen shape feature cache, no change
+  in loss/sample weighting. Output and all-parameter gradient regression required.
+- environment: graspenv Python3.8/Torch2.4.1+cu121; GPU6 training, GPU7 evaluation.
+- limits: 8h wall-clock, own STOP, bounded best/latest only; leave other GPUs free.
+- outputs: outputs/wam-rl-policy-v3/inspire-scheduled686-bc-20261020-r2/.
+- evaluation: paired DEV5693 rows, followed by deterministic native controls;
+  this small TRAIN panel cannot establish unseen-object generalization.

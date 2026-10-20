@@ -37,7 +37,10 @@ def main():
     p=argparse.ArgumentParser(); p.add_argument('--manifest',type=Path,required=True); p.add_argument('--tau-cache',type=Path,required=True)
     p.add_argument('--parent',type=Path,required=True); p.add_argument('--output',type=Path,required=True); p.add_argument('--gpu',type=int,default=6)
     p.add_argument('--steps',type=int,default=50000); p.add_argument('--batch',type=int,default=2048); p.add_argument('--seed',type=int,default=247); p.add_argument('--seconds',type=int,default=28800)
-    a=p.parse_args(); out=a.output.resolve(); out.mkdir(parents=True,exist_ok=True)
+    p.add_argument('--shared-shape-batch',action='store_true',help='encode each episode CAD once per batch; gather features with full gradients')
+    a=p.parse_args(); out=a.output.resolve()
+    if ROOT/'outputs/wam-rl-policy-v3' not in out.parents:raise ValueError('v3 Task output required')
+    out.mkdir(parents=True,exist_ok=True)
     if out.exists() and any(x.name not in {'train.log','pid'} for x in out.iterdir()): raise ValueError('fresh scheduled output required')
     if a.steps!=50000 or not 60<=a.seconds<=28800: raise ValueError('bounded scheduled recipe required')
     os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu),TMPDIR=str(ROOT/'tmp'/out.name),OMP_NUM_THREADS='2',PYTHONDONTWRITEBYTECODE='1')
@@ -46,6 +49,7 @@ def main():
     import torch
     from wam_rl_policy_v3.measured_policy import MeasuredInspirePolicy
     from wam_rl_policy_v3.measured_execution import TAU_LAYOUT_SCHEMA, GOAL_CONTRACT
+    torch.set_num_threads(2)
     torch.manual_seed(a.seed); np.random.seed(a.seed)
     train=load(a.manifest.resolve(),'train'); dev=load(a.manifest.resolve(),'dev')
     layout=json.loads((a.tau_cache/'layout.json').read_text())
@@ -94,11 +98,20 @@ def main():
     commit=os.environ.get('REF2DEX_CODE_COMMIT') or subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
     manifest=dict(schema='ref2dex.inspire-measured-scheduled-bc.v2',status='RUNNING',experiment_id='P-20261020-inspire-scheduled686-bc',run_id=out.name,git_commit=commit,
         source_manifest=str(a.manifest.resolve()),tau_cache=str(a.tau_cache.resolve()),goal_contract=GOAL_CONTRACT,wam=completions[0]['wam'],parent=str(a.parent.resolve()),input_dim=686,action_dim=12,steps=a.steps,batch=a.batch,seed=a.seed,
-        train_rows=int(len(tr['action'])),dev_rows=int(len(dv['action'])),tau_admission='workspace_valid and valid=true',warmstart='Current421 best; tau/valid first-layer columns zero')
+        train_rows=int(len(tr['action'])),dev_rows=int(len(dv['action'])),tau_admission='workspace_valid and valid=true',warmstart='Current421 best; tau/valid first-layer columns zero',
+        python=sys.executable,torch=torch.__version__,cuda=torch.version.cuda,gpu=a.gpu,
+        shared_shape_batch=a.shared_shape_batch,wall_clock_limit_s=a.seconds)
     write(out/'manifest.json',manifest); started=time.monotonic(); best=float('inf'); curve=[]
+    def predict(data, ids=None):
+        ids=slice(None) if ids is None else ids
+        shape_ids=data['object_id'][ids]
+        points=data['points'] if a.shared_shape_batch else data['points'][shape_ids]
+        return model(data['measured'][ids],data['task'][ids],points,
+            tau=data['tau'][ids],tau_valid=data['valid'][ids],
+            shape_index=shape_ids if a.shared_shape_batch else None)
     @torch.no_grad()
     def evaluate():
-        model.eval(); pred=model(dv['measured'],dv['task'],dv['points'][dv['object_id']],tau=dv['tau'],tau_valid=dv['valid']); e=(pred-dv['action']).abs(); model.train(); return dict(command_mae=float(e.mean()),root_mae=float(e[:,:6].mean()),finger_mae=float(e[:,6:].mean()),shape_train=model.shape_report(tr['points']),shape_dev=model.shape_report(dv['points']))
+        model.eval(); pred=predict(dv); e=(pred-dv['action']).abs(); model.train(); return dict(command_mae=float(e.mean()),root_mae=float(e[:,:6].mean()),finger_mae=float(e[:,6:].mean()),shape_train=model.shape_report(tr['points']),shape_dev=model.shape_report(dv['points']))
     initial = evaluate()
     write(out/'initial-dev.json', initial)
     # The exact Current421 expansion is a valid baseline, even if tau never helps.
@@ -110,7 +123,7 @@ def main():
     for step in range(1,a.steps+1):
         if time.monotonic()-started>a.seconds or (out/'STOP').exists(): raise TimeoutError('owned scheduled stop')
         ids=torch.as_tensor(rng.integers(0,len(tr['action']),size=a.batch),device=device,dtype=torch.long)
-        pred=model(tr['measured'][ids],tr['task'][ids],tr['points'][tr['object_id'][ids]],tau=tr['tau'][ids],tau_valid=tr['valid'][ids]); loss=((pred-tr['action'][ids])/model.actor.y_scale).abs().mean()
+        pred=predict(tr,ids); loss=((pred-tr['action'][ids])/model.actor.y_scale).abs().mean()
         if not torch.isfinite(loss): raise FloatingPointError('nonfinite scheduled loss')
         optimizer.zero_grad(set_to_none=True);loss.backward();torch.nn.utils.clip_grad_norm_(model.parameters(),1.);optimizer.step()
         if step==1 or step%1000==0 or step==a.steps:
