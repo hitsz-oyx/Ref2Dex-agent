@@ -1,5 +1,10 @@
 # 当前状态
 
+用户追加要求在最新DExplore数据上加入WAM训练。已准备inspire-scheduled686-bc-20261020-r4：
+父模型为r3准入数据训练的startup_half Current421 best(step7000)，重建同源τ缓存r4，
+冻结WAM80000；GPU6/7缓存、GPU6训练50k，保留GPU4/5空闲。新运行不复用旧60529行τ。
+预算、选择及评估协议见P-20261020-inspire-scheduled686-bc，进度见outputs对应manifest。
+
 用户纠正后的当前任务是实际训练UniDex新goal+BC，不能再以旧565结果代替。
 run=unidex-task-bc-20261020-r1，三卡DDP GPU5/6/7（本次用户明确授权），
 Current310随机初始化50k后，Scheduled575继承本轮已学goal的310再训练50k。

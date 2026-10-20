@@ -173,3 +173,35 @@ first100-decisions.npz, current-teacher-first100.json and first100-analysis.json
 final-policy run's paired-dev.json and native/policy manifests. No PPO updates.
 All owned GPU jobs have ended. Full v3 regression133 tests and scoped repository
 Python/structured/Markdown checks pass.
+
+## Latest admission r3 and learned goal parent: r4
+
+User explicitly requests training with WAM after the latest Current421 goal BC.
+Decision: does shared-goal predicted tau improve imitation or native behavior
+on this corrected corpus, or does the closed-loop deficit persist? Positive
+physical progress supports a bounded improvement probe; no progress prioritizes
+coverage/conditioning repair. Cheapest discriminating run: reuse the learned
+Current421 parent, rebuild only its new tau, train one Scheduled68650k arm and
+evaluate DEV-best plus the predeclared50k endpoint on the fixed four TRAIN lifts.
+This is not matched-budget WAM attribution or full-episode validation.
+
+- task/branch: wam-rl-policy-v3/main; git_commit in the frozen launch manifest.
+- run_id: inspire-scheduled686-bc-20261020-r4.
+- source: inspire-teacher-rollout-audit-20261020-r3/manifest.json, all admitted
+  active56036 TRAIN/6081 DEV commands from501/62 sequences, admission v2.
+- parent: inspire-bc-sampling-20261020-r1/startup_half/best.pt, step7000,
+  actually trained goal421 on this exact source; no old Current421 parent.
+- cache: new inspire-scheduled686-cache-20261020-r4, frozen WAM v4 step80000,
+  same-execution measured feedback and task10/WAM goal, no training reference.
+- recipe:686 inputs/12 actions,1024/1024/512/512 ELU, joint differentiable CAD,
+  AdamW3e-4/wd1e-5, globalbatch2048, standardized L1/clip1, startup_half,
+  seed247. Preserve step0 in DEV selection, bounded best/latest only.
+- environment: graspenv Python3.8/Torch2.4.1+cu121; two cache shards GPU6/7,
+  BC GPU6, later paired evaluation GPU6/7; leave GPU4/5 idle.
+- bounds: cache6h, fitting2h, each native screen<=900s/300controls, no PPO/video,
+  owned STOP and20GiB free disk floor; whole run output<=500MiB.
+- evaluation: same6081 active DEV rows including invalid tau; fixed
+  s1_toothpaste_lift/s1_stamp_lift/s1_waterbottle_lift/s1_apple_lift, seed246.
+  Compare initial physical snapshots explicitly, and distinguish lift5cm/30frame
+  proxy from full TaskController completion. Best/endpoint predeclared; no
+  checkpoint reselection using the native outcomes.

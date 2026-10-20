@@ -45,3 +45,17 @@ maximum discrepancy was 7.613e-8 m (limit 1e-6). Both shard receipts bind the
 original measured admission and the same frozen v4 step80000. No teacher data
 were recollected and no neural checkpoint was overwritten. These counts are
 conditioning admission, not manipulation success.
+
+## Latest admission r3 regeneration: r4
+
+User requested adding WAM to the completed corrected-data goal BC. Run
+inspire-scheduled686-cache-20261020-r4 rebuilds all62605 row conditions from
+inspire-teacher-rollout-audit-20261020-r3 (admission schema v2, corrected table
+support); it does not reuse old60529-row tau. Frozen WAM v4 step80000 and the
+existing Inspire geometry binding stay fixed. task10 and WAM share the same
+TeacherRolloutCorpus/TaskController decision; no DExplore training reference.
+GPU6/7 disjoint shards, graspenv Python3.8/Torch2.4.1+cu121, main/frozen code
+commit in manifest, <=6h deadline, owned STOP,20GiB disk floor. Cache plus BC
+and bounded no-video evaluation outputs are limited to500MiB this run.
+Invalid/inactive/startup rows remain zero with explicit validity; Scheduled
+training keeps all task-active commands, including invalid tau rows.
