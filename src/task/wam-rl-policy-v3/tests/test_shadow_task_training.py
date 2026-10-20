@@ -50,3 +50,18 @@ def test_learned_task_columns_survive_current_to_scheduled_expansion():
     torch.testing.assert_close(scheduled.net[0].weight[:,300:310],current.net[0].weight[:,300:310],rtol=0,atol=0)
     assert not scheduled.net[0].weight[:,310:].any()
     assert conditioning()['fields']==dict(robot=300,task=10,tau=264,tau_valid=1)
+
+
+def test_uneven_three_rank_bc_gradients_equal_the_single_global_batch():
+    import copy
+    from wam_rl_policy_v3.task_bc_training import global_mean_loss
+    torch.manual_seed(7)
+    model=torch.nn.Linear(7,3);x=torch.randn(17,7);y=torch.randn(17,3);scale=torch.rand(3)+.1
+    ((model(x)-y)/scale).abs().mean().backward()
+    grads=[]
+    for ids in torch.tensor_split(torch.arange(17),3):
+        local=copy.deepcopy(model);local.zero_grad()
+        global_mean_loss(local(x[ids]),y[ids],scale,17,3).backward()
+        grads.append([p.grad.clone() for p in local.parameters()])
+    for i,parameter in enumerate(model.parameters()):
+        torch.testing.assert_close(sum(g[i] for g in grads)/3,parameter.grad,rtol=1e-6,atol=1e-7)

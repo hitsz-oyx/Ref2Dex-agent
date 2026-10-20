@@ -648,3 +648,16 @@ Bounds: one fresh shared575 cache<5GiB, bounded best/latest only per BC stage,
 <2h each fitting,6h cache deadline, owned STOP and20GiB free-disk floor. Start
 with12-record real cache smoke to measure throughput and verify same-goal inputs,
 then resume disjoint GPU shards. Do not overwrite565 data/checkpoints or v2.
+
+
+Current310 need not wait for neural tau. Prepare a separate75MiB task10 label
+sidecar with the exact same RecordInputs/TaskGoalScheduler,12 ordered CPU
+workers; original current300 and action arrays remain immutable/read-only.
+This is scalar geometry replay, no neural CPU inference. Its completed labels
+can feed Current310 three-rank DDP while the three GPU tau shards continue.
+Before Scheduled575 starts, compare every sidecar task10 row against cached575
+columns300:310 bitwise. This extra sidecar avoids duplicating the robot matrix
+or writing overlapping regions of the live neural cache. New training script
+supports unequal local batches with a tested global-mean gradient identity.
+An explicit <=10-update engineering fixture checks NCCL/DDP before real fitting;
+its weights are never used to initialize the real random310 run.
