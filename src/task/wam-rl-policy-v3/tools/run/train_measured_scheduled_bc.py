@@ -17,20 +17,60 @@ def write(path, value):
     tmp.write_text(json.dumps(value, indent=2) + "\n"); tmp.replace(path)
 
 
-def load(manifest, split):
+_WORKER_CORPUS=None
+
+
+def initialize_reader(manifest,split):
+    global _WORKER_CORPUS
+    import sys
+    sys.path.insert(0,str(TASK/'src'))
+    from wam_rl_policy_v3.teacher_dataset import TeacherRolloutCorpus
+    _WORKER_CORPUS=TeacherRolloutCorpus(manifest,split)
+
+
+def read_episode(index):
+    return _WORKER_CORPUS.episode(index)
+
+
+def load(manifest, split, workers=0):
     import sys
     sys.path.insert(0, str(TASK / "src"))
     from wam_rl_policy_v3.teacher_dataset import TeacherRolloutCorpus
     corpus = TeacherRolloutCorpus(manifest, split)
     measured=[]; task=[]; action=[]; object_id=[]; points=[]; sequences=[]; active_masks=[]
-    for i in range(len(corpus)):
-        e=corpus.episode(i); keep=np.asarray(e["active"],bool)
+    if not 0<=workers<=8:raise ValueError('bounded data worker count required')
+    if workers:
+        print(json.dumps(dict(status="REPLAYING",split=split,sequences=len(corpus),workers=workers)),flush=True)
+        import multiprocessing
+        from concurrent.futures import ProcessPoolExecutor
+        with ProcessPoolExecutor(max_workers=workers,mp_context=multiprocessing.get_context('spawn'),
+                initializer=initialize_reader,initargs=(str(manifest),split)) as pool:
+            episodes=list(pool.map(read_episode,range(len(corpus))))
+    else:episodes=(corpus.episode(i) for i in range(len(corpus)))
+    for i,e in enumerate(episodes):
+        keep=np.asarray(e["active"],bool)
         if not keep.any(): continue
         oid=len(points); points.append(e["object_points"])
         measured.append(e["measured"][keep]); task.append(e["task"][keep]); action.append(e["action"][keep])
         object_id.append(np.full(int(keep.sum()),oid,np.int64)); sequences.append(e["sequence"]); active_masks.append(keep)
+        if i==0 or (i+1)%50==0 or i+1==len(corpus):
+            print(json.dumps(dict(status='PREPARING',split=split,sequences_done=i+1,sequences_total=len(corpus))),flush=True)
     return dict(measured=np.concatenate(measured),task=np.concatenate(task),action=np.concatenate(action),
                 object_id=np.concatenate(object_id),points=np.stack(points),sequences=sequences,active_masks=active_masks)
+
+
+def scheduled_tensors(d,tau,valid,device):
+    import torch
+    if valid.dtype != np.bool_ or valid.shape != (len(d['action']),) or tau.shape != (len(valid),264):
+        raise ValueError('row-aligned measured commands, tau and explicit validity required')
+    if not np.isfinite(np.asarray(tau)[valid]).all():
+        raise ValueError('nonfinite valid tau prediction')
+    ids=np.arange(len(valid))
+    tau=np.where(valid[:,None],np.asarray(tau),0.)
+    return dict(measured=torch.as_tensor(d['measured'][ids],device=device),task=torch.as_tensor(d['task'][ids],device=device),
+                action=torch.as_tensor(d['action'][ids],device=device),object_id=torch.as_tensor(d['object_id'][ids],device=device),
+                points=torch.as_tensor(d['points'],device=device),tau=torch.as_tensor(np.asarray(tau[ids]),device=device).reshape(-1,8,11,3),
+                valid=torch.as_tensor(np.asarray(valid[ids]),device=device))
 
 
 def main():
@@ -38,12 +78,13 @@ def main():
     p.add_argument('--parent',type=Path,required=True); p.add_argument('--output',type=Path,required=True); p.add_argument('--gpu',type=int,default=6)
     p.add_argument('--steps',type=int,default=50000); p.add_argument('--batch',type=int,default=2048); p.add_argument('--seed',type=int,default=247); p.add_argument('--seconds',type=int,default=28800)
     p.add_argument('--shared-shape-batch',action='store_true',help='encode each episode CAD once per batch; gather features with full gradients')
+    p.add_argument('--data-workers',type=int,default=0,help='ordered spawn workers for causal archive replay')
     a=p.parse_args(); out=a.output.resolve()
     if ROOT/'outputs/wam-rl-policy-v3' not in out.parents:raise ValueError('v3 Task output required')
     out.mkdir(parents=True,exist_ok=True)
     if out.exists() and any(x.name not in {'train.log','pid'} for x in out.iterdir()): raise ValueError('fresh scheduled output required')
     if a.steps!=50000 or not 60<=a.seconds<=28800: raise ValueError('bounded scheduled recipe required')
-    os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu),TMPDIR=str(ROOT/'tmp'/out.name),OMP_NUM_THREADS='2',PYTHONDONTWRITEBYTECODE='1')
+    os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu),TMPDIR=str(ROOT/'tmp'/out.name),OMP_NUM_THREADS='2',OPENBLAS_NUM_THREADS='1',MKL_NUM_THREADS='1',PYTHONDONTWRITEBYTECODE='1')
     (ROOT/'tmp'/out.name).mkdir(parents=True,exist_ok=True)
     import sys; sys.path.insert(0,str(TASK/'src'))
     import torch
@@ -51,7 +92,8 @@ def main():
     from wam_rl_policy_v3.measured_execution import TAU_LAYOUT_SCHEMA, GOAL_CONTRACT
     torch.set_num_threads(2)
     torch.manual_seed(a.seed); np.random.seed(a.seed)
-    train=load(a.manifest.resolve(),'train'); dev=load(a.manifest.resolve(),'dev')
+    preparation_started=time.monotonic()
+    train=load(a.manifest.resolve(),'train',a.data_workers); dev=load(a.manifest.resolve(),'dev',a.data_workers)
     layout=json.loads((a.tau_cache/'layout.json').read_text())
     if layout.get('schema') != TAU_LAYOUT_SCHEMA or layout.get('goal_contract') != GOAL_CONTRACT:
         raise ValueError('rebuild tau cache with the shared measured TaskController goal')
@@ -83,13 +125,7 @@ def main():
     train_tau,train_valid=check('train',train); dev_tau,dev_valid=check('dev',dev)
     if not train_valid.any() or not dev_valid.any(): raise ValueError('scheduled admission has no valid rows')
     device=torch.device('cuda')
-    def tensors(d,tau,valid):
-        ids=np.flatnonzero(valid)
-        return dict(measured=torch.as_tensor(d['measured'][ids],device=device),task=torch.as_tensor(d['task'][ids],device=device),
-                    action=torch.as_tensor(d['action'][ids],device=device),object_id=torch.as_tensor(d['object_id'][ids],device=device),
-                    points=torch.as_tensor(d['points'],device=device),tau=torch.as_tensor(np.asarray(tau[ids]),device=device).reshape(-1,8,11,3),
-                    valid=torch.as_tensor(np.asarray(valid[ids]),device=device))
-    tr=tensors(train,train_tau,train_valid); dv=tensors(dev,dev_tau,dev_valid)
+    tr=scheduled_tensors(train,train_tau,train_valid,device); dv=scheduled_tensors(dev,dev_tau,dev_valid,device)
     parent=torch.load(a.parent.resolve(),map_location='cpu',weights_only=False)
     if parent.get('schema')!='ref2dex.inspire-measured-current-bc.v1': raise ValueError('Current421 parent required')
     model=MeasuredInspirePolicy(with_tau=True).to(device)
@@ -98,9 +134,13 @@ def main():
     commit=os.environ.get('REF2DEX_CODE_COMMIT') or subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
     manifest=dict(schema='ref2dex.inspire-measured-scheduled-bc.v2',status='RUNNING',experiment_id='P-20261020-inspire-scheduled686-bc',run_id=out.name,git_commit=commit,
         source_manifest=str(a.manifest.resolve()),tau_cache=str(a.tau_cache.resolve()),goal_contract=GOAL_CONTRACT,wam=completions[0]['wam'],parent=str(a.parent.resolve()),input_dim=686,action_dim=12,steps=a.steps,batch=a.batch,seed=a.seed,
-        train_rows=int(len(tr['action'])),dev_rows=int(len(dv['action'])),tau_admission='workspace_valid and valid=true',warmstart='Current421 best; tau/valid first-layer columns zero',
+        train_rows=int(len(tr['action'])),dev_rows=int(len(dv['action'])),
+        train_valid_rows=int(train_valid.sum()),train_invalid_rows=int((~train_valid).sum()),
+        dev_valid_rows=int(dev_valid.sum()),dev_invalid_rows=int((~dev_valid).sum()),
+        tau_admission='all task-active commands; invalid tau zero with validity false',warmstart='Current421 best; tau/valid first-layer columns zero',
         python=sys.executable,torch=torch.__version__,cuda=torch.version.cuda,gpu=a.gpu,
-        shared_shape_batch=a.shared_shape_batch,wall_clock_limit_s=a.seconds)
+        shared_shape_batch=a.shared_shape_batch,data_workers=a.data_workers,
+        preparation_s=time.monotonic()-preparation_started,wall_clock_limit_s=a.seconds)
     write(out/'manifest.json',manifest); started=time.monotonic(); best=float('inf'); curve=[]
     def predict(data, ids=None):
         ids=slice(None) if ids is None else ids

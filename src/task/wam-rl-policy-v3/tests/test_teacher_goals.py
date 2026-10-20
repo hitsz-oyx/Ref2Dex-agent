@@ -10,7 +10,7 @@ from wam_rl_policy_v3.task_runtime import TaskController
 from wam_rl_policy_v3.robot_adapter import InspireAdapter
 
 
-def test_cache_goal_replay_uses_the_identical_task_decisions_as_actor_inputs(tmp_path):
+def build_teacher_fixture(tmp_path):
     name = 'test_object_motion'
     source = tmp_path / 'batch/sequences' / name
     sidecar = tmp_path / 'audit/sequences' / name
@@ -35,6 +35,11 @@ def test_cache_goal_replay_uses_the_identical_task_decisions_as_actor_inputs(tmp
     manifest.write_text(json.dumps(dict(schema=QUALITY_SCHEMA, status='COMPLETED', training_allowed=True,
         goal_source=GOAL_SOURCE, records=[dict(sequence=name, source=str(source), sidecar='sequences/'+name,
         training_prefix_commands=n, split='train', engineering='PASS')])))
+    return manifest, packet, poses, points, hands, valid, n
+
+
+def test_cache_goal_replay_uses_the_identical_task_decisions_as_actor_inputs(tmp_path):
+    manifest, packet, poses, points, hands, valid, n = build_teacher_fixture(tmp_path)
     episode = TeacherRolloutCorpus(manifest, 'train').episode(0)
     controller = TaskController(TaskSpec.from_packet(packet), points)
     for t in range(n):

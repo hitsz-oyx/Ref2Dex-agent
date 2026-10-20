@@ -65,5 +65,35 @@ shift or establish grasping. Report:
 - environment: graspenv Python3.8/Torch2.4.1+cu121; GPU6 training, GPU7 evaluation.
 - limits: 8h wall-clock, own STOP, bounded best/latest only; leave other GPUs free.
 - outputs: outputs/wam-rl-policy-v3/inspire-scheduled686-bc-20261020-r2/.
-- evaluation: paired DEV5693 rows, followed by deterministic native controls;
+- evaluation (superseded by r3): paired tau-valid DEV5693 rows, followed by deterministic native controls;
   this small TRAIN panel cannot establish unseen-object generalization.
+
+## ref1 coverage and recovery repair: r3
+
+r2 was stopped during CPU preparation before any optimizer update. Its stopped
+manifest is retained; it is not a failed learned-policy result.
+
+The trainer now retains all task-active real commands, including invalid WAM
+startup rows with zero tau and explicit validity false. Expected counts are
+TRAIN54162 (52660 valid / 1502 invalid), DEV5879 (5693 valid / 186 invalid).
+Paired Current421/Scheduled686 DEV uses exactly the same full set and reports
+valid and invalid groups separately. This repairs a concrete coverage gap; it
+does not establish that the omitted rows caused previous physical failures.
+
+TaskScheduler no longer consumes a future planned RELEASE on an unplanned drop.
+Recovery requests CONTACT without mutating that planned cursor, and regrasp
+resumes the pending RELEASE. A planned intermediate release still requires
+confirmed path context and observed arrival. These event-only changes do not
+alter task10/local goals or v4 inputs, so the shared-goal tau cache is reusable.
+
+- run_id: inspire-scheduled686-bc-20261020-r3; task/branch unchanged.
+- git_commit: frozen launch manifest; same inputs, parent and 50k recipe as r2.
+- preparation: four ordered spawn workers; serial/parallel arrays and ordering
+  tested equal. Shared differentiable CAD output/gradient GPU audit at
+  outputs/wam-rl-policy-v3/inspire-shared-cad-audit-20261020-r1/report.json:
+  output max1.79e-7, parameter-gradient max2.98e-8.
+- outputs: outputs/wam-rl-policy-v3/inspire-scheduled686-bc-20261020-r3/.
+- regression: v3 132 tests passed, including startup labels, unplanned
+  drop/regrasp/continued tracking and legitimate intermediate release.
+- selection/decision/limits: unchanged; retain step0, best/latest only, GPU6
+  train/GPU7 evaluation, no long PPO until a positive physical signal.

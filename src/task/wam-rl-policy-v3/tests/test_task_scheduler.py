@@ -153,3 +153,27 @@ def test_failed_candidate_discards_its_unconfirmed_progress():
     assert s.path.pointer==0 and d.path_progress==0
     d=s.update(poses[15],17/30,InteractionFeedback(grasp_established=True))
     assert d.path_progress==0
+
+
+def test_unplanned_drop_keeps_planned_release_and_requests_regrasp_contact():
+    poses=reference();spec=TaskSpec.from_reference(poses,source_fps=30,terminal_mode='RELEASE',
+        events=(TaskEvent(0,'CONTACT'),TaskEvent(30,'RELEASE')))
+    scheduler=TaskScheduler(spec,points());held=InteractionFeedback(grasp_established=True,stable=True)
+    for t in range(16):d=scheduler.update(poses[t],t/30,held)
+    prior=d.path_progress
+    d=scheduler.update(poses[15],16/30,InteractionFeedback(grasp_lost=True,released=True))
+    assert d.phase==Phase.ACQUIRE and d.recovering
+    assert scheduler.event_index==1  # The intended terminal release was not completed by a drop.
+    assert d.next_event.kind==EventType.CONTACT and d.next_event.valid
+    d=scheduler.update(poses[15],17/30,InteractionFeedback(released=True))
+    assert scheduler.event_index==1 and d.next_event.kind==EventType.CONTACT
+    d=scheduler.update(poses[15],18/30,held)
+    assert d.phase==Phase.TRACK and not d.recovering and d.path_progress>=prior
+    assert d.next_event.kind==EventType.RELEASE and scheduler.event_index==1
+    for t in range(19,80):
+        pose=poses[min(30,t-3)]
+        d=scheduler.update(pose,t/30,held)
+        if d.phase==Phase.RELEASE:break
+    assert d.phase==Phase.RELEASE
+    t+=1;d=scheduler.update(poses[-1],t/30,InteractionFeedback(released=True,stable=True,supported=True))
+    assert scheduler.event_index==2 and d.next_event.kind is None

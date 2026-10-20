@@ -26,3 +26,13 @@ outputs/wam-rl-policy-v3/inspire-current421-warmstart-audit-20261020-r1/report.j
 现有Current421 best仍可作为父策略，不需为迁移重训；下一步可重训正确条件的Scheduled BC。
 新训练保留step0基线并记录shape特征漂移；不因ref1_2提出的学习风险修改容量或50k配方。
 当前工具只有有界单回合collector，尚不作为多回合长PPO训练入口。
+
+ref1.md 两项新增缺陷已补回归：Scheduled BC 保留所有 task-active 命令，
+无效 τ 显式为零、valid=False，使用原时刻真实动作监督；配对 DEV 同样包含启动样本，
+另报 valid/invalid 分组。意外掉落不再确认未到达位置的计划 RELEASE，恢复时输出
+CONTACT 意图，重抓后保留待执行的 RELEASE；合法中间释放也有正向测试。
+v3 共132项测试通过。四进程有序数据回放与串行结果逐数组一致。
+r2 在 CPU 数据准备阶段、零次参数更新时停止，保留停止记录。
+下一次训练为 r3，所有 active TRAIN54162/DEV5879 行，包含无效 τ TRAIN1502/DEV186 行。
+事件修复不改变 task10/local goal 或当前不接收事件的 WAMv4 输入，既有统一目标缓存仍可复用。
+这两项修复不等于已获得正向 BC 抓取结果；尚需新训练和配对闭环验证。

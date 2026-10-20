@@ -117,7 +117,7 @@ def main():
     parser.add_argument("--scheduled", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--gpu", type=int, default=6)
-    parser.add_argument("--batch-size", type=int, default=4096)
+    parser.add_argument("--batch-size", type=int, default=1024)
     args = parser.parse_args()
 
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
@@ -130,7 +130,8 @@ def main():
 
     data = load_split(args.manifest.resolve(), "dev")
     tau, valid = align_tau(args.tau_cache.resolve(), "dev", data)
-    valid_ids = np.flatnonzero(valid)
+    valid_ids = np.arange(len(valid))
+    tau = np.where(valid[:, None], tau, 0.)
     if not len(valid_ids):
         raise ValueError("no valid paired tau rows")
     paired = {
@@ -169,6 +170,8 @@ def main():
         "scheduled_checkpoint": str(args.scheduled.resolve()),
         "split": "dev",
         "paired_rows": int(len(valid_ids)),
+        "paired_valid_rows": int(valid.sum()), "paired_invalid_rows": int((~valid).sum()),
+        "paired_subset": "all task-active rows, including real startup with zero invalid tau",
         "current421": metrics(current_prediction, paired["action"]),
         "scheduled686": metrics(scheduled_prediction, paired["action"]),
         "delta_scheduled_minus_current": {},
@@ -176,6 +179,11 @@ def main():
         "phase_scheduled686": phase_metrics(scheduled_prediction, paired["action"], paired["task"]),
         "prediction_delta_mae": float(np.abs(scheduled_prediction - current_prediction).mean()),
     }
+    result["by_tau_validity"] = {}
+    for name, mask in (("valid", valid), ("invalid", ~valid)):
+        result["by_tau_validity"][name] = None if not mask.any() else dict(
+            rows=int(mask.sum()), current421=metrics(current_prediction[mask], paired["action"][mask]),
+            scheduled686=metrics(scheduled_prediction[mask], paired["action"][mask]))
     current_error = np.abs(current_prediction - paired["action"])
     scheduled_error = np.abs(scheduled_prediction - paired["action"])
     result["delta_scheduled_minus_current"]["command_mae"] = float(

@@ -40,8 +40,26 @@ def test_event_acknowledgement_requires_new_measured_edges_not_elapsed_time():
     d=s.update(pose[12],7/30,InteractionFeedback(released=True))
     assert d.next_event.kind.value=='CONTACT'
     d=s.update(pose[25],8/30,held)
-    assert d.phase==Phase.TRACK and d.next_event.kind is None and d.next_event.valid
+    # This release had no confirmed path context; regrasp must not consume
+    # the still-pending planned release/contact pair.
+    assert d.phase==Phase.TRACK and d.next_event.kind.value=='RELEASE' and d.next_event.valid
+    assert s.event_index==1
     assert 'grasp_acquired' not in d.transitions
+
+
+def test_intermediate_planned_release_can_acknowledge_at_confirmed_source_pose():
+    ref=np.zeros((40,428));ref[3:12,REFERENCE_CONTACT_COLUMNS]=1;ref[25:,REFERENCE_CONTACT_COLUMNS]=1
+    pose=np.repeat(np.eye(4)[None],40,0);pose[:,0,3]=np.arange(40)*.003
+    s=TaskScheduler(reference_task_spec(pose,ref),np.random.default_rng(246).normal(size=(32,3))*.02)
+    held=InteractionFeedback(grasp_established=True)
+    for i in range(10):d=s.update(pose[3+i],i/30,held)
+    assert s.plan_cursor_frame>=12 and d.next_event.kind.value=='RELEASE'
+    d=s.update(pose[12],10/30,InteractionFeedback(grasp_lost=True,released=True))
+    assert d.recovering and s.event_index==2 and d.next_event.kind.value=='CONTACT'
+    d=s.update(pose[12],11/30,InteractionFeedback(released=True))
+    assert s.event_index==2
+    d=s.update(pose[12],12/30,held)
+    assert d.phase==Phase.TRACK and s.event_index==3 and d.next_event.kind is None
 
 
 def test_teacher_task_ignores_training_reference_and_preserves_actual_initial_anchor():

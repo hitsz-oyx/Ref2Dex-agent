@@ -72,6 +72,10 @@ class TaskScheduler:
         if event not in self.paid_events:self.paid_events.add(event);events.append(event)
 
     def _event(self,now):
+        # Loss of grasp is a recovery instruction, never completion of the
+        # intended future release. Keep the immutable plan cursor underneath.
+        if self.phase==Phase.ACQUIRE and self.recovering:
+            return PlannedEvent(EventType.CONTACT,0.,True)
         if self.event_index>=len(self.spec.events):
             # An exhausted explicit plan means known NONE. A task without
             # planned annotations cannot make that assertion.
@@ -85,6 +89,15 @@ class TaskScheduler:
             delta=max(0.,(planned.source_frame-self.plan_cursor_frame)/self.spec.source_fps)
         return PlannedEvent(kind,float(delta),True)
 
+    def _release_expected(self,actual,planned):
+        if self.phase==Phase.RELEASE:return True
+        if self.phase!=Phase.TRACK or self.recovering or self.plan_cursor_frame<planned.source_frame:
+            return False
+        # Intermediate planned releases also need confirmed path context and
+        # observed arrival at the corresponding source pose, not elapsed time.
+        indices=np.flatnonzero(self.spec.source_frames==planned.source_frame)
+        return bool(len(indices) and self.path._reached(actual,self.spec.object_path[indices[0]]))
+
     def update(self,pose,now,feedback:InteractionFeedback,*,hand_points=None):
         if self.complete or self.failure_reason is not None:raise ValueError('terminal task requires reset before another control decision')
         actual=_pose(pose);now=float(now)
@@ -95,9 +108,10 @@ class TaskScheduler:
         dt=0. if self.last_time is None else now-self.last_time;self.last_time=now;events=[]
         paused_path_budget=self.phase==Phase.ACQUIRE
         if self.event_index<len(self.spec.events):
-            kind=self.spec.events[self.event_index].kind
+            planned=self.spec.events[self.event_index];kind=planned.kind
             observed=((kind==EventType.CONTACT and feedback.grasp_established and not self.last_grasp)
-                or (kind==EventType.RELEASE and feedback.released and not self.last_release))
+                or (kind==EventType.RELEASE and feedback.released and not self.last_release
+                    and self._release_expected(actual,planned)))
             if observed:self.event_index+=1
         self.last_grasp=feedback.grasp_established;self.last_release=feedback.released
         if not self.complete:
