@@ -19,19 +19,25 @@ from trajectory_policy.wam_ipc import send,receive,peer_pid
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--cache',type=Path,required=True);p.add_argument('--sequence',required=True)
     p.add_argument('--output',type=Path,required=True);p.add_argument('--gpu',type=int,required=True)
-    p.add_argument('--match-collection-batch',action='store_true');a=p.parse_args()
+    p.add_argument('--match-collection-batch',action='store_true')
+    p.add_argument('--audit-manifest',type=Path,help='same-execution measured corpus; cache supplies only native geometry')
+    p.add_argument('--controls',type=int,default=100,help='bounded replay prefix, at most 1200 controls')
+    a=p.parse_args()
+    if not 1<=a.controls<=1200:raise ValueError('bounded replay controls required')
     if a.output.exists():raise ValueError('fresh replay output required')
     a.output.mkdir(parents=True);meta=json.loads((a.cache/'manifest.json').read_text())
-    row=next(r for r in meta['sequences'] if r['sequence']==a.sequence and r['split']=='train')
+    rows=json.loads(a.audit_manifest.read_text())['records'] if a.audit_manifest else meta['sequences']
+    row=next(r for r in rows if r['sequence']==a.sequence and r['split']=='train')
     with np.load(Path(row['source'])/'trajectory.npz') as z:gt={k:z[k].copy() for k in ['q','dq','hand','obj','velocity','native_current_obs','action','applied','pd_targets']}
     actions=None;target=None;envs=2;seed=246
     if a.match_collection_batch:
         batch_file=Path(row['source']).parents[1]/'manifest.json';batch=json.loads(batch_file.read_text())
         envs=len(batch['sequences']);seed=batch['seed'];target=batch['sequences'].index(a.sequence)
-        by_name={r['sequence']:r for r in meta['sequences']};controls=[]
+        by_name={r['sequence']:r for r in rows};controls=[]
         for name in batch['sequences']:
             with np.load(Path(by_name[name]['source'])/'trajectory.npz') as z:controls.append(z['action'].copy())
-        steps=min(len(x) for x in controls);actions=np.stack([x[:steps] for x in controls],1)
+        steps=min(a.controls,*[len(x) for x in controls]);actions=np.stack([x[:steps] for x in controls],1)
+    else:gt['action']=gt['action'][:a.controls]
     if not np.array_equal(gt['action'],gt['applied']):raise ValueError('source canonical/applied differs')
     private=ROOT/'tmp'/('ireplay-'+str(os.getpid()));private.mkdir(mode=0o700);sock=private/'s'
     server=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);server.settimeout(120);server.bind(str(sock));server.listen(1)
@@ -41,7 +47,9 @@ def main():
          '--state-transport','packed']
     cmd+=['--fixed-motions-json',str(batch_file)] if a.match_collection_batch else ['--sequence',a.sequence]
     report=dict(status='RUNNING',sequence=a.sequence,source=str(row['source']),gpu=a.gpu,canonical_replay=True,
-        matched_collection_batch=a.match_collection_batch,envs=envs,optimizer_steps=0,frames=[])
+        matched_collection_batch=a.match_collection_batch,envs=envs,optimizer_steps=0,frames=[],
+        audit_manifest=str(a.audit_manifest) if a.audit_manifest else None,controls_requested=a.controls,
+        git_commit=os.environ.get('REF2DEX_CODE_COMMIT') or subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip())
     def save():(a.output/'report.json').write_text(json.dumps(report,indent=2)+'\n')
     log=(a.output/'physics.log').open('x');proc=subprocess.Popen(cmd,cwd=ROOT,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
     (a.output/'process.json').write_text(json.dumps(dict(pid=os.getpid(),native_pid=proc.pid,command=cmd),indent=2)+'\n')

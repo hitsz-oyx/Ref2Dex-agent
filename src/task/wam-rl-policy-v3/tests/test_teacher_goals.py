@@ -26,7 +26,7 @@ def build_teacher_fixture(tmp_path):
     np.savez(source/'canonical.npz', points=points)
     np.savez(sidecar/'admission.npz', supported=np.ones(n+1, bool))
     valid = np.arange(n+1) > 0
-    np.savez(source/'trajectory.npz', action=np.zeros((n,18)), q=np.zeros((n+1,18)),
+    np.savez(source/'trajectory.npz', frame_tick=np.arange(n+1), action=np.zeros((n,18)), q=np.zeros((n+1,18)),
         dq=np.zeros((n+1,18)), native_current_obs=np.zeros((n+1,721)), obj=poses,
         velocity=np.zeros((n+1,6)), dof_force_valid=valid, contact_force_valid=valid,
         dof_force=np.zeros((n+1,18)), body_contact_forces=np.zeros((n+1,5,3)), hand=hands)

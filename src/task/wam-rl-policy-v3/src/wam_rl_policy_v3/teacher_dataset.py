@@ -33,6 +33,9 @@ class TeacherRolloutCorpus:
         with np.load(sidecar/'admission.npz') as masks:support=masks['supported'][:n].copy()
         controller=TaskController(spec,points)
         with np.load(source/'trajectory.npz') as z:
+            ticks=z['frame_tick'][:n].copy()
+            if ticks.shape!=(n,) or not np.array_equal(ticks,np.arange(n)):
+                raise ValueError('same-execution consecutive native ticks required')
             action=z['action'][:n,ACTIVE].copy();previous=np.zeros_like(action);previous[1:]=action[:-1]
             base=current_state(z['q'][:n],z['dq'][:n],measured_from_legacy(z['native_current_obs'][:n]),
                 object_state(z['obj'][:n],z['velocity'][:n]),np.broadcast_to(spec.object_path[-1,:3,3],(n,3)),previous)
@@ -51,4 +54,4 @@ class TeacherRolloutCorpus:
         if measured.shape!=(n,347) or not np.isfinite(measured).all():raise ValueError('finite measured347 required')
         return dict(sequence=row['sequence'],measured=measured,task=task,active=active,action=action,
             object_points=points.astype(np.float32),task_spec=spec.packet(),goal_source=GOAL_SOURCE,
-            local_goal_pose=local_goals)
+            local_goal_pose=local_goals,ticks=ticks)

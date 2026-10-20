@@ -30,31 +30,10 @@ def resource(gpu):
          "--format=csv,noheader"], text=True).strip()
 
 
-def load_split(manifest, split):
-    import numpy as np
-    from wam_rl_policy_v3.teacher_dataset import TeacherRolloutCorpus
-
-    corpus = TeacherRolloutCorpus(manifest, split)
-    measured, task, action, object_ids, points = [], [], [], [], []
-    sequences = []
-    for index in range(len(corpus)):
-        episode = corpus.episode(index)
-        keep = np.asarray(episode["active"], dtype=bool)
-        if not keep.any():
-            continue
-        object_id = len(points)
-        points.append(episode["object_points"])
-        measured.append(episode["measured"][keep])
-        task.append(episode["task"][keep])
-        action.append(episode["action"][keep])
-        object_ids.append(np.full(int(keep.sum()), object_id, dtype=np.int64))
-        sequences.append(dict(sequence=episode["sequence"], object_id=object_id,
-                              commands=int(keep.sum())))
-    if not measured:
-        raise ValueError(f"empty {split} corpus")
-    return dict(measured=np.concatenate(measured), task=np.concatenate(task),
-                action=np.concatenate(action), object_id=np.concatenate(object_ids),
-                points=np.stack(points), sequences=sequences)
+def load_split(manifest, split, workers=0):
+    # Use the same ordered causal replay and active-row selection as Scheduled BC.
+    from train_measured_scheduled_bc import load
+    return load(manifest, split, workers)
 
 
 def main():
@@ -66,6 +45,8 @@ def main():
     p.add_argument("--batch", type=int, default=2048)
     p.add_argument("--seed", type=int, default=246)
     p.add_argument("--seconds", type=int, default=28800)
+    p.add_argument("--sampler", choices=("startup_half", "uniform"), default="startup_half")
+    p.add_argument("--data-workers", type=int, default=0)
     a = p.parse_args()
     out = a.output.resolve()
     if ROOT / "outputs/wam-rl-policy-v3" not in out.parents:
@@ -90,13 +71,14 @@ def main():
     import torch
     from wam_rl_policy_v3.measured_policy import MeasuredInspirePolicy
     from wam_rl_policy_v3.task_annotations import GOAL_SOURCE
+    from wam_rl_policy_v3.bc_sampling import sample_rows, startup_rows, STARTUP_SECONDS
 
     torch.manual_seed(a.seed)
     np.random.seed(a.seed)
     torch.set_num_threads(2)
     torch.backends.cuda.matmul.allow_tf32 = True
-    train = load_split(a.manifest.resolve(), "train")
-    dev = load_split(a.manifest.resolve(), "dev")
+    train = load_split(a.manifest.resolve(), "train", a.data_workers)
+    dev = load_split(a.manifest.resolve(), "dev", a.data_workers)
     if train["measured"].shape[1] != 347 or train["task"].shape[1] != 10:
         raise ValueError("audited Current421 fields have unexpected shape")
 
@@ -124,6 +106,7 @@ def main():
         model.actor.y_scale.copy_(train_t["action"].std(0).clamp_min(.05))
     optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4, weight_decay=1e-5)
     rng = np.random.default_rng(a.seed + 1)
+    early = startup_rows(train["ticks"], 30)
     best = float("inf")
     curve = []
     started = time.monotonic()
@@ -138,13 +121,16 @@ def main():
                     batch=a.batch, seed=a.seed, train_rows=int(len(train["action"])),
                     dev_rows=int(len(dev["action"])), train_sequences=len(train["sequences"]),
                     dev_sequences=len(dev["sequences"]), normalization="train measured/std and initial shape/std",
-                    stop_condition="8h wall clock or owned STOP")
+                    sampler=a.sampler, startup_seconds=STARTUP_SECONDS, startup_rows=int(len(early)),
+                    data_workers=a.data_workers, shared_shape_batch=True,
+                    python=sys.executable, torch=torch.__version__, cuda=torch.version.cuda,
+                    stop_condition="bounded wall clock or owned STOP")
     write(out / "manifest.json", manifest)
 
     @torch.no_grad()
     def evaluate():
         model.eval()
-        pred = model(dev_t["measured"], dev_t["task"], dev_t["points"][dev_t["object_id"]])
+        pred = model(dev_t["measured"], dev_t["task"], dev_t["points"], shape_index=dev_t["object_id"])
         error = (pred - dev_t["action"]).abs()
         result = dict(command_mae=float(error.mean()), root_mae=float(error[:, :6].mean()),
                       finger_mae=float(error[:, 6:].mean()),
@@ -158,10 +144,10 @@ def main():
         elapsed = time.monotonic() - started
         if elapsed > a.seconds or (out / "STOP").exists():
             raise TimeoutError("owned Current421 BC stop condition")
-        ids = torch.as_tensor(rng.integers(0, len(train["action"]), size=a.batch),
+        ids = torch.as_tensor(sample_rows(rng, len(train["action"]), early, a.batch, a.sampler),
                               device=device, dtype=torch.long)
         prediction = model(train_t["measured"][ids], train_t["task"][ids],
-                           train_t["points"][train_t["object_id"][ids]])
+                           train_t["points"], shape_index=train_t["object_id"][ids])
         loss = ((prediction - train_t["action"][ids]) / model.actor.y_scale).abs().mean()
         if not torch.isfinite(loss):
             raise FloatingPointError("nonfinite Current421 BC loss")

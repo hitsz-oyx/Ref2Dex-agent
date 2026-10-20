@@ -7,9 +7,11 @@ GOAL_CONTRACT = 'ref2dex.measured-task-controller-goal.v1'
 TAU_LAYOUT_SCHEMA = 'ref2dex.measured-scheduled-tau-layout.v2'
 
 
-def record_bc_decision(trace, snapshot, measured, task, command, *, tau=None, tau_valid=None):
-    """Keep at most the first 100 decisions for physical BC diagnosis."""
-    if len(trace) >= 100:
+def record_bc_decision(trace, snapshot, measured, task, command, *, tau=None, tau_valid=None, limit=100):
+    """Keep a bounded decision prefix for physical BC diagnosis."""
+    if not 1 <= limit <= 1200:
+        raise ValueError('bounded BC trace required')
+    if len(trace) >= limit:
         return
     row = {key: np.asarray(snapshot[key]).copy() for key in ('q', 'dq', 'objects', 'hand', 'tick')}
     row.update(measured=np.asarray(measured).copy(), task=np.asarray(task).copy(),

@@ -28,6 +28,7 @@ def main():
     p.add_argument("--gpu", type=int, default=6)
     p.add_argument("--seed", type=int, default=246)
     p.add_argument("--controls", type=int, default=60)
+    p.add_argument("--trace-controls", type=int, default=100)
     p.add_argument("--seconds", type=int, default=1800)
     p.add_argument("--state-transport", choices=("json", "packed"), default="json")
     p.add_argument("--ppo-collector-smoke", action="store_true",
@@ -216,7 +217,7 @@ def main():
                                               logp=logp[index], mean=behavior_mean[index],
                                               std=behavior_std[index], value=values[index])
             action = output.clamp(-1, 1).cpu().numpy().astype(np.float32)
-            record_bc_decision(decision_trace, snapshot, measured, tasks, action, tau=taus, tau_valid=tau_valid)
+            record_bc_decision(decision_trace, snapshot, measured, tasks, action, tau=taus, tau_valid=tau_valid, limit=a.trace_controls)
             previous[:] = action
             return action, snapshot
 

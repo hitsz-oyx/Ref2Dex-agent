@@ -37,7 +37,7 @@ def load(manifest, split, workers=0):
     sys.path.insert(0, str(TASK / "src"))
     from wam_rl_policy_v3.teacher_dataset import TeacherRolloutCorpus
     corpus = TeacherRolloutCorpus(manifest, split)
-    measured=[]; task=[]; action=[]; object_id=[]; points=[]; sequences=[]; active_masks=[]
+    measured=[]; task=[]; action=[]; object_id=[]; points=[]; sequences=[]; active_masks=[]; ticks=[]
     if not 0<=workers<=8:raise ValueError('bounded data worker count required')
     if workers:
         print(json.dumps(dict(status="REPLAYING",split=split,sequences=len(corpus),workers=workers)),flush=True)
@@ -52,11 +52,12 @@ def load(manifest, split, workers=0):
         if not keep.any(): continue
         oid=len(points); points.append(e["object_points"])
         measured.append(e["measured"][keep]); task.append(e["task"][keep]); action.append(e["action"][keep])
+        ticks.append(e['ticks'][keep])
         object_id.append(np.full(int(keep.sum()),oid,np.int64)); sequences.append(e["sequence"]); active_masks.append(keep)
         if i==0 or (i+1)%50==0 or i+1==len(corpus):
             print(json.dumps(dict(status='PREPARING',split=split,sequences_done=i+1,sequences_total=len(corpus))),flush=True)
     return dict(measured=np.concatenate(measured),task=np.concatenate(task),action=np.concatenate(action),
-                object_id=np.concatenate(object_id),points=np.stack(points),sequences=sequences,active_masks=active_masks)
+                object_id=np.concatenate(object_id),points=np.stack(points),sequences=sequences,active_masks=active_masks,ticks=np.concatenate(ticks))
 
 
 def scheduled_tensors(d,tau,valid,device):
@@ -79,6 +80,7 @@ def main():
     p.add_argument('--steps',type=int,default=50000); p.add_argument('--batch',type=int,default=2048); p.add_argument('--seed',type=int,default=247); p.add_argument('--seconds',type=int,default=28800)
     p.add_argument('--shared-shape-batch',action='store_true',help='encode each episode CAD once per batch; gather features with full gradients')
     p.add_argument('--data-workers',type=int,default=0,help='ordered spawn workers for causal archive replay')
+    p.add_argument('--sampler',choices=('startup_half','uniform'),default='startup_half')
     a=p.parse_args(); out=a.output.resolve()
     if ROOT/'outputs/wam-rl-policy-v3' not in out.parents:raise ValueError('v3 Task output required')
     out.mkdir(parents=True,exist_ok=True)
@@ -88,6 +90,7 @@ def main():
     (ROOT/'tmp'/out.name).mkdir(parents=True,exist_ok=True)
     import sys; sys.path.insert(0,str(TASK/'src'))
     import torch
+    from wam_rl_policy_v3.bc_sampling import sample_rows,startup_rows,STARTUP_SECONDS
     from wam_rl_policy_v3.measured_policy import MeasuredInspirePolicy
     from wam_rl_policy_v3.measured_execution import TAU_LAYOUT_SCHEMA, GOAL_CONTRACT
     torch.set_num_threads(2)
@@ -131,6 +134,7 @@ def main():
     model=MeasuredInspirePolicy(with_tau=True).to(device)
     model.initialize_current(parent)
     optimizer=torch.optim.AdamW(model.parameters(),lr=3e-4,weight_decay=1e-5); rng=np.random.default_rng(a.seed+1)
+    early=startup_rows(train['ticks'],30)
     commit=os.environ.get('REF2DEX_CODE_COMMIT') or subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
     manifest=dict(schema='ref2dex.inspire-measured-scheduled-bc.v2',status='RUNNING',experiment_id='P-20261020-inspire-scheduled686-bc',run_id=out.name,git_commit=commit,
         source_manifest=str(a.manifest.resolve()),tau_cache=str(a.tau_cache.resolve()),goal_contract=GOAL_CONTRACT,wam=completions[0]['wam'],parent=str(a.parent.resolve()),input_dim=686,action_dim=12,steps=a.steps,batch=a.batch,seed=a.seed,
@@ -140,7 +144,8 @@ def main():
         tau_admission='all task-active commands; invalid tau zero with validity false',warmstart='Current421 best; tau/valid first-layer columns zero',
         python=sys.executable,torch=torch.__version__,cuda=torch.version.cuda,gpu=a.gpu,
         shared_shape_batch=a.shared_shape_batch,data_workers=a.data_workers,
-        preparation_s=time.monotonic()-preparation_started,wall_clock_limit_s=a.seconds)
+        preparation_s=time.monotonic()-preparation_started,wall_clock_limit_s=a.seconds,
+        sampler=a.sampler,startup_seconds=STARTUP_SECONDS,startup_rows=int(len(early)))
     write(out/'manifest.json',manifest); started=time.monotonic(); best=float('inf'); curve=[]
     def predict(data, ids=None):
         ids=slice(None) if ids is None else ids
@@ -162,7 +167,7 @@ def main():
         torch.save(initial_packet,out/(name+'.part'));(out/(name+'.part')).replace(out/name)
     for step in range(1,a.steps+1):
         if time.monotonic()-started>a.seconds or (out/'STOP').exists(): raise TimeoutError('owned scheduled stop')
-        ids=torch.as_tensor(rng.integers(0,len(tr['action']),size=a.batch),device=device,dtype=torch.long)
+        ids=torch.as_tensor(sample_rows(rng,len(tr['action']),early,a.batch,a.sampler),device=device,dtype=torch.long)
         pred=predict(tr,ids); loss=((pred-tr['action'][ids])/model.actor.y_scale).abs().mean()
         if not torch.isfinite(loss): raise FloatingPointError('nonfinite scheduled loss')
         optimizer.zero_grad(set_to_none=True);loss.backward();torch.nn.utils.clip_grad_norm_(model.parameters(),1.);optimizer.step()

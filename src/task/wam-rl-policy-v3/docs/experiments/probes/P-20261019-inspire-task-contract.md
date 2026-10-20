@@ -435,3 +435,37 @@ Compare canonical teacher command replay, teacher-state BC errors and autonomous
 rollout. Then compare uniform versus physical-time-matched startup sampling,
 keeping corrected corpus, random initialization, model, seed and budget equal.
 Old support-v1 tau is excluded from new support-v2 training.
+
+
+### Inspire controlled sampling and lift panel, predeclared
+
+run_id=inspire-bc-sampling-20261020-r1; branch main; frozen code commit and
+interpreter are recorded in its manifest. Decision hypotheses, ranked:
+(1) missing startup emphasis contributes to closed-loop departure, predicted to
+improve early commands/rollout with the physical-time-matched Shadow sampler;
+(2) teacher-state imitation is adequate but autonomous state error compounds,
+predicted to separate low teacher-forced error from growing closed-loop error;
+(3) admitted motion/geometry coverage is inadequate, predicted to retain poor
+teacher-forced DEV despite low TRAIN error; (4) native replay differs from
+collection, predicted to fail the matched-batch canonical replay prefix gate.
+
+Compare Current421 uniform and startup_half, corrected admission v2 identical,
+seed246, random initialization (no historic parent), full active TRAIN/DEV,
+50k steps, same model/optimizer/batch2048, exact shared-CAD computation for both.
+No new tau cache or PPO. GPU7 first, then released GPU6 for the other arm;
+30min/stage, <1GiB artifacts, best/latest only, 20GiB disk floor.
+Preserve original ticks and compare startup t<8/60 seconds (four steps at30Hz).
+The extra data replay workers are engineering only; ordered arrays must agree.
+
+Fixed TRAIN lift panel, chosen from teacher admitted coupled coverage before any
+new student rollout: s1_toothpaste_lift (717 commands/632 coupled),
+s1_stamp_lift (616/558), s1_waterbottle_lift (537/478), s1_apple_lift (545/471).
+All use corrected admission v2. Initially evaluate existing Current421 for a
+baseline, then the two freshly trained arms under the same panel/seed246.
+300 native controls, four fixed environments, no reset across the batch, no PPO,
+full bounded decision trace. Also replay canonical commands from the current
+same-execution corpus with collection membership/seed, at most200 commands,
+bounded by the shortest peer recording. Report initial/prefix replay error,
+teacher-forced versus closed-loop time-aligned errors, physical height and
+continuous lifted frames separately from strict TaskController progress.
+The panel is TRAIN, selected for teacher coverage, not held-out success evidence.

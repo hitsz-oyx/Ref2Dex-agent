@@ -48,6 +48,7 @@ def main():
     parser.add_argument("--gpu", type=int, default=6)
     parser.add_argument("--seed", type=int, default=246)
     parser.add_argument("--controls", type=int, default=60)
+    parser.add_argument("--trace-controls", type=int, default=100)
     parser.add_argument("--seconds", type=int, default=1800)
     parser.add_argument("--state-transport", choices=("json", "packed"), default="json")
     parser.add_argument("--ppo-collector-smoke", action="store_true",
@@ -269,7 +270,7 @@ def main():
                                               logp=logp[index], mean=behavior_mean[index],
                                               std=behavior_std[index], value=values[index])
             action = output.clamp(-1, 1).cpu().numpy().astype(np.float32)
-            record_bc_decision(decision_trace, snapshot, measured, tasks, action)
+            record_bc_decision(decision_trace, snapshot, measured, tasks, action, limit=args.trace_controls)
             previous[:] = action
             return action, snapshot
 
