@@ -389,7 +389,7 @@ injected after initialization. Independently retain measured-H4 stride1 as a
 control. At each new anchor use the same true object-t+24 goal function as
 training; goal refresh cadence consequently increases too. This is not a live
 TaskScheduler run. Compare identical consumed timestamps with old stride8,
-check the initial full24 prediction is exactly equal, and audit H4/coordinate
+check the initial full24 prediction agrees within0.1mm, and audit H4/coordinate
 composition independently. Report mean/final hand EPE and object error; visual
 comparison uses raw points, without MANO or physics integration.
 
@@ -403,3 +403,11 @@ injecting ground truth. New artifacts go to
 and resource samples go to `tmp/wam-train-stride1/`. Existing stride8 artifacts
 remain read-only. This remains four TRAIN examples and trajectory reproduction,
 not physical validity, generalization, or BC/PPO utility.
+
+Comparison gate note: original intent was bitwise initial prediction equality.
+The fresh eyeglasses forward already showed tiny numerical changes (first8
+EPE5.97986 vs5.98016mm) with exactly matching exported inputs, before inspecting
+comparison plots. Use the existing0.1mm numerical gate and report the actual
+maximum coordinate difference; do not claim bitwise equality. Inference uses
+implementation5432958c; this numerical comparison/visualization gate is recorded
+in its own subsequent commit.

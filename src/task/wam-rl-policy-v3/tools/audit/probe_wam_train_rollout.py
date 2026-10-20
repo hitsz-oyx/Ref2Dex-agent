@@ -197,8 +197,10 @@ def visualize(args):
                 if (br['sequence'],br['original_train_tick'])!=(report['sequence'],report['original_train_tick']):
                     raise ValueError('comparison sequence/anchor mismatch')
                 with np.load(args.baseline/('case%d.npz'%i)) as b:
-                    for key in ('real_hand','real_object','flow_query','hand_present','first_prediction'):
+                    for key in ('real_hand','real_object','flow_query','hand_present'):
                         np.testing.assert_array_equal(d[key],b[key])
+                    first_diff_mm=float(np.max(np.abs(d['first_prediction']-b['first_prediction']))*1000)
+                    if first_diff_mm>.1:raise ValueError('initial predictions differ by more than0.1mm')
                     common=v&b['valid'];ids=np.flatnonzero(common)
                     if not len(ids):raise ValueError('no common consumed frames')
                     ax.plot(t[common],b['free_error_mm'][common],label='Predicted H4 / show8',color='#984ea3')
@@ -212,13 +214,14 @@ def visualize(args):
                         free_stride1_final_mm=float(d['free_error_mm'][ids[-1]]),
                         free_stride8_object_mean_mm=float(b['free_object_error_mm'][common].mean()),
                         free_stride1_object_mean_mm=float(d['free_object_error_mm'][common].mean()),
-                        first_prediction_exact_match=True)
+                        first_prediction_max_difference_mm=first_diff_mm)
                     comparison.append(row)
         ax.set(title=report['sequence'],xlabel='Seconds from H4 start',ylabel='Mean22-point error (mm)');ax.grid(alpha=.2);ax.legend()
     fig.suptitle('Frozen WAM-v4 step80000 / actual TRAIN GRAB / true object t+24 goal')
     fig.savefig(out/'train-rollout-errors.png',dpi=160);plt.close(fig)
     if baseline:
         (out/'stride-comparison.json').write_text(json.dumps(dict(status='PASS',baseline=str(args.baseline.resolve()),
+            visualization_git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
             changed='consume/replan stride8 to stride1; same goal function evaluated at new anchors',reports=comparison),indent=2)+'\n')
         print(json.dumps(dict(stage='comparison',reports=comparison)),flush=True)
     # A raw-keypoint video avoids MANO reconstruction as a confound in this diagnosis.
