@@ -1,5 +1,11 @@
 # Teacher rollout任务与实测执行接口
 
+最新修复（2026-10-20）：τ与task10统一消费TaskController局部目标；
+新增τ缓存layout v2、Scheduled BC packet v2，旧v1保留但不得静默复用。
+Current421扩展时新增列置零；PPO采样动作、支撑反馈、终止批次与γ一致性已补充回归。
+当前在线工具仍是单回合有界评估/collector smoke，遇首个任务终止即结束批次，
+不能当作已经实现多回合reset的长训入口。历史段落按当时进度保留。
+
 以用户最新纠正为准：DExplore checkpoint只用于生成teacher rollout。
 TaskSpec/goal来自同轮实测物体轨迹与接触，不使用DExplore训练reference_obj/reference_current。
 此前将训练参考当任务目标、进而得到0/660的判断已撤销；不是本路线的失败证据。

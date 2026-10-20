@@ -79,3 +79,35 @@ Both 421 and 686 online collectors are now qualified for a future bounded PPO
 rollout. This still does not establish reward calibration, task completion, or
 PPO improvement, so multi-hour training remains inadmissible without a separate
 policy-improvement decision.
+
+
+## Review correction and regression checks (2026-10-20)
+
+The prior 30-control collector runs used distribution means rather than sampled
+Gaussian actions. Their log-probability replay/finite-loss results establish only
+transport and tensor compatibility; the earlier statement that they qualified
+an on-policy PPO collector is withdrawn. They also did not exercise task terminals.
+
+The repair shares a .96 discount between potential shaping and GAE, samples raw
+behavior actions before clipping only the native command, and saves both forms.
+A bounded single-episode batch stops at its first measured task terminal after
+recording that last transition. Other environments retain their actual final
+bootstrap; no action is sent after termination. This is not yet a multi-episode
+reset/resume training collector. Native episode/tick changes are rejected before
+another decision. The host now supplies same-execution object contact force and
+actual table pose for the same CAD/net-force support proxy used by admission.
+
+Scheduled WAM goals now come from the identical TaskController decisions used
+for task10, including acquisition/recovery/release gates, and geometry is selected
+by environment order rather than the 50-object global index. Current421 expansion
+explicitly zeros all 265 new columns and preserves shape/normalization/old weights.
+The repaired tau layout is v2 and repaired scheduled BC packets are v2; old v1
+artifacts stay immutable and cannot silently enter the new route.
+
+126 Task tests pass, including stochastic mean-gradient, warmstart invariance,
+450-control acquisition timeout with a second live environment, hidden reset
+rejection, nonleading/repeated object binding, support-dependent release, and
+archive replay goal/task equality. Planned bounded native checks use run_id
+`inspire-measured-interface-fixes-20261020-r1`, frozen Task code and existing
+Current421 best; the Scheduled686 fixture is an untrained expansion of that same
+parent, only for interface verification. No long BC/PPO run is launched.

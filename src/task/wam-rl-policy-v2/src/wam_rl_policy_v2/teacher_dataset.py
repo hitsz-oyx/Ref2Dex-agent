@@ -40,11 +40,14 @@ class TeacherRolloutCorpus:
             contact=np.where(contact_valid[:,None,None],z['body_contact_forces'][:n,ids],0)
             measured=np.concatenate((base,force,contact.reshape(n,15),dof_valid[:,None],contact_valid[:,None]),-1).astype(np.float32)
             task=np.zeros((n,10),np.float32);active=np.zeros(n,bool)
+            local_goals=np.zeros((n,4,4),np.float64)
             for t in range(n):
                 result=controller.observe(z['obj'][t],InspireAdapter.canonical_hand(z['hand'][t]),z['velocity'][t],t/30,
                     contact_forces=contact[t],force_valid=bool(contact_valid[t]),supported=bool(support[t]))
                 task[t]=result['task'];active[t]=not result['decision'].terminated
+                local_goals[t]=result['decision'].local_goal_pose
                 if result['decision'].terminated:break
         if measured.shape!=(n,347) or not np.isfinite(measured).all():raise ValueError('finite measured347 required')
         return dict(sequence=row['sequence'],measured=measured,task=task,active=active,action=action,
-            object_points=points.astype(np.float32),task_spec=spec.packet(),goal_source=GOAL_SOURCE)
+            object_points=points.astype(np.float32),task_spec=spec.packet(),goal_source=GOAL_SOURCE,
+            local_goal_pose=local_goals)

@@ -7,6 +7,8 @@ from scipy.spatial.transform import Rotation
 
 from .task_reward import RewardFeatures, TaskReward
 
+MEASURED_GAMMA = .96
+
 
 def _pose_error(current, target):
     current = np.asarray(current, dtype=np.float64)
@@ -47,7 +49,7 @@ def reward_features(pose, hand, object_points, decision, object_velocity, contac
 class MeasuredRewardTracker:
     """Causal one-step reward state for one TaskController episode."""
 
-    gamma: float = .96
+    gamma: float = MEASURED_GAMMA
     dt_s: float = 1 / 30
     effort_scale: float = .01
 

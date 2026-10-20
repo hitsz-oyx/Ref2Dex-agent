@@ -13,6 +13,8 @@ from torch import nn
 
 from .bc_mlp import NormalizedCommandMLP
 from .ppo import advantages
+from .measured_reward_bridge import MEASURED_GAMMA
+from .measured_execution import GOAL_CONTRACT
 
 
 class MeasuredGaussianActor(nn.Module):
@@ -32,12 +34,14 @@ class MeasuredGaussianActor(nn.Module):
     @classmethod
     def from_bc_packet(cls, packet, *, with_tau):
         expected_schema = (
-            "ref2dex.inspire-measured-scheduled-bc.v1"
+            "ref2dex.inspire-measured-scheduled-bc.v2"
             if with_tau
             else "ref2dex.inspire-measured-current-bc.v1"
         )
         if packet.get("schema") != expected_schema:
             raise ValueError("measured BC checkpoint schema mismatch")
+        if with_tau and packet.get('config', {}).get('goal_contract') != GOAL_CONTRACT:
+            raise ValueError('measured Scheduled686 requires the shared TaskController goal')
         actor = cls(686 if with_tau else 421)
         source = packet["model"]
         prefix = "actor."
@@ -57,6 +61,12 @@ class MeasuredGaussianActor(nn.Module):
     def act_mean(self, observation):
         return self.distribution(observation).loc.clamp(-1, 1)
 
+    def sample(self, observation):
+        """Unclipped behavior sample; clip only the command sent to physics."""
+        distribution = self.distribution(observation)
+        action = distribution.sample()
+        return action, distribution.log_prob(action).sum(-1), distribution.loc, distribution.scale
+
 
 class MeasuredCritic(nn.Module):
     """Fresh value network kept separate from the BC actor checkpoint."""
@@ -75,7 +85,7 @@ class MeasuredCritic(nn.Module):
         return self.net(observation).squeeze(-1) * self.value_scale
 
 
-def update_measured(actor, critic, batch, actor_optimizer, critic_optimizer, *, gamma=0.99, lam=0.95,
+def update_measured(actor, critic, batch, actor_optimizer, critic_optimizer, *, gamma=MEASURED_GAMMA, lam=0.95,
                     target_kl=0.02, epochs=1):
     """Run one bounded PPO update on a T x N measured collector batch.
 
@@ -93,6 +103,8 @@ def update_measured(actor, critic, batch, actor_optimizer, critic_optimizer, *, 
     adv, returns = advantages(batch["reward"], batch["value"], batch["done"], batch["bootstrap"], gamma, lam)
     flat_obs = obs.flatten(0, 1)
     action = batch["action"].flatten(0, 1)
+    if torch.equal(action, batch['mean'].flatten(0, 1)):
+        raise ValueError('PPO requires sampled behavior actions, not deterministic means')
     old_logp = batch["logp"].flatten()
     old = torch.distributions.Normal(batch["mean"].flatten(0, 1), batch["std"].flatten(0, 1))
     flat_adv = adv.flatten()

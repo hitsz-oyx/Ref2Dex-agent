@@ -26,6 +26,7 @@ def main():
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--socket", type=Path, required=True)
     p.add_argument("--gpu", type=int, default=6)
+    p.add_argument("--seed", type=int, default=246)
     p.add_argument("--controls", type=int, default=60)
     p.add_argument("--seconds", type=int, default=1800)
     p.add_argument("--state-transport", choices=("json", "packed"), default="json")
@@ -52,7 +53,7 @@ def main():
     import torch
     from scipy.spatial.transform import Rotation
     from trajectory_policy.wam_ipc import peer_pid, receive, send
-    from wam_rl_policy_v2.inspire_contract import NATIVE_TO_WAM, expand_action
+    from wam_rl_policy_v2.inspire_contract import expand_action
     from wam_rl_policy_v2.inspire_shadow import current_state, tau_world
     from wam_rl_policy_v2.inspire_state_codec import unpack_state
     from wam_rl_policy_v2.measured_policy import MeasuredInspirePolicy
@@ -61,21 +62,24 @@ def main():
     from wam_rl_policy_v2.robot_adapter import InspireAdapter
     from wam_rl_policy_v2.task_runtime import TaskController
     from wam_rl_policy_v2.teacher_dataset import TeacherRolloutCorpus
-    from wam_rl_policy_v2.goal_scheduler import OrderedGoalScheduler, rigid_goal_delta
+    from wam_rl_policy_v2.measured_execution import online_support, run_single_episode_batch
+    from wam_rl_policy_v2.goal_scheduler import rigid_goal_delta
+    from wam_rl_policy_v2.measured_execution import environment_geometry, GOAL_CONTRACT
     from wam_rl_policy_v2.task_spec import TaskSpec
     from wam_rl_policy_v2.wam_v4_runtime import V4Runtime, collate_v4, v4_online_samples
 
+    torch.manual_seed(a.seed); np.random.seed(a.seed)
     packet = torch.load(a.checkpoint, map_location="cpu", weights_only=False)
-    if packet.get("schema") != "ref2dex.inspire-measured-scheduled-bc.v1":
+    if packet.get("schema") != "ref2dex.inspire-measured-scheduled-bc.v2":
         raise ValueError("Scheduled686 measured BC checkpoint required")
+    if packet.get("config", {}).get("goal_contract") != GOAL_CONTRACT:
+        raise ValueError("checkpoint needs shared measured TaskController conditioning")
     model = MeasuredInspirePolicy(with_tau=True).cuda().eval()
     model.load_state_dict(packet["model"], strict=True)
     ppo_actor = MeasuredGaussianActor.from_bc_packet(packet, with_tau=True).cuda().eval() if a.ppo_collector_smoke else None
     ppo_critic = MeasuredCritic(686).cuda().eval() if a.ppo_collector_smoke else None
     corpus = TeacherRolloutCorpus(a.manifest, "train")
     by_sequence = {row["sequence"]: row for row in corpus.records}
-    old_meta = json.loads((a.geometry_cache / "manifest.json").read_text())
-    object_index = {row["object_code"].split("/", 1)[-1]: i for i, row in enumerate(old_meta["records"])}
     listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM); listener.settimeout(300)
     listener.bind(str(a.socket)); listener.listen(1)
     state = dict(schema="ref2dex.inspire-measured-scheduled-bc-closed-loop.v1", status="WAITING_NATIVE",
@@ -98,24 +102,26 @@ def main():
         if len(set(sequences)) != len(sequences) or any(sequence not in by_sequence for sequence in sequences):
             raise ValueError("native sequence is outside audited TRAIN corpus")
         objects = [dict(object_code="dexplore/" + sequence.split("_")[1], scale=1) for sequence in sequences]
-        runtime = V4Runtime(old_meta["wam"], objects, a.geometry_cache,
+        runtime = V4Runtime(packet["config"]["wam"], objects, a.geometry_cache,
                             dense_manifest=a.geometry_cache / "surface-manifest.json",
                             allow_geometry_replacement=True, device="cuda:0")
-        contexts, points, tau_schedulers, geometry = [], [], [], []
-        for sequence in sequences:
+        contexts, points, geometry, table_bounds = [], [], [], []
+        for env_index, sequence in enumerate(sequences):
             row = by_sequence[sequence]; sidecar = a.manifest.parent / row["sidecar"]
             spec = TaskSpec.from_packet(json.loads((sidecar / "task.json").read_text()))
             source = Path(row["source"])
             with np.load(source / "canonical.npz") as values: surface = values["points"].astype(np.float32, copy=True)
             contexts.append(TaskController(spec, surface)); points.append(surface)
-            geo = runtime.geometry[object_index[row["object"]]]; geometry.append(geo)
-            tau_schedulers.append(OrderedGoalScheduler(spec.object_path, spec.source_frames / spec.source_fps,
-                                                       geo[2], interaction_points=geo[3], goal_type=spec.goal_type))
+            geometry.append(environment_geometry(runtime, env_index, "dexplore/" + row["object"]))
+            with np.load(sidecar / "admission.npz") as masks:
+                table_bounds.append(masks["table_bounds"].copy())
         histories = [deque(maxlen=4) for _ in sequences]; hand_histories = [deque(maxlen=4) for _ in sequences]
         previous = np.zeros((len(sequences), 12), np.float32); decision_count = np.zeros(len(sequences), np.int64)
         tau_valid_count = 0; force_valid_count = 0
         latest_decisions = [None] * len(sequences); terminal_records = {}
         reward_trackers = [MeasuredRewardTracker() for _ in sequences]
+        state["gamma"] = reward_trackers[0].gamma
+        state["seed"] = a.seed
         reward_totals = np.zeros(len(sequences), np.float64); reward_last_parts = [None] * len(sequences)
         transitions = [[] for _ in sequences]; pending = [None] * len(sequences)
 
@@ -130,7 +136,8 @@ def main():
                 contact = np.asarray(snapshot["contact_forces"], dtype=np.float32)[index]
                 tick = int(np.asarray(snapshot["tick"])[index]); now = tick / 30.0
                 result = contexts[index].observe(pose, hand, np.asarray(snapshot["objects"], dtype=np.float32)[index, 7:13], now,
-                    contact_forces=contact, force_valid=contact_valid, supported=None)
+                    contact_forces=contact, force_valid=contact_valid,
+                    supported=online_support(snapshot, index, pose, points[index], table_bounds[index]))
                 decision = result["decision"]
                 features = reward_features(
                     pose, hand, points[index], decision,
@@ -155,11 +162,10 @@ def main():
                 histories[index].append(np.r_[pose[:3, 3], Rotation.from_matrix(pose[:3, :3]).as_quat()])
                 hand_histories[index].append(hand.copy())
                 tau = np.zeros((8, 11, 3), np.float32); valid = False
-                if len(histories[index]) == 4:
-                    tau_decision = tau_schedulers[index].update(pose, now, hand_points=hand)
+                if len(histories[index]) == 4 and not decision.terminated:
                     objects4 = np.asarray(histories[index], np.float32)[None]
                     hands4 = np.asarray(hand_histories[index], np.float32)[None]
-                    goal = rigid_goal_delta(pose, tau_decision["goal_pose"], geometry[index][2])[None]
+                    goal = rigid_goal_delta(pose, decision.local_goal_pose, geometry[index][2])[None]
                     sample = v4_online_samples(objects4, hands4, [geometry[index]], goal_delta=goal)[0]
                     if runtime.workspace_valid([sample])[0]:
                         batch = {key: value.to(runtime.device, non_blocking=True) for key, value in collate_v4([sample]).items()}
@@ -188,10 +194,8 @@ def main():
                     robot = torch.cat((measured_tensor[..., :345], shape, measured_tensor[..., 345:]), -1)
                     observation = torch.cat((robot, task_tensor, tau_tensor.flatten(1),
                                              tau_valid_tensor.to(measured_tensor.dtype)[:, None]), -1)
-                    distribution = ppo_actor.distribution(observation)
-                    output = distribution.loc
+                    output, logp, behavior_mean, behavior_std = ppo_actor.sample(observation)
                     values = ppo_critic(observation)
-                    logp = distribution.log_prob(output).sum(-1)
                     for index in range(len(sequences)):
                         if pending[index] is not None:
                             old = pending[index]
@@ -203,25 +207,31 @@ def main():
                                 done=bool(latest_decisions[index]["terminated"]),
                             ))
                         pending[index] = dict(observation=observation[index], action=output[index],
-                                              logp=logp[index], mean=distribution.loc[index],
-                                              std=distribution.scale[index], value=values[index])
+                                              logp=logp[index], mean=behavior_mean[index],
+                                              std=behavior_std[index], value=values[index])
             action = output.clamp(-1, 1).cpu().numpy().astype(np.float32); previous[:] = action
             return action, snapshot
 
         action, native = observe_and_predict(native)
-        for control in range(a.controls):
-            send(connection, dict(op="step", action=expand_action(action).tolist(), episodes=native["episodes"]))
-            reply = receive(connection)
-            if "state" not in reply: raise ValueError("native step response lacks state")
-            action, native = observe_and_predict(reply["state"])
-            state.update(status="RUNNING", controls_completed=control + 1, tau_valid_observations=int(tau_valid_count),
+
+        def record_progress(completed):
+            state.update(status="RUNNING", controls_completed=completed, tau_valid_observations=int(tau_valid_count),
                          force_valid_observations=int(force_valid_count), scheduler_decisions=decision_count.tolist(),
                          latest_decisions=latest_decisions, terminal_records=terminal_records, elapsed_s=time.monotonic() - started)
             state["reward_totals"] = reward_totals.tolist(); state["reward_last_parts"] = reward_last_parts
             write(a.output / "progress.json", state)
+
+        completed = run_single_episode_batch(
+            connection, action, native, a.controls,
+            observe=observe_and_predict, on_step=record_progress,
+            is_terminal=lambda: any(d["terminated"] for d in latest_decisions),
+            send=send, receive=receive, expand_action=expand_action,
+        )
+        state["termination_policy"] = "stop_batch_at_first_task_terminal"
+        state["stop_reason"] = "task_terminal" if terminal_records else "control_budget"
         send(connection, dict(op="close")); receive(connection)
-        if ppo_actor is not None:
-            if any(len(row) != a.controls for row in transitions):
+        if ppo_actor is not None and completed:
+            if any(len(row) != completed for row in transitions):
                 raise ValueError("online PPO collector did not produce one transition per control")
             batch = {}
             for key in ("observation", "action", "logp", "mean", "std", "value"):
@@ -232,14 +242,20 @@ def main():
             batch["done"] = torch.as_tensor(np.asarray([[row["done"] for row in transitions[index]]
                                                         for index in range(len(sequences))], bool).T, device="cuda")
             batch["bootstrap"] = torch.stack([pending[index]["value"] for index in range(len(sequences))])
+            # Keep the unclipped behavior and the actual native command separately.
+            np.savez_compressed(a.output / "collector-actions.npz",
+                action=batch["action"].cpu().numpy(), command=batch["action"].clamp(-1, 1).cpu().numpy(),
+                mean=batch["mean"].cpu().numpy(), std=batch["std"].cpu().numpy(),
+                logp=batch["logp"].cpu().numpy(), done=batch["done"].cpu().numpy(),
+                reward=batch["reward"].cpu().numpy(), bootstrap=batch["bootstrap"].cpu().numpy())
             ppo_actor.train(); ppo_critic.train()
             actor_optimizer = torch.optim.Adam(ppo_actor.parameters(), lr=1e-5)
             critic_optimizer = torch.optim.Adam(ppo_critic.parameters(), lr=1e-4)
             state["ppo_collector"] = dict(transition_count=[len(row) for row in transitions],
                                            update=update_measured(ppo_actor, ppo_critic, batch,
-                                                                  actor_optimizer, critic_optimizer, epochs=1),
+                                                                  actor_optimizer, critic_optimizer, gamma=reward_trackers[0].gamma, epochs=1),
                                            bootstrap_source="actual final measured observation")
-        state.update(status="COMPLETED", controls_completed=a.controls, tau_valid_observations=int(tau_valid_count),
+        state.update(status="COMPLETED", controls_completed=completed, tau_valid_observations=int(tau_valid_count),
                      force_valid_observations=int(force_valid_count), scheduler_decisions=decision_count.tolist(),
                      latest_decisions=latest_decisions, terminal_records=terminal_records, elapsed_s=time.monotonic() - started,
                      reward_totals=reward_totals.tolist(), reward_last_parts=reward_last_parts,

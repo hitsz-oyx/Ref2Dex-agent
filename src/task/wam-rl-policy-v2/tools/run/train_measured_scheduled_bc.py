@@ -45,8 +45,20 @@ def main():
     import sys; sys.path.insert(0,str(TASK/'src'))
     import torch
     from wam_rl_policy_v2.measured_policy import MeasuredInspirePolicy
+    from wam_rl_policy_v2.measured_execution import TAU_LAYOUT_SCHEMA, GOAL_CONTRACT
+    torch.manual_seed(a.seed); np.random.seed(a.seed)
     train=load(a.manifest.resolve(),'train'); dev=load(a.manifest.resolve(),'dev')
     layout=json.loads((a.tau_cache/'layout.json').read_text())
+    if layout.get('schema') != TAU_LAYOUT_SCHEMA or layout.get('goal_contract') != GOAL_CONTRACT:
+        raise ValueError('rebuild tau cache with the shared measured TaskController goal')
+    completions = [json.loads(path.read_text()) for path in sorted(a.tau_cache.glob('completion-*.json'))]
+    if (not completions or len(completions) != completions[0]['world']
+            or {row['rank'] for row in completions} != set(range(len(completions)))
+            or sum(row['records_done'] for row in completions) != len(layout['records'])
+            or any(row['status'] != 'COMPLETED' or row.get('goal_contract') != GOAL_CONTRACT
+                   or row.get('source_manifest') != str(a.manifest.resolve()) for row in completions)
+            or len({row['wam_sha256'] for row in completions}) != 1):
+        raise ValueError('complete matching teacher-goal tau shards required')
     def check(split,data):
         rows=[r for r in layout['records'] if r['split']==split]
         if [r['sequence'] for r in rows]!=data['sequences']: raise ValueError(split+' sequence order changed')
@@ -77,18 +89,11 @@ def main():
     parent=torch.load(a.parent.resolve(),map_location='cpu',weights_only=False)
     if parent.get('schema')!='ref2dex.inspire-measured-current-bc.v1': raise ValueError('Current421 parent required')
     model=MeasuredInspirePolicy(with_tau=True).to(device)
-    state=model.state_dict(); pstate=parent['model']
-    with torch.no_grad():
-        for key,value in pstate.items():
-            if key=='actor.net.0.weight': state[key][:,:421].copy_(value)
-            elif key in ('actor.x_mean','actor.x_scale'): state[key][:421].copy_(value)
-            else: state[key].copy_(value)
-    model.load_state_dict(state,strict=True)
-    with torch.no_grad(): model.actor.x_mean[421:685].zero_(); model.actor.x_scale[421:685].fill_(.05); model.actor.x_mean[685].zero_(); model.actor.x_scale[685].fill_(1.)
+    model.initialize_current(parent)
     optimizer=torch.optim.AdamW(model.parameters(),lr=3e-4,weight_decay=1e-5); rng=np.random.default_rng(a.seed+1)
     commit=os.environ.get('REF2DEX_CODE_COMMIT') or subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
-    manifest=dict(schema='ref2dex.inspire-measured-scheduled-bc.v1',status='RUNNING',experiment_id='P-20261020-inspire-scheduled686-bc',run_id=out.name,git_commit=commit,
-        source_manifest=str(a.manifest.resolve()),tau_cache=str(a.tau_cache.resolve()),parent=str(a.parent.resolve()),input_dim=686,action_dim=12,steps=a.steps,batch=a.batch,seed=a.seed,
+    manifest=dict(schema='ref2dex.inspire-measured-scheduled-bc.v2',status='RUNNING',experiment_id='P-20261020-inspire-scheduled686-bc',run_id=out.name,git_commit=commit,
+        source_manifest=str(a.manifest.resolve()),tau_cache=str(a.tau_cache.resolve()),goal_contract=GOAL_CONTRACT,wam=completions[0]['wam'],parent=str(a.parent.resolve()),input_dim=686,action_dim=12,steps=a.steps,batch=a.batch,seed=a.seed,
         train_rows=int(len(tr['action'])),dev_rows=int(len(dv['action'])),tau_admission='workspace_valid and valid=true',warmstart='Current421 best; tau/valid first-layer columns zero')
     write(out/'manifest.json',manifest); started=time.monotonic(); best=float('inf'); curve=[]
     @torch.no_grad()

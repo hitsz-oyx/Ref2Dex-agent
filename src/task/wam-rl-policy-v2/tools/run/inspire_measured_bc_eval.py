@@ -46,6 +46,7 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--socket", type=Path, required=True)
     parser.add_argument("--gpu", type=int, default=6)
+    parser.add_argument("--seed", type=int, default=246)
     parser.add_argument("--controls", type=int, default=60)
     parser.add_argument("--seconds", type=int, default=1800)
     parser.add_argument("--state-transport", choices=("json", "packed"), default="json")
@@ -86,8 +87,10 @@ def main():
     from wam_rl_policy_v2.robot_adapter import InspireAdapter
     from wam_rl_policy_v2.task_runtime import TaskController
     from wam_rl_policy_v2.teacher_dataset import TeacherRolloutCorpus
+    from wam_rl_policy_v2.measured_execution import online_support, run_single_episode_batch
 
     torch.set_num_threads(2)
+    torch.manual_seed(args.seed); np.random.seed(args.seed)
     packet = torch.load(args.checkpoint, map_location="cpu", weights_only=False)
     if packet.get("schema") != "ref2dex.inspire-measured-current-bc.v1":
         raise ValueError("Current421 measured BC checkpoint required")
@@ -135,6 +138,7 @@ def main():
             raise ValueError("native sequence is outside the audited TRAIN corpus")
         contexts = []
         context_points = []
+        table_bounds = []
         for sequence in sequences:
             row = by_sequence[sequence]
             sidecar = args.manifest.parent / row["sidecar"]
@@ -147,12 +151,16 @@ def main():
                 points = geometry["points"].astype(np.float32, copy=True)
             contexts.append(TaskController(task_spec, points))
             context_points.append(points)
+            with np.load(sidecar / "admission.npz") as masks:
+                table_bounds.append(masks["table_bounds"].copy())
         previous = np.zeros((len(sequences), 12), np.float32)
         decision_count = np.zeros(len(sequences), np.int64)
         force_valid_count = 0
         latest_decisions = [None] * len(sequences)
         terminal_records = {}
         reward_trackers = [MeasuredRewardTracker() for _ in sequences]
+        state["gamma"] = reward_trackers[0].gamma
+        state["seed"] = args.seed
         reward_totals = np.zeros(len(sequences), np.float64)
         reward_last_parts = [None] * len(sequences)
         transitions = [[] for _ in sequences]
@@ -179,7 +187,7 @@ def main():
                     tick / 30.0,
                     contact_forces=contact,
                     force_valid=contact_valid,
-                    supported=None,
+                    supported=online_support(snapshot, index, pose, context_points[index], table_bounds[index]),
                 )
                 decision = result["decision"]
                 features = reward_features(
@@ -238,10 +246,8 @@ def main():
                     shape = model.shape(points_tensor)
                     robot = torch.cat((measured_tensor[..., :345], shape, measured_tensor[..., 345:]), -1)
                     observation = torch.cat((robot, task_tensor), -1)
-                    distribution = ppo_actor.distribution(observation)
-                    output = distribution.loc
+                    output, logp, behavior_mean, behavior_std = ppo_actor.sample(observation)
                     values = ppo_critic(observation)
-                    logp = distribution.log_prob(output).sum(-1)
                     for index in range(len(sequences)):
                         if pending[index] is not None:
                             old = pending[index]
@@ -256,25 +262,18 @@ def main():
                                 done=bool(latest_decisions[index]["terminated"]),
                             ))
                         pending[index] = dict(observation=observation[index], action=output[index],
-                                              logp=logp[index], mean=distribution.loc[index],
-                                              std=distribution.scale[index], value=values[index])
+                                              logp=logp[index], mean=behavior_mean[index],
+                                              std=behavior_std[index], value=values[index])
             action = output.clamp(-1, 1).cpu().numpy().astype(np.float32)
             previous[:] = action
             return action, snapshot
 
         action, native = observe_and_predict(native)
-        for control in range(args.controls):
-            send(
-                connection,
-                dict(op="step", action=expand_action(action).tolist(), episodes=native["episodes"]),
-            )
-            reply = receive(connection)
-            if "state" not in reply:
-                raise ValueError("native step response lacks state")
-            action, native = observe_and_predict(reply["state"])
+
+        def record_progress(completed):
             state.update(
                 status="RUNNING",
-                controls_completed=control + 1,
+                controls_completed=completed,
                 force_valid_observations=int(force_valid_count),
                 scheduler_decisions=decision_count.tolist(),
                 latest_decisions=latest_decisions, terminal_records=terminal_records,
@@ -282,11 +281,20 @@ def main():
                 elapsed_s=time.monotonic() - started,
             )
             write(args.output / "progress.json", state)
+
+        completed = run_single_episode_batch(
+            connection, action, native, args.controls,
+            observe=observe_and_predict, on_step=record_progress,
+            is_terminal=lambda: any(d["terminated"] for d in latest_decisions),
+            send=send, receive=receive, expand_action=expand_action,
+        )
+        state["termination_policy"] = "stop_batch_at_first_task_terminal"
+        state["stop_reason"] = "task_terminal" if terminal_records else "control_budget"
         send(connection, dict(op="close"))
         receive(connection)
         collector_result = None
-        if ppo_actor is not None:
-            if any(len(row) != args.controls for row in transitions):
+        if ppo_actor is not None and completed:
+            if any(len(row) != completed for row in transitions):
                 raise ValueError("online PPO collector did not produce one transition per control")
             batch = {}
             for key in ("observation", "action", "logp", "mean", "std", "value"):
@@ -297,15 +305,21 @@ def main():
             batch["done"] = torch.as_tensor(np.asarray([[row["done"] for row in transitions[index]]
                                                         for index in range(len(sequences))], bool).T, device="cuda")
             batch["bootstrap"] = torch.stack([pending[index]["value"] for index in range(len(sequences))])
+            # Keep the unclipped behavior and the actual native command separately.
+            np.savez_compressed(args.output / "collector-actions.npz",
+                action=batch["action"].cpu().numpy(), command=batch["action"].clamp(-1, 1).cpu().numpy(),
+                mean=batch["mean"].cpu().numpy(), std=batch["std"].cpu().numpy(),
+                logp=batch["logp"].cpu().numpy(), done=batch["done"].cpu().numpy(),
+                reward=batch["reward"].cpu().numpy(), bootstrap=batch["bootstrap"].cpu().numpy())
             ppo_actor.train(); ppo_critic.train()
             actor_optimizer = torch.optim.Adam(ppo_actor.parameters(), lr=1e-5)
             critic_optimizer = torch.optim.Adam(ppo_critic.parameters(), lr=1e-4)
-            collector_result = update_measured(ppo_actor, ppo_critic, batch, actor_optimizer, critic_optimizer, epochs=1)
+            collector_result = update_measured(ppo_actor, ppo_critic, batch, actor_optimizer, critic_optimizer, gamma=reward_trackers[0].gamma, epochs=1)
             state["ppo_collector"] = dict(transition_count=[len(row) for row in transitions], update=collector_result,
                                             bootstrap_source="actual final measured observation")
         state.update(
             status="COMPLETED",
-            controls_completed=args.controls,
+            controls_completed=completed,
             force_valid_observations=int(force_valid_count),
             scheduler_decisions=decision_count.tolist(),
             latest_decisions=latest_decisions, terminal_records=terminal_records,

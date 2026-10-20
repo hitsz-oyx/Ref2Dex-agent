@@ -60,7 +60,7 @@ def main():
         str(ROOT/'src/task/consequence-evaluator/src'),str(ROOT/'src/task/CmResidual/tools'),str(ROOT/'src/task/trajectory-policy/src')]
     sys.path.append('/home2/wyy/.local/lib/python3.8/site-packages')
     if Path(sys.prefix).resolve()!=Path('/home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train').resolve():raise ValueError('pinned native interpreter required')
-    from isaacgym import gymtorch
+    from isaacgym import gymtorch, gymapi
     import dexplore_ddp_rank_bootstrap
     import numpy as np
     import torch
@@ -160,6 +160,9 @@ def main():
             names=task.gym.get_actor_rigid_body_names(task.envs[0],task.humanoid_handles[0]);hand_ids=[names.index(x) for x in NATIVE_LINKS]
             episodes=np.zeros(a.envs,np.int64)
             force_valid=torch.zeros(a.envs,dtype=torch.bool,device=task.device)
+            table_indices=[task.gym.get_actor_index(env, handle, gymapi.DOMAIN_ENV)
+                           for env,handle in zip(task.envs,task._table_handles)]
+            table_indices=torch.tensor(table_indices,device=task.device,dtype=torch.long)
             def packet():
                 packet_started=time.perf_counter()
                 bodies=task._rigid_body_state.view(a.envs,-1,13)
@@ -169,8 +172,11 @@ def main():
                         else {k:v.cpu().tolist() for k,v in values.items()})
                 result.update(episodes=episodes.tolist(),sequences=[Path(task.motion_file[i]).name for i in task.data_id.cpu().tolist()])
                 if a.extended_state:
+                    roots=task._root_states.view(a.envs,task.get_num_actors_per_env(),-1)
                     result.update(dof_force=torch.where(force_valid[:,None],task.dof_force_tensor,0.).cpu().tolist(),
                         contact_forces=torch.where(force_valid[:,None,None],task._contact_forces[:,task._contact_body_ids],0.).cpu().tolist(),
+                        object_contact_force=torch.where(force_valid[:,None],task._tar_contact_forces,0.).cpu().tolist(),
+                        table_pose=roots[torch.arange(a.envs,device=task.device),table_indices,:7].cpu().tolist(),
                         dof_force_valid=force_valid.cpu().tolist(),contact_force_valid=force_valid.cpu().tolist())
                 audit['last_packet_build_s']=time.perf_counter()-packet_started
                 return result

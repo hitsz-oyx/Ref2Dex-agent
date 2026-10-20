@@ -1,3 +1,12 @@
+## 2026-10-20 Inspire measured接口审计修复
+
+已确认旧collector smoke使用Gaussian mean，撤回此前“已验证on-policy PPO采集”的表述；
+旧数字只证明传输/张量兼容。修复采样动作、统一shaping/GAE γ=.96、终止后结束单回合批次、
+在线实测支撑反馈、按环境绑定geometry，以及Current421→686新增列清零。
+WAM与task10现共享TaskController决策，τ缓存/新Scheduled BC改为v2，旧产物不覆盖。
+126项Task测试通过；准备冻结后原生检查与GPU6/7新τ缓存，无长训。
+[修复记录](../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261020-inspire-task-reward-bridge.md)。
+
 ## 2026-10-20 WAM-v6已按用户要求改用三卡继续训练
 
 GPU0–2独立CUDA及三rank NCCL通过，GPU3仍reset故障但已排除。冻结d43b662d从17000显式

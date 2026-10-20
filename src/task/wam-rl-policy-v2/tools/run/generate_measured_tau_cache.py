@@ -45,7 +45,8 @@ def prepare_layout(out, manifest):
                                  shape=(offsets[split], 264))[:] = 0
         np.lib.format.open_memmap(out / f"{split}-valid.npy", mode="w+", dtype=np.bool_,
                                  shape=(offsets[split],))[:] = False
-    write(out / "layout.json", dict(schema="ref2dex.measured-scheduled-tau-layout.v1",
+    from wam_rl_policy_v2.measured_execution import TAU_LAYOUT_SCHEMA, GOAL_CONTRACT
+    write(out / "layout.json", dict(schema=TAU_LAYOUT_SCHEMA, goal_contract=GOAL_CONTRACT,
                                     status="READY", records=records,
                                     splits={s: dict(commands=offsets[s]) for s in ("train", "dev")}))
     return records
@@ -74,8 +75,9 @@ def main():
     import torch
     from scipy.spatial.transform import Rotation
     from wam_rl_policy_v2.inspire_contract import NATIVE_TO_WAM
-    from wam_rl_policy_v2.goal_scheduler import OrderedGoalScheduler, rigid_goal_delta
-    from wam_rl_policy_v2.task_spec import TaskSpec
+    from wam_rl_policy_v2.goal_scheduler import rigid_goal_delta
+    from wam_rl_policy_v2.teacher_dataset import TeacherRolloutCorpus
+    from wam_rl_policy_v2.measured_execution import TAU_LAYOUT_SCHEMA, GOAL_CONTRACT
     from wam_rl_policy_v2.wam_v4_runtime import V4Runtime, collate_v4, v4_online_samples
     from wam_rl_policy_v2.inspire_shadow import tau_world
 
@@ -90,7 +92,8 @@ def main():
     else:
         records = json.loads(layout_path.read_text())["records"]
     meta = json.loads(layout_path.read_text())
-    if meta.get("status") != "READY":
+    if (meta.get("status") != "READY" or meta.get("schema") != TAU_LAYOUT_SCHEMA
+            or meta.get("goal_contract") != GOAL_CONTRACT):
         raise ValueError("invalid tau layout")
     # The old cache is used only as a read-only geometry binding.  New goals,
     # observations and row identities all come from the measured corpus.
@@ -102,6 +105,9 @@ def main():
                         dense_manifest=dense, allow_geometry_replacement=True, device="cuda:0")
     tau_arrays = {s: np.load(out / f"{s}-tau.npy", mmap_mode="r+") for s in ("train", "dev")}
     valid_arrays = {s: np.load(out / f"{s}-valid.npy", mmap_mode="r+") for s in ("train", "dev")}
+    corpora = {split: TeacherRolloutCorpus(a.audit_manifest.resolve(), split) for split in ("train", "dev")}
+    episode_indices = {split: {row["sequence"]: i for i, row in enumerate(corpus.records)}
+                       for split, corpus in corpora.items()}
     assigned = [r for i, r in enumerate(records) if i % a.world == a.rank]
     if a.max_records is not None:
         assigned = assigned[:a.max_records]
@@ -109,26 +115,24 @@ def main():
     for record in assigned:
         if time.monotonic() - started > a.seconds or (out / "STOP").exists():
             raise TimeoutError("owned tau cache stop condition")
-        source = Path(record["source"]); sidecar = Path(a.audit_manifest).parent / record["sidecar"]
-        spec = TaskSpec.from_packet(json.loads((sidecar / "task.json").read_text()))
+        source = Path(record["source"])
         with np.load(source / "trajectory.npz") as z:
             poses = z["obj"][:record["commands"]].copy()
             hands = z["hand"][:record["commands"]].copy()[:, NATIVE_TO_WAM]
         geo_index = object_index[record["object"]]
         geometry = runtime.geometry[geo_index]
-        scheduler = OrderedGoalScheduler(spec.object_path, spec.source_frames / spec.source_fps,
-                                          geometry[2], interaction_points=geometry[3], goal_type=spec.goal_type)
+        episode = corpora[record["split"]].episode(episode_indices[record["split"]][record["sequence"]])
         taus = tau_arrays[record["split"]][record["lo"]:record["hi"]]
         valids = valid_arrays[record["split"]][record["lo"]:record["hi"]]
+        taus[:] = 0; valids[:] = False
         samples = []; rotations = []; local_indices = []
         for t, (pose, hand) in enumerate(zip(poses, hands)):
-            decision = scheduler.update(pose, t / spec.source_fps, hand_points=hand)
-            if t < 3:
+            if t < 3 or not episode["active"][t]:
                 continue
             history = poses[t - 3:t + 1]
             hand_history = hands[t - 3:t + 1]
             objects = np.c_[history[:, :3, 3], Rotation.from_matrix(history[:, :3, :3]).as_quat()][None]
-            goal = rigid_goal_delta(pose, decision["goal_pose"], geometry[2])[None]
+            goal = rigid_goal_delta(pose, episode["local_goal_pose"][t], geometry[2])[None]
             sample = v4_online_samples(objects, hand_history[None], [geometry], goal_delta=goal)[0]
             if not runtime.workspace_valid([sample])[0]:
                 continue
@@ -151,6 +155,7 @@ def main():
         print(json.dumps(report), flush=True)
     write(out / f"completion-{a.rank}.json", dict(status="COMPLETED", rank=a.rank, world=a.world,
         records_done=done, records_total=len(assigned), valid_rows=valid_count,
+        goal_contract=GOAL_CONTRACT, source_manifest=str(a.audit_manifest.resolve()),
         elapsed_s=time.monotonic() - started, wam=str(a.wam.resolve()),
         wam_sha256=hashlib.sha256(a.wam.read_bytes()).hexdigest()))
 

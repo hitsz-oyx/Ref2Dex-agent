@@ -12,6 +12,28 @@ class MeasuredInspirePolicy(nn.Module):
         self.actor=NormalizedCommandMLP(686 if with_tau else 421,312,12)
         self.actor.x_scale[411:421].copy_(torch.as_tensor(TASK_SCALE))
 
+    def initialize_current(self, packet):
+        """Expand Current421 while preserving its output for every tau input."""
+        if not self.with_tau or packet.get('schema') != 'ref2dex.inspire-measured-current-bc.v1':
+            raise ValueError('Scheduled686 and a measured Current421 parent required')
+        state = self.state_dict()
+        source = packet['model']
+        if set(source) != set(state):
+            raise ValueError('Current421 state fields differ')
+        with torch.no_grad():
+            for key, value in source.items():
+                if key == 'actor.net.0.weight':
+                    state[key].zero_()
+                    state[key][:, :421].copy_(value)
+                elif key in ('actor.x_mean', 'actor.x_scale'):
+                    state[key][:421].copy_(value)
+                else:
+                    state[key].copy_(value)
+        self.load_state_dict(state, strict=True)
+        self.actor.x_mean[421:].zero_()
+        self.actor.x_scale[421:685].fill_(.05)
+        self.actor.x_scale[685].fill_(1.)
+
     def forward(self,measured,task,object_points,*,tau=None,tau_valid=None):
         if measured.shape[-1]!=347 or task.shape!=measured.shape[:-1]+(10,):raise ValueError('measured347/task10 required')
         feature=self.shape(object_points)
