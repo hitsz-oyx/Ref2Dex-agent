@@ -145,6 +145,18 @@ def main():
         @torch.no_grad()
         def run(self):
             env=create();task=env.task
+            if a.physics_backend=='cpu':
+                # Upstream motion loading hardcodes CUDA even with a CPU sim.
+                # Keep all reference/index caches beside the actual sim tensors.
+                def cpu(value):
+                    if isinstance(value,torch.Tensor):return value.cpu()
+                    if isinstance(value,dict):return {k:cpu(v) for k,v in value.items()}
+                    if isinstance(value,list):return [cpu(v) for v in value]
+                    if isinstance(value,tuple):return tuple(cpu(v) for v in value)
+                    return value
+                for key,value in list(vars(task).items()):setattr(task,key,cpu(value))
+                if task._motion_sampler is not None:
+                    for key,value in list(vars(task._motion_sampler).items()):setattr(task._motion_sampler,key,cpu(value))
             if task.num_envs!=a.envs or not np.isclose(task.dt,1/30):raise ValueError('native30Hz contract changed')
             task._adaptive_kappa_enabled=False
             ids=torch.arange(task.num_envs,device=task.device);task.reset(ids)
