@@ -1,3 +1,14 @@
+## 2026-10-20 goal/task10执行路线迁移到 wam-rl-policy-v3
+
+用户要求分离路线：Inspire及新增TaskController/measured421/686的BC/PPO、审计与实验卡迁至v3，
+包名wam_rl_policy_v3，新输出outputs/wam-rl-policy-v3。v2保留UniDex/Shadow300/565及其官方PPO，
+恢复Shadow-only MLP，保留reset/KL等有效修复。数据和权重不搬动、不覆盖；用户ref文档原位保留。
+迁移前冻结1f9ae236的GPU6/7原生修复检查已通过：Current450拍在终止处正常结束，
+Scheduled以banana/apple完成60拍，PD误差0、跨回合错配0；仅工程验证，无策略改善结论。
+v2的59项、v3的127项测试通过。ref1_2确认的零扩展与双调度源问题已修复，追加真实父checkpoint
+梯度/goal一致性及shape漂移审计，准备重建v3的统一goal τ缓存，无BC/PPO长训。
+[新入口](../src/task/wam-rl-policy-v3/README.md)。
+
 ## 2026-10-20 Inspire measured接口审计修复
 
 已确认旧collector smoke使用Gaussian mean，撤回此前“已验证on-policy PPO采集”的表述；
@@ -5,7 +16,7 @@
 在线实测支撑反馈、按环境绑定geometry，以及Current421→686新增列清零。
 WAM与task10现共享TaskController决策，τ缓存/新Scheduled BC改为v2，旧产物不覆盖。
 126项Task测试通过；准备冻结后原生检查与GPU6/7新τ缓存，无长训。
-[修复记录](../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261020-inspire-task-reward-bridge.md)。
+[修复记录](../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-inspire-task-reward-bridge.md)。
 
 ## 2026-10-20 WAM-v6已按用户要求改用三卡继续训练
 
@@ -40,7 +51,7 @@ Both native hosts preserved the physical248/PD/episode contracts: maximum
 physical248 error `2.98e-7`, canonical-to-PD error `0`, and zero cross-episode
 action mismatches. This admits only a small 421/686 actor/critic collector
 shape smoke; reward calibration and long PPO training remain unvalidated.
-See [task-reward bridge card](../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261020-inspire-task-reward-bridge.md).
+See [task-reward bridge card](../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-inspire-task-reward-bridge.md).
 
 A measured PPO actor/critic shape smoke then loaded both real BC checkpoints at
 421/686 dimensions, generated a causal 6-by-2 transition batch, and completed a
@@ -104,8 +115,8 @@ v6已停止并保留checkpoint；v5原ac951370从自己的15120恢复为after-v6
 新TeacherRolloutCorpus与可训练shape encoder+同Shadow容量MLP已实现，current421/scheduled686；
 114项Task测试和GPU0八个真实episode输入检查通过，力字段保真误差0，尚未训练shape/新BC或PPO。
 旧参考条件的物理/τ缓存拒绝复用，旧319入口拒绝静默丢弃新力/形状/阶段字段。
-[实现与数据入口](../src/task/wam-rl-policy-v2/docs/research/2026-10-19-measured-task-interface.md)、
-[完整记录](../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-inspire-task-contract.md)。
+[实现与数据入口](../src/task/wam-rl-policy-v3/docs/research/2026-10-19-measured-task-interface.md)、
+[完整记录](../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261019-inspire-task-contract.md)。
 
 ## 2026-10-19 WAM-v5事件数据与checkpoint迁移准备完成，原训练继续
 
@@ -177,7 +188,7 @@ DEV选择仍是tau权重为零的current扩展点（MAE0.03892196），没有WAM
 这提示任务/标签相容性问题，不能仅靠补输入或增加训练轮数解释。用户当前要求讨论
 统一TaskSpec/阶段及补力、形状观测的方案，尚未按新方案实现或采集数据。
 Shadow通用PPO入口已接actual KL并绑定优化身份；尚未做匹配续训因果验证。
-[输入修订及结果](../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-inspire-task-contract.md)。
+[输入修订及结果](../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261019-inspire-task-contract.md)。
 
 ## 2026-10-19 Inspire在线吞吐约提升两倍（已停的旧577合同）
 
@@ -196,7 +207,7 @@ packed的首个r3试跑在首个物理步触发PhysX非法访问、0优化更新
 重复indexed setter及索引owner生命周期缺口：逻辑reset/FK仍立即生效，setter合并在
 pre-physics提交一次，无隐藏物理步。修复后相同339 checkpoint实际运行≥168控制步通过；
 这支持修复必要性，不声称已证明先前崩溃的唯一底层原因。推理/传输/reset提交身份和迁移均记录。
-[协议及结果](../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-inspire-shadow-parity.md)。
+[协议及结果](../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261019-inspire-shadow-parity.md)。
 
 ## 2026-10-19 Inspire已改为六卡混合训练，发现KL校准缺陷
 
@@ -210,7 +221,7 @@ Shadow退化审计排除了checkpoint编号/normalization buffers变化，随机
 发现官方adaptive KL按exp(log_std)计算，但实际scale_tril为exp(2log_std)；真实方差探针
 会产生相反的LR调整方向。新Inspire已校准KL，保留原采样分布和其他官方超参。
 这是一项已验证的计算缺陷，尚未通过匹配Shadow续训证明它是退化唯一原因或已恢复成功率。
-[六卡运行](../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-inspire-shadow-parity.md)、
+[六卡运行](../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261019-inspire-shadow-parity.md)、
 [退化审计](../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-ppo-checkpoint-evaluation.md)。
 
 ## 2026-10-19 六卡Shadow终点表现回落
@@ -247,7 +258,7 @@ GPU输入构造20轮计时已通过；26个已结束回合中23个workspace失�
 目标附近保持1秒0/64、完整路径0/64。6个高度保持代理中5个后掉落、1个末态越界，
 不称抓取成功；初始q/物体状态与示教对应，尚需定位闭环误差。BC仍只是弱warmstart。
 Shadow原六卡训练r4已正常完成10000终点、进程全部退出，不再处于训练中。
-[当前实验](../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-inspire-shadow-parity.md)。
+[当前实验](../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261019-inspire-shadow-parity.md)。
 
 ## 2026-10-19 后期PPO评估与Inspire初次自主闭环
 
@@ -261,7 +272,7 @@ DExplore Inspire新current986/30Hz/command12接口已完成实际WAM80000+空间
 尚未成功抓取保持。官方DExplore PPO尚未接入（0更新），不将其称整套流程成功。
 当前reactive teacher未复现旧批量采集，旧canonical重放可曾保持120拍但最终失守；差异仍待定位。
 未生成全量缓存，GPU0–5主训练未改。
-[Inspire实验卡](../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-inspire-scheduled-executor.md)。
+[Inspire实验卡](../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261019-inspire-scheduled-executor.md)。
 
 ## 2026-10-19 WAM密集点计时完成，主训练已恢复
 

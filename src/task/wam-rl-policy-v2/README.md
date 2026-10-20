@@ -70,91 +70,11 @@ PPO.run/update/storage及原配置，增加BC均值/WAM观测和多卡同步。
 当前主训练使用自己的冻结副本；修改环境变量或源码不会热更新已运行的训练。
 新启动器默认独立分配通信端口，显式指定已占用端口会在启动worker前失败。
 
-## Inspire：沿用Shadow训练路线（2026-10-19用户修订）
+## Task 边界（2026-10-20）
 
-正式适配使用共享`NormalizedCommandMLP`，隐藏层1024/1024/512/512、ELU；
-全量660条DExplore示教（589 TRAIN、71 DEV），先current BC再条件BC，各50000更新。
-输入为无手部ref的physical current312 + world tau264 + valid1，共577维；
-12独立命令展开18原生命令，30Hz H4和tau。current721只取无ref实测slice9:257，
-在线直接从真实刚体构造对应248维，并在原生进程做等价/参考扰动检查。
-已知完整物体SE3路径是任务指令，由同一个scheduler给WAM局部目标，actor不读hand-ref。
-
-- `tools/run/launch_inspire_full_bc.py`：冻结代码、全量提取、GPU6/7不重叠分片生成小型条件缓存、两阶段Shadow配方BC。
-- `tools/run/launch_inspire_shadow_ppo.py`：冻结代码、启动模型/物理双运行时、资源与checkpoint预算。
-- `tools/run/launch_inspire_mixed_ppo.py`：每卡同置两运行时，2–6 rank同步一个策略，50物体/589 TRAIN motion分摊、全局geometry绑定、rank0滚动保存。
-- `tools/run/inspire_shadow_ppo.py`与`src/wam_rl_policy_v2/inspire_ppo_bridge.py`：直接调用Shadow同一`prepare_official`和UniDex PPO引擎；算法、GAE、网络容量、默认PPO超参相同。
-- `tools/run/inspire_physics_host.py`：仅DExplore资产/初始化/物理/PD，不构造或训练DExplore actor，不使用其ref模仿奖励及终止。
-- [全量同路线实验](docs/experiments/probes/P-20261019-inspire-shadow-parity.md)。
-
-完整物体路径任务在环境adapter中定义有序进度、跟踪误差与终点门控；
-这不是把Shadow静态终点成功率原样解释成整段任务完成。保持代理另行记录。
-Inspire冻结WAM使用FP32：真实输入的bf16 batch64/single差超过1mm，FP32回归通过；
-网络、权重未改变。缓存与在线推理精度写入同一个conditioning合同。
-新Inspire训练修正上游adaptive KL与其平方scale_tril分布的失配；采样分布及官方其他PPO
-超参保留，优化合同与旧checkpoint迁移单独记录，详见后期退化诊断实验卡。
-
-上述577维为旧冻结运行合同。ref1审计后，当前Inspire合同升级为
-`physical312 + world tau264 + valid1 + local task7 = 584`；current BC为319维。
-task7包含当前物体坐标系的局部目标平移3、旋转向量3及已确认路径进度1，
-从H4启动前即提供，无WAM分支也使用完全相同的任务字段；不输入手部参考。
-物理列、tau列及valid索引保持，新增task放在577:584。两阶段BC与在线推理
-统一构造和归一化；current→scheduled只将新增tau/valid权重置零，保留task权重。
-BC/PPO/conditioning使用v2 schema；旧577 checkpoint不能按普通resume加载。
-
-`prepare_inspire_task_cache.py`在不可变全量物理/tau缓存上追加约4.64MiB任务字段，
-不重新计算神经缓存；`check_inspire_task_fields.py`检查全量准入及50物体的离线/在线一致性。
-完整660条序列、589 TRAIN/71 DEV、网络容量和两阶段各50000步不变。
-路径奖励改为局部目标误差及正进度增量，删除静止贴路径的持续正偏置；
-失败代价52.5由保留gamma=.96及负奖励界限推导。成功要求有序完成后实际SE3终点
-持续1秒且未越界，ever事件、最终到达、最终保持和高度代理分别记录。
-这是输入、奖励与成功合同的新实验，不能与旧PPO972直接拼接成连续学习曲线。
-[任务输入修订及验证](docs/experiments/probes/P-20261019-inspire-task-contract.md)。
-
-Shadow通用入口也显式提供`--adaptive-kl actual|legacy`：scheduled默认actual，
-原生官方评估默认legacy；六卡启动器默认actual。优化合同写入checkpoint，
-旧checkpoint缺失字段按legacy解释；改变训练合同需显式migration reason。
-保留官方采样分布及其他PPO超参；修复接线不等于已证明KL解释了全部后期退化。
-
-Inspire吞吐选项由`launch_inspire_mixed_ppo.py`显式指定：
-`--wam-executor-mode hand_shared_tf32 --wam-batch 256`保留FP32几何编码，
-仅共享Transformer的矩阵乘法允许TF32，读取相同的手轨迹头，省去执行器不用的scene/C读出。
-默认仍为`full_fp32`/128；不改变PPO、奖励、频率或环境数。
-数学设置在预测返回或异常时恢复，不影响Actor/Critic更新；启动及每300次预测用真实状态
-对照完整FP32前向，仍执行1mm门槛。推理模式写入execution identity，切换须显式
-`--performance-migration-reason`，仅允许该项差异，其他身份不匹配仍拒绝续训。
-参考路径初始化批量验证相同SE3条件并保持路径数组逐位一致。
-`tools/audit/benchmark_inspire_inference.py`提供50 TRAIN物体的固定H4计时/精度检查；
-在线日志的`rollout_timings`区分物理RPC、WAM、scheduler、indexed reset及传输。
-`--state-transport packed`将原生float32/int状态以有界原始字节/base64嵌入原JSON帧，
-减少浮点列表编解码；不使用pickle，逐字段检查dtype/shape/长度/有限性。
-原JSON列表的hand float64运算在adapter中显式保留，回归检查观测/reward/done逐位一致。
-该选项同样记录在inference身份，切换需要显式performance migration。
-原生reset沿用立即FK观测，indexed root/DOF setter合并到下一次pre-physics各提交一次，
-避免首次simulate前重复reset违反Isaac张量接口限制；索引owner保留至simulate之后。
-提交协议也写入inference身份，旧checkpoint须显式performance migration。
-
-旧`inspire_scheduled_probe.py`/`inspire_executor.py`是已归档的current986/小型单序列工程试跑，
-不作为全量路线的BC或PPO入口；其失败结果不代表上述完整Shadow配方。
-
-## 统一任务接口：第一批实现（尚未切换长训）
-
-新的 `TaskSpec → TaskController → task10 → ExecutorLayout` 实现已独立加入。
-当前阶段由实测反馈确认；DExplore 多个计划接触区间保留原始帧号，作为 WAM 意图接口。
-Inspire 新增同轮实测力及待训练的 shape64，含两项力有效位时 current421/scheduled686；
-Shadow 为 current310/scheduled575。网络容量保持原配方，按命名列迁移旧策略。
-旧 v4/v5 没有训练事件输入，接口会显式标记或拒绝，不能直接当成事件条件模型。
-六卡 PPO 继续停止，既有冻结模型和660归档保持。
-详细定义、实现边界与工程入口见[统一任务接口](docs/research/2026-10-19-measured-task-interface.md)。
-
-
-## 当前数据源纠正：checkpoint teacher的实测rollout
-
-以用户最新要求为准，task/goal读取同轮teacher执行的obj/contact，不读取其训练reference。
-已六卡完整回采660条并补齐力等原始state，最终raw为
-`outputs/wam-rl-policy-v2/inspire-teacher-rollout-20261019-r5/`，准入为
-`outputs/wam-rl-policy-v2/inspire-teacher-rollout-audit-20261019-r2/manifest.json`。
-筛选后563条连续前缀、60529动作；TRAIN覆盖50物体，其中46物体有保留的耦合段。
-TeacherRolloutCorpus/MeasuredInspirePolicy提供完整力、CAD shape encoder和task10的新接口。
-current421/scheduled686、Shadow隐藏层不变；完整训练入口仍需接线，未开新BC/PPO。
-旧reference条件缓存不再复用，旧319入口拒绝新force corpus以防静默丢字段。
-详见[当前实现](docs/research/2026-10-19-measured-task-interface.md)。
+本目录继续维护 UniDex/Shadow current300 / scheduled565 主实验及其官方 PPO。
+新增 phase/task10、Inspire measured421/686、teacher rollout 准入和对应 BC/PPO
+已经迁至 [wam-rl-policy-v3](../wam-rl-policy-v3/README.md)，包名独立为 `wam_rl_policy_v3`。
+原始 Shadow MLP 已从 `fd06bdac^` 恢复；官方 PPO/reset/KL 修复保留，主入口未回退。
+Shadow scheduled 默认 actual adaptive KL、原生官方评估默认 legacy，优化合同仍绑定 checkpoint。
+历史产物和用户审计文档保留原路径；不要将 v3 的新输入接入 v2 的旧 checkpoint 普通续训。

@@ -59,7 +59,7 @@ def main():
     allowed = [ROOT/'outputs/ptv3-shared-wam']
     if args.capture_current_observation:
         allowed.append(ROOT/'outputs/ptv3-shared-wam-v2')
-    if args.capture_dof_force:allowed.append(ROOT/'outputs/wam-rl-policy-v2')
+    if args.capture_dof_force:allowed.extend([ROOT/'outputs/wam-rl-policy-v2',ROOT/'outputs/wam-rl-policy-v3'])
     if (out.exists() or not any(p in out.parents for p in allowed)
             or not 1 <= len(names) <= 32 or len(set(names)) != len(names)
             or Path(sys.prefix).resolve() != RUNTIME.resolve()):
@@ -119,7 +119,7 @@ def main():
     install_reset_patch()
     if args.capture_dof_force:
         import importlib.util
-        reset_source=Path(os.environ.get('REF2DEX_RESET_MODULE',str(ROOT/'src/task/wam-rl-policy-v2/src/wam_rl_policy_v2/inspire_reset_submission.py')))
+        reset_source=Path(os.environ.get('REF2DEX_RESET_MODULE',str(ROOT/'src/task/wam-rl-policy-v3/src/wam_rl_policy_v3/inspire_reset_submission.py')))
         module_spec=importlib.util.spec_from_file_location('inspire_collection_reset',reset_source)
         reset_module=importlib.util.module_from_spec(module_spec);module_spec.loader.exec_module(reset_module)
         from env.tasks.base_dexplore_task import DexploreTask

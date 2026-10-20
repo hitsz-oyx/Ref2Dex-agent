@@ -632,12 +632,12 @@
 | [P-20261018-full-scheduled-current-bc](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261018-full-scheduled-current-bc.md) | 全量现有BC接入调度WAM | 见原卡 | 见原卡 | probes/COMPLETED |
 | [P-20261018-official-scheduled-mixed-ppo](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261018-official-scheduled-mixed-ppo.md) | 六卡混合物体：复用官方 PPO + 自训练 BC + WAM-v4 | 见原卡 | 见原卡 | probes/RUNNING |
 | [P-20261018-scheduled-batch-ppo](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261018-scheduled-batch-ppo.md) | Scheduled BC 的批量 PPO 试跑 | 见原卡 | 见原卡 | probes/COMPLETED |
-| [P-20261019-inspire-scheduled-executor](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-inspire-scheduled-executor.md) | P-20261019-inspire-scheduled-executor | 见原卡 | 见原卡 | probes/UNCLEAR |
-| [P-20261019-inspire-shadow-parity](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-inspire-shadow-parity.md) | P-20261019-inspire-shadow-parity | 见原卡 | 见原卡 | probes/RUNNING |
-| [P-20261019-inspire-task-contract](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-inspire-task-contract.md) | P-20261019-inspire-task-contract | 见原卡 | 见原卡 | probes/COMPLETED |
 | [P-20261019-native-ppo-comparison](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-native-ppo-comparison.md) | P-20261019-native-ppo-comparison | 见原卡 | 见原卡 | probes/COMPLETED |
 | [P-20261019-ppo-checkpoint-evaluation](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-ppo-checkpoint-evaluation.md) | P-20261019-ppo-checkpoint-evaluation | 见原卡 | 见原卡 | probes/COMPLETED |
 | [P-20261019-wam-final-swap](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261019-wam-final-swap.md) | P-20261019-wam-final-swap | 见原卡 | 见原卡 | probes/COMPLETED |
+| [P-20261019-inspire-scheduled-executor](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261019-inspire-scheduled-executor.md) | P-20261019-inspire-scheduled-executor | 见原卡 | 见原卡 | probes/UNCLEAR |
+| [P-20261019-inspire-shadow-parity](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261019-inspire-shadow-parity.md) | P-20261019-inspire-shadow-parity | 见原卡 | 见原卡 | probes/RUNNING |
+| [P-20261019-inspire-task-contract](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261019-inspire-task-contract.md) | P-20261019-inspire-task-contract | 见原卡 | 见原卡 | probes/COMPLETED |
 
 ## HF-shadow-bc-ppo
 
@@ -1268,12 +1268,12 @@
 | [P-20261018-direct-tau-dagger](../../src/task/trajectory-policy/docs/experiments/probes/P-20261018-direct-tau-dagger.md) | P-20261018-direct-tau-dagger | 见原卡 | 见原卡 | probes/UNPROMISING |
 | [P-20261018-direct-tau-executor-r3](../../src/task/trajectory-policy/docs/experiments/probes/P-20261018-direct-tau-executor-r3.md) | P-20261018-direct-tau-executor-r3 | 见原卡 | 见原卡 | probes/UNPROMISING |
 | [P-20261018-unidex-live-oracle-tau](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261018-unidex-live-oracle-tau.md) | P-20261018-unidex-live-oracle-tau | 见原卡 | mark this particular packet-plus-update expansion UNPROMISING and | probes/见原卡 |
-| [P-20261020-inspire-bc-action-scale](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261020-inspire-bc-action-scale.md) | P-20261020-inspire-bc-action-scale | 见原卡 | 见原卡 | probes/见原卡 |
-| [P-20261020-inspire-current421-bc](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261020-inspire-current421-bc.md) | P-20261020-inspire-current421-bc | 见原卡 | 见原卡 | probes/见原卡 |
-| [P-20261020-inspire-current421-closed-loop](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261020-inspire-current421-closed-loop.md) | P-20261020-inspire-current421-closed-loop | 见原卡 | 见原卡 | probes/见原卡 |
-| [P-20261020-inspire-paired-bc-dev](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261020-inspire-paired-bc-dev.md) | P-20261020-inspire-paired-bc-dev | 见原卡 | 见原卡 | probes/见原卡 |
-| [P-20261020-inspire-scheduled686-bc](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261020-inspire-scheduled686-bc.md) | P-20261020-inspire-scheduled686-bc | 见原卡 | 见原卡 | probes/见原卡 |
-| [P-20261020-inspire-scheduled686-cache](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261020-inspire-scheduled686-cache.md) | P-20261020-inspire-scheduled686-cache | 见原卡 | 见原卡 | probes/见原卡 |
-| [P-20261020-inspire-scheduled686-closed-loop](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261020-inspire-scheduled686-closed-loop.md) | P-20261020-inspire-scheduled686-closed-loop | 见原卡 | 见原卡 | probes/见原卡 |
-| [P-20261020-inspire-task-reward-bridge](../../src/task/wam-rl-policy-v2/docs/experiments/probes/P-20261020-inspire-task-reward-bridge.md) | P-20261020-inspire-task-reward-bridge | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261020-inspire-bc-action-scale](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-inspire-bc-action-scale.md) | P-20261020-inspire-bc-action-scale | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261020-inspire-current421-bc](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-inspire-current421-bc.md) | P-20261020-inspire-current421-bc | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261020-inspire-current421-closed-loop](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-inspire-current421-closed-loop.md) | P-20261020-inspire-current421-closed-loop | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261020-inspire-paired-bc-dev](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-inspire-paired-bc-dev.md) | P-20261020-inspire-paired-bc-dev | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261020-inspire-scheduled686-bc](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-inspire-scheduled686-bc.md) | P-20261020-inspire-scheduled686-bc | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261020-inspire-scheduled686-cache](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-inspire-scheduled686-cache.md) | P-20261020-inspire-scheduled686-cache | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261020-inspire-scheduled686-closed-loop](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-inspire-scheduled686-closed-loop.md) | P-20261020-inspire-scheduled686-closed-loop | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261020-inspire-task-reward-bridge](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-inspire-task-reward-bridge.md) | P-20261020-inspire-task-reward-bridge | 见原卡 | 见原卡 | probes/见原卡 |
 | [VAL-20260923-CM-EFFECT-PPO](validations/VAL-20260923-CM-EFFECT-PPO.md) | Validation: 动作条件 Cm 效应排序能否稳定改善 PPO？ | 见原卡 | 见原卡 | validations/见原卡 |

@@ -78,7 +78,7 @@ def main():
     allowed = [ROOT/'outputs/ptv3-shared-wam']
     if a.capture_current_observation:
         allowed.append(ROOT/'outputs/ptv3-shared-wam-v2')
-    if a.capture_dof_force:allowed.append(ROOT/'outputs/wam-rl-policy-v2')
+    if a.capture_dof_force:allowed.extend([ROOT/'outputs/wam-rl-policy-v2',ROOT/'outputs/wam-rl-policy-v3'])
     if ((out.exists() != a.resume) or not any(p in out.parents for p in allowed)
             or not 1 <= len(gpus) <= 6 or len(set(gpus)) != len(gpus)
             or not all(g.isdigit() for g in gpus) or not 1<=a.batch_size<=32

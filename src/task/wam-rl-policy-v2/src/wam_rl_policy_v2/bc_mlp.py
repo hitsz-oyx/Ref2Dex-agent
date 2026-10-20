@@ -7,18 +7,15 @@ SCHEDULED_SCHEMA='ref2dex.shadow-scheduled-current-bc-mlp.v1'
 SCHEDULED_DIM=565  # current300 + world hand tau8x11x3 + observed-history validity
 
 
-class NormalizedCommandMLP(nn.Module):
-    """Shared Shadow architecture; only robot input/output dimensions vary."""
-    hidden_dims=(1024,1024,512,512)
-
-    def __init__(self,input_dim,current_dim,action_dim):
+class CurrentMLP(nn.Module):
+    def __init__(self,input_dim=300):
         super().__init__()
-        if not 0<current_dim<=input_dim or action_dim<1:raise ValueError('Invalid robot dimensions')
-        self.input_dim=input_dim;self.current_dim=current_dim
-        for name,size in [('x',input_dim),('y',action_dim)]:
+        if input_dim not in (300,SCHEDULED_DIM):raise ValueError('current300 or scheduled565 required')
+        self.input_dim=input_dim
+        for name,size in [('x',input_dim),('y',24)]:
             self.register_buffer(name+'_mean',torch.zeros(size))
             self.register_buffer(name+'_scale',torch.ones(size))
-        widths=(input_dim,*self.hidden_dims,action_dim)
+        widths=(input_dim,1024,1024,512,512,24)
         layers=[]
         for index,(lo,hi) in enumerate(zip(widths,widths[1:])):
             layers.append(nn.Linear(lo,hi))
@@ -28,16 +25,10 @@ class NormalizedCommandMLP(nn.Module):
 
     def forward(self,observation):
         if observation.shape[-1]!=self.input_dim:raise ValueError('BC observation dimension mismatch')
-        observed=(observation.clamp(-5,5) if self.input_dim==self.current_dim else
-                  torch.cat((observation[...,:self.current_dim].clamp(-5,5),observation[...,self.current_dim:]),-1))
+        observed=(observation.clamp(-5,5) if self.input_dim==300 else
+                  torch.cat((observation[...,:300].clamp(-5,5),observation[...,300:]),-1))
         x=(observed-self.x_mean)/self.x_scale
         return self.net(x)*self.y_scale+self.y_mean
-
-
-class CurrentMLP(NormalizedCommandMLP):
-    def __init__(self,input_dim=300):
-        if input_dim not in (300,SCHEDULED_DIM):raise ValueError('current300 or scheduled565 required')
-        super().__init__(input_dim,300,24)
 
     def initialize_current(self,packet):
         """Model-only expansion of our full-data BC, with zero new input weights."""

@@ -312,7 +312,6 @@ class V4Runtime:
             from ptv3_shared_wam.model import clean
             install_clean_hooks(clean)
         self.geometry = load_geometry(cache, env_objects, dense_manifest, dense_sha256)
-        self.env_objects = tuple(dict(obj) if isinstance(obj, dict) else dict(object_code=str(obj)) for obj in env_objects)
         if len(self.geometry) != len(env_objects):
             raise ValueError("one prepared v4 geometry per environment required")
         from .execution_identity import file_digest, value_digest, geometry_bindings
