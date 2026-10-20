@@ -97,3 +97,79 @@ alter task10/local goals or v4 inputs, so the shared-goal tau cache is reusable.
   drop/regrasp/continued tracking and legitimate intermediate release.
 - selection/decision/limits: unchanged; retain step0, best/latest only, GPU6
   train/GPU7 evaluation, no long PPO until a positive physical signal.
+
+### r3 matched evaluation protocol
+
+Training is frozen at 57777674; native/paired DEV tools at 8df34303 also save
+initial physical snapshots and at most the first100 decisions, with an explicit
+mask for actions actually applied. Subsequent 6782d140 tightens terminal-event
+acknowledgment only; it does not change task10, local goal or v4 prediction.
+
+- selected-policy run: inspire-ref1-paired-20261020-r1, GPU7; Current421 parent
+  versus DEV-selected Scheduled686 best, same seed246, same two TRAIN sequences
+  s10_airplane_fly_1 / s10_alarmclock_pass_1, 300 native controls, no PPO update.
+- trained-final diagnostic: inspire-ref1-latest-20261020-r2, GPU6 after training,
+  same paired DEV and native panel for final50k weights. This distinguishes
+  imitation-based selection from physical behavior; it cannot establish a WAM
+  benefit against an equally continued Current421 training budget.
+- full paired DEV5879 commands, split into valid5693 / invalid186; keep full
+  native initial-state comparison rather than relying on the random seed alone.
+- all native runs use graspenv policy + dexplore_v120_train physics runtime,
+  deterministic clipped means, task-active termination boundary, no video.
+
+Before the learned-policy comparison, Current421 initial measured347 agrees
+with its recorded teacher data to 2.98e-7 max on these two sequences; task10 is
+exact. Initial command MAE is already0.13543 / 0.07339, and both remain ACQUIRE
+with path progress0 at control300. This isolates an initial imitation deficit
+on this panel; later time-aligned action differences also include state drift.
+The 300-control budget does not constitute full-episode success evaluation.
+Report: outputs/wam-rl-policy-v3/inspire-ref1-paired-20261020-r1/current-teacher-first100.json.
+
+The unused latest-r1 wrapper was stopped while waiting for training, before any
+GPU evaluation, to correct a metadata key in the wrapper. Its stop record is
+retained; it is not an additional policy result.
+
+### r3 completed results and decision
+
+All50000 updates completed in597.23s after56.64s preparation; sampled training
+GPU utilization84–93% (checkpoint/evaluation samples sometimes lower), peak
+reported1329MiB. Best/latest output is bounded to about39MiB total.
+
+| Paired DEV subset | Current421 | Scheduled best (step0) | Scheduled final (step50000) |
+| --- | ---: | ---: | ---: |
+| All5879 | 0.03825807 | 0.03825807 | 0.05427545 |
+| Valid5693 | 0.03632101 | 0.03632101 | 0.05271482 |
+| Invalid186 | 0.09754662 | 0.09754663 | 0.10204255 |
+
+Step0 remains selected. The tiny step0 prediction difference (mean2.42e-8)
+is numerical; it is not a learned WAM effect. Latest training loss declines
+while DEV error rises, consistent with overfitting, without identifying a unique
+cause. Normalized DEV shape-feature max grows from3.60 to9.66; values are
+finite and this alone does not prove an encoder defect.
+
+Both native comparison runs completed300 controls on the two fixed TRAIN
+motions. All initial q/dq/physical/object/hand/tick/table arrays match bitwise,
+including the GPU6 final-policy diagnostic against the GPU7 parent. Native PD
+error and episode-action mismatch are0. Both Scheduled runs produce596 valid
+WAM predictions including the unused final decision; task10 versus WAM point-goal max errors are6.15e-9m for selected
+step0 and1.02e-8m for final50k.
+
+At control300 all three policies remain/return ACQUIRE, with path progress0.
+Final50k does improve first-command MAE on these TRAIN motions from
+0.13543/0.07339 to0.00778/0.00705. The alarmclock observer enters TRACK at tick60
+(40 of the first100 observations) but returns ACQUIRE by tick300. This is a
+temporary motion-coupling heuristic signal, not certified stable grasping or
+task success. Later time-aligned teacher differences include changed states.
+
+Decision: do not launch long PPO from these results. Diagnose the transition
+from initial imitation to loss of coupling and closed-loop state drift; initial
+measured/task inputs on this panel are already aligned. Any eventual WAM benefit
+claim still needs matched continued Current training and broader physical tests.
+This two-TRAIN-motion,10s screen does not establish full-episode success or DEV
+physical generalization.
+
+Evidence: selected-policy run's paired-dev.json, initial-state.npz,
+first100-decisions.npz, current-teacher-first100.json and first100-analysis.json;
+final-policy run's paired-dev.json and native/policy manifests. No PPO updates.
+All owned GPU jobs have ended. Full v3 regression133 tests and scoped repository
+Python/structured/Markdown checks pass.

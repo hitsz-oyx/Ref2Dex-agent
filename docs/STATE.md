@@ -8,7 +8,12 @@ Scheduled以banana/apple完成60拍，PD误差0、跨回合错配0；仅工程�
 v2的59项、v3的127项测试通过。ref1_2确认的零扩展与双调度源问题已修复，追加真实父checkpoint
 梯度/goal一致性及shape漂移审计。v3完整新τ缓存406秒完成，有效TRAIN52660/DEV5693，
 点目标最大差7.61e-8m；真实8物体256行零扩展最大输出差2.38e-7，tau/valid首步梯度非零。
-未启动BC/PPO长训；实际最新产物与边界见[v3状态](../src/task/wam-rl-policy-v3/docs/STATE.md)。
+ref1新增的无效τ样本覆盖和掉落事件游标问题已修复，v3共133项测试通过。GPU6的Scheduled686 r3
+使用所有active TRAIN54162/DEV5879行完成50k更新（597秒）；配对DEV最优仍为精确保留的
+Current421 step0(0.038258)，final50k为0.054275。GPU6/7相同初始状态的两条TRAIN运动
+300拍末均无路径进度；final50k首动作模仿改善、曾短暂TRACK，之后回ACQUIRE。
+尚无稳定闭环或WAM净收益证据，下一步诊断耦合丢失；未启动PPO长训，两卡任务已结束。
+实际最新产物与边界见[v3状态](../src/task/wam-rl-policy-v3/docs/STATE.md)。
 [新入口](../src/task/wam-rl-policy-v3/README.md)。
 
 ## 2026-10-20 Inspire measured接口审计修复

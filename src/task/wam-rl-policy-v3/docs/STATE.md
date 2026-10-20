@@ -23,7 +23,7 @@ outputs/wam-rl-policy-v3/inspire-scheduled686-cache-20261020-r2；563条前缀/6
 该检查只做1次工程optimizer更新，不保存checkpoint。shape标准化特征p99=2.48、max=3.24，
 仅此小面板未见幅值爆炸，不能排除全量或后期漂移。完整报告为
 outputs/wam-rl-policy-v3/inspire-current421-warmstart-audit-20261020-r1/report.json。
-现有Current421 best仍可作为父策略，不需为迁移重训；下一步可重训正确条件的Scheduled BC。
+现有Current421 best仍保留为父策略，不需为迁移重训；正确条件的Scheduled BC重训结果见下。
 新训练保留step0基线并记录shape特征漂移；不因ref1_2提出的学习风险修改容量或50k配方。
 当前工具只有有界单回合collector，尚不作为多回合长PPO训练入口。
 
@@ -33,8 +33,25 @@ ref1.md 两项新增缺陷已补回归：Scheduled BC 保留所有 task-active �
 CONTACT 意图，重抓后保留待执行的 RELEASE；合法中间释放也有正向测试。
 v3 共132项测试通过。四进程有序数据回放与串行结果逐数组一致。
 r2 在 CPU 数据准备阶段、零次参数更新时停止，保留停止记录。
-下一次训练为 r3，所有 active TRAIN54162/DEV5879 行，包含无效 τ TRAIN1502/DEV186 行。
+r3训练使用所有 active TRAIN54162/DEV5879 行，包含无效 τ TRAIN1502/DEV186 行。
 事件修复不改变 task10/local goal 或当前不接收事件的 WAMv4 输入，既有统一目标缓存仍可复用。
-这两项修复不等于已获得正向 BC 抓取结果；尚需新训练和配对闭环验证。
+这两项修复不等于已获得正向 BC 抓取结果；新训练和配对闭环结果见下。
 额外覆盖“已经到终点但尚未进入 RELEASE 阶段就掉落”：最终释放必须等显式
 RELEASE 阶段授权，不能只靠到达终点确认；相关24项定向回归通过。
+
+r3 已在 GPU6 完成50000次更新，597.2秒，准备56.6秒；约84–93%训练利用率，
+best/latest合计约39MiB。完整v3回归133项和本次Python/结构化/Markdown检查通过。
+配对DEV5879行的Current421与选中Scheduled(step0) MAE均为0.03825807；
+训练后step50000为0.05427545，valid组0.036321→0.052715，invalid组0.097547→0.102043。
+step0仍为best，不能声称新τ训练获得收益。
+
+GPU6/7原生配对也已完成：两条TRAIN运动各300拍，Current、选中step0、训练后step50000
+初始q/dq/physical/object/hand/tick/table逐位一致；PD误差0、跨episode错配0，
+Scheduled的task10/WAM点目标误差最大1.03e-8m，两组均有596次有效预测。
+三组在300拍末均为ACQUIRE、路径进度0，不能作为全量成功率结果。
+训练后权重在这两条TRAIN运动的首动作MAE从0.13543/0.07339降为0.00778/0.00705；
+alarmclock在第60拍被observer短暂判为TRACK（前100拍40拍TRACK），末态又回到ACQUIRE。
+这表明启动模仿改善仍不足以稳定维持观测耦合；不等于证明真实抓握成功或WAM净收益。
+初始实测输入与teacher一致到2.98e-7、task10精确，下一步诊断耦合丢失与状态分布漂移，
+暂不扩展长PPO。结果位于outputs/wam-rl-policy-v3/inspire-ref1-paired-20261020-r1/
+及inspire-ref1-latest-20261020-r2/；两卡任务均已结束。
