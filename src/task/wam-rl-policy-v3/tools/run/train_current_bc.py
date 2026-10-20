@@ -15,6 +15,22 @@ ROOT=Path(os.environ.get('REF2DEX_RUN_ROOT',TASK.parents[2])).resolve()
 sys.path.insert(0,str(TASK/'src'))
 
 
+def load_resident_array(path, device, rows_per_chunk=65536):
+    """Bound each host read instead of one multi-GiB numpy.fromfile syscall."""
+    import numpy as np
+    import torch
+    if rows_per_chunk < 1:
+        raise ValueError('positive resident-loader chunk required')
+    source = np.load(path, mmap_mode='r', allow_pickle=False)
+    if source.dtype != np.float32 or source.ndim != 2:
+        raise ValueError('float32 BC matrix required')
+    result = torch.empty(source.shape, dtype=torch.float32, device=device)
+    for lo in range(0, len(source), rows_per_chunk):
+        hi = min(lo + rows_per_chunk, len(source))
+        result[lo:hi].copy_(torch.from_numpy(np.array(source[lo:hi], copy=True)))
+    return result
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('stage',choices=('prepare','prepare-scheduled','train'))
@@ -55,7 +71,7 @@ def main():
         os.environ['CUDA_VISIBLE_DEVICES']=str(a.gpu)
     import numpy as np
     out.mkdir(parents=True,exist_ok=a.stage=='prepare-scheduled' and a.resume_cache);started=time.monotonic()
-    try:commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=TASK,text=True,stderr=subprocess.DEVNULL).strip()
+    try:commit=os.environ.get('REF2DEX_CODE_COMMIT') or subprocess.check_output(['git','rev-parse','HEAD'],cwd=TASK,text=True,stderr=subprocess.DEVNULL).strip()
     except subprocess.CalledProcessError:
         commit=os.environ.get('REF2DEX_CODE_COMMIT')
         if not commit:raise ValueError('Frozen source commit required outside Git checkout')
@@ -121,7 +137,11 @@ def main():
             cache=json.loads((a.data/'manifest.json').read_text());assert cache['status']=='COMPLETED'
             stats=dict(np.load(a.data/'stats.npz'));data={}
             for split in ('train','dev'):
-                data[split]={k:torch.as_tensor(np.load(a.data/(split+'-'+k+'.npy')),device='cuda') for k in ('x','y')}
+                data[split]={}
+                for k in ('x','y'):
+                    load_started=time.monotonic()
+                    data[split][k]=load_resident_array(a.data/(split+'-'+k+'.npy'),'cuda')
+                    print(json.dumps(dict(status='LOADED',split=split,array=k,shape=list(data[split][k].shape),seconds=time.monotonic()-load_started)),flush=True)
             input_dim=data['train']['x'].shape[1]
             schema=SCHEMA if input_dim==300 else SCHEDULED_SCHEMA
             torch.manual_seed(a.seed);model=CurrentMLP(input_dim).cuda()

@@ -469,3 +469,24 @@ bounded by the shortest peer recording. Report initial/prefix replay error,
 teacher-forced versus closed-loop time-aligned errors, physical height and
 continuous lifted frames separately from strict TaskController progress.
 The panel is TRAIN, selected for teacher coverage, not held-out success evidence.
+
+
+UniDex r1 Current300 completed50k (211.24s, DEV MAE0.0193933). Scheduled
+stage never reached model initialization or updates: an ordinary np.load read
+of the3.3GiB TRAIN matrix spent >7min mostly in kernel (441s system,1.44s user).
+Independent1MiB preads at0/2GiB/3GiB took0.0008/0.0008/0.0147s. Stop only this
+identified zero-update child, retain its failure/stop reason and the trained
+Current parent, replace the monolithic read with mmap+bounded65536-row copies.
+run_id=unidex-fresh-bc-20261020-r2 resumes the experimental pipeline with a fresh
+Scheduled optimizer initialized from r1/current/best.pt, unchanged data, seed,
+50k budget and selection/evaluation protocol. It does not resume a partially
+trained Scheduled policy or load a historical policy. Frozen code is in manifest.
+
+Lift diagnostic r1 teacher canonical replay: toothpaste collection16 membership,
+seed129, exactly equal initial q/hand/object; hand/q remain equal through30steps,
+object initial microdrift~0.159mm. By100steps hand mean52.5mm/object54.2mm;
+therefore late time-aligned student/teacher differences include physical replay
+sensitivity. The stamp16 batch triggers the known native PhysX illegal-access
+failure before observations, retained as failed infrastructure evidence. r1
+stops rather than hiding the failure; r2 runs only the predeclared four-environment
+BC panel to separate this from the large collection-batch replay issue.
