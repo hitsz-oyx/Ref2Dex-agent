@@ -1,5 +1,16 @@
 # WAM v6 state — 2026-10-20
 
+
+Post-reboot resume requested, currently blocked on SSH connectivity. Three
+attempts to127.0.0.1:22023 timed out during SSH banner exchange; the local port
+is listening but remote boot/NAS/GPU status cannot yet be verified. No training
+has been launched. Explicit world3→4/local128/global512 restoration is prepared
+in13612688 and8 topology/actual-entrypoint tests pass. Reconnect and inspect
+four-GPU health before choosing it; otherwise retain strict world3 recovery.
+The local full checkpoint backup is now VERIFIED (1186363152bytes,23758,568
+optimizer states,3 RNG payloads). User was asked whether the rebooted node's
+SSH tunnel/address has been restored; code snapshot13612688.tar is ready locally.
+
 Current status: STOPPED normally at23758 for the user's planned remote-server
 reboot. Complete step023758.pt (1186363152bytes) was CPU-loaded and checked:
 all model tensors finite,568 optimizer states (564 at23758,4 event states at8638),
