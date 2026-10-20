@@ -169,8 +169,8 @@ def prepare(args):
         for split in ('train','dev'):
             candidates=[r for r in rows.values() if r['source_id']==sid and split in r['split']]
             if candidates:
-                chosen=min(candidates,key=lambda r:(r['estimated_bytes'],r['key']))
-                selected[chosen['key']]=chosen
+                for chosen in sorted(candidates,key=lambda r:(r['estimated_bytes'],r['key']))[:3]:
+                    selected[chosen['key']]=chosen
     expected=sum(r['estimated_bytes'] for r in selected.values())
     # No transport archive, no second expanded copy. Per-sequence staging
     # renames atomically; reserve the largest sequence once more for safety.
@@ -190,7 +190,7 @@ def prepare(args):
         source_read_only=True,training_allowed=False,training_launched=False,
         missing_for_original_resume=['remote frozen v6/v5 manifests and binding metadata','original admitted window/stratum indices','original TRAIN normalizer JSON'])
     save(out/'preparation.json',receipt)
-    for name in ('hands/sequences','contacts','geometry','sources','packets','windows','events/sequences','recipe'):
+    for name in ('hands','contacts','geometry','sources','packets','windows','events/sequences','recipe'):
         (destination/name).mkdir(parents=True)
     hands=destination/'hands';contacts=destination/'contacts';geometry=destination/'geometry';recipe=destination/'recipe'
     selected_jobs=[];main3=ROOT/'outputs/cm-pointflow-effect-pretrain/pointworld-main3-sharedstats-20261009/data'
@@ -241,6 +241,7 @@ def prepare(args):
     save(geometry/'manifest.json',registry)
     hc=bind_cache(hands,'hand',dict(protocol='local reconstruction with original v5 implementation',
         plan=metadata_identity(destination/'plan.json'),original_plan=str(args.plan.resolve())))
+    (hands/'sequences').mkdir()
     cc=bind_cache(contacts,'contact',dict(protocol=LABEL_SEMANTICS,hands=str(hands.resolve()),hand_cache=hc['identity'],
         geometry_manifest=metadata_identity(geometry/'manifest.json')))
     tools=TASK.parent/'ptv3-shared-wam-v5/tools/run'
@@ -254,6 +255,7 @@ def prepare(args):
     for job in selected_jobs:
         key=job['key'];row=selected[key]
         if time.monotonic()>deadline:raise TimeoutError('one-hour preparation limit')
+        if (out/'STOP').exists():raise InterruptedError('preparation STOP requested')
         free=capacity(out,row['estimated_bytes']*2+256*1024**2)
         minimum_free=min(minimum_free,free)
         try:
@@ -265,9 +267,11 @@ def prepare(args):
             cm=contact_tool.prepare(hands/'sequences'/key,hm,geometries,contacts,cc)
             folder=hands/'sequences'/key;cf=contacts/key
             jvalid=np.load(folder/'joint_valid.npy',mmap_mode='r')
+            known=np.load(folder/'object_pose_valid.npy',mmap_mode='r')
             selected_windows={}
             for split,path in job['windows'].items():
                 window=np.load(path);admit=history_admitted(jvalid,window[:,1])
+                admit &= np.array([known[t-3:t+25,int(slot)].all() for slot,t in window])
                 window=window[admit]
                 categories=np.load(Path(path).with_name(Path(path).stem+'-strata.npy'))[admit]
                 if len(window):selected_windows[split]=(window,categories)
