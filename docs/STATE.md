@@ -1,3 +1,10 @@
+## 2026-10-20 Inspire主训已按用户要求暂停，正在有界复测GPU物理
+
+CPU后备三卡r2已正常保存累计215轮并退出，checkpoint完整校验通过，主训保持暂停。
+GPU4/5/6各512环境的新诊断从215轮模型/optimizer显式迁移到GPU PhysX，限16轮/1200s，
+不修改官方PPO超参、WAM或训练覆盖；测试结束退出，不自动恢复长训。
+[实验卡](../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-inspire-measured-official-ppo.md)。
+
 ## 2026-10-20 Inspire measured686正式三卡PPO已开始更新
 
 按用户指定GPU4/5/6各512环境，总1536，官方UniDex PPO的8步/5epochs/4minibatches及

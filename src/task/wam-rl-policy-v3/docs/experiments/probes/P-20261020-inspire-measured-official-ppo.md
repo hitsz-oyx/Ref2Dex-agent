@@ -14,7 +14,7 @@ seeds: [246, 247, 248]
 decision_changed_if_positive: continue the measured goal WAM policy improvement route
 decision_changed_if_negative: diagnose measured training dynamics before adding scale or changing the method
 status: RUNNING
-run_id: inspire-measured-official-20261020-r2
+run_id: inspire-measured-gpu-recheck-20261020-r1
 ---
 
 User requests starting PPO now onGPU4/5/6 concurrently with independent
@@ -183,3 +183,37 @@ startup/contact conditions remain candidates. The active CPU-PhysX three-rank
 training remains frozen and unchanged; no silent backend migration performed.
 All154 existing Task tests pass on the audited changes. Diagnostic artifacts
 are bounded and initial snapshots are small; no new neural caches or videos.
+
+## User pause and same-three-GPU diagnostic migration
+
+User explicitly requests pausing production and testing the GPU path again.
+r2 received its owned STOP and all ranks exited normally atiteration215, after
+4300 local optimizer steps. Source61,158,368-byte checkpoint is fully CPU loaded,
+finite, with21 optimizer parameter states; both model and optimizer are retained.
+Supervisor/root now records USER_PAUSED, all six owned workers exited. The
+production run remains paused unless the user asks to resume.
+
+The bounded new run inspire-measured-gpu-recheck-20261020-r1 freezesfa10fcd5,
+retains the source checkpoint by hardlink underinputs, and runsGPU4/5/6×512 with
+all501 TRAIN/50 objects, the sameWAM/BC and official optimizer settings. Restore
+model+optimizer from215 and explicitly migrate CPU→GPU PhysX with GPU tensors;
+16 additional updates (through231) or1200s, then exit. Shared TF32/batch256,
+packed extended state and setter synchronization remain explicit. This is a
+backend migration diagnostic, not a matched physical-trajectory comparison.
+
+The new --migrate-physics-backend option requires --resume. A unit regression
+ensures ordinary resume rejects a backend change and explicit migration still
+rejects WAM/env-count/world-size or any other identity change. The migration and
+source checkpoint are saved with manifests and output checkpoints. Three
+focused reset/identity regressions pass. Acceptance requires all three workers
+complete16 updates, actual multi-episode reset checks, source mismatches0 and
+rank parameter synchronization0. Preserve failure logs ifGPU PhysX recurs; do
+not fall back silently or interpret environment creation as success.
+
+The frozen resumed runner initially records parameter synchronization only at
+cumulative multiples of20, so first-resume216 has no measured sync field.
+Cumulative220 checks all three ranks at0; behavior log-prob replay and source
+mismatches also0,48 natural terminals/resets exercised by that point. Future
+code46015eb3 corrects the first-resumed-update logging condition; the active
+fa10fcd5 snapshot is not hot-patched. This observability correction does not
+change the policy update or native physics.

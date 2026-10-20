@@ -1,5 +1,13 @@
 # 当前状态
 
+用户最新要求暂停主训并重试GPU PhysX。CPU后备r2已在累计215轮完整更新边界保存，
+三rank及三个native进程均退出；official-iteration-215.pt(61,158,368bytes)完整读取、
+模型有限且optimizer21份state齐全。原长训保持暂停，不能因诊断启动而称已恢复。
+新有界run inspire-measured-gpu-recheck-20261020-r1从215显式迁移cpu→gpu，GPU4/5/6
+各512环境、全501 TRAIN/50物体、同WAM/BC/optimizer和官方超参，限额16轮/1200s。
+仅允许backend身份变化，其他身份差异仍拒绝；source checkpoint以hardlink保留，
+迁移写入manifest/checkpoint，代码fa10fcd5冻结。结束后退出，不自动恢复长训。
+
 用户要求优先启动PPO，指定GPU4/5/6。目标为官方UniDex PPO、最新r3准入和Scheduled686
 DEV-best父模型，每rank512环境/合计1536，总rollout12288、minibatch3072，匹配原Shadow
 六rank×256规模。两环境GPU物理异步reset已完成2迭代/40次优化，env0/1分别step2/4 reset，
@@ -13,7 +21,7 @@ r2已采用并通过CPU PhysX后备（8物理线程/rank），PPO与WAM仍在GPU
 实际状态以outputs/wam-rl-policy-v3/inspire-measured-official-20261020-r2/manifest.json为准；
 启动不等于已有策略更新。物理后端与WAM推理设置纳入checkpoint续训身份，禁止静默切换。
 
-当前r2三rank各已完成至少2迭代/40 optimizer steps，参数同步误差0、source错配0，
+启动时r2三rank各完成至少2迭代/40 optimizer steps，参数同步误差0、source错配0，
 全501 TRAIN/50物体/1536环境已核对；真实自然workspace终止也经过indexed reset。
 首个rank0 checkpoint official-iteration-1.pt(61,158,108 bytes)已完整CPU读取并校验有限，
 包含actor/critic/optimizer/CAD和实际backend身份。第二迭代约32秒，10k估计89h；
