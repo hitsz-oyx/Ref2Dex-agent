@@ -68,9 +68,11 @@ def inspect_job(job):
             n = shape[0]
             if job['source_id'] == 4:
                 objects = 1
-                for name, expected in [('q.npy',(n,22)),('hand_root.npy',(n,13)),('object.npy',(n,13))]:
+                for name, expected in [('q.npy',(n,22)),('hand_root.npy',(n,13))]:
                     with archive.open(name) as stream: actual = npy_header(stream)['shape']
                     if actual != expected: raise ValueError('robot source shape changed: '+name)
+                with archive.open('object.npy') as stream: object_shape = npy_header(stream)['shape']
+                if object_shape not in ((n,7),(n,13)):raise ValueError('object pose7/state13 required')
             else:
                 with archive.open('object_poses.npy') as stream: poses = npy_header(stream)['shape']
                 if poses[0] != n: raise ValueError('hand/object frame mismatch')
@@ -133,7 +135,193 @@ def inventory(args):
         plan=str(args.plan.resolve()),git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         elapsed_s=time.monotonic()-start,rows=rows)
     save(out/'inventory.json',result)
-    print(json.dumps({k:v for k,v in result.items() if k not in ('rows','filesystem')}),flush=True)
+    print(json.dumps({k:v for k,v in result.items() if k not in ('rows','filesystem','failed_sequences')},default=str),flush=True)
+
+
+def load_tool(name, filename):
+    spec=importlib.util.spec_from_file_location(name,filename)
+    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    return module
+
+
+def prepare(args):
+    os.environ.update(OMP_NUM_THREADS='2',OPENBLAS_NUM_THREADS='1')
+    sys.path.insert(0,str(TASK/'src'))
+    from ptv3_shared_wam_v6 import paths
+    import numpy as np
+    import torch
+    from types import SimpleNamespace
+    from ptv3_shared_wam_v5.cache_contract import bind_cache,metadata_identity,array_identity
+    from ptv3_shared_wam_v5.contracts import DATA_SCHEMA,INPUT_SEMANTICS,LABEL_SEMANTICS,SAMPLING_SEMANTICS
+    from ptv3_shared_wam_v5.data import V5Windows,collate
+    from ptv3_shared_wam_v5.window_contract import history_admitted
+    from ptv3_shared_wam_v5.event_labels import EVENT_LABEL_SCHEMA,DEFAULT_PROTOCOL
+    torch.set_num_threads(2)
+    out=args.output.resolve();audit=json.loads((out/'inventory.json').read_text())
+    if audit['status']!='COMPLETED':raise ValueError('complete current inventory required')
+    plan=json.loads(args.plan.read_text());jobs={j['key']:local_job(j) for j in plan['jobs']}
+    rows={r['key']:r for r in audit['rows']};selected={}
+    # Full GRAB is directly useful for the preceding tau/contact question.
+    # Other sources get one short complete sequence per available split.
+    for key,row in rows.items():
+        if row['source_id']==1:selected[key]=row
+    for sid in (0,2,4,5,6,8,9,10):
+        for split in ('train','dev'):
+            candidates=[r for r in rows.values() if r['source_id']==sid and split in r['split']]
+            if candidates:
+                chosen=min(candidates,key=lambda r:(r['estimated_bytes'],r['key']))
+                selected[chosen['key']]=chosen
+    expected=sum(r['estimated_bytes'] for r in selected.values())
+    # No transport archive, no second expanded copy. Per-sequence staging
+    # renames atomically; reserve the largest sequence once more for safety.
+    peak=expected+max(r['estimated_bytes'] for r in selected.values())+512*1024**2
+    if peak>8*GIB:raise ValueError('bounded necessary subset exceeds8GiB; do not start')
+    capacity(out,peak+20*GIB)
+    destination=out/'data'
+    if destination.exists():raise ValueError('fresh preparation directory required')
+    destination.mkdir();start=time.monotonic();deadline=start+3600
+    git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
+    receipt=dict(status='PREPARING',run_id=out.name,work_version='local-v6-data-subset.v1',
+        git_commit=git_commit,python=sys.version,torch=torch.__version__,
+        scope='all1132 planned GRAB sequences + one complete sequence/split for other sources; not remote frozen admission',
+        selected_sequences=len(selected),estimated_final_bytes=expected,estimated_peak_bytes=peak,
+        floor_bytes=20*GIB,user_hard_floor_bytes=15*GIB,budget_bytes=8*GIB,
+        device='CPU deterministic MANO/FK and geometry preprocessing; no neural training',
+        source_read_only=True,training_allowed=False,training_launched=False,
+        missing_for_original_resume=['remote frozen v6/v5 manifests and binding metadata','original admitted window/stratum indices','original TRAIN normalizer JSON'])
+    save(out/'preparation.json',receipt)
+    for name in ('hands/sequences','contacts','geometry','sources','packets','windows','events/sequences','recipe'):
+        (destination/name).mkdir(parents=True)
+    hands=destination/'hands';contacts=destination/'contacts';geometry=destination/'geometry';recipe=destination/'recipe'
+    selected_jobs=[];main3=ROOT/'outputs/cm-pointflow-effect-pretrain/pointworld-main3-sharedstats-20261009/data'
+    mainmeta=json.loads((main3/'processed/manifest.json').read_text());indices={}
+    for sid in (0,1,2):
+        for split,source_split in [('train','train'),('dev','val')]:
+            recorded=Path(mainmeta['sources'][sid]['indices'][source_split]['path'])
+            indices[(sid,split)]=np.load(main3/'processed'/recorded.name,mmap_mode='r')
+    for key,row in selected.items():
+        job=jobs[key];sid=job['source_id'];n=row['frames'];new_windows={}
+        source=Path(job['sequence_folder']) if sid<3 else Path(job['payload'])
+        (destination/'sources'/key).symlink_to(source,target_is_directory=source.is_dir())
+        if row['packet']:(destination/'packets'/(key+'.npz')).symlink_to(row['packet'])
+        for split in row['split']:
+            if sid<3:
+                original=indices[(sid,split)];take=original[original[:,0]==job['sequence_id']]
+                window=take[:,[1,2]].astype(np.int32)
+                categories=take[:,3].astype(np.int8)
+                if mainmeta['sources'][sid]['kind']=='native':categories-=1
+            else:
+                ticks=np.arange(3,n-24,8,dtype=np.int32)
+                window=np.column_stack((np.full(len(ticks),job['source_row']['target_slot'],np.int32),ticks))
+                categories=np.full(len(ticks),-1,np.int8)
+            # Keep bounded explicit windows; full sequence geometry is retained.
+            if len(window)>32:
+                take=np.linspace(0,len(window)-1,32,dtype=int);window=window[take];categories=categories[take]
+            target=destination/'windows'/(key+'-'+split+'.npy');np.save(target,window)
+            np.save(target.with_name(target.stem+'-strata.npy'),categories)
+            new_windows[split]=str(target.resolve())
+        job=dict(job,windows=new_windows,window_origin='local baseline/safe stride8 engineering windows, not remote frozen filter')
+        selected_jobs.append(job)
+    save(destination/'plan.json',dict(jobs=selected_jobs,original_plan=str(args.plan.resolve()),
+        engineering_subset=True,training_allowed=False,source_probabilities=plan['source_probabilities']))
+    geo_origin=ROOT/'outputs/ptv3-shared-wam-v5/object-surfaces-20261019-r2'
+    registry=json.loads((geo_origin/'manifest.json').read_text());needed=set()
+    for job in selected_jobs:
+        needed.update('s%d:%s'%(job['source_id'],name) if job['source_id']<3 else name for name in job['objects'])
+    registry['objects']=[r for r in registry['objects'] if r['key'] in needed]
+    if {r['key'] for r in registry['objects']}!=needed:raise ValueError('required original CAD cache missing')
+    geometries={};(geometry/'geometry').mkdir()
+    for row in registry['objects']:
+        original=geo_origin/row['path'];target=geometry/row['path'];capacity(out,original.stat().st_size)
+        shutil.copy2(original,target)
+        with np.load(target,allow_pickle=False) as z:values={k:z[k] for k in z.files}
+        if values['surface'].shape!=(2048,3) or not all(np.isfinite(v).all() for v in values.values()):raise ValueError('invalid object geometry')
+        values['identity']=array_identity(values);geometries[row['key']]=values
+    registry.update(total=len(registry['objects']),engineering_subset=True)
+    save(geometry/'manifest.json',registry)
+    hc=bind_cache(hands,'hand',dict(protocol='local reconstruction with original v5 implementation',
+        plan=metadata_identity(destination/'plan.json'),original_plan=str(args.plan.resolve())))
+    cc=bind_cache(contacts,'contact',dict(protocol=LABEL_SEMANTICS,hands=str(hands.resolve()),hand_cache=hc['identity'],
+        geometry_manifest=metadata_identity(geometry/'manifest.json')))
+    tools=TASK.parent/'ptv3-shared-wam-v5/tools/run'
+    hand_tool=load_tool('local_hand_preparation',tools/'prepare_hand_overlay.py')
+    contact_tool=load_tool('local_contact_preparation',tools/'prepare_surface_contact.py')
+    event_tool=load_tool('local_event_preparation',tools/'prepare_events.py')
+    options=SimpleNamespace(output=hands,mano_root=Path('/home2/wyy/oyx_ws/Ref2Dex/dataset/arctic/data/body_models/mano/models'),
+        shadow_asset=ROOT/'third_party/UniGraspTransformer/dexgrasp/hand_assets/open_ai_assets/hand/robot.xml',
+        device='cpu',cache_contract=hc)
+    sequences=[];all_indices={'train':[],'dev':[]};all_strata={'train':[],'dev':[]};failures=[];source_counts={};minimum_free=shutil.disk_usage(out).free
+    for job in selected_jobs:
+        key=job['key'];row=selected[key]
+        if time.monotonic()>deadline:raise TimeoutError('one-hour preparation limit')
+        free=capacity(out,row['estimated_bytes']*2+256*1024**2)
+        minimum_free=min(minimum_free,free)
+        try:
+            if row['packet']:
+                with np.load(row['packet'],allow_pickle=False) as z:packet={k:z[k] for k in z.files}
+            else:
+                with np.load(job['payload'],allow_pickle=False) as z:packet=dict(q=z['q'],hand_root=z['hand_root'],robot=np.array('shadow-official-replay'))
+            hm=hand_tool.prepare(job,packet,options)
+            cm=contact_tool.prepare(hands/'sequences'/key,hm,geometries,contacts,cc)
+            folder=hands/'sequences'/key;cf=contacts/key
+            jvalid=np.load(folder/'joint_valid.npy',mmap_mode='r')
+            selected_windows={}
+            for split,path in job['windows'].items():
+                window=np.load(path);admit=history_admitted(jvalid,window[:,1])
+                window=window[admit]
+                categories=np.load(Path(path).with_name(Path(path).stem+'-strata.npy'))[admit]
+                if len(window):selected_windows[split]=(window,categories)
+            if not selected_windows:raise ValueError('no usable engineering H4/K24 windows')
+            sid=job['source_id'];index=len(sequences)
+            sequences.append(dict(key=key,source_id=sid,path=str(folder.resolve()),contact_path=str(cf.resolve()),objects=job['objects'],
+                hand_meta_identity=metadata_identity(folder/'meta.json'),contact_meta_identity=metadata_identity(cf/'meta.json')))
+            source_counts[str(sid)]=source_counts.get(str(sid),0)+1
+            for split,(window,categories) in selected_windows.items():
+                all_indices[split].append(np.column_stack((np.full(len(window),index),window)).astype(np.int32));all_strata[split].append(categories)
+        except (OSError,MemoryError):raise
+        except Exception as exc:
+            failures.append(dict(key=key,reason=repr(exc)))
+        if (len(sequences)+len(failures))%25==0 or failures:
+            save(out/'preparation-progress.json',dict(completed=len(sequences),failed=failures,total=len(selected_jobs),free_bytes=shutil.disk_usage(out).free,elapsed_s=time.monotonic()-start))
+            print(json.dumps(dict(completed=len(sequences),failures=len(failures),total=len(selected_jobs))),flush=True)
+    index_paths={};stratum_paths={}
+    for split in ('train','dev'):
+        path=recipe/(split+'.npy');values=np.concatenate(all_indices[split]) if all_indices[split] else np.empty((0,3),np.int32)
+        np.save(path,values);index_paths[split]=str(path.resolve())
+        path=recipe/(split+'-strata.npy');np.save(path,np.concatenate(all_strata[split]) if all_strata[split] else np.empty(0,np.int8));stratum_paths[split]=str(path.resolve())
+    manifest=dict(schema=DATA_SCHEMA,status='FROZEN',input_semantics=INPUT_SEMANTICS,label_semantics=LABEL_SEMANTICS,
+        training_allowed=False,engineering_subset=True,sequences=sequences,indices=index_paths,strata=stratum_paths,
+        geometry_manifest=str((geometry/'manifest.json').resolve()),source_ids=sorted(map(int,source_counts)),
+        source_probabilities={sid:plan['source_probabilities'][sid] for sid in source_counts},sampling_semantics=SAMPLING_SEMANTICS,
+        pending_sequences=len(plan['jobs'])-len(sequences),original_frozen_windows_recovered=False,
+        cache_bindings=dict(hands=str(hands/'cache-contract.json'),hand_identity=hc['identity'],contacts=str(contacts/'cache-contract.json'),
+            contact_identity=cc['identity'],geometry_identity=metadata_identity(geometry/'manifest.json')))
+    save(recipe/'manifest.json',manifest)
+    events=[];ds=V5Windows(recipe/'manifest.json','train');dev=V5Windows(recipe/'manifest.json','dev');checks=[]
+    for row in sequences:
+        capacity(out,selected[row['key']]['estimated_bytes']+64*1024**2)
+        event=event_tool.prepare_one((row,destination/'events',DEFAULT_PROTOCOL,time.time()+300));events.append(event)
+        cf=Path(row['contact_path']);confidence=np.load(cf/'contact.npy',mmap_mode='r');parts=np.load(cf/'part.npy',mmap_mode='r')
+        if confidence.dtype!=np.float16 or not np.isfinite(confidence).all() or confidence.min()<0 or confidence.max()>1 or parts.max()>15:
+            raise ValueError('invalid contact/part contents: '+row['key'])
+    save(destination/'events/manifest.json',dict(schema=EVENT_LABEL_SCHEMA,status='COMPLETED',
+        parent_manifest_identity=metadata_identity(recipe/'manifest.json'),sequences=events,training_allowed=False,engineering_subset=True))
+    for split,dataset in [('train',ds),('dev',dev)]:
+        for sid,pool in dataset.pools.items():
+            for i in pool[:min(4,len(pool))]:
+                sample=dataset[int(i)]
+                if any(np.issubdtype(v.dtype,np.floating) and not np.isfinite(v).all() for v in sample.values()):raise ValueError('nonfinite reader output')
+                checks.append(dict(split=split,source_id=sid,index=int(i),shape=list(sample['trajectory_target'].shape)))
+    if sorted(map(int,source_counts))!=[0,1,2,4,5,6,8,9,10]:raise ValueError('engineering coverage missing a source')
+    receipt.update(status='PREPARED_SUBSET',completed_sequences=len(sequences),failed_sequences=failures,
+        source_counts=source_counts,windows=dict(train=len(ds),dev=len(dev)),reader_checks=checks,
+        actual_allocated_bytes=sum(p.stat().st_blocks*512 for p in destination.rglob('*') if p.is_file() and not p.is_symlink()),
+        min_free_observed_bytes=min(minimum_free,shutil.disk_usage(out).free),free_bytes=shutil.disk_usage(out).free,
+        source_payload_bytes_copied=0,geometry_files_copied=len(geometries),elapsed_s=time.monotonic()-start,
+        original_v6_resume_ready=False,original_stats_replaced=False)
+    if receipt['actual_allocated_bytes']>8*GIB:raise RuntimeError('subset exceeded8GiB budget')
+    save(out/'preparation.json',receipt)
+    print(json.dumps({k:v for k,v in receipt.items() if k not in ('reader_checks','failed_sequences')}),flush=True)
 
 
 def main():
