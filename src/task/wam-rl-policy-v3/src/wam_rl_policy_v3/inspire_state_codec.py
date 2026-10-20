@@ -37,4 +37,7 @@ def unpack_state(state):
         if len(data)!=count*dtype.itemsize:raise ValueError('numeric state byte length mismatch')
         result[name]=np.frombuffer(data,dtype=dtype).reshape(shape).copy()
         if not np.isfinite(result[name]).all():raise ValueError('nonfinite native numeric state')
+    # A decoded snapshot can traverse both the collector and observation adapter.
+    # Only wire packets carry this marker; retaining it attempts a second decode.
+    result.pop('array_transport')
     return result

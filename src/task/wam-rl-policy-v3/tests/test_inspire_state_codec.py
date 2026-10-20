@@ -22,6 +22,29 @@ def test_json_wire_roundtrip_preserves_all_numeric_bits_and_metadata():
     assert unpack_state(legacy) is legacy
 
 
+def test_measured_collector_can_pass_decoded_packed_state_to_decoding_observer():
+    from wam_rl_policy_v3.measured_execution import run_single_episode_batch
+    initial = fixture()
+    initial['tick'][:] = 0
+    seen = []
+    sent = []
+    def observe(snapshot):
+        decoded = unpack_state(snapshot)
+        seen.append(decoded['tick'].copy())
+        return np.zeros((8, 12)), decoded
+    def receive(_):
+        state = fixture()
+        state['tick'][:] = len(sent)
+        return dict(state=pack_state(state))
+    action, state = observe(unpack_state(pack_state(initial)))
+    completed = run_single_episode_batch(None, action, state, 3,
+        observe=observe, on_step=lambda _: None, is_terminal=lambda: False,
+        send=lambda _, command: sent.append(command), receive=receive,
+        expand_action=lambda value: value)
+    assert completed == 3 and len(seen) == 4
+    np.testing.assert_array_equal(seen[-1], np.full(8, 3))
+
+
 @pytest.mark.parametrize('fault',['dtype','shape','bytes','limit','nan','base64'])
 def test_invalid_numeric_packet_is_rejected(fault):
     packet=pack_state(fixture())

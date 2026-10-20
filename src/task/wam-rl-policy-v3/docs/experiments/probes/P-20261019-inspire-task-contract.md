@@ -490,3 +490,13 @@ sensitivity. The stamp16 batch triggers the known native PhysX illegal-access
 failure before observations, retained as failed infrastructure evidence. r1
 stops rather than hiding the failure; r2 runs only the predeclared four-environment
 BC panel to separate this from the large collection-batch replay issue.
+
+
+Four-env r2 uncovered an engineering packed-transport bug before control0:
+unpack_state retained its wire marker, so the collector/observer decoding the
+same snapshot twice attempted dict.get on ndarray. The real collector/observer
+regression failed deterministically, then passes when a fully decoded state
+removes the wire-only marker. Existing historical JSON-path BC results are not
+invalidated. Four-env r3 reruns the identical declared baseline after this fix.
+The chunked UniDex loader read the full TRAIN565 in4.92s and begins real updates;
+no sampling or model semantics were changed by that engineering migration.
