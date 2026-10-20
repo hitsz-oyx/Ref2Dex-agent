@@ -32,6 +32,14 @@ conda activate <环境名>
 
 系统 `/usr/bin/python` 是 Python 2.7，不要将其当作项目运行时
 
+Inspire 原生仿真另外使用固定 venv（不是上表的 Conda 环境）：
+`/home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train/bin/python`，本次实测
+Python3.8.10、Torch2.0.1+cu118、NumPy1.23.5、rl-games1.1.4。
+Isaac Gym位于`/home2/wyy/isaac-gym/isaacgym/python`，需先于Torch导入。
+最新measured686和此前Inspire mixed6/r4均使用这套仿真环境；WAM/PPO独立进程
+使用graspenv/Torch2.4.1+cu121，经本地socket传实测状态与动作。不要将两个进程
+的Torch版本混为一次运行环境，也不要在活动训练中原地升级它们。
+
 
 ## 远程服务器：4×RTX 4090 节点
 

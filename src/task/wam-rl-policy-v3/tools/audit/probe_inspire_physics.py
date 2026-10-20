@@ -30,6 +30,7 @@ def main():
     p.add_argument('--sync',action='store_true')
     p.add_argument('--extended',action='store_true')
     p.add_argument('--action',choices=['zero','noise'],default='zero')
+    p.add_argument('--memcheck',action='store_true')
     a=p.parse_args();out=a.output.resolve()
     if out.exists() or ROOT/'outputs/wam-rl-policy-v3' not in out.parents or not 2<=a.envs<=512 or not 1<=a.steps<=128 or not 0<=a.resets<=3:
         raise ValueError('fresh bounded native-only diagnostic required')
@@ -45,6 +46,9 @@ def main():
     else:cmd+=['--sequence',a.sequence]
     if a.sync:cmd+=['--synchronize-setters']
     if a.extended:cmd+=['--extended-state']
+    if a.memcheck:
+        cmd=[Path('/usr/local/cuda-11.8/bin/compute-sanitizer'),'--tool','memcheck',
+             '--error-exitcode','97','--log-file',out/'memcheck.log']+cmd
     info=dict(status='RUNNING',git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
               argv=list(map(str,cmd)),steps=0,resets=a.resets,canonical_action=a.action,wam=False,ppo=False)
     def save():(out/'manifest.json').write_text(json.dumps(info,indent=2)+'\n')
