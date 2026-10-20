@@ -1,4 +1,4 @@
-"""Frozen WAM TRAIN GRAB windows: measured-history versus free-running24/8."""
+"""Frozen WAM TRAIN GRAB windows: measured versus free history, bounded stride."""
 import argparse
 import json
 import os
@@ -106,14 +106,15 @@ def infer(args):
             cv=np.arange(1,25)[:,None,None,None]/30*template['start_hand_history'][None,...,:3]
             first_error=np.linalg.norm(measured_full-first_truth,axis=-1)*1000
             single=dict(hand_epe8_mm=float(first_error[:8][mask[:8]].mean()),hand_epe24_mm=float(first_error[mask].mean()),
+                hand_epe1_mm=float(first_error[0][mask[0]].mean()),
                 hand_endpoint24_mm=float(first_error[-1][mask[-1]].mean()),
                 hold_epe8_mm=float(np.linalg.norm(first_truth[:8],axis=-1)[mask[:8]].mean()*1000),
                 hold_epe24_mm=float(np.linalg.norm(first_truth,axis=-1)[mask].mean()*1000),
                 constant_velocity_epe8_mm=float(np.linalg.norm(cv[:8]-first_truth[:8],axis=-1)[mask[:8]].mean()*1000),
                 hand_epe8_by_side_mm=[float(first_error[:8,s][mask[:8,s]].mean()) for s in range(2)])
             rigid=[];windows=[];stopped=None;input_hand=[];input_pose=[];all_delta=[];all_scene=[]
-            for t in range(3,length-1,8):
-                frame_ids=np.arange(t+1,min(t+9,length));goal_pose=real_pose[t+24]
+            for t in range(3,length-1,args.stride):
+                frame_ids=np.arange(t+1,min(t+1+args.stride,length));goal_pose=real_pose[t+24]
                 observed=build_sample(template,real_pose[t-3:t+1],real_hand[t-3:t+1],goal_pose)
                 hd,sd=forward(observed)
                 measured_hand[frame_ids]=real_hand[t]+hd[:len(frame_ids)]@real_pose[t,:3,:3].T
@@ -158,8 +159,9 @@ def infer(args):
             np.savez_compressed(out/('case%d.npz'%case),**data)
             report['windows']=windows;reports.append(report)
             print(json.dumps(dict(stage='case',**{k:report[k] for k in ['sequence','single_forecast','measured_history_mean_epe_mm','free_history_mean_epe_mm','free_history_last_epe_mm','duration_s','stop']})),flush=True)
-    result=dict(status='COMPLETED',work_version='wam-train-rollout-v1',experiment_id='P-20261020-wam-mano-preview',
+    result=dict(status='COMPLETED',work_version='wam-train-rollout-v2',experiment_id='P-20261020-wam-mano-preview',
         run_id=out.name,git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
+        forecast_horizon=24,replan_stride=args.stride,seed=246,
         checkpoint=str(args.checkpoint.resolve()),checkpoint_step=80000,python=sys.executable,torch=torch.__version__,gpu=args.gpu,
         fixture=str(args.fixture.resolve()),main3=str(args.main3.resolve()),reports=reports,
         goal='true object pose t+24, matching WAM training; no future hand inputs',
@@ -176,23 +178,59 @@ def visualize(args):
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     from matplotlib.animation import FFMpegWriter
-    out=args.output.resolve();result=json.loads((out/'result.json').read_text())
+    out=args.output.resolve();result=json.loads((out/'result.json').read_text());stride=result.get('replan_stride',8)
+    baseline=None;comparison=[]
+    if args.baseline is not None:
+        baseline=json.loads((args.baseline/'result.json').read_text())
+        for key in ('checkpoint','fixture','main3'):
+            if result[key]!=baseline[key]:raise ValueError('comparison input mismatch: '+key)
+        if baseline.get('replan_stride',8)!=8 or stride!=1:raise ValueError('comparison requires stride1 against stride8')
+        if len(baseline['reports'])!=len(result['reports']):raise ValueError('comparison case count mismatch')
     fig,axes=plt.subplots(2,2,figsize=(12,8),constrained_layout=True)
     for i,(ax,report) in enumerate(zip(axes.flat,result['reports'])):
         with np.load(out/('case%d.npz'%i)) as d:
             t=np.arange(len(d['valid']))/30;v=d['valid']
-            ax.plot(t[v],d['measured_error_mm'][v],label='Measured H4 / show8',color='#377eb8')
-            ax.plot(t[v],d['free_error_mm'][v],label='Predicted H4 / show8',color='#e67e22')
+            ax.plot(t[v],d['measured_error_mm'][v],label='Measured H4 / show%d'%stride,color='#377eb8')
+            ax.plot(t[v],d['free_error_mm'][v],label='Predicted H4 / show%d'%stride,color='#e67e22')
+            if baseline:
+                br=baseline['reports'][i]
+                if (br['sequence'],br['original_train_tick'])!=(report['sequence'],report['original_train_tick']):
+                    raise ValueError('comparison sequence/anchor mismatch')
+                with np.load(args.baseline/('case%d.npz'%i)) as b:
+                    for key in ('real_hand','real_object','flow_query','hand_present','first_prediction'):
+                        np.testing.assert_array_equal(d[key],b[key])
+                    common=v&b['valid'];ids=np.flatnonzero(common)
+                    if not len(ids):raise ValueError('no common consumed frames')
+                    ax.plot(t[common],b['free_error_mm'][common],label='Predicted H4 / show8',color='#984ea3')
+                    ax.plot(t[common],b['measured_error_mm'][common],label='Measured H4 / show8',color='#4daf4a',ls='--')
+                    row=dict(sequence=report['sequence'],common_consumed_frames=len(ids),
+                        measured_stride8_mean_mm=float(b['measured_error_mm'][common].mean()),
+                        measured_stride1_mean_mm=float(d['measured_error_mm'][common].mean()),
+                        free_stride8_mean_mm=float(b['free_error_mm'][common].mean()),
+                        free_stride1_mean_mm=float(d['free_error_mm'][common].mean()),
+                        free_stride8_final_mm=float(b['free_error_mm'][ids[-1]]),
+                        free_stride1_final_mm=float(d['free_error_mm'][ids[-1]]),
+                        free_stride8_object_mean_mm=float(b['free_object_error_mm'][common].mean()),
+                        free_stride1_object_mean_mm=float(d['free_object_error_mm'][common].mean()),
+                        first_prediction_exact_match=True)
+                    comparison.append(row)
         ax.set(title=report['sequence'],xlabel='Seconds from H4 start',ylabel='Mean22-point error (mm)');ax.grid(alpha=.2);ax.legend()
     fig.suptitle('Frozen WAM-v4 step80000 / actual TRAIN GRAB / true object t+24 goal')
     fig.savefig(out/'train-rollout-errors.png',dpi=160);plt.close(fig)
+    if baseline:
+        (out/'stride-comparison.json').write_text(json.dumps(dict(status='PASS',baseline=str(args.baseline.resolve()),
+            changed='consume/replan stride8 to stride1; same goal function evaluated at new anchors',reports=comparison),indent=2)+'\n')
+        print(json.dumps(dict(stage='comparison',reports=comparison)),flush=True)
     # A raw-keypoint video avoids MANO reconstruction as a confound in this diagnosis.
     bones=np.array([(0,i) for i in range(1,6)]+[(i,i+5) for i in range(1,6)])
     for i,report in enumerate(result['reports']):
         with np.load(out/('case%d.npz'%i)) as archive:d={k:archive[k].copy() for k in archive.files}
         n=len(d['valid']);fig=plt.figure(figsize=(12,4),dpi=100)
         axes=[fig.add_subplot(1,3,k+1,projection='3d') for k in range(3)]
-        series=[(d['real_hand'],d['real_object'],'Recorded TRAIN'),(d['measured_hand'],d['measured_object'],'Measured H4 / show8'),(d['free_hand'],d['free_object'],'Predicted H4 / show8')]
+        series=[(d['real_hand'],d['real_object'],'Recorded TRAIN'),(d['measured_hand'],d['measured_object'],'Measured H4 / show%d'%stride),(d['free_hand'],d['free_object'],'Predicted H4 / show%d'%stride)]
+        if baseline:
+            with np.load(args.baseline/('case%d.npz'%i)) as b:
+                series[1]=(b['free_hand'].copy(),b['free_object'].copy(),'Predicted H4 / show8')
         finite=np.concatenate([h[np.isfinite(h).all((1,2,3))].reshape(-1,3) for h,_,_ in series])
         points=np.r_[finite,d['real_object'][:,:3,3]];center=(points.min(0)+points.max(0))/2
         radius=max(.12,float((points.max(0)-points.min(0)).max()/2)*1.12)
@@ -216,7 +254,7 @@ def visualize(args):
                             lines[side*len(bones)+j].set_data_3d(p[:,0],p[:,1],p[:,2])
                     p=d['flow_query']@pose[frame,:3,:3].T+pose[frame,:3,3]
                     obj._offsets3d=(p[:,0],p[:,1],p[:,2])
-                title.set_text('%s | t=%.2fs | WAM24/show8 | playback2x slower\nRaw points / predicted object / no physical simulation'%(report['sequence'],frame/30))
+                title.set_text('%s | t=%.2fs | WAM24/show%d | playback2x slower\nRaw points / predicted object / no physical simulation'%(report['sequence'],frame/30,stride))
                 writer.grab_frame()
         plt.close(fig);print(json.dumps(dict(stage='video',case=i,file=str(path))),flush=True)
     (out/'visualization.json').write_text(json.dumps(dict(status='COMPLETED',videos=['train-case%d.mp4'%i for i in range(4)],plot='train-rollout-errors.png'),indent=2)+'\n')
@@ -227,6 +265,9 @@ def main():
     parser.add_argument('--stage',choices=('infer','visualize'),required=True)
     parser.add_argument('--main3',type=Path);parser.add_argument('--fixture',type=Path);parser.add_argument('--checkpoint',type=Path)
     parser.add_argument('--output',type=Path,required=True);parser.add_argument('--gpu',type=int,default=7)
+    parser.add_argument('--baseline',type=Path,help='Optional stride8 baseline for matched stride1 plots/video.')
+    parser.add_argument('--stride',type=int,choices=range(1,25),default=8,
+                        help='Consume this many forecast frames before predicting again; horizon remains24.')
     args=parser.parse_args()
     if args.stage=='infer':infer(args)
     else:visualize(args)

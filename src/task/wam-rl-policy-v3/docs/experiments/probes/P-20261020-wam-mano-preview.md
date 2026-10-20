@@ -371,3 +371,35 @@ every replan, right uses old prediction H4. Both predicted lanes show their own
 rigid-projected object32 points. A fixed common camera is used per case. Total
 artifacts3.82MB, with no MANO fitting confound. GPU work ended; visualization
 used CPU plotting. Runtime/resource logs remain in `tmp/wam-train-rollout/`.
+
+## Consume-one versus consume-eight Decision probe (2026-10-20)
+
+User asks whether consuming only one frame instead of eight substantially reduces
+the drift. Distinguish horizon/cadence sensitivity from failure that persists
+under generated-state feedback. If stride1 removes most drift, prioritize
+replanning cadence; otherwise retain generated-history robustness and output
+consistency as candidates. Cheapest discriminator reuses the same four frozen
+TRAIN anchors/checkpoint and the existing stride8 arrays, adding only stride1
+inference. This is a Decision probe, not a claim of a corrected model.
+
+Run `wam-train-stride1-20261020-r1`, work_version `wam-train-rollout-v2`:
+predict all24, consume only first1, then build the next H4 from old generated
+states. Both hands and object states are generated; no real observations are
+injected after initialization. Independently retain measured-H4 stride1 as a
+control. At each new anchor use the same true object-t+24 goal function as
+training; goal refresh cadence consequently increases too. This is not a live
+TaskScheduler run. Compare identical consumed timestamps with old stride8,
+check the initial full24 prediction is exactly equal, and audit H4/coordinate
+composition independently. Report mean/final hand EPE and object error; visual
+comparison uses raw points, without MANO or physics integration.
+
+No model training. Implementation is committed before execution. Environment:
+graspenv Python3.8/Torch2.4.1+cu121, GPU7 permitted short sharing with monica;
+do not use PPO GPUs4/5/6 or interrupt existing work. Budget: inference600s,
+visualization600s, final150MiB/transient512MiB, disk floor20GiB. Stop on timeout,
+nonfinite/workspace bounds or input identity failure; never repair states by
+injecting ground truth. New artifacts go to
+`outputs/wam-rl-policy-v3/wam-train-stride1-20261020-r1/`; logs, exact commands
+and resource samples go to `tmp/wam-train-stride1/`. Existing stride8 artifacts
+remain read-only. This remains four TRAIN examples and trajectory reproduction,
+not physical validity, generalization, or BC/PPO utility.
