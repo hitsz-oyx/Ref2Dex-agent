@@ -46,6 +46,7 @@ def main():
                 '--output',str(out),'--resume-cache','--gpu',str(gpu),'--workers',str(a.workers),
                 '--shard-index',str(rank),'--shard-count',str(len(a.gpus)),'--seconds',str(a.seconds)]
             if a.allow_shared_gpu:args.append('--allow-shared-gpu')
+            if identity['protocol']=='task-current575.v1':args.append('--task-goal')
             stream=(out/('shard-%d.log'%rank)).open('a');streams.append(stream)
             processes.append(subprocess.Popen(args,stdout=stream,stderr=subprocess.STDOUT))
         while True:

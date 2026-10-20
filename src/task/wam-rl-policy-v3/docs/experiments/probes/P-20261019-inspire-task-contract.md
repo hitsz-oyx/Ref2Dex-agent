@@ -615,3 +615,36 @@ Verification:143 Task tests pass. Global verify still fails only on the six
 pre-existing trajectory-policy v2 cards missing required metadata; they were
 not modified. Outputs bounded: fresh UniDex current124MiB/scheduled+eval140MiB,
 full-data Inspire sampling+eval114MiB, fit4~53MiB, plus small diagnostics/plots.
+
+
+### User correction: actually train new UniDex goal + BC, three-card DDP
+
+The earlier565 fresh run did not satisfy the requested new task10 reproduction.
+Do not cite its35/64 as a learned-goal575 result. New Decision/Blocker protocol:
+run_id=unidex-task-bc-20261020-r1; main; frozen implementation in each manifest.
+Use the complete immutable UniDex strict corpus1536897 TRAIN/354761 DEV rows.
+Generate task10 and WAM tau from the same TaskController.shadow_goal decision,
+not legacy OrderedGoalScheduler565 tau. Task goal is native position-only.
+Historical logs have applied wrist forces/total joint sensors, not net contacts;
+the explicit contract is measured motion-only feedback, identical offline and
+online, with current world velocity decoded from native observation yaw and
+angular scale. No contact evidence is fabricated or spliced from other executions.
+Keep WAM12000/dense geometry fixed to the prior Shadow reproduction.
+
+Train Current310 from random50k, then Scheduled575 initialized only from this
+run's learned310 best50k; new task columns receive actual gradients in both.
+Shadow1024/1024/512/512 ELU, AdamW3e-4/wd1e-5, standardized L1, globalbatch2048,
+half startup tick<8/half full TRAIN. Three-card local DDP, user explicitly
+allows this run: GPUs5/6/7, GPU4 idle while0–3 have other work. This allocation
+is the user's run-specific exception, not a change to global CAMPAIGN.
+Uneven683/683/682 local batches use weighted losses so DDP averaging yields the
+same global mean; synchronized global row draws preserve the sampling recipe.
+Record actual task-column gradients, movement from initial weights, phase and
+nonzero-goal coverage. Evaluate trained575 directly, no zero-expansion, on the
+fixed16-TRAIN-object64-scene panel, seed246, corrected reset/common workspace.
+Keep native-ever, final stable and full TaskController progress distinct.
+
+Bounds: one fresh shared575 cache<5GiB, bounded best/latest only per BC stage,
+<2h each fitting,6h cache deadline, owned STOP and20GiB free-disk floor. Start
+with12-record real cache smoke to measure throughput and verify same-goal inputs,
+then resume disjoint GPU shards. Do not overwrite565 data/checkpoints or v2.

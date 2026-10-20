@@ -53,6 +53,27 @@ class CurrentMLP(NormalizedCommandMLP):
         self.load_state_dict(state,strict=True)
 
 
+class TaskShadowMLP(NormalizedCommandMLP):
+    """Learn task10 in Current310, then preserve it when adding WAM tau."""
+    def __init__(self, with_tau=False):
+        super().__init__(575 if with_tau else 310,300,24)
+        from .executor_contract import TASK_SCALE
+        self.x_scale[300:310].copy_(torch.as_tensor(TASK_SCALE))
+        if with_tau:self.x_scale[310:574].fill_(.05)
+
+    def initialize_task_current(self,packet):
+        from .shadow_task_contract import CURRENT_SCHEMA
+        if self.input_dim!=575 or packet.get('schema')!=CURRENT_SCHEMA:
+            raise ValueError('trained Current310 parent and Scheduled575 required')
+        target=self.state_dict()
+        for key,value in packet['model'].items():
+            if key=='net.0.weight':
+                target[key].zero_();target[key][:,:310].copy_(value)
+            elif key in ('x_mean','x_scale'):target[key][:310].copy_(value)
+            else:target[key].copy_(value)
+        self.load_state_dict(target,strict=True)
+
+
 class MLPController:
     def __init__(self,checkpoint,env_objects,teacher,cache):
         packet=torch.load(checkpoint,map_location='cpu',weights_only=False)

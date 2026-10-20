@@ -35,7 +35,8 @@ def expand_official_state(weights):
 
 
 class TaskGoalScheduler:
-    def __init__(self,state,index,geometry):
+    def __init__(self,state,index,geometry,*,force_feedback=True):
+        self.force_feedback=force_feedback
         self.points=geometry[2]
         self.controller=TaskController(TaskSpec.shadow_goal(state['pose'][index],state['goal'][index]),
             self.points,interaction_points=geometry[0])
@@ -47,8 +48,8 @@ class TaskGoalScheduler:
 
     def feedback(self,state,index,valid):
         self.velocity=state['velocity'][index]
-        self.forces=state['contact_forces'][index]
-        self.force_valid=bool(valid)
+        self.forces=state['contact_forces'][index] if self.force_feedback else None
+        self.force_valid=bool(valid and self.force_feedback)
 
     def update(self,pose,now,*,hand_points):
         if self.latest is not None and self.latest['decision'].terminated:
@@ -61,6 +62,9 @@ class TaskGoalScheduler:
                 contact_forces=self.forces,force_valid=self.force_valid)
             decision=result['decision'];task=result['task']
         delta,error=task_wam_goal(pose,decision.local_goal_pose,task,self.points)
+        if not self.force_feedback:
+            from .shadow_task_contract import task_point_delta
+            delta=task_point_delta(task,self.points)
         self.max_goal_error=max(self.max_goal_error,error)
         self.latest=dict(decision=decision,task=task)
         return dict(goal_pose=decision.local_goal_pose,goal_delta=delta,task=task,
@@ -68,7 +72,8 @@ class TaskGoalScheduler:
 
 
 class TaskScheduledOfficialEnv(ScheduledOfficialEnv):
-    def __init__(self,*args,**kwargs):
+    def __init__(self,*args,force_feedback=True,**kwargs):
+        self.force_feedback=force_feedback
         super().__init__(*args,**kwargs)
         from gym import spaces
         self.num_observations=575
@@ -79,7 +84,7 @@ class TaskScheduledOfficialEnv(ScheduledOfficialEnv):
             'observed','near2','force2','contact_candidate','moving','near_force_moving',
             'speed_limit_reject','relative_ratio_reject','motion_coupled')}
 
-    def scheduler(self,state,index):return TaskGoalScheduler(state,index,self.runtime.geometry[index])
+    def scheduler(self,state,index):return TaskGoalScheduler(state,index,self.runtime.geometry[index],force_feedback=self.force_feedback)
 
     def augment(self,native,reset_ids):
         state=self.snapshot()

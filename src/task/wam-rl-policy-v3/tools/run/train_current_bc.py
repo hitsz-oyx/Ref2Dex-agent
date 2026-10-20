@@ -55,6 +55,7 @@ def main():
     p.add_argument('--resume-cache',action='store_true')
     p.add_argument('--allow-shared-gpu',action='store_true',help='Only for project-owned jobs or explicitly authorized shared allocation')
     p.add_argument('--init-current',type=Path)
+    p.add_argument('--task-goal',action='store_true',help='prepare TaskController task10 and matching WAM tau, not legacy565')
     a=p.parse_args();out=a.output.resolve()
     if not 0<=a.shard_index<a.shard_count:raise ValueError('Invalid shard assignment')
     if a.shard_count>1 and (a.stage!='prepare-scheduled' or not a.resume_cache):raise ValueError('Shards require initialized resumable cache')

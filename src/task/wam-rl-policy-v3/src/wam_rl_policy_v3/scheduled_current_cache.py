@@ -13,9 +13,10 @@ from .tau_contract import v4_trajectory_to_student
 
 
 class RecordInputs(torch.utils.data.Dataset):
-    def __init__(self, source, records, geometries, prepare_batch=0):
+    def __init__(self, source, records, geometries, prepare_batch=0, task_goal=False):
         self.source, self.records, self.geometries = Path(source), records, geometries
         self.prepare_batch=prepare_batch
+        self.task_goal=task_goal
 
     def __len__(self):
         return len(self.records)
@@ -33,11 +34,21 @@ class RecordInputs(torch.utils.data.Dataset):
             raise ValueError('current-cache row/tick alignment changed')
         surface,_,flow,_,_=self.geometries[row['geometry']]
         target=poses[0].copy();target[:3,3]=goal[0]
-        scheduler=OrderedGoalScheduler([poses[0],target],[0.,2.],flow,interaction_points=surface)
+        if self.task_goal:
+            from .shadow_task_probe import TaskGoalScheduler
+            from .shadow_task_contract import measured_velocity
+            state=dict(pose=poses[:1],goal=goal[:1],velocity=measured_velocity(poses[0],obs[0])[None])
+            scheduler=TaskGoalScheduler(state,0,self.geometries[row['geometry']],force_feedback=False)
+        else:scheduler=OrderedGoalScheduler([poses[0],target],[0.,2.],flow,interaction_points=surface)
         goals={}
+        tasks=[]
         wanted=set(ticks[ticks>=6].tolist())
         for tick in range(int(ticks[-1])+1):
+            if self.task_goal:
+                state['velocity']=measured_velocity(poses[tick],obs[tick])[None]
+                scheduler.feedback(state,0,False)
             result=scheduler.update(poses[tick],float(clock[tick]),hand_points=hand[tick])
+            if self.task_goal:tasks.append(result['task'])
             if tick in wanted:goals[tick]=result['goal_delta']
         selected=ticks[ticks>=6]
         indices=selected[:,None]+np.array([-6,-4,-2,0])[None]
@@ -45,6 +56,7 @@ class RecordInputs(torch.utils.data.Dataset):
         result=dict(index=index,ticks=ticks,selected=selected,objects=objects[indices],
                     hands=hand[indices],rotations=poses[selected,:3,:3],
                     goals=np.stack([goals[int(t)] for t in selected]) if len(selected) else np.zeros((0,32,3)))
+        if self.task_goal:result['task']=np.asarray(tasks,np.float32)[ticks]
         if self.prepare_batch:
             from .wam_v4_runtime import v4_online_samples,collate_v4
             result['batches']=[]
@@ -64,6 +76,12 @@ def prepare(args,out,write):
     from .wam_v4_runtime import V4Runtime,v4_online_samples,collate_v4
     from .bc_mlp import SCHEDULED_DIM
     from .control_contracts import scheduled_conditioning_contract
+    task_goal=getattr(args,'task_goal',False)
+    if task_goal:
+        from .shadow_task_contract import conditioning
+        from .executor_contract import TASK_SCALE
+        SCHEDULED_DIM=575
+    tau_start=310 if task_goal else 300
     base=args.data.resolve();source=args.sequence_cache.resolve()
     meta=json.loads((source/'manifest.json').read_text())
     cache=json.loads((base/'manifest.json').read_text())
@@ -82,7 +100,7 @@ def prepare(args,out,write):
             records.append(dict(split=split,lo=row['lo'],hi=row['hi'],source=src,geometry=geo_index[key]))
     identity=dict(base=str(base),source=str(source),wam=str(args.wam_checkpoint.resolve()),
                   dense=str(args.wam_dense_manifest.resolve()),batch=args.wam_batch,
-                  protocol='scheduled-current565.v1',records=len(records))
+                  protocol='task-current575.v1' if task_goal else 'scheduled-current565.v1',records=len(records))
     shard_count=getattr(args,'shard_count',1);shard_index=getattr(args,'shard_index',0)
     sharded=shard_count>1
     previous=out/'cache-identity.json'
@@ -115,27 +133,28 @@ def prepare(args,out,write):
     if not sharded:
         if not (out/'dev-panel.npy').exists():(out/'dev-panel.npy').symlink_to(base/'dev-panel.npy')
         stats=dict(np.load(base/'stats.npz'))
-        stats['x_mean']=np.r_[stats['x_mean'],np.zeros(265,np.float32)]
-        stats['x_scale']=np.r_[stats['x_scale'],np.full(264,.05,np.float32),np.ones(1,np.float32)]
+        stats['x_mean']=np.r_[stats['x_mean'],np.zeros(SCHEDULED_DIM-300,np.float32)]
+        stats['x_scale']=np.r_[stats['x_scale'],TASK_SCALE if task_goal else np.zeros(0,np.float32),np.full(264,.05,np.float32),np.ones(1,np.float32)]
         np.savez(out/'stats.npz',**stats)
     done_path=out/('done-shard-%d.npy'%shard_index if sharded else 'done.npy')
     if sharded and not done_path.exists():raise ValueError('Coordinator must initialize shard completion map')
     if done_path.exists():done=np.load(done_path,mmap_mode='r+')
     else:
         done=np.lib.format.open_memmap(done_path,mode='w+',dtype=bool,shape=(len(records),));done[:]=False;done.flush()
-    manifest=dict(schema='ref2dex.shadow-scheduled-current-cache.v1',status='RUNNING',
+    manifest=dict(schema='ref2dex.shadow-task-current-cache.v1' if task_goal else 'ref2dex.shadow-scheduled-current-cache.v1',status='RUNNING',
         source=str(source),base_cache=str(base),splits=cache['splits'],input_dim=SCHEDULED_DIM,
-        conditioning=scheduled_conditioning_contract(),
-        condition='current300 + scheduled WAM world tau264 + history-valid1',
+        conditioning=conditioning() if task_goal else scheduled_conditioning_contract(),
+        condition='current300 + task10 + same-goal WAM world tau264 + history-valid1' if task_goal else 'current300 + scheduled WAM world tau264 + history-valid1',
         startup='tick<6: tau=0, valid=0; native BC still observes full current300',
-        normalization='original TRAIN state/action stats; tau fixed .05m; validity scale1',identity=identity)
+        normalization='original TRAIN state/action stats; task explicit scales; tau fixed .05m; validity scale1',identity=identity,
+        task_goal=task_goal)
     write('manifest.json',manifest)
     started=time.monotonic()
     runtime=V4Runtime(args.wam_checkpoint,identities,source,dense_manifest=args.wam_dense_manifest,device='cuda:0')
     assigned=[i for i in range(len(records)) if i%shard_count==shard_index]
     pending=[i for i in assigned if not done[i]]
     if args.max_records:pending=pending[:args.max_records]
-    dataset=RecordInputs(source,[records[i] for i in pending],runtime.geometry,prepare_batch=args.wam_batch)
+    dataset=RecordInputs(source,[records[i] for i in pending],runtime.geometry,prepare_batch=args.wam_batch,task_goal=task_goal)
     loader=torch.utils.data.DataLoader(dataset,batch_size=None,num_workers=args.workers,collate_fn=unchanged,pin_memory=True,
         **(dict(multiprocessing_context='spawn',prefetch_factor=2) if args.workers else {}))
     rows_done=0;checked=False
@@ -170,8 +189,9 @@ def prepare(args,out,write):
         stage=time.monotonic()
         block=arrays[row['split']][row['lo']:row['hi']]
         valid=item['ticks']>=6
-        if predicted:block[valid,300:564]=np.concatenate(predicted)
-        block[:,564]=valid.astype(np.float32)
+        if task_goal:block[:,300:310]=item['task']
+        if predicted:block[valid,tau_start:tau_start+264]=np.concatenate(predicted)
+        block[:,-1]=valid.astype(np.float32)
         if not np.isfinite(block).all():raise ValueError('nonfinite prepared BC condition')
         arrays[row['split']].flush();done[index]=True;done.flush()
         timings['write_s']+=time.monotonic()-stage
