@@ -10,6 +10,10 @@ NAS reboot-preparation目录额外hard-link固定末步并准备严格三卡恢�
 
 ## 2026-10-20 goal/task10执行路线迁移到 wam-rl-policy-v3
 
+用户明确要求复现新增goal+BC：现已开始unidex-task-bc-20261020-r1三卡DDP，
+Current310随机训练再接Scheduled575；新增task10真实优化、τ同源重算，旧565结果不冒充新goal。
+完整task10已就绪，约28%行有非零局部goal，149项测试通过；最终指标待新模型原生评估。
+
 追加从头学习：UniDex Current300随机初始化50k，再训练WAM条件Scheduled565 50k，
 同64初态原生曾成功35、最终稳定26（40.625%），无历史BC/PPO初始化；证明565训练可复现，
 不代表新task10已学会或WAM独立收益。Inspire修正支撑v2的完整active数据56036/6081行，

@@ -1,5 +1,18 @@
 # 当前状态
 
+用户纠正后的当前任务是实际训练UniDex新goal+BC，不能再以旧565结果代替。
+run=unidex-task-bc-20261020-r1，三卡DDP GPU5/6/7（本次用户明确授权），
+Current310随机初始化50k后，Scheduled575继承本轮已学goal的310再训练50k。
+完整1536897 TRAIN/354761 DEV，task10与WAM来自同一次TaskController，旧565 τ不复用。
+同轮旧记录没有net-contact字段，离线/在线统一显式motion-only反馈；当前速度由原生观测
+yaw与角速度缩放解码，不使用未来，也不把总力传感器或applied wrist force冒充接触力。
+全量task10已完成，TRAIN428972/DEV99248行非零goal；已完成τ部分694595行task10逐位一致。
+三卡梯度按683/683/682加权为同一global2048均值，真实NCCL smoke参数差0；当前310
+正在实际优化，新goal第2步有非零梯度并已发生权重改变。149项Task测试通过。
+原生入口已支持直接载入训练310/575，zero_expansion=False，不再把零扩展评估叫训练复现。
+自动流程/当前进度见outputs/wam-rl-policy-v3/unidex-task-bc-20261020-r1/manifest.json。
+最终原生成功率须等实际新模型评估，尚无本轮goal+BC成功率结论。
+
 新增用户要求的从头学习对照：UniDex Current300 随机初始化50k，再以本轮新父模型训练
 Scheduled565 50k，不加载历史BC/PPO。新BC在同一16个TRAIN物体/64初态中原生曾成功35，
 最终稳定26（40.625%），终态位置32，workspace失败0；64份观测/pose/hand/goal/full-root
