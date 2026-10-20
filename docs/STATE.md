@@ -1,3 +1,10 @@
+## 2026-10-20 Inspire已获授权从GPU231恢复三卡长训
+
+新run inspire-measured-official-20261020-r3以GPU4/5/6各512环境继续，恢复GPU231模型和
+optimizer，数据/WAM/官方PPO超参不变。累计目标10000，沿用原48h预算的剩余164314s，
+约45.64h；到边界保存停止。已实际续训至至少235轮，三rank各新增80次优化，
+同步/回合错配/log-prob误差0，恢复的model/optimizer已校验，六worker运行中。资源与进度见[v3状态](../src/task/wam-rl-policy-v3/docs/STATE.md)。
+
 ## 2026-10-20 Inspire主训保持暂停，三卡GPU物理短测完成
 
 CPU后备三卡r2已正常保存累计215轮并退出，checkpoint完整校验通过，主训保持暂停。

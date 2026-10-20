@@ -1,5 +1,14 @@
 # 当前状态
 
+用户最新已授权恢复长训。inspire-measured-official-20261020-r3从GPU231模型和optimizer
+继续，GPU4/5/6各512环境/全501 TRAIN/50物体，官方PPO超参和WAM80000保持。
+冻结3a0779f6，strict同backend resume，不使用迁移例外；三rank已实际续训至至少235轮，
+各新增80次优化，首轮实测同步/回合错配/log-prob误差0。GPU232断点完整CPU校验通过：
+身份与231完全相同、optimizer推进20步、model/optimizer有限、CAD不变。当前约34s/轮；
+60s启动采样GPU利用率37.8/37.9/43.9%，每卡峰值15,240MiB。六worker及supervisor运行中。
+累计目标10000，原48h训练预算扣除CPU7801.46s和GPU复测683.64s后，剩164314s约45.64h。
+到期或STOP/低磁盘边界保存退出；rank0 last3+500轮整点。原暂停run保持历史原位。
+
 用户要求的暂停及GPU复测均已完成。CPU后备r2保存累计215轮后退出，原长训仍暂停。
 GPU4/5/6各512环境、全501 TRAIN/50物体，从215模型/optimizer显式迁移cpu→gpu，
 冻结fa10fcd5，完成16轮到231（各320次优化、128 native控制），六worker全部正常退出，

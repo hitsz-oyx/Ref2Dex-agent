@@ -13,8 +13,8 @@ seed_pool: probe
 seeds: [246, 247, 248]
 decision_changed_if_positive: continue the measured goal WAM policy improvement route
 decision_changed_if_negative: diagnose measured training dynamics before adding scale or changing the method
-status: PAUSED
-run_id: inspire-measured-gpu-recheck-20261020-r1
+status: RUNNING
+run_id: inspire-measured-official-20261020-r3
 ---
 
 User requests starting PPO now onGPU4/5/6 concurrently with independent
@@ -242,3 +242,44 @@ The GPU path is operational in this bounded test; this does not identify or
 prove elimination of the prior intermittent first-step failure. Raw acceptance,
 resources and per-rank curves are in the recheck output. Current status PAUSED
 refers to the research training, while the diagnostic itself is COMPLETED.
+
+## User-authorized GPU long-training resume
+
+User explicitly asks to start training after the passed GPU recheck, revoking
+the pause. New production run inspire-measured-official-20261020-r3 freezes
+3a0779f6 and resumes the verified GPU231 model AND optimizer, hardlinked under
+itsinputs. This is ordinary same-backend resume, no migration override. Source
+GPU identity/WAM80000/admission/geometry/frozen CAD and official PPO recipe remain
+unchanged. The first-resumed-update parameter sync check is included.
+
+GPU4/5/6,512 environments each,1536 global,12288 global rollout/3072 minibatch;
+all501 admitted TRAIN sequences/50 objects. NativeGPU PhysX/GPU tensors,
+Torch2.0.1+cu118; WAM/PPO graspenv/Torch2.4.1+cu121, sharedTF32/batch256,
+packed extended state and explicit setter synchronization. No native reference
+actor/reward/termination introduced. Rollout seeds246/247/248, fresh episodes;
+iteration and optimizer state continue, live episode counters restart per run.
+
+Target cumulative10000 (9769 additional updates), bounded by the original48h
+training budget:7801.46s CPU r2 +683.64s GPU recheck already used; remaining
+164314s (about45.64h), not a reset48h allowance. Save/stop at budget, owned STOP
+or20GiB disk floor. Rank0 last3 +500 milestones retained, no source checkpoints
+overwritten. Any worker failure closes all owned peers; preserve logs and last
+completed checkpoint, with no silent CPU fallback. The previous intermittent
+GPU startup issue remains a recorded limitation even though the16-update
+recheck passed. Verify actual resumed updates/resources before handoff.
+
+### GPU long-training startup accepted
+
+r3 reached at least235 on all three ranks,80 new optimizer steps each. The
+first resumed update232 now directly measured rank synchronization0; source
+mismatch and behavior log-prob replay errors0. SavedGPU232 was fully CPU loaded:
+identity exactly equals sourceGPU231, no migration override, all model/optimizer
+tensors finite, each Adam state advances20, frozenCAD unchanged. Source231 is
+retained by hardlink; completed output checkpoints follow bounded retention.
+Evidence: resume-verification.json and per-rank progress/curve files under r3.
+
+Current round approximately34s; startup60s/12 samples at5s measured mean GPU
+utilization37.8/37.9/43.9%, total peak15,240MiB each. WAM and CPU task packing
+remain the collector's major cost. All six workers and supervisor are alive;
+this is a long-running handoff, not experiment completion, convergence or a
+method-gain claim. The original failed startup remains in limitations.
