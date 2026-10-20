@@ -1,3 +1,13 @@
+## 2026-10-20 WAM-v6为用户重启正常停于23758，NAS末步已验证
+
+三卡r2已own STOP正常保存step023758.pt（1186363152bytes），CPU完整读取、模型有限、568份
+optimizer（原564计数23758/事件4计数8638）、三卡RNG/global192/elapsed齐全，已fsync。
+新supervisor/torchrun/3workers均退出；旧驱动退出残留仍待节点重启清理，agent未执行系统重启。
+NAS reboot-preparation目录额外hard-link固定末步并准备严格三卡恢复脚本；四卡恢复需另显式迁移。
+本地完整备份传输较慢、交接时仍进行中，不能称已验证；以NAS已验证文件作为恢复源，不必等本地拷贝。
+[状态及恢复入口](../src/task/ptv3-shared-wam-v6/docs/STATE.md)、
+[停训验证](../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261020-wam-v6-mixed-pretrain.md)。
+
 ## 2026-10-20 goal/task10执行路线迁移到 wam-rl-policy-v3
 
 用户要求分离路线：Inspire及新增TaskController/measured421/686的BC/PPO、审计与实验卡迁至v3，

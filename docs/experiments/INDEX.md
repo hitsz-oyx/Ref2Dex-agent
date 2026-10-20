@@ -895,7 +895,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261020-wam-v6-mixed-pretrain](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261020-wam-v6-mixed-pretrain.md) | Continue WAM v6 event-conditioned pretraining | 见原卡 | continue active three-GPU r2 under the guarded capacity contract. | probes/RUNNING |
+| [P-20261020-wam-v6-mixed-pretrain](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261020-wam-v6-mixed-pretrain.md) | Continue WAM v6 event-conditioned pretraining | 见原卡 | reboot preparation complete; resume after node/GPU/NAS checks. | probes/STOPPED |
 
 ## HF-v6-event-training-readiness
 
@@ -1272,7 +1272,7 @@
 | [P-20261020-inspire-current421-bc](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-inspire-current421-bc.md) | P-20261020-inspire-current421-bc | 见原卡 | 见原卡 | probes/见原卡 |
 | [P-20261020-inspire-current421-closed-loop](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-inspire-current421-closed-loop.md) | P-20261020-inspire-current421-closed-loop | 见原卡 | 见原卡 | probes/见原卡 |
 | [P-20261020-inspire-paired-bc-dev](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-inspire-paired-bc-dev.md) | P-20261020-inspire-paired-bc-dev | 见原卡 | 见原卡 | probes/见原卡 |
-| [P-20261020-inspire-scheduled686-bc](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-inspire-scheduled686-bc.md) | P-20261020-inspire-scheduled686-bc | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261020-inspire-scheduled686-bc](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-inspire-scheduled686-bc.md) | P-20261020-inspire-scheduled686-bc | 见原卡 | do not launch long PPO from these results. Diagnose the transition | probes/见原卡 |
 | [P-20261020-inspire-scheduled686-cache](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-inspire-scheduled686-cache.md) | P-20261020-inspire-scheduled686-cache | 见原卡 | 见原卡 | probes/见原卡 |
 | [P-20261020-inspire-scheduled686-closed-loop](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-inspire-scheduled686-closed-loop.md) | P-20261020-inspire-scheduled686-closed-loop | 见原卡 | 见原卡 | probes/见原卡 |
 | [P-20261020-inspire-task-reward-bridge](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-inspire-task-reward-bridge.md) | P-20261020-inspire-task-reward-bridge | 见原卡 | 见原卡 | probes/见原卡 |

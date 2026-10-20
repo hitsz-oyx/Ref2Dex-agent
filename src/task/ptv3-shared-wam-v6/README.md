@@ -14,13 +14,13 @@ initialized event residual adds50304 parameters without new tokens, points or
 KNN. Joint21/K24,2048 object/C queries,778 samples per hand,5mm PTv3 and original
 TRAIN-only horizon normalization remain unchanged.
 
-Current status (2026-10-20): user-authorized three-GPU continuation is running
-on GPU0/1/2 from original17000→explicit world3 transition→recovery17008.
-Run pretrain-nine-v6-events-threegpu-20261020-r2 uses frozen d43b662d,
-local64/global192, original optimizer/LR/warmup/24-step normalization. GPU3
-remains faulted and excluded. Ordinary resume stays strict; explicit
-transition_three_gpu.py records the world/batch/RNG change. See current state
-and the training card for the guarded retained-context capacity checks.
+Current status (2026-10-20): normally stopped at23758 for the user's planned
+server reboot. Complete world3/global192 checkpoint verified and pinned on NAS;
+all new training processes exited. Reboot preparation directory:
+outputs/reboot-preparation-20261020-r1/ under the remote v6 root. Resume only
+after SSH/NAS/GPU checks; prepared strict three-GPU recovery command is there.
+Four-GPU recovery requires a new explicit topology transition. See
+[current state](docs/STATE.md) for the verified receipt and optional local backup status.
 
 Historical startup (2026-10-20): the user chose continuing v6 after the readiness
 check. v5 saved/stopped at15723; v6 strict-resumed its own16136 checkpoint into

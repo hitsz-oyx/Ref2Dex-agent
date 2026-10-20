@@ -1,6 +1,31 @@
 # WAM v6 state — 2026-10-20
 
-Current status: RUNNING on three healthy remote GPUs0/1/2, as explicitly
+Current status: STOPPED normally at23758 for the user's planned remote-server
+reboot. Complete step023758.pt (1186363152bytes) was CPU-loaded and checked:
+all model tensors finite,568 optimizer states (564 at23758,4 event states at8638),
+3 RNG payloads, world3/local64/global192, elapsed20075.13s. File fsync completed.
+Supervisor/torchrun/new workers3114372/3114380/3114387–9 all exited. Old faulted
+kernel-exit contexts still remain for the reboot to clear; no system reboot
+was executed by the agent. NAS is an NFS mount on /mnt/ugreen_nas.
+
+Original checkpoint is under the threegpu-r2 run, with an additional hard link
+pinned at outputs/reboot-preparation-20261020-r1/step023758.pt (same NAS file,
+not an independent storage backup). Checkpoint receipt and prepared strict
+three-GPU post-reboot launch script are in that directory. The optional local
+1.19GB download is slow and was still IN_PROGRESS at handoff; it must not be
+claimed verified. Local backup-status.json records completion/interruption.
+The verified/pinned NAS checkpoint is sufficient for this compute-node reboot.
+
+After reboot: reconnect SSH, confirm NAS mounted and GPU health/free memory,
+then resume into a fresh output. Prepared resume_three_gpu_after_reboot.py
+keeps world3/global192 and ordinary free-GPU checks; no old retained-PID
+exception is reused. Returning to four GPUs/bigger batch requires an explicit
+new topology transition and capacity check, not ordinary resume. Resume has
+not been launched before the reboot.
+
+Historical three-GPU operation follows:
+
+Historical status: RUNNING on three healthy remote GPUs0/1/2, as explicitly
 requested by the user who cannot resetGPU3. New run:
 pretrain-nine-v6-events-threegpu-20261020-r2, frozen d43b662d, supervisor3114372.
 Explicit world4→3 transition from original complete17000 preserved model,

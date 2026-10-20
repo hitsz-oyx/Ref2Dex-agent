@@ -13,13 +13,13 @@ seed_pool: probe
 seeds: [170,171]
 decision_changed_if_positive: retain event-conditioned checkpoints for downstream execution and a matched efficacy comparison
 decision_changed_if_negative: revisit event conditioning or upstream label quality before downstream use
-status: RUNNING
+status: STOPPED
 run_id: pretrain-nine-v6-events-threegpu-20261020-r2
 ---
 
 # Continue WAM v6 event-conditioned pretraining
 
-Active r2 uses three healthy GPUs0–2, local64/global192, frozen d43b662d.
+Stopped r2 used three healthy GPUs0–2, local64/global192, frozen d43b662d.
 The original four-GPU r1 failed; its protocol/results remain below for provenance.
 
 Classification: Decision Probe, requested by the user after the completed
@@ -253,7 +253,7 @@ its updates are consumed by the long run. GPU3 is still faulted but excluded.
 This is a changed batch/world training regime and not equal sample exposure
 or a bitwise continuation of world4. Keep fixed DEV reporting and original
 80000/cumulative604800s bounds.
-Decision: continue active three-GPU r2 under the guarded capacity contract.
+Historical decision: continued three-GPU r2 under the guarded capacity contract.
 
 
 ### Owned residual-worker escalation after user retry request
@@ -274,3 +274,31 @@ Receipt: remote outputs/gpu-fault-audit-20261020-r1/thread-wake-kill-and-cpu-aud
 small copy under the matching local output directory. New three-GPU training
 was untouched. For administrator recovery prerequisites see
 [NVIDIA nvidia-smi documentation](https://docs.nvidia.com/deploy/nvidia-smi/index.html).
+
+
+## Controlled stop before user-planned server reboot
+
+User plans a reboot; controlled STOP applied only to confirmed active owned r2.
+Normal STOPPED at23758, final step023758.pt published and CPU-loaded, all model
+values finite,568 optimizer states and3 RNG payloads retained. State counters:
+564 original23758 and4 event8638. Effective world3/local64/global192 and
+elapsed20075.1297s retained. Checkpoint1186363152bytes was fsynced. New training
+supervisor/torchrun/all3 workers exited; original hung contexts remain for the
+node restart. No reboot/reset/system operation executed by the agent.
+
+NAS outputs/reboot-preparation-20261020-r1/ holds checkpoint-report.json,
+additional hard-link pin step023758.pt (not a separate storage copy), and
+resume_three_gpu_after_reboot.py. The prepared script checks NFS inputs and
+requires a fresh after-reboot-r3 output; same world3/global192/code d43b662d,
+no retained-context exception. It has syntax validation and is NOT launched.
+A return to world4/batch128 needs explicit new topology/RNG/config handling
+and healthy-device/memory verification after boot. Existing strict resume is
+not weakened. Original checkpoints/data/code remain on NAS.
+
+Optional full local checkpoint copy is slow and was still in progress at this
+handoff. Local output directory outputs/ptv3-shared-wam-v6/reboot-preparation-20261020-r1/
+has bounded backup observer and backup-status.json; do not treat a partial
+file as a completed backup. The verified NAS file is the recovery source and
+is sufficient to reboot this compute node. No need to wait for optional local
+transfer. SSH forwarding and NAS mount must be available after boot.
+Decision: reboot preparation complete; resume after node/GPU/NAS checks.
