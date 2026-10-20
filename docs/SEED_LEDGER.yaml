@@ -25,6 +25,14 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261020-inspire-measured-official-ppo:
+    seed_pool: probe
+    rank_seeds: [246, 247, 248]
+    reuse_reason: user-requested three-rank measured goal WAM PPO with inherited Shadow exploratory seeds
+  P-20261020-wam-mano-preview:
+    seed_pool: probe
+    inference_seed: 246
+    reuse_reason: single teacher-history visual engineering probe; no training or policy outcome claim
   P-20261020-inspire-scheduled686-bc:
     seed_pool: probe
     training_seed: 247

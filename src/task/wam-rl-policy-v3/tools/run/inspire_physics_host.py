@@ -45,12 +45,13 @@ def main():
     p.add_argument('--gpu',type=int,default=7);p.add_argument('--seed',type=int,default=246)
     p.add_argument('--seconds',type=int,default=1800);p.add_argument('--motions',type=int,default=0)
     p.add_argument('--object-manifest',type=Path)
+    p.add_argument('--admission-manifest',type=Path,help='Restrict motion sampling to admitted same-execution TRAIN prefixes')
     p.add_argument('--state-transport',choices=['json','packed'],default='json')
     p.add_argument('--sequence',help='Exact TRAIN motion for bounded canonical-command replay')
     p.add_argument('--fixed-motions-json',type=Path,help='Engineering replay only: exact collection batch membership, no object sampler')
     p.add_argument('--extended-state',action='store_true',help='Measured DOF/contact forces and per-episode validity; legacy actor input is unchanged')
     a=p.parse_args();a.cache=a.cache.resolve();a.output=a.output.resolve();a.socket=a.socket.resolve()
-    if a.output.exists() or ROOT/'outputs/wam-rl-policy-v3' not in a.output.parents or not 2<=a.envs<=256:
+    if a.output.exists() or ROOT/'outputs/wam-rl-policy-v3' not in a.output.parents or not 2<=a.envs<=512:
         raise ValueError('fresh bounded native host required')
     a.output.mkdir(parents=True);scratch=ROOT/'tmp'/a.output.parent.name;scratch.mkdir(exist_ok=True)
     os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu),TMPDIR=str(scratch),OMP_NUM_THREADS='2',OPENBLAS_NUM_THREADS='2',
@@ -74,6 +75,13 @@ def main():
     if torch.__version__!='2.0.1+cu118':raise ValueError('pinned native Torch2.0.1 required')
     torch.set_num_threads(2);torch.manual_seed(a.seed);np.random.seed(a.seed)
     meta=json.loads((a.cache/'manifest.json').read_text());records=[r for r in meta['sequences'] if r['split']=='train']
+    if a.admission_manifest:
+        admission=json.loads(a.admission_manifest.read_text())
+        if admission.get('schema')!='ref2dex.teacher-measured-rollout-admission.v2' or admission.get('status')!='COMPLETED':
+            raise ValueError('corrected completed admission required')
+        allowed={r['sequence'] for r in admission['records'] if r['split']=='train' and r['engineering']=='PASS' and r['training_prefix_commands']>0}
+        records=[r for r in records if r['sequence'] in allowed]
+        if {r['sequence'] for r in records}!=allowed:raise ValueError('native geometry does not cover admitted TRAIN')
     if a.fixed_motions_json:
         names=json.loads(a.fixed_motions_json.read_text())['sequences'];by_name={r['sequence']:r for r in meta['sequences']}
         if len(names)!=a.envs or len(set(names))!=len(names):raise ValueError('fixed replay needs one motion per environment')
