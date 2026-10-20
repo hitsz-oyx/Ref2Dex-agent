@@ -48,3 +48,26 @@ def test_only_exiting_confirmed_owned_contexts_can_be_shared():
     validate_owner(**args)
     for change in [dict(uid=2000),dict(started=2000.),dict(cmdline=b'active training'),dict(parent=50),dict(pending=0)]:
         with pytest.raises(ValueError,match='identity'):validate_owner(**dict(args,**change))
+
+
+def test_restore_four_retains_three_rank_history_and_rejects_hidden_changes():
+    from ptv3_shared_wam_v6.topology import restore_four_gpu_checkpoint
+    original=checkpoint();three=transition_checkpoint(original,dict(original['config'],batch_size=64),'same-data')
+    new_rng=dict(python='new-python',numpy='new-numpy',torch=torch.arange(8,dtype=torch.uint8),cuda=torch.arange(16,dtype=torch.uint8))
+    restored=restore_four_gpu_checkpoint(three,original['config'],'same-data',new_rng,123)
+    validate_resume(restored,original['config'],'same-data',4)
+    assert restored['model'] is original['model'] and restored['optimizer'] is original['optimizer']
+    assert restored['random_state'][:3]==three['random_state']
+    assert restored['random_state'][3] is new_rng
+    assert restored['execution_contract']['effective_global_batch']==512
+    assert restored['selection']==three['selection'] and restored['elapsed_s']==three['elapsed_s']
+    assert len(three['random_state'])==3 and three['world_size']==3
+    assert restored['topology_transition']['previous_transition']==three['topology_transition']
+    for config_delta in [dict(shared_lr=2e-4),dict(batch_size=256),dict(horizon=12)]:
+        with pytest.raises(ValueError,match='only batch'):
+            restore_four_gpu_checkpoint(three,dict(original['config'],**config_delta),'same-data',new_rng,123)
+    with pytest.raises(ValueError):restore_four_gpu_checkpoint(three,original['config'],'wrong-data',new_rng,123)
+    with pytest.raises(ValueError,match='complete rank3'):
+        restore_four_gpu_checkpoint(three,original['config'],'same-data',dict(new_rng,cuda=None),123)
+    with pytest.raises(ValueError,match='provenance'):
+        restore_four_gpu_checkpoint(dict(three,topology_transition={}),original['config'],'same-data',new_rng,123)

@@ -302,3 +302,24 @@ file as a completed backup. The verified NAS file is the recovery source and
 is sufficient to reboot this compute node. No need to wait for optional local
 transfer. SSH forwarding and NAS mount must be available after boot.
 Decision: reboot preparation complete; resume after node/GPU/NAS checks.
+
+
+## Post-reboot restoration preparation
+
+User requests restoring training after the reboot. Initial SSH attempts to
+127.0.0.1:22023 time out during banner exchange; GPU/NAS/boot state cannot yet
+be verified. No training launched. Local optional checkpoint backup has now
+completed VERIFIED:1186363152bytes,step23758,world3,568 optimizer states,3 RNGs.
+
+If all four remote GPUs are healthy/free after reconnection, explicitly restore
+world3/local64/global192→world4/local128/global512 from complete23758. Preserve
+all weights, normalizers, optimizer states/steps, selection, elapsed/warmup and
+rank0–2 RNGs. Initialize new rank3 with dedicated Python/NumPy/CPU/CUDA generators
+using deterministic seed seed*1000003+step*97+3, recording that the larger batch
+and world alter future draws. Prior topology transition is retained in history.
+Ordinary resume stays strict. New restore_four_gpu.py produces a separate bound
+checkpoint; the preserved original is never modified. This code is prepared,
+not evidence that reboot/GPU recovery succeeded. Eight topology/actual-entrypoint
+tests pass; real GPU migration/recovery still awaits connectivity and health checks.
+If a GPU is still unavailable, retain the already prepared strict three-GPU
+recovery instead of silently claiming four-card restoration.
