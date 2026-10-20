@@ -520,3 +520,98 @@ small teacher-state errors with rapid closed-loop departure would favor on-polic
 correction coverage/robustness. Poor TRAIN fitting returns to input aliasing or
 optimizer diagnosis. Evaluate the same four-env300-control panel and preserve
 strict TaskController completion separately from lift/coupling proxies.
+
+
+### Fresh learning and sampling results
+
+UniDex Current300 trained50k from random (211.24s); Scheduled565 trained50k from
+that newly trained parent (337.72s including bounded input loads), selected best
+step46000. Native64-scene evaluation took82.71s: native-ever35/64 (54.69%),
+ever/final stable26/64 (40.625%), final-position32/64, workspace failures0.
+Initial observation/pose/hand/goal/full-root arrays are bitwise equal to the prior
+BC565 panel. The run builds no PPO optimizer and does not load any historic
+BC/PPO checkpoint. Existing immutable WAM12000 cache is reused read-only.
+This supports fresh BC learnability/execution of565; it does not train task10,
+prove generalization, or isolate WAM net contribution. Artifacts:
+outputs/wam-rl-policy-v3/unidex-fresh-bc-20261020-r1/current and
+outputs/wam-rl-policy-v3/unidex-fresh-bc-20261020-r2/{scheduled,evaluation}.
+
+Both corrected-data Inspire arms consume56036 TRAIN/6081 DEV active rows,
+501/62 sequences,2001 TRAIN startup rows. Same seed246/model/initialization,
+optimizer/batch/50k; uniform430.46s and startup_half528.94s training times are recorded
+in manifests (resource contention means runtime is not a throughput comparison).
+
+| sampler / endpoint | step | full DEV command MAE | four TRAIN motions with lift>=5cm for>=30 native frames | full path-task completed |
+| --- | --- | --- | --- | --- |
+| uniform / DEV best | 2000 | 0.0374714 | 2/4 | 0/4 |
+| uniform / fixed endpoint | 50000 | 0.0541351 | 1/4 | 0/4 |
+| startup_half / DEV best | 7000 | 0.0401235 | 2/4 | 0/4 |
+| startup_half / fixed endpoint | 50000 | 0.0521539 | 1/4 | 0/4 |
+
+All four arms and old Current baseline have identical initial q/dq/physical/
+object/hand/tick/table arrays in the four-env panel. Lift is a physical proxy,
+not grasp certification or complete task success; traces store300 decision
+observations (ticks0..299) from300 controls, so last-recorded height is not a
+terminal success metric. Two DEV-best models each visit TRACK on two motions,
+but on different subsets; path progress remains0. Old Current best lifts none
+of these four above5cm. The new corpus and shared-CAD arithmetic differ from
+that historical baseline; do not attribute the old-to-new change only to sampler.
+Only the two fresh arms form the controlled sampling comparison.
+
+Old model first-action translation PD-target error is39.2/68.1/73.5/68.3mm.
+Offline versus online initial predictions agree within1.79e-7, with equal
+initial q/hand/object, excluding a gross first-observation adapter mismatch on
+this panel. Startup_half50k reduces these four TRAIN first-action errors to
+1.71/2.33/2.20/2.98mm, yet physical lift coverage stays1/4. Small initial errors
+alone do not establish robust execution. DExplore root command directly adds
+metre-scale translation PD deltas and pi-scale Euler joint deltas to current q;
+UniDex uses wrist force/torque control. Command MAE numbers are not transferable
+physical accuracy thresholds between the robots.
+
+Full DEV startup audit (248 real tick<4 rows of6081) is stronger than the four
+TRAIN examples: mean translation PD L2 error remains112.8mm uniform-best vs
+106.4mm startup-best;50k endpoints113.5mm vs103.5mm. Startup reweighting only
+partially helps, not a solution to held-out startup behavior. The independent
+full-DEV audit recovers global MAE within~2e-6 of trainer reports (batch/cuda
+inference arithmetic differences). Report full-dev-startup-audit.json under
+inspire-bc-sampling-20261020-r1, alongside panel-comparison.json and lift-panel.png.
+
+No new PPO long training or new tau cache was started from these results.
+The four-sequence capacity probe remains a diagnostic; its fixed endpoint is
+assessed below. v3 full suite143 passes after sampling/loader/codec fixes.
+
+
+### Four-sequence capacity/closure result and next decision
+
+inspire-bc-fit4-20261020-r1 completed50k in224.85s onGPU6,2110 active TRAIN
+rows from the four declared motions, same6081 DEV rows. Actual active rows,
+not the inherited parent-audit summary counts, define the diagnostic subset;
+subset-manifest explicitly marks diagnostic_subset and preserves source/sidecars.
+The predeclared50k endpoint fits first10 translation PD targets to
+0.923/0.690/1.195/1.039mm mean L2; first-action errors0.550/0.569/0.929/0.854mm.
+Its native300-control four-env panel starts identically to all full-data arms.
+It visits TRACK on3/4 motions but only apple satisfies the lift5cm/30frame proxy;
+waterbottle reaches21.3cm for22frames, stamp9.56cm for16frames, toothpaste1.12cm.
+Full path completion remains0/4. Waterbottle/apple confirm small path progress,
+max0.004713/0.004748; do not call sub-percent progress task success.
+First30 closed-loop command MAE remains0.0023–0.0054, then performance still
+departs around contact/manipulation. This rules out a simple inability to fit
+known startup teacher commands on this panel; it supports prioritizing closed-loop
+correction coverage over more repeated full-corpus epochs. It does not prove
+that dataset ambiguity, contact sensitivity, or WAM prediction are irrelevant.
+
+Next Decision is an Inspire correction-coverage or explicit tau-conditioning
+probe, not another undifferentiated50k Current BC run. Any teacher takeover/
+DAgger extension must distinguish actual behavior/applied actions from teacher
+labels and must build previous_action from actual behavior, not the unexecuted
+teacher label. Teacher internal references remain internal; the student input
+still contains no DExplore hand reference. Existing TeacherRolloutCorpus assumes
+same-execution applied supervision, so mixed-action data must get an explicit
+contract rather than masquerading as the current canonical rollout corpus.
+Do not launch long PPO before its measured multi-episode reset/collector boundary
+is implemented and checked. All jobs from this round are finished;GPU6/7 free.
+
+Verification:143 Task tests pass. Global verify still fails only on the six
+pre-existing trajectory-policy v2 cards missing required metadata; they were
+not modified. Outputs bounded: fresh UniDex current124MiB/scheduled+eval140MiB,
+full-data Inspire sampling+eval114MiB, fit4~53MiB, plus small diagnostics/plots.

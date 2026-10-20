@@ -1,5 +1,39 @@
 # 当前状态
 
+新增用户要求的从头学习对照：UniDex Current300 随机初始化50k，再以本轮新父模型训练
+Scheduled565 50k，不加载历史BC/PPO。新BC在同一16个TRAIN物体/64初态中原生曾成功35，
+最终稳定26（40.625%），终态位置32，workspace失败0；64份观测/pose/hand/goal/full-root
+与历史BC565面板逐位一致。这是565学习可复现性，不是新task10已训练或WAM净收益证据。
+产物unidex-fresh-bc-20261020-r1/current与r2/{scheduled,evaluation}；r1 Scheduled在0更新
+时因整块np.load异常慢停止，分块reader把TRAIN565读取降至4.92s，未改变模型/采样语义。
+
+Inspire已按Shadow补齐startup_half默认采样，保持前8/60秒的物理窗口（30Hz的前4拍），
+保留原始tick而不使用压缩后索引。用修正支撑v2数据分别从随机初始化完成uniform与
+startup_half 50k：TRAIN56036/DEV6081 active行、501/62序列，两组种子/模型/配方一致。
+DEV最优分别step2000/7000，MAE0.037471/0.040123；50k为0.054135/0.052154。
+四条预先按teacher耦合覆盖选择的TRAIN lift运动：两组best均2/4曾抬高5cm连续至少1秒，
+两组50k均1/4；完整路径任务全部0/4。旧Current在同一四初态中此物理代理为0/4。
+所有初始q/dq/physical/object/hand/tick/table逐位一致；不能把物理抬升代理叫完整任务成功。
+
+更明确的执行差异：DExplore腕部动作是相对当前q的米制PD平移目标，旧BC首动作目标误差
+39–73mm，离线/在线初始预测却一致到1.79e-7；不能用UniDex的力/力矩动作MAE作为物理阈值。
+startup_half50k在这四条TRAIN运动首动作误差降至1.7–3.0mm，仍仅1/4抬升代理；完整DEV
+启动248行仍约103.5mm平均平移目标L2误差。采样修正没有解决泛化及闭环纠错覆盖。
+诊断输出inspire-bc-sampling-20261020-r1，含full-dev-startup-audit.json、panel-comparison.json
+和lift-panel.png。四序列拟合诊断inspire-bc-fit4-20261020-r1独立记录，不替代完整数据策略。
+
+本轮另修复packed状态解码保留wire标记导致collector/observer重复解码失败的工程bug；
+真实调用链回归先失败后通过，v3全套143项通过。历史JSON路径结果不受该bug影响。
+teacher原始动作匹配16环境重放toothpaste：初态及前30拍手/q一致，后续也出现物理轨迹偏离；
+stamp16环境在观测前PhysX非法访问，保留失败日志，不能归咎BC。四环境评估均已正常通过。
+详细协议、运行版本和解释边界见P-20261019-inspire-task-contract实验卡。
+四序列拟合已完成：2110 active TRAIN行、50k更新224.85s；教师状态前10拍腕部平移目标
+误差0.69–1.20mm，仍只有1/4满足抬高5cm连续1秒，3/4曾TRACK、完整任务0/4，最大路径
+进度约0.47%。支持优先处理接触阶段闭环纠错覆盖；不能靠继续重复BC epoch解决。
+任何teacher接管/DAgger需区分真实behavior/applied与teacher标签，previous_action必须来自
+真实执行动作，不能把混合执行伪装成现有同轮teacher监督。所有本轮任务已结束，GPU6/7已释放。
+
+
 用户澄清要测BC而非PPO。已用纯BC入口完成unidex-bc-goal-20261020-r1：
 加载全量自训Scheduled BC best(step46000)与其原WAM12000，不加载RL checkpoint，
 不创建PPO/critic/optimizer，0更新；BC declaration与evaluation policy_kind均明确标注bc。
