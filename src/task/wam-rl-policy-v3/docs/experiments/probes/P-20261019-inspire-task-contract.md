@@ -500,3 +500,23 @@ removes the wire-only marker. Existing historical JSON-path BC results are not
 invalidated. Four-env r3 reruns the identical declared baseline after this fix.
 The chunked UniDex loader read the full TRAIN565 in4.92s and begins real updates;
 no sampling or model semantics were changed by that engineering migration.
+
+
+### Four-TRAIN capacity/closure Decision probe, predeclared
+
+The full corrected-corpus uniform/startup_half runs both completed50k; startup
+DEV248 rows retain ~10cm mean translation-PD target L2 error. This motivates a
+cheaper diagnostic before adding more full-corpus epochs: can the same measured
+input/network fit and autonomously execute four known teacher lift motions?
+run_id=inspire-bc-fit4-20261020-r1; subset is exactly the previously declared
+four TRAIN lift sequences, original sidecars/source/splits unchanged. DEV remains
+the full original62 sequences. This is a capacity/closure probe, not a substitute
+for the required full-data final policy. Shadow capacity/optimizer/batch2048,
+seed246, startup_half, fixed50k updates, GPU6, <30min/<100MiB. No tau/PPO.
+Choose the predeclared50k latest endpoint for this diagnostic, irrespective of
+DEV model selection. Teacher-state first10 translation errors below5mm together
+with physical closed-loop lift would favor data/state-coverage as next blocker;
+small teacher-state errors with rapid closed-loop departure would favor on-policy
+correction coverage/robustness. Poor TRAIN fitting returns to input aliasing or
+optimizer diagnosis. Evaluate the same four-env300-control panel and preserve
+strict TaskController completion separately from lift/coupling proxies.
