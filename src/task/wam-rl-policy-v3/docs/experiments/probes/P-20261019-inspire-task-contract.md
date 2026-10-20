@@ -103,6 +103,32 @@ or new checkpoint. Outputs only outputs/wam-rl-policy-v3/unidex-bc-goal-20261020
 Zero new goal columns do not demonstrate learned task10 benefit. Initial-state
 matching is checked; unmatched scenes cannot support paired method claims.
 
+BC-only run completed at e9077e38: each arm64 first native episodes,0 optimizer
+steps, explicit bc_step46000, ppo_checkpoint=null, optimizer_constructed=false.
+All64 initial robot300/hand/pose/goal/full root arrays match bitwise; WAM12000
+and its original geometry are held fixed. Capacity/weights come from full-data
+self-trained BC; no RL weights are read.
+
+| BC arm | Native-ever | Ever-held60 | Final-stable | Final-position | Workspace failure |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Scheduled565 | 32/64 | 25/64 | 25/64 | 28/64 | 0 |
+| Task575 zero expansion | 35/64 | 25/64 | 24/64 | 28/64 | 0 |
+
+Final-stable means object within5cm of goal and lifted10cm for the final60 native
+steps (~1s). Native-ever is the official sticky success flag, not final stability.
+Elapsed51.84s/75.75s onGPU6/7. Both BCs have real partial execution success on
+this16-TRAIN-object/single-seed panel; this is not unseen-object generalization
+or evidence that the untrained task columns improve anything. Do not compare
+these counts causally to prior PPO runs with different WAM weights/reset draws.
+
+Decision: UniDex BC is an executing positive control. Compare DExplore's data,
+startup sampling and closed-loop state coverage against it, while retaining
+the independently identified phase-gating issue. This alone cannot exclude
+all DExplore data problems or identify their unique cause. No new long training.
+Evidence: unidex-bc-goal-20261020-r1/comparison.json, both evaluation.json,
+bc-evaluation.json and initial-state.npz; explicit --bc-evaluation rejects any
+RL checkpoint before runtime initialization.138 tests pass, all GPU jobs ended.
+
 #### Historical PPO-only results
 
 r1 at90118e05 completed both64-scene first-episode evaluations: baseline565

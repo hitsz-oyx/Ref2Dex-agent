@@ -1,5 +1,19 @@
 # 当前状态
 
+用户澄清要测BC而非PPO。已用纯BC入口完成unidex-bc-goal-20261020-r1：
+加载全量自训Scheduled BC best(step46000)与其原WAM12000，不加载RL checkpoint，
+不创建PPO/critic/optimizer，0更新；BC declaration与evaluation policy_kind均明确标注bc。
+16个TRAIN物体×64场景，565与零扩展575的初始robot300/hand/pose/goal/full root全数逐位一致。
+BC565：原生曾成功32/64(50%)、曾保持25、最终稳定25/64(39.06%)、终态位置28；
+BC575：原生曾成功35/64(54.69%)、曾保持25、最终稳定24/64(37.5%)、终态位置28。
+两组workspace failure0，各完整首回合；最终稳定要求近目标5cm且抬高10cm、末尾连续60步。
+BC565/575评估分别51.84/75.75秒，两卡已释放；138项测试通过。
+这证明UniDex的WAM+BC可在该TRAIN面板部分成功，可作DExplore的执行正对照；
+不代表高成功率或未见物体泛化，也不证明DExplore失败唯一来自数据。
+575新增task列未训练，不以35对32的差别宣称goal/WAM增益。
+
+以下UniDex task-goal r1/r2/r3加载的是PPO，不能当作BC成功率。
+
 最新决策：按用户要求先用UniDexGrasp排查新增goal/τ链路，暂不扩展DExplore训练。
 Shadow575只做已训练PPO565的model-only零扩展评估，task10权重未训练，原v2代码不改。
 净接触力版9db09ec4在64个TRAIN首回合中原生曾成功47、最终稳定保持29、workspace失败0；

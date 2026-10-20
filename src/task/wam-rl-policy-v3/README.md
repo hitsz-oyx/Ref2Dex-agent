@@ -12,6 +12,8 @@ Shadow current300 / scheduled565 的主要实验继续位于 [v2](../wam-rl-poli
 - `tools/run/inspire_physics_host.py`：同轮实测 state/force/support 与原生 PD。
 - `tools/run/closed_loop_scheduled_shadow.py --task-controller --evaluate`：UniDex575维对照，
   复用已训练565维PPO，task10零扩展且与WAM同一决策；仅评估，不迁移optimizer。
+- 同入口 `--bc-evaluation --evaluate --official-ppo`：直接测 `--policy` 的BC均值，
+  禁止传 `--rl-checkpoint`，不创建PPO/critic/optimizer；可选 `--task-controller` 检查575维接线。
 - [接口与证据](docs/research/2026-10-19-measured-task-interface.md)。
 - [当前状态与新缓存](docs/STATE.md)。
 - [迁移清单](docs/migration.json)。

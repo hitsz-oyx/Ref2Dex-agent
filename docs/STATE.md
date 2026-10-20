@@ -10,6 +10,10 @@ NAS reboot-preparation目录额外hard-link固定末步并准备严格三卡恢�
 
 ## 2026-10-20 goal/task10执行路线迁移到 wam-rl-policy-v3
 
+用户澄清BC后已补纯BC评估：UniDex全量BC best46000＋原WAM12000，不载入PPO、不建optimizer。
+两组64初态完整一致，BC565原生曾成功32/64、最终稳定25/64；接TaskController的零扩展BC575
+分别35/64、24/64。可作TRAIN执行正对照，尚非泛化或goal增益证据。138项测试通过，任务已结束。
+
 追加UniDex对照：按用户要求先排除数据因素。v3以PPO565零扩展为575（新task列未训练），
 净接触力版64首回合原生曾成功47、最终稳定29，但23个稳定场景未进入TRACK，路径进度全0。
 新增链路可执行，不能将DExplore零进度全归咎于数据；先校准阶段门控与8mm/原生5cm口径差异。
