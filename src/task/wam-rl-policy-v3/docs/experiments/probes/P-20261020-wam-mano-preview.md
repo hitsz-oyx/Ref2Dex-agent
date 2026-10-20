@@ -255,3 +255,48 @@ model-wide validity. No prediction was blended back toward ground truth.
 - [Predicted-history43.4s slow2x](../../../../../../outputs/wam-rl-policy-v3/wam-mano-autoregressive-20261020-r1/rolling-slow2x.mp4)
 - [Stage contact sheet](../../../../../../outputs/wam-rl-policy-v3/wam-mano-autoregressive-20261020-r1/rolling-contact-sheet.png)
 - [History reconstruction/continuity audit](../../../../../../outputs/wam-rl-policy-v3/wam-mano-autoregressive-20261020-r1/data-audit.json)
+
+## Actual WAM TRAIN control (2026-10-20)
+
+The user asks whether the same failure occurs on WAM's own training data.
+Decision: separate an Inspire deployment mismatch from failures already present
+on the pretrained distribution or under recursive prediction. Positive real-H4
+forecasts but poor free rollout prioritize multi-step consistency; poor direct
+TRAIN forecasts prioritize basic forecast/goal/representation checks before
+blaming cross-hand transfer. Cheapest control reuses four pre-existing frozen
+admitted GRAB TRAIN windows exported for the dense-point benchmark, selected
+before this question, with the same step80000 checkpoint. No new training.
+
+Run `wam-train-rollout-20261020-r1`, work_version=`wam-train-rollout-v1`.
+Inputs: `outputs/ptv3-shared-wam-v4/dense-point-throughput-20261019-r1/export/`
+and the local main3 shared-stats corpus. The original metadata has stale index
+paths from a retired worktree. A derived manifest relocates paths only; the
+source loader verifies original source/index identities. All seven selected
+geometry/history/label/goal fields must exactly match the frozen TRAIN export.
+The checkpoint's main3 normalization-source identity must match. Remote SSH is
+currently unavailable; no remote corpus or training state is changed.
+
+Predeclared cases: eyeglasses_lift, bowl_pass_1, stamp_lift and
+stanfordbunny_lift, at their cached anchors81/134/361/438. Both actual hand slots
+are retained. Report original TRAIN window full24 and first8 errors against
+hold/constant-velocity baselines. Then compare real-H4 and predicted-H424/8
+continuations from the same anchor for up to180 further frames; bowl has less
+remaining source data and is truncated. Every supplied goal is the true object
+pose t+24, exactly the training meaning, rather than the Inspire scheduler's
+spatial waypoint. A generic history builder must match original TRAIN-model
+predictions within0.1mm before continuing. Do not use a one-handed adapter that
+drops GRAB's second hand. Object forecast32 points are rigid-projected with the
+same residual reporting. No future hand frames enter the free-history inputs.
+
+Original cached anchors are known admitted v4 TRAIN windows. Continuations stay
+in the same TRAIN sequences and use the base TRAIN corpus, but later individual
+anchors cannot currently be rechecked against the remote v4 window filter. Do
+not call this all-nine-source coverage, generalization, exact memorization or a
+fully matched comparison with Inspire (both embodiment and goal contract differ).
+
+Budget/env: local GPU7 permitted sharing with monica,<=600s inference,<=600s raw
+point video/plot rendering,<=150MiB final/512MiB transient,20GiB disk floor.
+graspenv Python3.8/Torch2.4.1+cu121, float32, single-sample forward. Frozen code
+commit and run command/resources go into the manifest and
+`tmp/wam-train-rollout/`; outputs under the declared run in this Task. Video
+compares raw22-point hands and32 object query points to isolate MANO fit error.
