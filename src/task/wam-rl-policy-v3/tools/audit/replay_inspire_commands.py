@@ -10,7 +10,7 @@ import sys
 import time
 import numpy as np
 from scipy.spatial.transform import Rotation
-TASK=Path(__file__).resolve().parents[2];ROOT=TASK.parents[2]
+TASK=Path(__file__).resolve().parents[2];ROOT=Path(os.environ.get('REF2DEX_RUN_ROOT',TASK.parents[2])).resolve()
 sys.path[:0]=[str(TASK/'src'),str(ROOT/'src/task/trajectory-policy/src')]
 from wam_rl_policy_v3.inspire_state_codec import unpack_state
 from trajectory_policy.wam_ipc import send,receive,peer_pid
