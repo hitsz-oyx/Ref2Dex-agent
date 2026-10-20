@@ -29,6 +29,7 @@ def main():
     p.add_argument('--seed',type=int,default=246)
     p.add_argument('--sync',action='store_true')
     p.add_argument('--extended',action='store_true')
+    p.add_argument('--action',choices=['zero','noise'],default='zero')
     a=p.parse_args();out=a.output.resolve()
     if out.exists() or ROOT/'outputs/wam-rl-policy-v3' not in out.parents or not 2<=a.envs<=512 or not 1<=a.steps<=128 or not 0<=a.resets<=3:
         raise ValueError('fresh bounded native-only diagnostic required')
@@ -45,7 +46,7 @@ def main():
     if a.sync:cmd+=['--synchronize-setters']
     if a.extended:cmd+=['--extended-state']
     info=dict(status='RUNNING',git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
-              argv=list(map(str,cmd)),steps=0,resets=a.resets,canonical_action='zero18',wam=False,ppo=False)
+              argv=list(map(str,cmd)),steps=0,resets=a.resets,canonical_action=a.action,wam=False,ppo=False)
     def save():(out/'manifest.json').write_text(json.dumps(info,indent=2)+'\n')
     save();connection=None;child=None;started=time.monotonic()
     try:
@@ -59,7 +60,13 @@ def main():
                 state=unpack_state(receive(connection)['state'])
             for tick in range(a.steps):
                 old=list(state['episodes'])
-                send(connection,dict(op='step',episodes=old,action=[[0.]*18 for _ in range(a.envs)]))
+                if a.action=='noise':
+                    import numpy as np
+                    from wam_rl_policy_v3.inspire_contract import expand_action
+                    if tick==0:rng=np.random.RandomState(a.seed)
+                    action=expand_action(np.clip(rng.normal(0,.64,(a.envs,12)),-1,1).astype(np.float32)).tolist()
+                else:action=[[0.]*18 for _ in range(a.envs)]
+                send(connection,dict(op='step',episodes=old,action=action))
                 state=unpack_state(receive(connection)['state'])
                 if old!=state['episodes'] or not (state['tick']==tick+1).all():
                     raise ValueError('native action/clock mismatch')
@@ -78,7 +85,7 @@ def main():
             try:child.wait(timeout=10)
             except subprocess.TimeoutExpired:os.killpg(child.pid,signal.SIGKILL);child.wait()
         info.update(native_exit=child.returncode if child else None,elapsed_s=time.monotonic()-started);save()
-    print(json.dumps(info),flush=True)
+    print(json.dumps({k:info.get(k) for k in ['status','steps','canonical_action','native_exit','elapsed_s','error']}),flush=True)
     if info['status']!='PASS':raise SystemExit(1)
 
 
