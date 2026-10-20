@@ -42,3 +42,26 @@ def test_visual_description_removes_collision_without_touching_source(tmp_path):
  assert not list(result.iter('collision'))
  assert next(result.iter('mesh')).get('filename')==str(tmp_path/'meshes/hand.obj')
  assert source.read_text()==text
+
+
+def test_rolling_windows_cover_future_once_and_trim_final_chunk():
+ from wam_rl_policy_v3.mano_preview import rolling_windows
+ windows=rolling_windows(22)
+ assert [anchor for anchor,_ in windows]==[3,11,19]
+ assert [len(frames) for _,frames in windows]==[8,8,2]
+ np.testing.assert_array_equal(np.concatenate([frames for _,frames in windows]),np.arange(4,22))
+ for anchor,frames in windows:
+  assert frames[0]==anchor+1 and frames[-1]<=anchor+8
+ with pytest.raises(ValueError):rolling_windows(4)
+
+
+def test_native_png_writer_roundtrip(tmp_path):
+ import importlib.util
+ from pathlib import Path
+ from PIL import Image
+ path=Path(__file__).resolve().parents[1]/'tools/run/render_wam_mano_preview.py'
+ spec=importlib.util.spec_from_file_location('png_renderer',path)
+ renderer=importlib.util.module_from_spec(spec);spec.loader.exec_module(renderer)
+ pixels=np.arange(90,dtype=np.uint8).reshape(5,6,3)
+ destination=tmp_path/'frame.png';renderer.write_rgb_png(destination,pixels)
+ np.testing.assert_array_equal(np.asarray(Image.open(destination)),pixels)

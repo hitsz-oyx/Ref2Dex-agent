@@ -12,6 +12,19 @@ import time
 import xml.etree.ElementTree as ET
 
 
+def write_rgb_png(path, pixels):
+    """Small PNG writer for the pinned Gym runtime, which has no Pillow."""
+    import struct
+    import zlib
+    height,width,channels=pixels.shape
+    if channels!=3:raise ValueError('RGB camera frame required')
+    def chunk(kind,payload):
+        return struct.pack('>I',len(payload))+kind+payload+struct.pack('>I',zlib.crc32(kind+payload)&0xffffffff)
+    raw=b''.join(b'\0'+row.tobytes() for row in pixels)
+    path.write_bytes(b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',width,height,8,2,0,0,0))
+                     +chunk(b'IDAT',zlib.compress(raw,3))+chunk(b'IEND',b''))
+
+
 def visual_urdf(source, destination):
     """Copy only the description; keep licensed/native mesh files read-only."""
     tree = ET.parse(str(source))
@@ -45,6 +58,13 @@ def main():
     started = time.monotonic()
     data = np.load(output / 'preview.npz')
     metadata = json.loads((output / 'manifest.json').read_text())
+    rolling=metadata.get('preview_mode')=='rolling_measured_history'
+    frame_count=len(data['teacher_q'])
+    valid=data['prediction_valid'] if rolling else np.ones(frame_count,bool)
+    mesh_ids=np.flatnonzero(valid)
+    if rolling:
+        image_dir=output/'camera-frames'
+        image_dir.mkdir()  # Refuse to overwrite previous/partial camera output.
     source = Path(metadata['source'])
     receipt = json.loads((source.parents[1] / 'manifest.json').read_text())
     contract = receipt['observation_contract']
@@ -80,8 +100,8 @@ def main():
     options.default_dof_drive_mode = int(gymapi.DOF_MODE_NONE)
     loaded = {name: gym.load_asset(sim, str(assets), name + '.urdf', options)
               for name in sources}
-    mano_assets = [gym.load_asset(sim, str(output / 'mano-assets'), '%02d.urdf' % i, options)
-                   for i in range(25)]
+    mano_assets = [gym.load_asset(sim, str(output / 'mano-assets'),
+                   ('%04d.urdf' if rolling else '%02d.urdf') % i, options) for i in mesh_ids]
     marker_asset = gym.create_sphere(sim, .0025, options)
     goal_asset = gym.create_sphere(sim, .006, options)
 
@@ -108,13 +128,16 @@ def main():
         states['vel']['angular'][0] = (0, 0, 0)
         gym.set_actor_rigid_body_states(env, actor, states, gymapi.STATE_ALL)
 
-    envs, objects, cameras, manoes = [], [], [], []
+    envs, objects, cameras, manoes, goals = [], [], [], [], []
     hand = None
     camera = gymapi.CameraProperties()
     camera.width, camera.height, camera.horizontal_fov = args.width, args.height, 48
     center = data['object_poses'][:, :3, 3].mean(0)
     center[2] += .015
     eye = center + np.array([-.32, -.30, .27])
+    if rolling:
+        radius=float(np.linalg.norm(data['object_poses'][:,:3,3]-center,axis=-1).max())
+        eye=center+np.array([-.40,-.42,.34])*max(1.,radius/.15)
     for lane in range(2):
         env = gym.create_env(sim, gymapi.Vec3(-1.5, -1.5, -1.5), gymapi.Vec3(1.5, 1.5, 1.5), 2)
         envs.append(env)
@@ -133,11 +156,12 @@ def main():
                       for i, asset in enumerate(mano_assets)]
             for actor in manoes:
                 color(env, actor, (.08, .67, .82))
-        for index, pose in enumerate(data['object_poses']):
+        for index, pose in enumerate(data['object_poses'][::8] if rolling else data['object_poses']):
             marker = gym.create_actor(env, marker_asset, transform(pose), 'path_%02d' % index, lane, 0)
             color(env, marker, (.98, .68, .16))
         marker = gym.create_actor(env, goal_asset, transform(data['goal_pose']), 'local_goal', lane, 0)
         color(env, marker, (.98, .85, .18))
+        goals.append(marker)
         sensor = gym.create_camera_sensor(env, camera)
         if sensor < 0:
             raise RuntimeError('camera creation failed')
@@ -149,18 +173,21 @@ def main():
     if min(hand_ids) < 0:
         raise ValueError('teacher semantic landmark link absent')
     frames, fk_errors = [], []
-    for tick in range(25):
+    mano_by_frame=dict(zip(mesh_ids,manoes));previous_mano=None
+    for tick in range(frame_count):
+        if time.monotonic()-started>300:raise TimeoutError('five-minute render deadline')
         joints = gym.get_actor_dof_states(envs[0], hand, gymapi.STATE_ALL)
         joints['pos'] = data['teacher_q'][tick]
         joints['vel'] = 0
         gym.set_actor_dof_states(envs[0], hand, joints, gymapi.STATE_ALL)
         for lane in range(2):
             actor_pose(envs[lane], objects[lane], transform(data['object_poses'][tick]))
-        for index, actor in enumerate(manoes):
-            pose = gymapi.Transform()
-            if index != tick:
-                pose.p = gymapi.Vec3(0, 0, -10)
-            actor_pose(envs[1], actor, pose)
+            if rolling:actor_pose(envs[lane],goals[lane],transform(data['goal_poses'][max(0,int(data['anchor_tick'][tick]))] if valid[tick] else data['goal_poses'][tick]))
+        if previous_mano is not None:
+            hidden=gymapi.Transform();hidden.p=gymapi.Vec3(0,0,-10)
+            actor_pose(envs[1],previous_mano,hidden)
+        previous_mano=mano_by_frame.get(tick)
+        if previous_mano is not None:actor_pose(envs[1],previous_mano,gymapi.Transform())
         # Setters update articulation FK. Do not integrate unactuated visual-only
         # zero-inertia links: that would turn a kinematic replay into a new rollout.
         states = gym.get_actor_rigid_body_states(envs[0], hand, gymapi.STATE_POS)
@@ -172,14 +199,19 @@ def main():
         gym.render_all_camera_sensors(sim)
         images = [np.asarray(gym.get_camera_image(sim, env, sensor, gymapi.IMAGE_COLOR)).reshape(args.height, args.width, 4)[..., :3].copy()
                   for env, sensor in zip(envs, cameras)]
-        frames.append(np.concatenate(images, axis=1))
+        frame=np.concatenate(images,axis=1)
+        if rolling:
+            write_rgb_png(image_dir/('%04d.png'%tick),frame)
+            if tick%100==0:print(json.dumps(dict(stage='render',frame=tick,total=frame_count,elapsed_s=time.monotonic()-started)),flush=True)
+        else:frames.append(frame)
     fk_errors = np.asarray(fk_errors)
-    np.savez_compressed(output / 'camera-frames.npz', frames=np.asarray(frames), fk_errors_m=fk_errors)
+    if rolling:np.save(output/'fk-errors.npy',fk_errors)
+    else:np.savez_compressed(output / 'camera-frames.npz', frames=np.asarray(frames), fk_errors_m=fk_errors)
     report = dict(status='COMPLETED' if fk_errors.max() <= .002 else 'FAILED',
-                  python=sys.executable, gpu=args.gpu, frames=25, camera_hz=30,
+                  python=sys.executable, gpu=args.gpu, frames=frame_count, camera_hz=30,
                   fk_mean_mm=float(fk_errors.mean() * 1000), fk_max_mm=float(fk_errors.max() * 1000),
                   camera_eye=eye.tolist(), camera_target=center.tolist(), elapsed_s=time.monotonic() - started,
-                  left='measured teacher q in native Inspire URDF', right='MANO fitted to fixed WAM prediction',
+                  left='measured teacher q in native Inspire URDF', right='MANO fitted to rolling WAM24/display8' if rolling else 'MANO fitted to fixed WAM prediction',
                   object='measured future object poses for comparison only', path='gold teacher object path; larger gold local goal',
                   physics='kinematic setters only; no physics integration; all roots fixed and collision geometry removed',
                   exit_workaround='flush completed outputs then os._exit(0): legacy Gym runtime crashes during teardown')

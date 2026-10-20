@@ -11,11 +11,16 @@ Shadow current300 / scheduled565 的主要实验继续位于 [v2](../wam-rl-poli
 - `tools/run/train_measured_scheduled_bc.py`：严格零扩展的 Scheduled686 BC，packet v2。
 - `tools/run/inspire_measured_bc_eval.py`、`inspire_scheduled_bc_eval.py`：有界单回合原生评估及采样 PPO collector smoke。
 - `tools/run/inspire_physics_host.py`：同轮实测 state/force/support 与原生 PD。
+- `tools/audit/probe_inspire_physics.py`：无WAM/PPO的有界GPU原生动作/reset复现，支持CUDA memcheck和子集reset压力检查。
 - `tools/run/inspire_measured_official_ppo.py`：最新686维goal＋WAM观测的官方UniDex PPO入口；
   实测TaskReward、冻结BC CAD编码、明确先reset再采样，支持分布式及同源checkpoint续训。
   `--reset-probe`只用于两环境异步reset工程检查，正式训练不启用。
 - `tools/run/prepare_wam_mano_preview.py`、`render_wam_mano_preview.py`、`encode_wam_mano_preview.py`：
   完整24步WAM→MANO近似表面拟合→Gym对照视频，报告逐帧拟合误差，不作执行成功证据。
+- `tools/run/prepare_wam_rolling_preview.py` → `render_wam_mano_preview.py` →
+  `encode_wam_rolling_preview.py`：整段录制的WAM24/展示前8帧滚动预览；每8帧以当时实测H4
+  重新预测，逐拍重放同源TaskController得到goal。保留全部原始录制，H4启动和准入前缀外
+  只显示教师，不补造预测。输出原速和2倍慢放；这不是机器人闭环执行，也不回填预测状态。
 - `tools/run/prepare_shadow_task_labels.py`：全量UniDex同轮实测任务回放，输出task10，提前启动Current310。
 - `tools/run/train_current_bc.py prepare-scheduled --task-goal`：task10与WAM共用TaskController决策的新575缓存；旧565 τ不复用。
 - `tools/run/train_shadow_task_bc_ddp.py`：三卡实际训练Current310/Scheduled575，新增goal权重参与优化；global2048按683/683/682分配并按样本数加权梯度。

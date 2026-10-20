@@ -105,3 +105,38 @@ Implementation files were initially untracked while the bounded engineering
 run executed against base `ada3aadd`; the dedicated visualization commit records
 the final implementation. GPU7 is released after fitting/rendering; it does not
 consume GPU6 or affect the concurrent PPO source files.
+
+## Rolling full-recording preview (2026-10-20)
+
+User requests WAM24, consume only1..8, then predict again throughout a full video.
+Engineering Blocker: the existing single-anchor0.8s video cannot show changing
+motion stages or replanning discontinuities. No new training or accuracy claim.
+Run `wam-mano-rolling-20261020-r1` uses the same frozen WAM-v4 step80000,
+r3 audit/geometry/MANO inputs, and `s1_apple_lift`. Implementation is frozen in
+the run manifest's Git commit; work_version=`wam-mano-rolling-v1`.
+
+Each anchor3,11,19,... receives only its own recorded measured hand/object H4.
+All24 predicted displacements are retained in the archive; only1..8 enter the
+video. The final segment is trimmed to the admitted endpoint, not repeated or
+padded. TaskController has observed every intervening real tick, so the goal is
+causal and shared with the teacher corpus. Prediction is never fed back as an
+observation. Replanning can introduce visible jumps; raw outputs are not smoothed.
+This is a recorded-observation analogue of receding-horizon prediction, not the
+current Inspire policy's every-control-step inference cadence or a physical
+execution. The raw recording has651 frames/21.7s; commands0..544 are admitted,
+including endpoint observation545. Startup0..3 and excluded tail546..650 show
+teacher only, explicitly labeled, rather than fitting teacher points as predictions.
+
+One actual current hand at tick3 calibrates a fixed MANO scale for the whole
+video. Surfaces fit in bounded25-frame batches, with residuals reported. Display
+raw WAM-versus-recorded-teacher differences separately from fit residuals.
+Native FK must remain within2mm before video encoding. No output is an execution
+success, WAM utility, or model-wide accuracy claim.
+
+Budget: GPU7 short sharing with monica is permitted by CAMPAIGN; GPUs4/5/6 remain
+with existing PPO, no process is stopped. Preparation<=1200s, rendering<=300s,
+final artifacts<=150MiB, transient<=512MiB, disk floor20GiB. Environments remain
+graspenv for inference/fitting/encoding and pinned dexplore_v120_train for Gym.
+Original raw/checkpoint/native/licensed assets stay read-only. Commands/logs and
+resource samples go under `tmp/wam-rolling-preview/`; artifacts under
+`outputs/wam-rl-policy-v3/wam-mano-rolling-20261020-r1/`.

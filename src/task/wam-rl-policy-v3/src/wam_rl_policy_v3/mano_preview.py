@@ -35,7 +35,7 @@ def load_mano(model_root,device):
     return MANO(str(model_root),is_rhand=True,use_pca=True,num_pca_comps=12,flat_hand_mean=False).to(device).eval().requires_grad_(False)
 
 
-def fit_mano(target,model_root,*,device='cuda:0',steps=300):
+def fit_mano(target,model_root,*,device='cuda:0',steps=300,fixed_scale=None):
     import torch
     from scipy.spatial.transform import Rotation
     if not str(device).startswith('cuda') or not torch.cuda.is_available():raise ValueError('GPU MANO fit required')
@@ -52,6 +52,9 @@ def fit_mano(target,model_root,*,device='cuda:0',steps=300):
         zero=torch.zeros((1,3),device=device);pose0=torch.zeros((1,12),device=device)
         _,neutral=geometry(zero,pose0,zero,1.)
     neutral=neutral[0].cpu().numpy();scale,raw_scale=palm_scale(target[0],neutral)
+    if fixed_scale is not None:
+        if not np.isfinite(fixed_scale) or not .6<=fixed_scale<=1.8:raise ValueError('bounded fixed MANO scale required')
+        scale=float(fixed_scale)
     source=neutral[1:6]-neutral[1:6].mean(0);dest=target[0,1:6]-target[0,1:6].mean(0)
     u,_,vt=np.linalg.svd(source.T@dest);rotation=vt.T@u.T
     if np.linalg.det(rotation)<0:vt[-1]*=-1;rotation=vt.T@u.T
@@ -77,3 +80,11 @@ def fit_mano(target,model_root,*,device='cuda:0',steps=300):
         root=root.detach().cpu().numpy(),pca_pose=pose.detach().cpu().numpy(),translation=translation.detach().cpu().numpy(),
         scale=scale,raw_scale=raw_scale,fit_mean_mm=float(errors.mean()*1000),fit_max_mm=float(errors.max()*1000),
         shape='neutral betas fixed; scale calibrated from current palm only',pose='12D MANO PCA with pose/temporal priors; approximate, no collision constraint')
+
+
+def rolling_windows(frame_count, *, history=4, stride=8):
+    """Observed H4 at each anchor; consume future1..8 without gaps/duplicates."""
+    if frame_count<history+1 or history!=4 or not 1<=stride<=24:
+        raise ValueError('H4 and at least one future frame; stride in1..24 required')
+    return [(anchor,np.arange(anchor+1,min(anchor+stride+1,frame_count)))
+            for anchor in range(history-1,frame_count-1,stride)]
