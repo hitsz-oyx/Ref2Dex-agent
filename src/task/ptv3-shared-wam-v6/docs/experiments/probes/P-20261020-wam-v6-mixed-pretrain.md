@@ -189,3 +189,35 @@ No automatic4→3GPU/world change or scratch restart was made.
 Remote CPU/hardware receipts: outputs/gpu-fault-audit-20261020-r1/.
 Recovery parent: outputs/ptv3-shared-wam-v6/pretrain-nine-v6-events-20261020-r1/step017000.pt.
 Next action depends on external GPU repair; training remains stopped.
+
+
+## Authorized three-GPU recovery protocol
+
+The user cannot reset the node and explicitly requests three-GPU continuation.
+GPU0/1/2 passed isolated CUDA arithmetic and real3-rank NCCL all-reduce while
+GPU3 remains excluded. Exiting old owned contexts retain about25–27GiB on each
+card; available CUDA memory about20.6–21.9GiB. No system reset is required for
+these successful checks. A bounded sharing exception verifies only the failed
+run's recorded worker PIDs, owner UID, original process-start time, empty exiting
+command lines, orphan parent and pending termination. Reject unknown/live work,
+selected reset GPUs, non-idle devices or less than20GiB NVML free capacity.
+This is not permission to share arbitrary allocated GPUs.
+
+Use separate explicit transition_three_gpu.py from original complete step17000:
+world4→3, local128→64, global512→192. Preserve all model/normalizer buffers,
+568 optimizer states/moments/counters, elapsed/warmup/selection and RNG ranks0–2;
+omit only rank3 RNG and record that future draws/gradient noise change. Ordinary
+resume still requires exact config/data/world binding. LR remains1e-4. Same
+80000-update/cumulative604800s bounds and frozen event recipe remain in force.
+No anomaly-exclusion candidate is silently applied. This protocol sees fewer
+examples per update than the originalglobal512 run; it is not equivalent
+training exposure or bitwise replay. Planned run_id:
+pretrain-nine-v6-events-threegpu-20261020-r2.
+
+Engineering acceptance:8 real three-rank recovery updates, finite gradients,
+nonzero event gradient, real DEV/checkpoints, three identical signatures;
+strict re-open of the resulting three-rank checkpoint before continuing the
+long run. Per-phase fresh outputs, original checkpoints untouched. Observe
+new-process allocated memory separately from old retained-context memory;
+only selectedGPU0–2 health controls the new supervisor. Fixed GPU3 status must
+not abort otherwise healthy selected devices.

@@ -132,7 +132,7 @@ def main():
     model=SharedWAMV6(stats,config).to(device)
     optimizer=torch.optim.AdamW(model.parameter_groups(config['geometry_lr'],config['shared_lr']),
         weight_decay=config['weight_decay'],fused=device.startswith('cuda'))
-    first=1;previous_elapsed=0.;best_score=None;best_step=None;best_path=None;tau_best=None;resume_binding=None;migration_binding=None
+    first=1;previous_elapsed=0.;best_score=None;best_step=None;best_path=None;tau_best=None;resume_binding=None;migration_binding=None;topology_transition=None
     if a.resume:
         saved=torch.load(a.resume,map_location='cpu',weights_only=False)
         if saved.get('schema')!=SCHEMA:raise ValueError('independent v6 checkpoint required')
@@ -142,6 +142,7 @@ def main():
         resume_binding.update(checkpoint=str(a.resume.resolve()),legacy_manifest=str(legacy_path) if legacy else None)
         model.load_state_dict(saved['model'],strict=True)
         migration_binding=saved.get('migration_binding') or saved.get('migration')
+        topology_transition=saved.get('topology_transition')
         resume_binding['optimizer_restore']=restore_optimizer_state(optimizer,saved['optimizer'])
         first=int(saved['step'])+1
         previous_elapsed=float(saved.get('elapsed_s',0.));best=saved.get('selection',{})
@@ -173,7 +174,7 @@ def main():
             run_id=a.output.name,data_identity=identity,input_semantics=INPUT_SEMANTICS,label_semantics=LABEL_SEMANTICS,
             objective_semantics=OBJECTIVE_SEMANTICS,engineering_smoke=a.smoke,device=device,world_size=world,
             python=sys.version,torch=torch.__version__,cuda=torch.version.cuda,steps=last,batch_size=batch_size,
-            execution_contract=contract,resume_binding=resume_binding,migration_binding=migration_binding,
+            execution_contract=contract,resume_binding=resume_binding,migration_binding=migration_binding,topology_transition=topology_transition,
             loader=dict(context=a.loader_context,workers=a.workers,timeout_s=a.loader_timeout),
             trajectory_selection_protocol=TAU_SELECTION,recovery_probe=bool(a.recovery_probe_updates),continuation_updates=a.continuation_updates,
             event_recipe=recipe,
@@ -193,7 +194,7 @@ def main():
             if best_step==step:best_path=str(target.resolve())
             if tau_best and tau_best['step']==step:tau_best=dict(tau_best,checkpoint=str(target.resolve()))
             torch.save(dict(schema=SCHEMA,data_identity=identity,config=config,step=step,world_size=world,
-                execution_contract=contract,resume_binding=resume_binding,migration_binding=migration_binding,
+                execution_contract=contract,resume_binding=resume_binding,migration_binding=migration_binding,topology_transition=topology_transition,
                 elapsed_s=previous_elapsed+time.monotonic()-start,
                 selection=dict(score=best_score,step=best_step,checkpoint=best_path,trajectory=tau_best),
                 model=model.state_dict(),optimizer=optimizer.state_dict(),random_state=states),pending)

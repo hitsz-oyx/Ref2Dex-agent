@@ -1,4 +1,4 @@
-"""Own and monitor a bounded four-GPU v6 training process group."""
+"""Own and monitor a bounded three/four-GPU v6 training process group."""
 import argparse
 import json
 import os
@@ -14,6 +14,7 @@ sys.path.insert(0,str(TASK/'src'))
 from ptv3_shared_wam_v6 import paths
 from ptv3_shared_wam_v5.storage import read_json
 from ptv3_shared_wam_v6.recipe import validate_recipe
+from ptv3_shared_wam_v6.retained_contexts import verify_retained_contexts
 
 
 def write(path,value):
@@ -49,12 +50,18 @@ def main():
     p.add_argument('--loader-timeout',type=int,default=120)
     p.add_argument('--recovery-probe-updates',type=int)
     p.add_argument('--continuation-updates',type=int)
-    p.add_argument('--resume',type=Path);a=p.parse_args()
+    p.add_argument('--resume',type=Path)
+    p.add_argument('--reuse-failed-run',type=Path);a=p.parse_args()
     gpus=list(map(int,a.gpus.split(',')))
-    if len(gpus)!=4 or len(set(gpus))!=4:raise ValueError('four distinct GPU IDs required')
+    if len(gpus) not in (3,4) or len(set(gpus))!=len(gpus):raise ValueError('three or four distinct GPU IDs required')
     initial=gpu_rows()
-    require_released(initial,gpus)
     config=read_json(a.config);manifest=validate_recipe(a.manifest,a.stats)
+    retained=None
+    if a.reuse_failed_run:
+        if len(gpus)!=3 or not a.resume or config['batch_size']>64:
+            raise ValueError('retained-context recovery requires three GPUs, resume and batch<=64')
+        retained=verify_retained_contexts(gpus,initial,a.reuse_failed_run)
+    else:require_released(initial,gpus)
     if not manifest.get('training_allowed') or manifest.get('engineering_subset') or manifest.get('pending_sequences',0):
         raise ValueError('complete admitted data required; never launch on arriving cache subset')
     if sorted(manifest['source_ids'])!=[0,1,2,4,5,6,8,9,10]:raise ValueError('all nine sources required')
@@ -63,7 +70,7 @@ def main():
         OMP_NUM_THREADS='2',MKL_NUM_THREADS='2',OPENBLAS_NUM_THREADS='1',PYTHONDONTWRITEBYTECODE='1',
         NCCL_DEBUG='WARN',NCCL_ASYNC_ERROR_HANDLING='1',TORCH_NCCL_ASYNC_ERROR_HANDLING='1',
         TMPDIR=str(a.output),TRITON_CACHE_DIR=str(a.output/'triton'),TORCH_EXTENSIONS_DIR=str(a.output/'extensions'))
-    command=[sys.executable,'-m','torch.distributed.run','--standalone','--nnodes=1','--nproc_per_node=4',
+    command=[sys.executable,'-m','torch.distributed.run','--standalone','--nnodes=1','--nproc_per_node='+str(len(gpus)),
         str(Path(__file__).with_name('train_pretrain.py')),'--config',str(a.config),'--manifest',str(a.manifest),
         '--stats',str(a.stats),'--output',str(a.output),'--workers',str(a.workers),'--seed',str(a.seed),'--git-commit',a.git_commit]
     command+=['--loader-context',a.loader_context,'--loader-timeout',str(a.loader_timeout)]
@@ -71,8 +78,9 @@ def main():
     if a.recovery_probe_updates is not None:command+=['--recovery-probe-updates',str(a.recovery_probe_updates)]
     if a.continuation_updates is not None:command+=['--continuation-updates',str(a.continuation_updates)]
     state=dict(status='STARTING',supervisor_pid=os.getpid(),command=command,git_commit=a.git_commit,
-        work_version='v6.event-conditioned-four-gpu-pretrain.v1',run_id=a.output.name,physical_gpus=gpus,
-        global_batch=config['batch_size']*4,target_updates=config['updates'],
+        work_version='v6.event-conditioned-ddp-pretrain.v2',run_id=a.output.name,physical_gpus=gpus,
+        global_batch=config['batch_size']*len(gpus),world_size=len(gpus),target_updates=config['updates'],
+        retained_context_binding=retained,
         max_seconds=config['max_seconds'],artifact_budget_bytes=config['artifact_budget_bytes'],
         dataset=str(a.manifest),seed=a.seed,started_at=time.time(),
         loader_context=a.loader_context,loader_timeout_s=a.loader_timeout,
