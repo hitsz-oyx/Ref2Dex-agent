@@ -28,6 +28,9 @@ Shadow current300 / scheduled565 的主要实验继续位于 [v2](../wam-rl-poli
   仅初始H4使用真实观测，后续手和物体均由预测生成。物体32点拟合为SE3，报告刚体残差；
   空间goal重放上一版的固定输入序列，超过准入前缀保持末goal。这是模型自滚动诊断，
   不运行虚拟TaskController，不是物理执行。相机单独平滑，原始手物输出不平滑。
+  已生成 [预测回填原速视频](../../../outputs/wam-rl-policy-v3/wam-mano-autoregressive-20261020-r1/rolling.mp4)
+  和 [2倍慢放](../../../outputs/wam-rl-policy-v3/wam-mano-autoregressive-20261020-r1/rolling-slow2x.mp4)。
+  这一条初始化的重预测交界更平顺，但手没有接近物体，未生成教师式抓取过程；不能将平顺当准确。
 - `tools/run/prepare_shadow_task_labels.py`：全量UniDex同轮实测任务回放，输出task10，提前启动Current310。
 - `tools/run/train_current_bc.py prepare-scheduled --task-goal`：task10与WAM共用TaskController决策的新575缓存；旧565 τ不复用。
 - `tools/run/train_shadow_task_bc_ddp.py`：三卡实际训练Current310/Scheduled575，新增goal权重参与优化；global2048按683/683/682分配并按样本数加权梯度。

@@ -221,3 +221,37 @@ final150MiB/transient512MiB,20GiB disk floor. Logs/resource samples belong in
 `tmp/wam-autoregressive-preview/`, outputs in the run's Task output directory.
 Thirteen focused tests pass, including proper composition of two predicted
 object transforms, nonrigid residual reporting and NaN rejection.
+
+### Predicted-history result
+
+Implementation `7f7e1212`;81 full24 forecasts consume647 frames through tick650,
+with no numerical/workspace stop. Preparation167.1s, peak allocated403.07MiB;
+render38.0s, native FK max0.002387mm. Full original21.7s and slow2x43.4s H.264
+1280×710 files pass ffprobe and original full decode. PNG stages were inspected;
+artifacts59,583,385 bytes, below150MiB. Workers exited, GPU7 memory returned to
+the existing6699MiB shared workload.
+
+The independent reconstruction audit verifies every H4 hand/pose array is
+exactly the old generated state; every displayed hand point/rigid object pose
+matches the reconstructed forecast. Future measured-state inputs are0. Initial
+forecast agrees with the measured-history run to0.00383mm maximum coordinate
+difference (floating-point differences in equivalent goal conversion/full head
+path); do not claim bitwise identical inference across those implementations.
+
+Mean raw hand point step at the80 replan boundaries is1.374mm (max20.027mm),
+versus1.378mm inside chunks; the previous measured-history video's67 boundary
+mean was59.480mm. The comparisons cover different rollout states/full-recording
+tails and are an engineering continuity diagnostic, not a matched accuracy test.
+The object rigid-projection residual averages0.516mm, max3.715mm.
+
+The free rollout is smooth but does not reproduce the approach/grasp: the hand
+remains far from the object while the teacher reaches and lifts it. Full647-frame
+mean hand-versus-teacher point distance is674.87mm and mean object translation
+difference134.22mm. These single-clip discrepancies diagnose failure of this
+long free rollout under the fixed goal schedule, not physical execution or
+model-wide validity. No prediction was blended back toward ground truth.
+
+- [Predicted-history21.7s video](../../../../../../outputs/wam-rl-policy-v3/wam-mano-autoregressive-20261020-r1/rolling.mp4)
+- [Predicted-history43.4s slow2x](../../../../../../outputs/wam-rl-policy-v3/wam-mano-autoregressive-20261020-r1/rolling-slow2x.mp4)
+- [Stage contact sheet](../../../../../../outputs/wam-rl-policy-v3/wam-mano-autoregressive-20261020-r1/rolling-contact-sheet.png)
+- [History reconstruction/continuity audit](../../../../../../outputs/wam-rl-policy-v3/wam-mano-autoregressive-20261020-r1/data-audit.json)
