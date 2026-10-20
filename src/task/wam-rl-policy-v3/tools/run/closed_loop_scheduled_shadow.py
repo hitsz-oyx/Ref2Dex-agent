@@ -25,6 +25,7 @@ def main():
  p.add_argument('--native-checkpoint-iteration',type=int,default=None,help='Known local finetuning iteration; omit for published weights')
  p.add_argument('--native-evaluation',action='store_true',help='Evaluate the historical official 300D policy without WAM conditioning')
  p.add_argument('--evaluate',action='store_true',help='Deterministic first-episode evaluation; no optimizer updates')
+ p.add_argument('--bc-evaluation',action='store_true',help='Evaluate only --policy BC weights; never load an RL checkpoint or construct PPO')
  p.add_argument('--task-controller',action='store_true',help='Evaluation-only task10/WAM goals; zero-expand the existing Shadow PPO model')
  p.add_argument('--object-manifest',type=Path);p.add_argument('--rl-checkpoint',type=Path)
  p.add_argument('--wam-checkpoint',type=Path);p.add_argument('--wam-surface-manifest',type=Path)
@@ -42,7 +43,8 @@ def main():
  if not 1<=a.envs<=(256 if a.official_ppo else 32) or not 0<=a.ppo_updates<=(10000 if a.official_ppo else 100):raise ValueError('Bounded batch pilot required')
  if a.native_evaluation and not a.evaluate:raise ValueError('Native checkpoint comparison is evaluation-only')
  if a.allow_wam_geometry_replacement and not a.evaluate:raise ValueError('Geometry replacement is evaluation-only')
- if a.evaluate and (not a.official_ppo or not a.rl_checkpoint or a.ppo_updates or a.world_size!=1):raise ValueError('Evaluation requires official checkpoint, single rank and zero updates')
+ if a.evaluate and (not a.official_ppo or (not a.rl_checkpoint and not a.bc_evaluation) or a.ppo_updates or a.world_size!=1):raise ValueError('Evaluation requires a declared BC or official checkpoint, single rank and zero updates')
+ if a.bc_evaluation and (not a.evaluate or a.rl_checkpoint or a.native_evaluation):raise ValueError('BC evaluation forbids RL checkpoints and native published policies')
  if a.task_controller and (not a.evaluate or a.native_evaluation or a.goal_type!='position_only' or not a.checkpoint_migration_reason):raise ValueError('Task probe needs explicit position-only evaluation migration')
  if a.envs>1 and not (a.ppo_updates or a.evaluate):raise ValueError('Batched execution requires PPO pilot')
  if a.ppo_updates and (a.ppo_smoke or a.ticks*a.envs%4):raise ValueError('Equal PPO minibatches required')
@@ -137,7 +139,9 @@ def main():
     goal_type=a.goal_type,termination_policy=a.termination_policy,checkpoint_migration_reason=a.checkpoint_migration_reason)
   manifest['wam_step']=runtime.step
   if a.ppo_updates or a.evaluate:
-   if a.task_controller:
+   if a.bc_evaluation:
+    from wam_rl_policy_v3.shadow_task_probe import run_bc as run
+   elif a.task_controller:
     from wam_rl_policy_v3.shadow_task_probe import run
    elif a.official_ppo:
     from wam_rl_policy_v3.official_bridge import run
@@ -160,7 +164,7 @@ def main():
     return dict(pose=object_poses(task.object_pose.detach().cpu().numpy()[:,None])[:,0],
       hand=hand.cpu().numpy().copy(),current=task.obs_buf.cpu().numpy().copy(),goal=task.goal_pos.cpu().numpy().copy(),
       velocity=measured[:,:6],contact_forces=measured[:,6:].reshape(a.envs,5,3))
-   manifest.update(envs=a.envs,ppo_updates=a.ppo_updates,scope='official UniDex PPO with scheduled565 BC/WAM' if a.official_ppo else 'custom truncated PPO pilot')
+   manifest.update(envs=a.envs,ppo_updates=a.ppo_updates,scope='self-trained BC only; no PPO model or optimizer' if a.bc_evaluation else ('official UniDex PPO with scheduled565 BC/WAM' if a.official_ppo else 'custom truncated PPO pilot'))
    write_json(a.output/'manifest.json',manifest)
    if a.world_size>1:
     import torch.distributed as dist

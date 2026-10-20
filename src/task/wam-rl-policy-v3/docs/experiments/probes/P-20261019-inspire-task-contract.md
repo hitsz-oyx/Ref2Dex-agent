@@ -83,6 +83,28 @@ cannot prove that all DExplore failures are caused by data.
 
 #### UniDex results and contact-source correction
 
+#### BC-only correction requested by user
+
+The user meant BC capability, not PPO. Prior UniDex task-goal runs loaded PPO
+checkpoints and cannot answer whether BC itself succeeds. New run_id
+unidex-bc-goal-20261020-r1 directly evaluates full-data BC best(step46000),
+with its original WAM12000 and geometry. It loads no RL checkpoint, constructs
+no PPO/optimizer/critic, and performs no updates. Compare BC565 and its zero-task
+expanded575 onGPU6/7, same16 TRAIN objects/64 initial scenes/seed246,
+corrected reset/position-only/common_workspace, full first native episodes.
+Native-ever, final-position, ever-held60 and final-stable are separate metrics.
+BC declaration explicitly records the checkpoint/step and absence of PPO.
+
+Decision: if BC565 already fails, investigate BC or task setup independently of
+DExplore data; if only task575 degrades, inspect added goals; if both execute,
+compare DExplore supervision/state coverage next. Use existing BC weights as the
+cheapest test, not a new train. Budget900s per worker/1200s total, no videos/cache
+or new checkpoint. Outputs only outputs/wam-rl-policy-v3/unidex-bc-goal-20261020-r1/.
+Zero new goal columns do not demonstrate learned task10 benefit. Initial-state
+matching is checked; unmatched scenes cannot support paired method claims.
+
+#### Historical PPO-only results
+
 r1 at90118e05 completed both64-scene first-episode evaluations: baseline565
 native-ever46/final-stable32, task575 native-ever45/final-stable30. Only53/64
 scenes have bitwise identical initial native300/pose/hand/goal/full root. The

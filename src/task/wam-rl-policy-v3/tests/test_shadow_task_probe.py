@@ -4,6 +4,15 @@ from wam_rl_policy_v3.bc_mlp import CurrentMLP,NormalizedCommandMLP
 from wam_rl_policy_v3.shadow_task_probe import expand_official_state,TaskGoalScheduler
 
 
+def test_bc_evaluation_rejects_any_ppo_checkpoint_before_runtime_initialization():
+    import pytest
+    from types import SimpleNamespace
+    from wam_rl_policy_v3.shadow_task_probe import run_bc
+    args=SimpleNamespace(bc_evaluation=True,evaluate=True,rl_checkpoint='ppo.pt',ppo_updates=0)
+    with pytest.raises(ValueError,match='BC-only evaluation'):
+        run_bc(None,None,None,None,None,args)
+
+
 def test_trained_actor_and_critic_are_preserved_by_named_task_column_migration():
     torch.manual_seed(246)
     actor=CurrentMLP(565);critic=torch.nn.Linear(565,7)

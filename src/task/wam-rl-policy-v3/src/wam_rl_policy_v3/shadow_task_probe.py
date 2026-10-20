@@ -151,3 +151,29 @@ def run(task,snapshot,sim_step,actor,runtime,args):
         evidence_frames={k:v.tolist() for k,v in env.evidence.items()},
         task_columns_learned=False),indent=2)+'\n')
     return reports
+
+
+def run_bc(task,snapshot,sim_step,actor,runtime,args):
+    """Evaluate the exact BC mean without creating PPO or loading its weights."""
+    if not args.bc_evaluation or not args.evaluate or args.rl_checkpoint or args.ppo_updates:
+        raise ValueError('BC-only evaluation forbids an RL checkpoint or updates')
+    import yaml
+    from tasks.hand_base.vec_task import VecTaskPython
+    from .official_evaluation import evaluate
+    root=Path(os.environ.get('REF2DEX_RUN_ROOT',Path(__file__).resolve().parents[5]))
+    cfg=yaml.safe_load((root/'third_party/UniDexGrasp2-official-ppo/dexgrasp/cfg/ppo/config.yaml').read_text())
+    env_type=TaskScheduledOfficialEnv if args.task_controller else ScheduledOfficialEnv
+    env=env_type(VecTaskPython(task,'cuda:0',cfg['clip_observations'],cfg['clip_actions']),snapshot,runtime,
+        protocol=args.execution_protocol or 'corrected',goal_type=args.goal_type,termination_policy=args.termination_policy)
+    if args.task_controller:
+        actor.actor=expand_named_model(actor.actor,dict(robot=300,tau=264,tau_valid=1),LAYOUT.blocks,clip_dim=300).to(runtime.device)
+    report=evaluate(env,actor,args,None,checkpoint=args.policy,policy_kind='bc')
+    packet=torch.load(args.policy,map_location='cpu',weights_only=False)
+    declaration=dict(policy_kind='bc',bc_checkpoint=str(args.policy),bc_step=packet.get('step'),
+        input_dim=env.num_observations,ppo_checkpoint=None,optimizer_constructed=False,optimizer_steps=0,
+        task_columns_learned=False if args.task_controller else None)
+    if args.task_controller:
+        declaration.update(phase_counts=env.phase_counts.tolist(),max_progress=env.max_progress.tolist(),
+            goal_task_error_m=max(s.max_goal_error for s in env.inputs.schedulers))
+    (args.output/'bc-evaluation.json').write_text(json.dumps(declaration,indent=2)+'\n')
+    return report
