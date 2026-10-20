@@ -661,3 +661,18 @@ or writing overlapping regions of the live neural cache. New training script
 supports unequal local batches with a tested global-mean gradient identity.
 An explicit <=10-update engineering fixture checks NCCL/DDP before real fitting;
 its weights are never used to initialize the real random310 run.
+
+
+Current310 actual three-card training completed50k (~262s), rank parameter
+max difference0. Native first64 TRAIN scenes: native-ever32/64, final-stable21/64,
+ever-held22/64, workspace failures0, selectedstep50000. Declaration confirms
+input310/task_columns_learned=True/zero_expansion=False and no PPO optimizer.
+This is real learned goal BC, not the previous zero-column migration. Same-goal
+575 cache generation has resumed after the deliberate current-training pause.
+
+Cheap Blocker audit: on the existing fixed DEV panel, zero only the six local
+SE(3) goal coordinates while preserving phase/progress and all other inputs;
+measure action changes and per-block weight movement from seeded initialization
+(or learned310 parent for575). This checks geometric-goal use beyond a constant
+phase bias. It is dependence evidence, not a causal method-gain or execution
+ablation claim. Never select checkpoints using this audit.
