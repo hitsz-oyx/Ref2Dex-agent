@@ -14,7 +14,7 @@ seeds: [170,171]
 decision_changed_if_positive: use the bounded local recipe for subsequent contact-consistency and rollout interventions
 decision_changed_if_negative: resolve training or data mismatch before investing in coupling changes
 status: RUNNING
-run_id: local-subset-pretrain-20261021-r2
+run_id: local-expanded-ddp-20261021-r1
 ---
 
 # Local GRAB-dominant WAM-v6 adaptation
@@ -121,3 +121,40 @@ must not be presented as improved hand trajectory accuracy. Continue the bounded
 promote it as a better execution model based on this early result. Original
 initialization and readiness checkpoints remain intact. The first sustained
 checkpoint CPU audit is recorded in sustained-acceptance.json.
+
+## User-requested multi-GPU/data scale-up, 2026-10-21
+
+The user explicitly requests multiple GPUs, higher utilization and greater scale.
+This run uses the three GPUs4/5/6 released by the user's own PPO, superseding the
+previous single-GPU/two-idle-card plan for this run only; GPUs0–3 and7 continue
+unrelated work. Single-GPU r2 saved/stopped normally at1269. Preserve its full
+model,568 Adam states, step/elapsed, normalizers, selection and rank0 RNG.
+
+Expanded all inherited GRAB TRAIN windows over the same audited sequence caches:
+TRAIN33672→207579 (~6.16x), GRAB33272→207179. Other-source windows unchanged;
+DEV3356 unchanged byte-for-byte, disjoint sequence IDs. New recipe
+outputs/ptv3-shared-wam-v6/local-expanded-recipe-20261021-r1/ passes2126 actual
+TRAIN reader endpoint checks. No new source/caches copied; inherited stratum
+labels retained. Normalization unchanged. This remains GRAB-dominant, not the
+remote frozen full-nine-source recipe.
+
+Capacity probes run8 disposable updates each at local96 and128, without DEV or
+checkpoint I/O in the measured loop, from explicit world1 transformed copies of
+step1269. Select the highest measured samples/s with CUDA reserved peak<=21GiB
+on24GiB3090; OOM never consumes the preserved parent. Three-GPU NCCL/DDP then
+runs8 recovery updates and2 strict-resume updates, checking3 equal parameter
+signatures, full optimizer/RNG/checkpoint/normalizer state before sustained
+training. New ranks get explicit dedicated seeds; the seed allocation170/171
+remains the same exploratory experiment, not an independent replication.
+
+Target cumulative10000 updates, cumulative14400s ceiling including prior
+single-GPU training. LR1e-5 and all optimizer/model settings retained; effective
+batch changes64→288 or384, logged as a topology/data transition. DEV/checkpoint
+every500, unchanged fixed DEV32/source, microbatch4. Eight spawn workers/rank,
+NCCL_P2P_DISABLE=1 as on this local node's PPO. Per-stage8GiB checkpoint budget,
+combined new transition/readiness/training peak reserved~16GiB, free floor20GiB.
+Configuration/data/topology changes are explicit; ordinary resume stays strict.
+
+Live output: outputs/ptv3-shared-wam-v6/local-expanded-ddp-20261021-r1/.
+Capacity and actual DDP startup results pending; do not claim scaling before
+measuring aggregate samples/s and actual three-GPU utilization.
