@@ -7,6 +7,8 @@ from pathlib import Path
 import torch
 
 LOCAL_SCOPE = 'v6.local-prepared-subset.v1'
+EXPANDED_SCOPE = 'v6.local-expanded-ddp.v1'
+LOCAL_SCOPES = (LOCAL_SCOPE, EXPANDED_SCOPE)
 
 
 def index_identity(path):
@@ -14,8 +16,8 @@ def index_identity(path):
 
 
 def validate_local_parent(parent, recipe, normalizer):
-    if (parent.get('local_subset_scope') != LOCAL_SCOPE
-            or recipe.get('local_subset_scope') != LOCAL_SCOPE
+    if (parent.get('local_subset_scope') not in LOCAL_SCOPES
+            or recipe.get('local_subset_scope') != parent.get('local_subset_scope')
             or parent.get('status') != 'FROZEN'
             or parent.get('training_allowed') is not True
             or parent.get('engineering_subset') is not True
@@ -51,9 +53,18 @@ def validate_local_parent(parent, recipe, normalizer):
 
 
 def validate_local_execution(config, recipe, world, last, batch):
-    if recipe.get('local_subset_scope') != LOCAL_SCOPE:
+    scope = recipe.get('local_subset_scope')
+    if scope not in LOCAL_SCOPES:
         if config.get('local_subset_scope'):
             raise ValueError('local config cannot train a full recipe')
+        return
+    if scope == EXPANDED_SCOPE:
+        if (config.get('local_subset_scope') != scope or world not in (1, 3)
+                or not 1 <= last <= config['updates'] <= 10000
+                or not 0 < config['max_seconds'] <= 14400
+                or not 1 <= batch <= 128
+                or config['artifact_budget_bytes'] > 8*2**30):
+            raise ValueError('expanded subset requires bounded world1 capacity probe or world3 training')
         return
     if (config.get('local_subset_scope') != LOCAL_SCOPE or world != 1
             or not 1 <= last <= config['updates'] <= 2000

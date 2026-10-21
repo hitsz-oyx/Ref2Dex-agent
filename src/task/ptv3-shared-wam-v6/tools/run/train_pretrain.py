@@ -24,7 +24,7 @@ from ptv3_shared_wam_v6.contracts import SCHEMA,INPUT_SEMANTICS,LABEL_SEMANTICS
 from ptv3_shared_wam_v6.recipe import validate_recipe
 from ptv3_shared_wam_v6.data import V6Windows,collate
 from ptv3_shared_wam_v6.model import SharedWAMV6
-from ptv3_shared_wam_v6.local_subset import LOCAL_SCOPE, validate_local_execution, initialize_weights
+from ptv3_shared_wam_v6.local_subset import LOCAL_SCOPES, EXPANDED_SCOPE, validate_local_execution, initialize_weights
 from ptv3_shared_wam_v5.storage import read_json
 from ptv3_shared_wam_v5.checkpoints import checkpoint_due,retained_steps
 from ptv3_shared_wam_v5.metrics import forecast_metrics,merge_metrics,summarize_metrics
@@ -96,11 +96,16 @@ def main():
     p.add_argument('--loader-timeout',type=int,default=120)
     p.add_argument('--recovery-probe-updates',type=int)
     p.add_argument('--continuation-updates',type=int)
+    p.add_argument('--capacity-probe-updates',type=int)
     p.add_argument('--resume',type=Path);p.add_argument('--initialize-from',type=Path)
     p.add_argument('--git-commit',required=True);a=p.parse_args()
     if a.resume and a.initialize_from:raise ValueError('choose resume or weights-only initialization')
     config=read_json(a.config);stats=read_json(a.stats)
     recipe=validate_recipe(a.manifest,a.stats)
+    if a.capacity_probe_updates and (not a.resume or a.smoke or a.recovery_probe_updates
+            or a.continuation_updates or not 3<=a.capacity_probe_updates<=16
+            or recipe.get('local_subset_scope')!=EXPANDED_SCOPE):
+        raise ValueError('capacity probe requires expanded-scope resume and3..16 updates')
     if config.get('event_dropout')!=recipe['event_dropout']:
         raise ValueError('config/dropout differs from admitted v6 recipe')
     dataset=V6Windows(a.manifest,'train')
@@ -112,14 +117,16 @@ def main():
         raise ValueError('bounded continuation requires v6 resume and17..5000 updates')
     if a.smoke:
         if not 1<=last<=16:raise ValueError('engineering smoke requires1..16 bounded steps')
-    elif recipe.get('local_subset_scope') != LOCAL_SCOPE and (dataset.meta.get('training_allowed') is not True or dataset.meta.get('engineering_subset')
+    elif recipe.get('local_subset_scope') not in LOCAL_SCOPES and (dataset.meta.get('training_allowed') is not True or dataset.meta.get('engineering_subset')
           or dataset.meta.get('pending_sequences',0)):
         raise ValueError('full training requires a complete, explicitly admitted frozen v6 recipe')
     if last<1 or batch_size<1:raise ValueError('positive bounded steps/batch required')
     world=int(os.environ.get('WORLD_SIZE','1'));rank=int(os.environ.get('RANK','0'));local=int(os.environ.get('LOCAL_RANK','0'))
     validate_local_execution(config,recipe,world,last,batch_size)
-    if recipe.get('local_subset_scope') == LOCAL_SCOPE and not (a.resume or a.initialize_from):
+    if recipe.get('local_subset_scope') in LOCAL_SCOPES and not (a.resume or a.initialize_from):
         raise ValueError('local subset requires admitted initialization or its own strict resume')
+    if recipe.get('local_subset_scope') == EXPANDED_SCOPE and world==1 and not a.capacity_probe_updates:
+        raise ValueError('expanded production training requires three GPUs; world1 only for capacity')
     device=f'cuda:{local}' if world>1 else a.device
     if device.startswith('cuda'):
         if not torch.cuda.is_available():raise ValueError('requested CUDA unavailable')
@@ -165,6 +172,7 @@ def main():
         if device.startswith('cuda'):torch.cuda.set_rng_state(saved['random_state'][rank]['cuda'])
         if a.recovery_probe_updates is not None:last=min(last,first+a.recovery_probe_updates-1)
         if a.continuation_updates is not None:last=min(last,first+a.continuation_updates-1)
+        if a.capacity_probe_updates is not None:last=min(last,first+a.capacity_probe_updates-1)
         if last<first:raise ValueError('resume target must exceed saved update')
         del saved
     wrapped=DDP(model,device_ids=[local] if device.startswith('cuda') else None) if world>1 else model
@@ -178,7 +186,7 @@ def main():
         multiprocessing.current_process()._config['tempdir']=str(ipc)
     kwargs.update(loader_options(a.workers,a.loader_timeout,a.loader_context))
     loader=DataLoader(**kwargs)
-    dev=V6Windows(a.manifest,'dev') if rank==0 and not a.smoke else None
+    dev=V6Windows(a.manifest,'dev') if rank==0 and not (a.smoke or a.capacity_probe_updates) else None
     if rank==0:
         write(a.output/'config.json',config)
         write(a.output/'run-manifest.json',dict(schema=SCHEMA,work_version=SCHEMA,git_commit=a.git_commit,
@@ -188,7 +196,7 @@ def main():
             execution_contract=contract,resume_binding=resume_binding,migration_binding=migration_binding,topology_transition=topology_transition,initialization_binding=initialization_binding,
             loader=dict(context=a.loader_context,workers=a.workers,timeout_s=a.loader_timeout),
             trajectory_selection_protocol=TAU_SELECTION,recovery_probe=bool(a.recovery_probe_updates),continuation_updates=a.continuation_updates,
-            event_recipe=recipe,
+            event_recipe=recipe,capacity_probe_updates=a.capacity_probe_updates,
             source_ids=dataset.meta['source_ids'],max_seconds=config['max_seconds'],min_free_gib=20,config=config))
     start=time.monotonic();times=[];events=[];seen=set();draws=Counter();loss_value=None;step=first-1;completed_step=first-1;checkpoints_written=0;last_saved=None
 
@@ -224,7 +232,7 @@ def main():
         last_saved=step
         if world>1:dist.barrier()
     if device.startswith('cuda'):torch.cuda.reset_peak_memory_stats()
-    if first==1 and config.get('validation_before_training') and not a.smoke:
+    if first==1 and config.get('validation_before_training') and not (a.smoke or a.capacity_probe_updates):
         evaluation=evaluate(model,dev,config,device)
         write(a.output/'dev-step000000.json',evaluation)
     wrapped.train()
@@ -289,7 +297,7 @@ def main():
                 with (a.output/'train.jsonl').open('a') as log:log.write(json.dumps(record)+'\n')
                 print(json.dumps(record),flush=True)
         new_best=False
-        if not a.smoke and (step%config['validation_interval']==0 or step==config.get('validation_initial_step',20)
+        if not (a.smoke or a.capacity_probe_updates) and (step%config['validation_interval']==0 or step==config.get('validation_initial_step',20)
                             or ((a.recovery_probe_updates or a.continuation_updates) and step==first)):
             if world>1:dist.barrier()
             if rank==0:
@@ -305,8 +313,8 @@ def main():
             signal=torch.tensor(int(new_best),device=device)
             if world>1:dist.broadcast(signal,src=0)
             new_best=bool(signal.item())
-        if not a.smoke and (checkpoint_due(step,last,config) or new_best):save(step)
-    if not a.smoke and completed_step>=first and last_saved!=completed_step:save(completed_step)
+        if not (a.smoke or a.capacity_probe_updates) and (checkpoint_due(step,last,config) or new_best):save(step)
+    if not (a.smoke or a.capacity_probe_updates) and completed_step>=first and last_saved!=completed_step:save(completed_step)
     if device.startswith('cuda'):torch.cuda.synchronize()
     signatures=None
     if (a.smoke or a.recovery_probe_updates or a.continuation_updates) and world>1:
@@ -322,6 +330,9 @@ def main():
         result=dict(status='FAILED_DATA_LOADER' if loader_failure else ('COMPLETED' if completed_step==last else 'STOPPED'),
             loader_failure=loader_failure,engineering_smoke=a.smoke,recovery_probe=bool(a.recovery_probe_updates),continuation_updates=a.continuation_updates,optimizer_updates=completed_step-first+1,
             last_step=completed_step,last_loss=loss_value,elapsed_s=time.monotonic()-start,source_ids_seen=sorted(seen),
+            capacity_probe=bool(a.capacity_probe_updates),
+            steady_updates_per_s=(len(times)-2)/(times[-1]-times[1]) if len(times)>2 else None,
+            peak_reserved_gib=torch.cuda.max_memory_reserved()/2**30 if device.startswith('cuda') else None,
             peak_allocated_gib=torch.cuda.max_memory_allocated()/2**30 if device.startswith('cuda') else None,
             timing=timing,checkpoint_written=bool(checkpoints_written),ddp_parameter_signatures=signatures,
             best_selection=dict(score=best_score,step=best_step,checkpoint=best_path,trajectory=tau_best))

@@ -20,8 +20,8 @@ def validate_recipe(path, stats=None):
             raise ValueError('v6 upstream changed: '+key)
     parent=read_json(recipe['parent_manifest']); events=read_json(recipe['event_manifest'])
     normalizer=read_json(recipe['stats'])
-    from .local_subset import LOCAL_SCOPE, validate_local_parent
-    if recipe.get('local_subset_scope') == LOCAL_SCOPE:
+    from .local_subset import LOCAL_SCOPES, validate_local_parent
+    if recipe.get('local_subset_scope') in LOCAL_SCOPES:
         validate_local_parent(parent, recipe, normalizer)
     elif (parent.get('status')!='FROZEN' or not parent.get('training_allowed')
             or parent.get('engineering_subset') or parent.get('pending_sequences',0)
