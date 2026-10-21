@@ -217,3 +217,24 @@ training budget approximately48.8min; keep original
 4h boundary and saved stop. Receipt: status-dev3000-comparison.json in run root.
 Decision: finish the bounded arm; stability has improved through3000, but useful
 8-frame trajectory gain and rolling drift reduction remain unresolved.
+
+## Decision diagnostic: fixed TRAIN versus DEV gap
+
+Question: has optimization itself saturated, or does TRAIN improve while unseen
+sequences regress? Before changing the continuing training, evaluate32 uniform
+GRAB TRAIN indices (seed170, fixed across checkpoints) at healthy4371 and strict
+FP32 step3000, using the same real evaluation function and current strict FP32
+backend. Existing fixed DEV seed171 panel supplies the generalization side.
+Cheapest distinguishing check:64 examples total, inference only, microbatch2;
+no optimizer steps or running-config change. If TRAIN physical/loss metrics
+improve while DEV worsens, prioritize generalization/data balance/early selection;
+if both fail on the consumed prefix, next distinguish objective-gradient tradeoff
+from optimization underfit. This alone does not causally establish loss conflict.
+
+Resources: GPU7 shared only after confirming monica's owner, utilization0% and
+16.15GiB free; bounded180s/32 examples per checkpoint, expected<3GiB new peak,
+no writes to external data. Running4/5/6 unchanged;20GiB storage floor preserved.
+Python graspenv/Torch2.4.1+cu121, model and precision code1b57a487, eval mode and
+real current-observation/planned-event data. Seed170 is diagnostic reuse from
+the same exploratory arm, not an independent replication. Audit script commit
+and selected indices will be saved in the report under the existing run.
