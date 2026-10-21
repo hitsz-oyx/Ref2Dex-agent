@@ -109,6 +109,9 @@ class SharedWAMV6(nn.Module):
             if config.get('event_encoding')!=EVENT_ENCODING:
                 raise ValueError('explicit planned contact/release event encoding required')
             self.event_goal=EventGoalResidual(width)
+        if config.get('flow_matching'):
+            from .flow_matching import TrajectoryFlow
+            self.flow_future = TrajectoryFlow(config)
         from .precision import configure_strict_fp32
         self.precision_runtime = configure_strict_fp32(self, config)
 
@@ -165,6 +168,10 @@ class SharedWAMV6(nn.Module):
         object_latent = self.scene_norm(query + update).reshape(len(points), points.shape[1], points.shape[2], -1)
         scene_z = self.scene_future(object_latent.flatten(1, 2))
         scene_z = scene_z.reshape(len(points), HORIZON, *points.shape[1:3], 3).transpose(1, 2)
+        flow_extras = {}
+        if self.config.get('flow_matching'):
+            hand_z, scene_z, flow_extras = self.flow_future(
+                hand_z, scene_z, shared, shared_valid, batch, self.normalizer)
 
         interaction_points = batch["interaction_points"]
         interaction_normals = batch["interaction_normals"]
@@ -224,6 +231,7 @@ class SharedWAMV6(nn.Module):
             scene_normalized=torch.where(scene_mask, scene_z, 0.),
             interaction_normalized=torch.where(c_mask[..., None], interaction_normalized, 0.),
             interaction_prediction_valid=c_mask)
+        prediction.update(flow_extras)
         if return_shared:
             prediction.update(shared_tokens=shared, shared_valid=shared_valid,
                               
@@ -233,8 +241,13 @@ class SharedWAMV6(nn.Module):
     def parameter_groups(self, geometry_lr, shared_lr):
         geometry = list(self.geometry.parameters())
         ids = {id(p) for p in geometry}
-        return [dict(name="joint_geometry", params=geometry, lr=geometry_lr),
-                dict(name="shared_and_heads", params=[p for p in self.parameters() if id(p) not in ids], lr=shared_lr)]
+        flow = list(self.flow_future.parameters()) if self.config.get('flow_matching') else []
+        flow_ids = {id(p) for p in flow}
+        groups = [dict(name="joint_geometry", params=geometry, lr=geometry_lr),
+                  dict(name="shared_and_heads", params=[p for p in self.parameters() if id(p) not in ids|flow_ids], lr=shared_lr)]
+        if flow:
+            groups.append(dict(name='conditional_flow', params=flow, lr=self.config['flow_lr']))
+        return groups
 
     def parameter_counts(self):
         return dict(total=sum(p.numel() for p in self.parameters()),

@@ -1,4 +1,5 @@
 """v6 optional decoded-geometry objective; legacy objective stays unchanged."""
+import torch
 from . import paths
 from ptv3_shared_wam_v5.objectives import loss_components as base_components
 from ptv3_shared_wam_v5.objectives import OBJECTIVE_SEMANTICS as BASE_SEMANTICS
@@ -9,6 +10,8 @@ GEOMETRY_OBJECTIVE = 'v6.global-masked-joint21-surface16.geometry-relative.v1'
 
 
 def objective_semantics(config):
+    if config.get('flow_matching'):
+        return 'v6.residual-cfm.joint-trajectory.gt-object-contact-probability.v1'
     if config.get('geometry_object_source') == 'gt_dense2048' and not config.get('geometry_loss_disabled'):
         return 'v6.global-masked-joint21-surface16.gt-object-contact-probability.v1'
     return GEOMETRY_OBJECTIVE if config.get('geometry_consistency') and not config.get('geometry_loss_disabled') else BASE_SEMANTICS
@@ -29,6 +32,18 @@ def loss_components(prediction,batch,config,normalizer,reduction_dtype=None):
     if config.get('geometry_consistency'):
         extra, diagnostics = geometry_components(prediction,batch,config,reduction_dtype)
         result.update(extra);result.geometry_diagnostics=diagnostics
+    if config.get('flow_matching') and 'flow_hand_velocity' in prediction:
+        for name, valid in (
+                ('hand', batch['trajectory_valid'] & batch['start_hand_valid'][:, None]),
+                ('scene', batch['scene_valid'] & batch['object_valid'][:, :, None, None])):
+            error = (prediction['flow_'+name+'_velocity']-prediction['flow_'+name+'_target_velocity']).square().mean(-1)
+            weight = valid.float()
+            if name == 'scene':
+                target = torch.where(valid[..., None], batch['scene_target'].float(), 0.)
+                weight = weight*(config['motion_floor']+(1-config['motion_floor'])*
+                    torch.sigmoid(5*(target.norm(dim=-1)/config['motion_tau_m']-1)))
+            result['flow_'+name] = ((torch.where(valid, error, 0.)*weight).sum(dtype=reduction_dtype),
+                                   weight.sum(dtype=reduction_dtype))
     return result
 
 
@@ -39,6 +54,9 @@ def combine_components(means,config,step=None):
         terms.update(geometry_contact=means['geometry_contact'],geometry_clearance=means['geometry_clearance'])
         loss = loss+active_geometry_weight(config,step)*(means['geometry_contact']+
                     config['geometry_clearance_weight']*means['geometry_clearance'])
+    if 'flow_hand' in means:
+        terms.update(flow_hand=means['flow_hand'], flow_scene=means['flow_scene'])
+        loss = loss+config['flow_matching_weight']*(means['flow_hand']+means['flow_scene'])
     return loss, terms
 
 

@@ -31,6 +31,8 @@ from ptv3_shared_wam_v5.metrics import forecast_metrics,merge_metrics,summarize_
 from ptv3_shared_wam_v6.objectives import forecast_loss,loss_components,objective_semantics,combine_components,active_geometry_weight
 from ptv3_shared_wam_v6.geometry_consistency import validate_geometry_config
 from ptv3_shared_wam_v6.precision import ActivationMonitor
+from ptv3_shared_wam_v6.flow_matching import validate_flow_config
+from ptv3_shared_wam_v6.local_subset import initialize_flow_weights
 from ptv3_shared_wam_v5.training_contract import execution_contract,validate_resume,loader_options,restore_optimizer_state
 from ptv3_shared_wam_v5.selection import trajectory_score,bootstrap_trajectory,TAU_SELECTION
 from ptv3_shared_wam_v4.objectives import normalized_components
@@ -103,16 +105,18 @@ def main():
     p.add_argument('--capacity-probe-updates',type=int)
     p.add_argument('--resume',type=Path);p.add_argument('--initialize-from',type=Path)
     p.add_argument('--initialize-geometry-from',type=Path)
+    p.add_argument('--initialize-flow-from',type=Path)
     p.add_argument('--preserve-all-checkpoints',action='store_true')
     p.add_argument('--checkpoint-budget-gib',type=int,default=32)
     p.add_argument('--git-commit',required=True);a=p.parse_args()
-    if sum(bool(x) for x in (a.resume,a.initialize_from,a.initialize_geometry_from))>1:
+    if sum(bool(x) for x in (a.resume,a.initialize_from,a.initialize_geometry_from,a.initialize_flow_from))>1:
         raise ValueError('choose one resume/initialization source')
     config=read_json(a.config);stats=read_json(a.stats)
     if not 8<=a.checkpoint_budget_gib<=32:raise ValueError('checkpoint preservation budget must be8..32GiB')
     validate_geometry_config(config)
+    validate_flow_config(config)
     recipe=validate_recipe(a.manifest,a.stats)
-    if a.capacity_probe_updates and (not (a.resume or a.initialize_geometry_from) or a.smoke or a.recovery_probe_updates
+    if a.capacity_probe_updates and (not (a.resume or a.initialize_geometry_from or a.initialize_flow_from) or a.smoke or a.recovery_probe_updates
             or a.continuation_updates or not 3<=a.capacity_probe_updates<=16
             or recipe.get('local_subset_scope')!=EXPANDED_SCOPE):
         raise ValueError('capacity probe requires expanded-scope resume and3..16 updates')
@@ -134,7 +138,7 @@ def main():
     if last<1 or batch_size<1:raise ValueError('positive bounded steps/batch required')
     world=int(os.environ.get('WORLD_SIZE','1'));rank=int(os.environ.get('RANK','0'));local=int(os.environ.get('LOCAL_RANK','0'))
     validate_local_execution(config,recipe,world,last,batch_size)
-    if recipe.get('local_subset_scope') in LOCAL_SCOPES and not (a.resume or a.initialize_from or a.initialize_geometry_from):
+    if recipe.get('local_subset_scope') in LOCAL_SCOPES and not (a.resume or a.initialize_from or a.initialize_geometry_from or a.initialize_flow_from):
         raise ValueError('local subset requires admitted initialization or its own strict resume')
     if recipe.get('local_subset_scope') == EXPANDED_SCOPE and world==1 and not a.capacity_probe_updates:
         raise ValueError('expanded production training requires three GPUs; world1 only for capacity')
@@ -167,6 +171,11 @@ def main():
     if a.initialize_geometry_from:
         saved=torch.load(a.initialize_geometry_from,map_location='cpu',weights_only=False)
         initialization_binding=initialize_geometry_weights(model,saved,a.initialize_geometry_from,config,identity)
+        if a.capacity_probe_updates is not None:last=min(last,a.capacity_probe_updates)
+        del saved
+    if a.initialize_flow_from:
+        saved=torch.load(a.initialize_flow_from,map_location='cpu',weights_only=False)
+        initialization_binding=initialize_flow_weights(model,saved,a.initialize_flow_from,config,identity)
         if a.capacity_probe_updates is not None:last=min(last,a.capacity_probe_updates)
         del saved
     if a.resume:
@@ -282,6 +291,8 @@ def main():
         multiplier=min(1.,step/max(1,config.get('warmup_updates',0))) if not a.smoke else 1.
         optimizer.param_groups[0]['lr']=config['geometry_lr']*multiplier
         optimizer.param_groups[1]['lr']=config['shared_lr']*multiplier
+        if config.get('flow_matching'):
+            optimizer.param_groups[2]['lr']=config['flow_lr']*multiplier
         ev=[torch.cuda.Event(enable_timing=True) for _ in range(4)] if device.startswith('cuda') else None
         if ev:ev[0].record()
         if activation_monitor:
@@ -300,7 +311,9 @@ def main():
         loss_value=float(loss.detach());times.append(time.monotonic()-start)
         if len(times)>256:times.pop(0)
         if step<=first+2 or step%config['log_interval']==0:
-            term_names=('hand','scene','contact','part')+(('geometry_contact','geometry_clearance') if config.get('geometry_consistency') else ())
+            term_names=(('hand','scene','contact','part')
+                +(('geometry_contact','geometry_clearance') if config.get('geometry_consistency') else ())
+                +(('flow_hand','flow_scene') if config.get('flow_matching') else ()))
             values=torch.stack([terms[k].detach() for k in term_names])
             sources=torch.tensor([draws[s] for s in range(11)],device=device,dtype=torch.long)
             if world>1:dist.all_reduce(values);values/=world;dist.all_reduce(sources)
@@ -309,6 +322,8 @@ def main():
                 objective=config['hand_weight']*means['hand']+config['scene_weight']*means['scene']+config.get('interaction_weight',1.)*(means['contact']+means['part'])
                 if config.get('geometry_consistency'):
                     objective+=active_geometry_weight(config,step)*(means['geometry_contact']+config['geometry_clearance_weight']*means['geometry_clearance'])
+                if config.get('flow_matching'):
+                    objective+=config['flow_matching_weight']*(means['flow_hand']+means['flow_scene'])
                 rate=(len(times)-1)/(times[-1]-times[0]) if len(times)>1 else None
                 event_valid=batch['event_valid'];event_type=batch['event_type']
                 event_counts=torch.stack([((event_type==k)&event_valid).sum() for k in range(3)]+[(~event_valid).sum()])
@@ -331,6 +346,7 @@ def main():
                 print(json.dumps(record),flush=True)
         new_best=False
         if not (a.smoke or a.capacity_probe_updates) and (step%config['validation_interval']==0 or step==config.get('validation_initial_step',20)
+                            or step==config.get('validation_probe_step',-1)
                             or ((a.recovery_probe_updates or a.continuation_updates) and step==first)):
             if world>1:dist.barrier()
             if rank==0:

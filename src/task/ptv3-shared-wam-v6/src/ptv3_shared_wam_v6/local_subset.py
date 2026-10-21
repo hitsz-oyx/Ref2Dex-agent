@@ -59,9 +59,16 @@ def validate_local_execution(config, recipe, world, last, batch):
             raise ValueError('local config cannot train a full recipe')
         return
     if scope == EXPANDED_SCOPE:
+        from .flow_matching import OVERNIGHT_CAMPAIGN, validate_flow_config
+        overnight = config.get('execution_campaign') == OVERNIGHT_CAMPAIGN
+        if overnight:
+            validate_flow_config(config)
+            if (not config.get('flow_matching') or not config.get('strict_fp32')
+                    or config.get('geometry_object_source') != 'gt_dense2048'):
+                raise ValueError('overnight authorization requires strict FP32 flow and GT2048 contact')
         if (config.get('local_subset_scope') != scope or world not in (1, 3)
-                or not 1 <= last <= config['updates'] <= 10000
-                or not 0 < config['max_seconds'] <= 14400
+                or not 1 <= last <= config['updates'] <= (30000 if overnight else 10000)
+                or not 0 < config['max_seconds'] <= (43200 if overnight else 14400)
                 or not 1 <= batch <= 128
                 or config['artifact_budget_bytes'] > 8*2**30):
             raise ValueError('expanded subset requires bounded world1 capacity probe or world3 training')
@@ -115,3 +122,26 @@ def initialize_geometry_weights(model, saved, checkpoint, config, identity):
         normalization='exact inherited checkpoint buffers',
         reset_reason=('matched fresh-optimizer control of geometry objective' if config.get('geometry_loss_disabled') else
                       'new auxiliary objective; fresh optimizer/RNG/warmup/selection and an independent training budget'))
+
+
+def initialize_flow_weights(model, saved, checkpoint, config, identity):
+    from .contracts import SCHEMA
+    from .flow_matching import validate_flow_config
+    from .geometry_consistency import validate_geometry_config
+    validate_flow_config(config);validate_geometry_config(config)
+    if (not config.get('flow_matching') or saved.get('schema') != SCHEMA or saved.get('step') != 4371
+            or saved.get('data_identity') != identity or saved.get('world_size') != 3
+            or saved['config'].get('flow_matching') or saved['config'].get('geometry_consistency')):
+        raise ValueError('flow expansion requires the same-data healthy4371 world3 baseline')
+    for key,value in model.normalizer.state_dict().items():
+        if not torch.equal(value.cpu(),saved['model']['normalizer.'+key].cpu()):
+            raise ValueError('flow expansion cannot change normalization')
+    if any(not torch.isfinite(v).all() for v in saved['model'].values() if v.is_floating_point()):
+        raise ValueError('nonfinite baseline weights')
+    binding=model.load_state_dict(saved['model'],strict=False)
+    if binding.unexpected_keys or not binding.missing_keys or any(not k.startswith('flow_future.') for k in binding.missing_keys):
+        raise ValueError('only new flow parameters may be absent from the healthy baseline')
+    return dict(kind='weights-only-flow-expansion',checkpoint=str(checkpoint.resolve()),source_step=4371,
+                source_data_identity=identity,new_parameters=binding.missing_keys,
+                optimizer_restored=False,rng_restored=False,training_step_reset=True,
+                normalization='exact inherited checkpoint buffers')
