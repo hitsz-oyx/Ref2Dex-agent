@@ -1,3 +1,19 @@
+# 2026-10-21 GT2048 contact probability training RUNNING
+
+User-chosen GT2048 object plus predicted-hand contact-probability supervision
+actually running, frozen39d66051/supervisor1572421, GPUs4/5/6/local96/global288.
+Same healthy4371 initializer; original tau/scene/C/goals/events/strictFP32 retained.
+GT future labels are loss-only. Original FP32 saved/stopped3337 with full audit.
+44 tests and real preflight/capacity96/readiness8/strict2 recovery all PASS;
+568 states, RNG3, exact scales and3 equal rank signatures. Calibrated weight0.05,
+ramp100. New initializer physical DEV metrics match the prior arm (<0.0001mm).
+Sustained startup at60, loss0.7292/norm0.916, finite activations;
+warmups not yet complete. Bound10000 updates or4h new-objective time; likely
+binds time first at initial~0.32updates/s. Free178.56GiB,20GiB floor.
+No efficacy or rollout claim; main comparison is prefix1–8 hand/object errors,
+new GT geometry contact metrics and unchanged predicted-both geometry diagnostic.
+[Experiment](experiments/probes/P-20261021-wam-v6-gt-object-contact.md).
+
 # 2026-10-21 Fixed TRAIN probe supports a generalization gap
 
 32 fixed GRAB TRAIN examples improve from4371 to FP32 new3000: object prefix8

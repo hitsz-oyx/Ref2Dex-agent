@@ -1,3 +1,15 @@
+## 2026-10-21 GT2048接触概率三卡训练RUNNING，旧FP32已停3337
+
+已按用户选择启动GT物体完整2048点＋预测τ手表面→接触概率→GT contact监督。
+GT仅进loss；保留原τ/scene/C头、goal/event、FP32。冻结39d66051，supervisor1572421，
+GPU4/5/6、local96/global288，从同一健康4371权重初始化。旧FP32正常保存停3337、
+完整checkpoint审计通过。新44测试、4真实TRAIN梯度/覆盖100%、容量96、三卡8保存＋
+2严格恢复均通过，568状态/RNG/归一化/参数一致。几何权重TRAIN标定0.05、ramp100。
+持续训练已到60，loss0.7292、梯度0.916、特征有限；warmup尚未结束。
+初始化固定DEV物理指标与旧FP32一致；尚无收益或滚动改善结论。
+保持10000步或新目标累计4h、20GiB磁盘停止线，目前余178.56GiB。
+[实验卡](../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261021-wam-v6-gt-object-contact.md)。
+
 ## 2026-10-21 固定TRAIN补测支持泛化受限，未证明容量到顶
 
 32条固定GRAB TRAIN同输入对比4371→FP32新3000：物体前1–8帧平均EPE

@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [170,171]
 decision_changed_if_positive: retain GT-object geometric contact supervision if held-out short-prefix hand and object errors improve without shared-feature instability
 decision_changed_if_negative: inspect predicted-hand proxy fidelity and task-generalization gaps before scaling contact supervision
-status: PREPARING
+status: RUNNING
 run_id: gt-object-contact-20261021-r1
 ---
 
@@ -25,7 +25,7 @@ compute contact probability and align it to GT contact labels. User explicitly
 selected this over the old relative-vector loss, whose object terms would cancel
 if both sides used GT object geometry. This is a new objective, not strict resume.
 
-Result: old run saved/stopped3337; native GT2048 reader and44 v6 tests PASS; actual gradient/capacity/save/recovery pending.
+Result: old run saved/stopped3337;44 tests, real gradient preflight, capacity96, world3 save8 and strict recovery2 PASS; sustained training RUNNING.
 Decision: launch a bounded healthy4371 FP32 arm after real GPU preflight.
 
 ## Fixed data and inputs
@@ -129,3 +129,38 @@ complete2048 query coverage, chunk32/64 value/gradient agreement, masked-NaN
 safety and finite far-positive gradients to10m with zero probability underflow.
 Four real TRAIN reader samples preserve all old inputs/targets exactly;
 receipt under gt-object-contact-preparation-20261021-r1/reader-preflight.json.
+
+## Actual three-card launch
+
+Supervisor1572421, frozen39d66051. Healthy source4371 checkpoint audit PASS,
+568 finite states/world3/global288/RNG3; all weights/scales copied with a fresh
+optimizer only at initialization. Four real TRAIN contact samples exercise
+4×7×2048=57344 valid geometric contact queries, coverage100%. Base readout norm
+1.228660, geometry hand readout norm10.613400,
+new direct decoded-hand norm3.123286;
+object readout/decoded-object gradients exactly absent, as intended. Calibrated
+weight0.05 (bounded cap), initial geometry/base gradient ratio0.43191, ramp100.
+Four-TRAIN GT-tau geometric contact MAE0.01908; observed predicted-tau MAE0.22583.
+Proxy/transfer mismatch is measured rather than assumed zero.
+
+Actual capacity96 completed8 full optimizer updates, peak15.486GiB allocated/
+17.203GiB reserved,0.3691updates/s. Main local96/global288 selected unchanged.
+Real3-rank readiness8 saved and audited; strict2 recovery saved10 and audited:
+all568 optimizer states at8/10,3 RNG payloads, exact scales, all tensors finite,
+equal3-rank signatures. Readiness peak15.859GiB allocated/17.639GiB reserved;
+recovery15.458GiB allocated/17.789GiB reserved. Sustained training resumes10.
+
+Physical initialization parity passes against the original strict-FP32 arm,
+all available DEV sources' hand and object-h24 differences<0.0001mm. GRAB init
+hand52.68717mm/object-h24=15.82866mm; new geometry contact MAE0.14122,
+near-contact MAE0.30446, GT-tau proxy MAE0.01423, coverage100%.
+New and old total objectives differ by design; compare physical metrics and
+same-definition C metrics, not raw total loss across objective families.
+
+Live startup at60: loss0.729200, pre-clip norm0.9160,
+shared/context RMS3.860/5.877,
+peak allocated16.012GiB, all finite. Warmups are not yet complete.
+Initial throughput~0.32updates/s, target10000 would take~9h before additional
+periodic overhead, so the4h bound likely binds first. Free178.56GiB;
+startup receipt/config delta/init-parity receipts retained in output root.
+No efficacy or rollout-drift claim from this short startup.

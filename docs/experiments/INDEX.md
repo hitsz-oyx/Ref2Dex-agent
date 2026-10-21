@@ -921,7 +921,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261021-wam-v6-gt-object-contact](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261021-wam-v6-gt-object-contact.md) | GT2048 object and predicted-hand contact probability supervision | old run saved/stopped3337; native GT2048 reader and44 v6 tests PASS; actual gradient/capacity/save/recovery pending. | launch a bounded healthy4371 FP32 arm after real GPU preflight. | probes/PREPARING |
+| [P-20261021-wam-v6-gt-object-contact](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261021-wam-v6-gt-object-contact.md) | GT2048 object and predicted-hand contact probability supervision | old run saved/stopped3337;44 tests, real gradient preflight, capacity96, world3 save8 and strict recovery2 PASS; sustained training RUNNING. | launch a bounded healthy4371 FP32 arm after real GPU preflight. | probes/RUNNING |
 
 ## HF-v6-local-adaptation
 

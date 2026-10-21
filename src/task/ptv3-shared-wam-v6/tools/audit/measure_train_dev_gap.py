@@ -35,7 +35,8 @@ def main():
     if torch.cuda.mem_get_info()[0] < 8*2**30:
         raise ValueError('at least8GiB free on the explicitly selected GPU required')
     stats = json.loads(args.stats.read_text())
-    dataset = V6Windows(args.manifest, 'train')
+    dataset = V6Windows(args.manifest, 'train',
+                        geometry_gt_object=config.get('geometry_object_source') == 'gt_dense2048')
     dataset.pools = {'1': dataset.pools['1']}
     eval_config = dict(config, validation_seed=170, validation_samples=32,
                        validation_microbatch_size=2)
