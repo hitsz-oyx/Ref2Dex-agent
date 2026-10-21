@@ -1,11 +1,14 @@
-## 2026-10-22 Flow matching准备，机主授权三卡延长训练
+## 2026-10-22 Flow matching三卡短试验RUNNING，随后自动长训
 
 按机主飞书指令实现WAM-v6手/物联合残差flow，保留最新GT2048物体contact概率
 loss、goal/event和严格FP32。真实数据/容量/三卡恢复及128步试验通过后直接
 续训至30000步或累计12h；仅GPU4/5/6，其他卡及凭据禁碰，nohup独立session。
 旧GT-contact3238及健康4371保留；新分支继承健康4371旧权重并扩展flow。
 仍为本地207579 TRAIN/3356 DEV、GRAB占比约99.8%，扩大训练时长。08:00为
-中间查看点。实际启动、吞吐和ETA待验收，无收益结论。
+中间查看点。冻结0917f47e，独立session supervisor1926227/PPID1；47测试、真实梯度、
+容量96、三卡8保存＋2严格恢复均通过，617有限Adam状态/RNG3/归一化/三卡参数一致。
+短试验60步loss0.8784/norm0.923，GPU4/5/6均100%，可用磁盘156GiB；
+128步及采样检查后自动长训，技术可运行不代表验证收益。
 [实验卡](../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261022-wam-v6-flowmatching.md)。
 
 ## 2026-10-22 GT2048接触概率实验已正常停止3238，未见验证收益
