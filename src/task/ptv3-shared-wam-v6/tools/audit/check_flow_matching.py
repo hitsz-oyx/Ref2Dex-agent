@@ -36,7 +36,10 @@ def main():
     batch={k:v.cuda() for k,v in collate([dataset[i] for i in indices]).items()}
     model.train();torch.cuda.reset_peak_memory_stats();prediction=model(batch)
     loss,terms=forecast_loss(prediction,batch,config,model.normalizer,step=100)
-    gradients=torch.autograd.grad(loss,(model.flow_future.output.weight,prediction['trajectory'],prediction['scene']),retain_graph=True)
+    # Coordinate losses operate on normalized predictions; the decoded scene
+    # tensor is diagnostic-only when contact uses GT object geometry.
+    gradients=torch.autograd.grad(loss,(model.flow_future.output.weight,
+        prediction['trajectory_normalized'],prediction['scene_normalized']),retain_graph=True)
     components,_=geometry_components(prediction,batch,config)
     geo=sum(n/d.clamp_min(1)*(config['geometry_clearance_weight'] if k=='geometry_clearance' else 1)
             for k,(n,d) in components.items())
