@@ -5,7 +5,7 @@ experiment_id: P-20261022-wam-v6-flowmatching
 date: 2026-10-22
 task: ptv3-shared-wam-v6
 branch: main
-git_commit: 2d8bf18f347b9f871e1c4a6b4bf589740688a6d2
+git_commit: 0917f47ebb74173a1f43b10f3e3a21c5689ae0b6
 claim_id: C1
 hypothesis_family: HF-v6-joint-trajectory-flow
 probe_index_in_family: 1
@@ -13,13 +13,13 @@ seed_pool: probe
 seeds: [170,171,172]
 decision_changed_if_positive: retain residual conditional flow if fixed held-out short-prefix errors improve stably
 decision_changed_if_negative: retain checkpoints and inspect generalization before scaling the flow branch
-status: PREPARING
-run_id: flowmatching-overnight-20261022-r1
+status: RUNNING
+run_id: flowmatching-overnight-20261022-r2
 ---
 
 # Joint hand/object conditional residual flow with GT-object contact
 
-Result: implementation and unit contracts prepared; real-input and three-rank trial pending.
+Result: real-input gradients, batch96 capacity, DDP8 save and strict2 recovery PASS; 128-step trial RUNNING.
 Decision: owner explicitly requests longer training after the runnable trial; efficacy remains open.
 
 ## Question and minimal decision probe
@@ -95,3 +95,46 @@ its action/MANO contracts are not transplanted. Prior
 as this model's failure cause. No universal FM superiority or drift-fix claim.
 
 Implementation validation:47 v6 tests PASS in80.70s, including target isolation, fixed sampler RNG, differentiable Euler and old-weight-preserving expansion.
+
+## Initial admission correction
+
+Run r1 supervisor1924337 detached successfully (PPID1,SID/PGID1924337), but
+preflight stopped before training: audit differentiated physical decoded scene,
+while retained scene MSE uses normalized scene and GT-object geometry has no
+direct predicted-scene gradient. Correct audit to use normalized hand/scene
+for total-loss gradients and physical outputs only for geometry gradient
+contracts. This is an audit correction, not a change in the training objective.
+Preserve r1 logs; subsequent committed/frozen retry uses run_id r2.
+
+Repository-wide verify remains blocked by pre-existing missing v2 metadata in
+six trajectory-policy experiment cards; no new-card error was reported. Those
+unrelated cards are not modified. New v6 suite47 PASS.
+
+## Detached launch receipt
+
+Frozen code: `0917f47ebb74173a1f43b10f3e3a21c5689ae0b6`. SupervisorPID `1926227`; launcher receipt
+`tmp/flowmatching-overnight-20261022-r2/launch.json`. Full child stage commands
+are persisted in output `process.json`. Exact top-level invocation below; launched
+with stdin=DEVNULL/start_new_session=True/close_fds=True and environment allowlist.
+
+```sh
+CUDA_VISIBLE_DEVICES=4,5,6 nohup /home2/wyy/miniconda3/envs/graspenv/bin/python -u /home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/tmp/flowmatching-overnight-20261022-r2/frozen/src/task/ptv3-shared-wam-v6/tools/run/launch_flow_overnight.py --checkpoint /home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/ptv3-shared-wam-v6/local-expanded-ddp-20261021-r1/training/step004371.pt --baseline-config /home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/ptv3-shared-wam-v6/gt-object-contact-20261021-r1/config-b96.json --recipe /home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/ptv3-shared-wam-v6/local-expanded-recipe-20261021-r1/manifest.json --output /home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/ptv3-shared-wam-v6/flowmatching-overnight-20261022-r2 --run-root /home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent --git-commit 0917f47ebb74173a1f43b10f3e3a21c5689ae0b6
+```
+
+Logs: `tmp/flowmatching-overnight-20261022-r2/supervisor.log`; stage logs,
+config, checkpoints, DEV and telemetry under
+`outputs/ptv3-shared-wam-v6/flowmatching-overnight-20261022-r2/`.
+Corrected real-input preflight on four TRAIN examples PASS:617 parameter tensors,
+all strictFP32, total flow/readout gradients finite/nonzero, geometry hand
+gradient0.8163 and predicted-scene gradient absent as intended. Initial zero
+field teacher/zero ratio1.0, fixed-sample repeat exact, alternate seed differs.
+
+## Admission at01:22 +08
+
+R2 supervisor1926227 PPID1/SID/PGID1926227 confirmed. Real preflight PASS.
+Capacity8 local96:peak allocated15.62/reserved17.58GiB,0.365updates/s singleGPU.
+DDP8/save then strict2 recovery through10 PASS:617 finite Adam states/counts
+match,3 RNG,world3/global288,four exact normalizers and equal three-rank
+parameter signatures. Checkpoint size1,217,083,169bytes. Trial128 nowRUNNING;
+step13 loss0.9350/norm0.8504,three GPUs100%,memory~18.6–20.1GiB/free156GiB.
+No prediction-quality improvement claim yet.
