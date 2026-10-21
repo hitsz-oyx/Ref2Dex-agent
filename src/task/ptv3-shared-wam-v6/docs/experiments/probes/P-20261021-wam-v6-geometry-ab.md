@@ -90,7 +90,7 @@ and geometric500/4500 remain preserved independently of active run rotation.
 Inference COMPLETED on GPU7, code b6e9be29 plus bounded continuation fix deb1298b;
 peak allocated436.53MiB, no interference with active GPUs4/5/6 or other users.
 First pass completed all four GRAB cases for each model, then failed in apple
-fixed-goal visualization preparation because an unused controller was observed
+fixed-goal inference because an unused controller was observed
 after terminal state. Fix stops consulting the controller in fixed replay mode;
 resume skips completed immutable cases and only computes missing apple modes.
 Logs/first attempt preserved; result continuation_commits records both versions.
@@ -171,3 +171,23 @@ recorded t+24 object endpoint; it is not generated-state scheduler feedback or
 an extra measured hand history. Do not mix this arm with the old v4 interface
 comparison. Reuse the same GPU7 budget, eight short sequences, preserve all
 previous outputs and add separate planned video filenames.
+
+
+Native planned-event GRAB arm completed with79dae6b5. Parent4371→geometry4500
+means in mm: eyeglasses162.59→181.38 (+11.56%), bowl298.25→286.39 (-3.98%),
+stamp134.02→188.94 (+40.98%), bunny236.79→259.43 (+9.56%). Same180/44/180/161
+common frames, no stops; geometry endpoints134.62/867.36/290.17/857.55mm.
+Supplying the recorded future-event instruction does not remove the drift
+problem in these four cases; do not present UNKNOWN-only failure as the entire
+v6 result. This oracle instruction diagnostic still does not isolate loss
+causality from further training. Separate planned videos are complete.
+
+
+All11 individual four-panel MP4s and two combined GRAB MP4s completed and passed
+ffprobe dimensions/fps/frame-count checks;15fps playback of30Hz trajectories
+is2x slower. Selected late bowl/apple frames visually inspected. Total evaluation
+artifacts remain below50MiB, far below1GiB ceiling. Extended16 GRAB history/
+coordinate/metric audits pass. Matched-control results still pending the user's
+resource-plan answer, not silently approximated with existing older baseline.
+At14:22 active geometry run is RUNNING6000 (loss7.31889, preclip norm854.83),
+free192.85GiB; no signal or STOP was sent to it or any other user's task.

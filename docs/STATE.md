@@ -3,7 +3,7 @@
 新几何4500与父模型4371、旧v4同24/8预测回填评估完成，四个GRAB样例3个较父模型更差、
 四个均差于旧v4；apple平均偏移较旧v4下降，但TaskController仍15s超时、0抓取，且差于
 父v6。原始回填/坐标/误差8项审计通过，GPU7峰值allocated437MiB，不动现有三卡或他人任务。
-视频编码中；无几何三卡global288对照入口、固定DEV500/4500比较和全checkpoint保留已准备，
+基础对照视频已完成，额外计划事件GRAB仍3例较父模型变差；无几何三卡global288对照入口、固定DEV500/4500比较和全checkpoint保留已准备，
 31项测试通过。等待用户选择现有训练自然结束后自动接三卡，或只准备待通知；未擅自启动。
 [实验及边界](../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261021-wam-v6-geometry-ab.md)。
 

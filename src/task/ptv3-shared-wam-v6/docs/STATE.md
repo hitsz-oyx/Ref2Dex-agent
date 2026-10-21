@@ -16,7 +16,11 @@ geometry fixed replay improves old-v4 mean674.87→228.32mm, but endpoint1272.47
 TaskController unknown-event mean664.59→330.26mm, worse than parent260.58mm;
 planned-event variant318.39mm, parent179.88mm. Both stop acquire_timeout at15s,
 447 common frames, zero established grasp ticks. No physics/generalization claim.
-Seven four-panel videos are being encoded under the evaluation output.
+Seven four-panel videos are complete under the evaluation output.
+Additional recorded-plan GRAB arm: geometry181.38/286.39/188.94/259.43mm,
+three cases worse than parent; planned instructions do not eliminate drift.
+Four separately labelled planned videos are complete;13 MP4s including two
+combined panels pass ffprobe and selected-frame inspection.16 raw audits pass.
 
 Control entrypoint/test/queue prepared,31 v6 tests pass. Same source4371 and
 fresh optimizer/draw streams/world3/local96/global288; only geometry training
