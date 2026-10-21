@@ -24,6 +24,7 @@ from ptv3_shared_wam_v6.contracts import SCHEMA,INPUT_SEMANTICS,LABEL_SEMANTICS
 from ptv3_shared_wam_v6.recipe import validate_recipe
 from ptv3_shared_wam_v6.data import V6Windows,collate
 from ptv3_shared_wam_v6.model import SharedWAMV6
+from ptv3_shared_wam_v6.local_subset import LOCAL_SCOPE, validate_local_execution, initialize_weights
 from ptv3_shared_wam_v5.storage import read_json
 from ptv3_shared_wam_v5.checkpoints import checkpoint_due,retained_steps
 from ptv3_shared_wam_v5.metrics import forecast_metrics,merge_metrics,summarize_metrics
@@ -95,7 +96,9 @@ def main():
     p.add_argument('--loader-timeout',type=int,default=120)
     p.add_argument('--recovery-probe-updates',type=int)
     p.add_argument('--continuation-updates',type=int)
-    p.add_argument('--resume',type=Path);p.add_argument('--git-commit',required=True);a=p.parse_args()
+    p.add_argument('--resume',type=Path);p.add_argument('--initialize-from',type=Path)
+    p.add_argument('--git-commit',required=True);a=p.parse_args()
+    if a.resume and a.initialize_from:raise ValueError('choose resume or weights-only initialization')
     config=read_json(a.config);stats=read_json(a.stats)
     recipe=validate_recipe(a.manifest,a.stats)
     if config.get('event_dropout')!=recipe['event_dropout']:
@@ -109,11 +112,14 @@ def main():
         raise ValueError('bounded continuation requires v6 resume and17..5000 updates')
     if a.smoke:
         if not 1<=last<=16:raise ValueError('engineering smoke requires1..16 bounded steps')
-    elif (dataset.meta.get('training_allowed') is not True or dataset.meta.get('engineering_subset')
+    elif recipe.get('local_subset_scope') != LOCAL_SCOPE and (dataset.meta.get('training_allowed') is not True or dataset.meta.get('engineering_subset')
           or dataset.meta.get('pending_sequences',0)):
         raise ValueError('full training requires a complete, explicitly admitted frozen v6 recipe')
     if last<1 or batch_size<1:raise ValueError('positive bounded steps/batch required')
     world=int(os.environ.get('WORLD_SIZE','1'));rank=int(os.environ.get('RANK','0'));local=int(os.environ.get('LOCAL_RANK','0'))
+    validate_local_execution(config,recipe,world,last,batch_size)
+    if recipe.get('local_subset_scope') == LOCAL_SCOPE and not (a.resume or a.initialize_from):
+        raise ValueError('local subset requires admitted initialization or its own strict resume')
     device=f'cuda:{local}' if world>1 else a.device
     if device.startswith('cuda'):
         if not torch.cuda.is_available():raise ValueError('requested CUDA unavailable')
@@ -132,7 +138,11 @@ def main():
     model=SharedWAMV6(stats,config).to(device)
     optimizer=torch.optim.AdamW(model.parameter_groups(config['geometry_lr'],config['shared_lr']),
         weight_decay=config['weight_decay'],fused=device.startswith('cuda'))
-    first=1;previous_elapsed=0.;best_score=None;best_step=None;best_path=None;tau_best=None;resume_binding=None;migration_binding=None;topology_transition=None
+    first=1;previous_elapsed=0.;best_score=None;best_step=None;best_path=None;tau_best=None;resume_binding=None;migration_binding=None;topology_transition=None;initialization_binding=None
+    if a.initialize_from:
+        saved=torch.load(a.initialize_from,map_location='cpu',weights_only=False)
+        initialization_binding=initialize_weights(model,saved,a.initialize_from,recipe)
+        del saved
     if a.resume:
         saved=torch.load(a.resume,map_location='cpu',weights_only=False)
         if saved.get('schema')!=SCHEMA:raise ValueError('independent v6 checkpoint required')
@@ -141,6 +151,7 @@ def main():
         resume_binding=validate_resume(saved,config,identity,world,legacy)
         resume_binding.update(checkpoint=str(a.resume.resolve()),legacy_manifest=str(legacy_path) if legacy else None)
         model.load_state_dict(saved['model'],strict=True)
+        initialization_binding=saved.get('initialization_binding')
         migration_binding=saved.get('migration_binding') or saved.get('migration')
         topology_transition=saved.get('topology_transition')
         resume_binding['optimizer_restore']=restore_optimizer_state(optimizer,saved['optimizer'])
@@ -161,7 +172,7 @@ def main():
                 num_workers=a.workers,pin_memory=device.startswith('cuda'),
                 generator=torch.Generator().manual_seed(seed*1009+rank))
     if a.workers:
-        ipc=Path('/dev/shm')/f'ptv3-wam-v6-{os.getuid()}'
+        ipc=a.output.resolve()/'ipc'
         ipc.mkdir(exist_ok=True,mode=0o700)
         os.environ['TMPDIR']=str(ipc);tempfile.tempdir=str(ipc)
         multiprocessing.current_process()._config['tempdir']=str(ipc)
@@ -174,7 +185,7 @@ def main():
             run_id=a.output.name,data_identity=identity,input_semantics=INPUT_SEMANTICS,label_semantics=LABEL_SEMANTICS,
             objective_semantics=OBJECTIVE_SEMANTICS,engineering_smoke=a.smoke,device=device,world_size=world,
             python=sys.version,torch=torch.__version__,cuda=torch.version.cuda,steps=last,batch_size=batch_size,
-            execution_contract=contract,resume_binding=resume_binding,migration_binding=migration_binding,topology_transition=topology_transition,
+            execution_contract=contract,resume_binding=resume_binding,migration_binding=migration_binding,topology_transition=topology_transition,initialization_binding=initialization_binding,
             loader=dict(context=a.loader_context,workers=a.workers,timeout_s=a.loader_timeout),
             trajectory_selection_protocol=TAU_SELECTION,recovery_probe=bool(a.recovery_probe_updates),continuation_updates=a.continuation_updates,
             event_recipe=recipe,
@@ -194,7 +205,7 @@ def main():
             if best_step==step:best_path=str(target.resolve())
             if tau_best and tau_best['step']==step:tau_best=dict(tau_best,checkpoint=str(target.resolve()))
             torch.save(dict(schema=SCHEMA,data_identity=identity,config=config,step=step,world_size=world,
-                execution_contract=contract,resume_binding=resume_binding,migration_binding=migration_binding,topology_transition=topology_transition,
+                execution_contract=contract,resume_binding=resume_binding,migration_binding=migration_binding,topology_transition=topology_transition,initialization_binding=initialization_binding,
                 elapsed_s=previous_elapsed+time.monotonic()-start,
                 selection=dict(score=best_score,step=best_step,checkpoint=best_path,trajectory=tau_best),
                 model=model.state_dict(),optimizer=optimizer.state_dict(),random_state=states),pending)
@@ -213,6 +224,9 @@ def main():
         last_saved=step
         if world>1:dist.barrier()
     if device.startswith('cuda'):torch.cuda.reset_peak_memory_stats()
+    if first==1 and config.get('validation_before_training') and not a.smoke:
+        evaluation=evaluate(model,dev,config,device)
+        write(a.output/'dev-step000000.json',evaluation)
     wrapped.train()
     iterator=iter(loader);loader_failure=None
     for step in range(first,last+1):
