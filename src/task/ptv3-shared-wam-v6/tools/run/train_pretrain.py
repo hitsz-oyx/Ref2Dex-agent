@@ -118,7 +118,8 @@ def main():
         raise ValueError('capacity probe requires expanded-scope resume and3..16 updates')
     if config.get('event_dropout')!=recipe['event_dropout']:
         raise ValueError('config/dropout differs from admitted v6 recipe')
-    dataset=V6Windows(a.manifest,'train')
+    reader_options=dict(geometry_gt_object=config.get('geometry_object_source')=='gt_dense2048')
+    dataset=V6Windows(a.manifest,'train',**reader_options)
     last=config['updates'] if a.steps is None else a.steps
     batch_size=config['batch_size'] if a.batch_size is None else a.batch_size
     if a.recovery_probe_updates is not None and (not a.resume or a.smoke or not 1<=a.recovery_probe_updates<=16):
@@ -204,7 +205,7 @@ def main():
         multiprocessing.current_process()._config['tempdir']=str(ipc)
     kwargs.update(loader_options(a.workers,a.loader_timeout,a.loader_context))
     loader=DataLoader(**kwargs)
-    dev=V6Windows(a.manifest,'dev') if rank==0 and not (a.smoke or a.capacity_probe_updates) else None
+    dev=V6Windows(a.manifest,'dev',**reader_options) if rank==0 and not (a.smoke or a.capacity_probe_updates) else None
     if rank==0:
         write(a.output/'config.json',config)
         write(a.output/'run-manifest.json',dict(schema=SCHEMA,work_version=SCHEMA,git_commit=a.git_commit,

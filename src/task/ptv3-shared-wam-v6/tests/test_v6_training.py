@@ -102,6 +102,29 @@ def test_v6_recipe_reader_dropout_and_spawn_preserve_parent_inputs(packet):
     assert batch['trajectory_target'].shape==(2,24,2,21,3)
 
 
+def test_gt_object_labels_survive_spawn_and_never_enter_model_predictions(packet):
+    root,_,_,cfg=packet
+    old=V6Windows(root/'manifest.json','dev')
+    dense=V6Windows(root/'manifest.json','dev',geometry_gt_object=True)
+    restored=pickle.loads(pickle.dumps(dense))
+    assert restored.geometry_gt_object
+    a,b=old[1],restored[1]
+    assert b['geometry_object_future_gt'].shape==(1,24,2048,3)
+    assert all(np.array_equal(v,b[k]) for k,v in a.items())
+    loader=DataLoader(restored,batch_sampler=[[1]],num_workers=1,
+                      multiprocessing_context='spawn',timeout=30,collate_fn=collate)
+    worker_batch=next(iter(loader))
+    np.testing.assert_array_equal(worker_batch['geometry_object_future_gt'][0],b['geometry_object_future_gt'])
+    model=SharedWAMV6(stats(),cfg,Geometry(8)).eval()
+    batch=collate([b])
+    with torch.no_grad():
+        before=model(batch)
+        batch['geometry_object_future_gt'].fill_(float('nan'))
+        after=model(batch)
+    for key in before:
+        torch.testing.assert_close(before[key],after[key],atol=0,rtol=0)
+
+
 def test_expansion_preserves_complete_state_and_rejects_hidden_config_changes(packet):
     root,recipe,c,new=packet;base,saved=original_checkpoint(c,root)
     target=SharedWAMV6(stats(),new,Geometry(8))

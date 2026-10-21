@@ -11,7 +11,8 @@ from ptv3_shared_wam_v5.event_labels import EVENT_LABEL_SCHEMA
 
 
 class V6Windows(V5Windows):
-    def __init__(self, manifest, split, cache_size=8):
+    def __init__(self, manifest, split, cache_size=8, geometry_gt_object=False):
+        self.geometry_gt_object = bool(geometry_gt_object)
         self.recipe_path = Path(manifest).resolve()
         self.recipe = validate_recipe(self.recipe_path)
         event_manifest = self.recipe['event_manifest']
@@ -32,7 +33,8 @@ class V6Windows(V5Windows):
         self.event_cache = OrderedDict()
 
     def __getstate__(self):
-        return dict(manifest=str(self.recipe_path), split=self.split, cache_size=self.cache_size)
+        return dict(manifest=str(self.recipe_path), split=self.split, cache_size=self.cache_size,
+                    geometry_gt_object=self.geometry_gt_object)
 
     def __setstate__(self, state): self.__init__(**state)
 
@@ -40,6 +42,10 @@ class V6Windows(V5Windows):
         index, drop = index if isinstance(index, tuple) else (int(index), False)
         sample = super().__getitem__(index)
         seq_id, slot, tick = map(int, self.index[int(index)])
+        if self.geometry_gt_object:
+            from .geometry_gt_object import dense_object_future_gt
+            sequence, _ = self._sequence(seq_id)
+            sample['geometry_object_future_gt'] = dense_object_future_gt(sample, sequence, tick, slot)
         parent = self.meta['sequences'][seq_id]; key = parent['key']
         if key not in self.event_cache:
             row = self.event_rows[key]; folder = Path(row['path'])
