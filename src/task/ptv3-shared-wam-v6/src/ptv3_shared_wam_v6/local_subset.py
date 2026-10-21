@@ -92,3 +92,25 @@ def initialize_weights(model, saved, checkpoint, recipe):
                 source_step=saved['step'], source_data_identity=saved['data_identity'],
                 optimizer_restored=False, rng_restored=False, training_step_reset=True,
                 normalization='exact inherited checkpoint buffers')
+
+
+def initialize_geometry_weights(model, saved, checkpoint, config, identity):
+    from .contracts import SCHEMA
+    from .geometry_consistency import validate_geometry_config
+    validate_geometry_config(config)
+    if (not config.get('geometry_consistency') or saved.get('schema') != SCHEMA
+            or saved.get('data_identity') != identity or not saved.get('initialization_binding')
+            or saved.get('world_size') != 3 or saved['config'].get('geometry_consistency')):
+        raise ValueError('geometry initialization requires the preserved same-data three-GPU baseline checkpoint')
+    for name, value in model.normalizer.state_dict().items():
+        if not torch.equal(value.cpu(), saved['model']['normalizer.'+name].cpu()):
+            raise ValueError('geometry initialization cannot change normalization')
+    for name, value in saved['model'].items():
+        if value.is_floating_point() and not torch.isfinite(value).all():
+            raise ValueError('nonfinite geometry initialization tensor: '+name)
+    model.load_state_dict(saved['model'], strict=True)
+    return dict(kind='weights-only-new-geometry-objective', checkpoint=str(checkpoint.resolve()),
+        source_step=saved['step'],source_data_identity=identity,source_objective='v5.global-masked-joint21-surface16.v1',
+        optimizer_restored=False,rng_restored=False,training_step_reset=True,
+        normalization='exact inherited checkpoint buffers',
+        reset_reason='new auxiliary objective; fresh optimizer/RNG/warmup/selection and an independent training budget')

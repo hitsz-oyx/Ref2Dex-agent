@@ -24,14 +24,15 @@ from ptv3_shared_wam_v6.contracts import SCHEMA,INPUT_SEMANTICS,LABEL_SEMANTICS
 from ptv3_shared_wam_v6.recipe import validate_recipe
 from ptv3_shared_wam_v6.data import V6Windows,collate
 from ptv3_shared_wam_v6.model import SharedWAMV6
-from ptv3_shared_wam_v6.local_subset import LOCAL_SCOPES, EXPANDED_SCOPE, validate_local_execution, initialize_weights
+from ptv3_shared_wam_v6.local_subset import LOCAL_SCOPES, EXPANDED_SCOPE, validate_local_execution, initialize_weights, initialize_geometry_weights
 from ptv3_shared_wam_v5.storage import read_json
 from ptv3_shared_wam_v5.checkpoints import checkpoint_due,retained_steps
 from ptv3_shared_wam_v5.metrics import forecast_metrics,merge_metrics,summarize_metrics
-from ptv3_shared_wam_v5.objectives import forecast_loss,loss_components,OBJECTIVE_SEMANTICS
+from ptv3_shared_wam_v6.objectives import forecast_loss,loss_components,objective_semantics,combine_components,active_geometry_weight
+from ptv3_shared_wam_v6.geometry_consistency import validate_geometry_config
 from ptv3_shared_wam_v5.training_contract import execution_contract,validate_resume,loader_options,restore_optimizer_state
 from ptv3_shared_wam_v5.selection import trajectory_score,bootstrap_trajectory,TAU_SELECTION
-from ptv3_shared_wam_v4.objectives import normalized_components,combine_components
+from ptv3_shared_wam_v4.objectives import normalized_components
 
 
 def write(path,value):
@@ -67,6 +68,8 @@ def evaluate_condition(model,dataset,config,device,drop_event=False):
                 error=(prediction['trajectory']-torch.where(mask[...,None],batch['trajectory_target'],0.)).norm(dim=-1)
                 hand_sum+=float(torch.where(mask,error,0.).sum())*1000;hand_count+=int(mask.sum())
                 merge_metrics(diagnostics,forecast_metrics(prediction,batch))
+                if current.geometry_diagnostics:
+                    merge_metrics(diagnostics,current.geometry_diagnostics)
             loss,terms=combine_components(normalized_components(components,distributed=False),config)
             sources[sid]=dict(objective=float(loss),hand_epe_mm=hand_sum/max(hand_count,1),
                 metrics=summarize_metrics(diagnostics),
@@ -98,11 +101,14 @@ def main():
     p.add_argument('--continuation-updates',type=int)
     p.add_argument('--capacity-probe-updates',type=int)
     p.add_argument('--resume',type=Path);p.add_argument('--initialize-from',type=Path)
+    p.add_argument('--initialize-geometry-from',type=Path)
     p.add_argument('--git-commit',required=True);a=p.parse_args()
-    if a.resume and a.initialize_from:raise ValueError('choose resume or weights-only initialization')
+    if sum(bool(x) for x in (a.resume,a.initialize_from,a.initialize_geometry_from))>1:
+        raise ValueError('choose one resume/initialization source')
     config=read_json(a.config);stats=read_json(a.stats)
+    validate_geometry_config(config)
     recipe=validate_recipe(a.manifest,a.stats)
-    if a.capacity_probe_updates and (not a.resume or a.smoke or a.recovery_probe_updates
+    if a.capacity_probe_updates and (not (a.resume or a.initialize_geometry_from) or a.smoke or a.recovery_probe_updates
             or a.continuation_updates or not 3<=a.capacity_probe_updates<=16
             or recipe.get('local_subset_scope')!=EXPANDED_SCOPE):
         raise ValueError('capacity probe requires expanded-scope resume and3..16 updates')
@@ -123,7 +129,7 @@ def main():
     if last<1 or batch_size<1:raise ValueError('positive bounded steps/batch required')
     world=int(os.environ.get('WORLD_SIZE','1'));rank=int(os.environ.get('RANK','0'));local=int(os.environ.get('LOCAL_RANK','0'))
     validate_local_execution(config,recipe,world,last,batch_size)
-    if recipe.get('local_subset_scope') in LOCAL_SCOPES and not (a.resume or a.initialize_from):
+    if recipe.get('local_subset_scope') in LOCAL_SCOPES and not (a.resume or a.initialize_from or a.initialize_geometry_from):
         raise ValueError('local subset requires admitted initialization or its own strict resume')
     if recipe.get('local_subset_scope') == EXPANDED_SCOPE and world==1 and not a.capacity_probe_updates:
         raise ValueError('expanded production training requires three GPUs; world1 only for capacity')
@@ -149,6 +155,11 @@ def main():
     if a.initialize_from:
         saved=torch.load(a.initialize_from,map_location='cpu',weights_only=False)
         initialization_binding=initialize_weights(model,saved,a.initialize_from,recipe)
+        del saved
+    if a.initialize_geometry_from:
+        saved=torch.load(a.initialize_geometry_from,map_location='cpu',weights_only=False)
+        initialization_binding=initialize_geometry_weights(model,saved,a.initialize_geometry_from,config,identity)
+        if a.capacity_probe_updates is not None:last=min(last,a.capacity_probe_updates)
         del saved
     if a.resume:
         saved=torch.load(a.resume,map_location='cpu',weights_only=False)
@@ -191,7 +202,7 @@ def main():
         write(a.output/'config.json',config)
         write(a.output/'run-manifest.json',dict(schema=SCHEMA,work_version=SCHEMA,git_commit=a.git_commit,
             run_id=a.output.name,data_identity=identity,input_semantics=INPUT_SEMANTICS,label_semantics=LABEL_SEMANTICS,
-            objective_semantics=OBJECTIVE_SEMANTICS,engineering_smoke=a.smoke,device=device,world_size=world,
+            objective_semantics=objective_semantics(config),engineering_smoke=a.smoke,device=device,world_size=world,
             python=sys.version,torch=torch.__version__,cuda=torch.version.cuda,steps=last,batch_size=batch_size,
             execution_contract=contract,resume_binding=resume_binding,migration_binding=migration_binding,topology_transition=topology_transition,initialization_binding=initialization_binding,
             loader=dict(context=a.loader_context,workers=a.workers,timeout_s=a.loader_timeout),
@@ -213,6 +224,7 @@ def main():
             if best_step==step:best_path=str(target.resolve())
             if tau_best and tau_best['step']==step:tau_best=dict(tau_best,checkpoint=str(target.resolve()))
             torch.save(dict(schema=SCHEMA,data_identity=identity,config=config,step=step,world_size=world,
+                objective_semantics=objective_semantics(config),
                 execution_contract=contract,resume_binding=resume_binding,migration_binding=migration_binding,topology_transition=topology_transition,initialization_binding=initialization_binding,
                 elapsed_s=previous_elapsed+time.monotonic()-start,
                 selection=dict(score=best_score,step=best_step,checkpoint=best_path,trajectory=tau_best),
@@ -233,8 +245,11 @@ def main():
         if world>1:dist.barrier()
     if device.startswith('cuda'):torch.cuda.reset_peak_memory_stats()
     if first==1 and config.get('validation_before_training') and not (a.smoke or a.capacity_probe_updates):
-        evaluation=evaluate(model,dev,config,device)
-        write(a.output/'dev-step000000.json',evaluation)
+        if world>1:dist.barrier()
+        if rank==0:
+            evaluation=evaluate(model,dev,config,device)
+            write(a.output/'dev-step000000.json',evaluation)
+        if world>1:dist.barrier()
     wrapped.train()
     iterator=iter(loader);loader_failure=None
     for step in range(first,last+1):
@@ -259,7 +274,7 @@ def main():
         ev=[torch.cuda.Event(enable_timing=True) for _ in range(4)] if device.startswith('cuda') else None
         if ev:ev[0].record()
         with torch.autocast('cuda' if device.startswith('cuda') else 'cpu',dtype=torch.bfloat16,enabled=device.startswith('cuda') and config.get('amp',True)):
-            prediction=wrapped(batch);loss,terms=forecast_loss(prediction,batch,config,model.normalizer,world>1)
+            prediction=wrapped(batch);loss,terms=forecast_loss(prediction,batch,config,model.normalizer,world>1,step=step)
         if ev:ev[1].record()
         loss.backward()
         if ev:ev[2].record()
@@ -272,12 +287,15 @@ def main():
         loss_value=float(loss.detach());times.append(time.monotonic()-start)
         if len(times)>256:times.pop(0)
         if step<=first+2 or step%config['log_interval']==0:
-            values=torch.stack([terms[k].detach() for k in ('hand','scene','contact','part')])
+            term_names=('hand','scene','contact','part')+(('geometry_contact','geometry_clearance') if config.get('geometry_consistency') else ())
+            values=torch.stack([terms[k].detach() for k in term_names])
             sources=torch.tensor([draws[s] for s in range(11)],device=device,dtype=torch.long)
             if world>1:dist.all_reduce(values);values/=world;dist.all_reduce(sources)
             if rank==0:
-                means=dict(zip(('hand','scene','contact','part'),map(float,values)))
+                means=dict(zip(term_names,map(float,values)))
                 objective=config['hand_weight']*means['hand']+config['scene_weight']*means['scene']+config.get('interaction_weight',1.)*(means['contact']+means['part'])
+                if config.get('geometry_consistency'):
+                    objective+=active_geometry_weight(config,step)*(means['geometry_contact']+config['geometry_clearance_weight']*means['geometry_clearance'])
                 rate=(len(times)-1)/(times[-1]-times[0]) if len(times)>1 else None
                 event_valid=batch['event_valid'];event_type=batch['event_type']
                 event_counts=torch.stack([((event_type==k)&event_valid).sum() for k in range(3)]+[(~event_valid).sum()])
@@ -287,6 +305,7 @@ def main():
                     event_goal_gradient_norm_after_clip=event_grad,
                     event_goal_output_weight_norm=float(model.event_goal.encoder[-1].weight.detach().float().norm()),
                     status='RUNNING',step=step,loss=objective,terms=means,grad_norm=float(norm),
+                    geometry_weight=active_geometry_weight(config,step),
                     elapsed_s=previous_elapsed+times[-1],updates_per_s=rate,
                     eta_seconds=(last-step)/rate if rate else None,global_batch=batch_size*world,world_size=world,
                     source_ids=[s for s,c in enumerate(sources.tolist()) if c],
@@ -317,7 +336,8 @@ def main():
     if not (a.smoke or a.capacity_probe_updates) and completed_step>=first and last_saved!=completed_step:save(completed_step)
     if device.startswith('cuda'):torch.cuda.synchronize()
     signatures=None
-    if (a.smoke or a.recovery_probe_updates or a.continuation_updates) and world>1:
+    if (a.smoke or a.recovery_probe_updates or a.continuation_updates
+            or (config.get('geometry_consistency') and a.steps is not None)) and world>1:
         signature=torch.stack([torch.stack([p.detach().double().sum(),p.detach().double().square().sum()])
                                for p in model.parameters()]).sum(0)
         all_signatures=[torch.zeros_like(signature) for _ in range(world)]

@@ -25,6 +25,11 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261021-wam-v6-geometry-consistency:
+    seed_pool: probe
+    model_and_training_seed: 170
+    fixed_DEV_panel_seed: 171
+    reuse_reason: geometry-objective variant initialized from the current local WAM baseline; same exploratory seeds and fixed DEV panel, not independent replication
   P-20261021-wam-v6-local-subset:
     seed_pool: probe
     model_and_training_seed: 170

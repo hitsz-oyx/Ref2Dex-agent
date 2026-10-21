@@ -1,0 +1,138 @@
+"""Save latest baseline, audit geometric gradients, initialize bounded 3-GPU training."""
+import argparse
+import gc
+import os
+from pathlib import Path
+import signal
+import subprocess
+import sys
+import time
+import shutil
+import torch
+
+TASK=Path(__file__).resolve().parents[2];sys.path.insert(0,str(TASK/'src'))
+from ptv3_shared_wam_v6 import paths
+from ptv3_shared_wam_v6.geometry_consistency import GEOMETRY_ENCODING
+from launch_local_training import read,write,gpu_state,released,alive,verify_owned_process
+from launch_local_scaled import audit
+
+
+def main():
+    p=argparse.ArgumentParser(description=__doc__)
+    for key in ('baseline-output','recipe','output'):p.add_argument('--'+key,type=Path,required=True)
+    p.add_argument('--git-commit',required=True);a=p.parse_args()
+    a.output.mkdir(exist_ok=False);out=a.output.resolve();baseline=a.baseline_output.resolve()
+    state=dict(status='PREPARING',supervisor_pid=os.getpid(),git_commit=a.git_commit,
+        work_version='v6.geometry-consistency-supervisor.v1',experiment_id='P-20261021-wam-v6-geometry-consistency',
+        physical_gpus=[4,5,6],run_id=out.name,started_at=time.time(),stages=[])
+    def publish():write(out/'process.json',state)
+    publish();torch.set_num_threads(2)
+    old=read(baseline/'process.json')
+    if old['run_id']!='local-expanded-ddp-20261021-r1' or old['physical_gpus']!=[4,5,6]:
+        raise ValueError('only the confirmed user-owned WAM baseline may be stopped')
+    pids=[old['supervisor_pid'],old['stages'][-1]['pid']]
+    for pid in pids:
+        if alive(pid):verify_owned_process(pid,baseline.name)
+    if shutil.disk_usage(out).free<40*2**30:raise ValueError('insufficient transition/checkpoint peak headroom')
+    state.update(status='STOPPING_BASELINE',baseline_pids=pids,baseline_output=str(baseline));publish()
+    (baseline/'STOP').touch()
+    deadline=time.monotonic()+300
+    while any(alive(pid) for pid in pids):
+        if time.monotonic()>deadline:raise TimeoutError('baseline did not finish a saved stop; no forced process kill')
+        time.sleep(5)
+    result=read(baseline/'training/result.json')
+    if result['status'] not in ('STOPPED','COMPLETED'):raise ValueError('baseline did not exit at a complete boundary')
+    source=baseline/'training'/('step%06d.pt'%result['last_step'])
+    packet=torch.load(source,map_location='cpu',weights_only=False)
+    normalizer={k:v.clone() for k,v in packet['model'].items() if k.startswith('normalizer.')}
+    state['baseline_stop']=dict(status='VERIFIED',checkpoint=str(source),step=result['last_step'],
+        audit=audit(source,3,packet['config']['batch_size'],result['last_step'],normalizer))
+    config=dict(packet['config'],geometry_consistency=True,geometry_encoding=GEOMETRY_ENCODING,
+        geometry_weight=.05,geometry_clearance_weight=.25,geometry_warmup_updates=100,
+        geometry_queries=128,geometry_query_chunk=64,geometry_scale_m=.01,
+        geometry_clearance_tolerance_m=.002,geometry_proxy_max_gt_gap_m=.05,
+        geometry_ticks=[1,4,8,12,16,20,24],updates=10000,max_seconds=14400,
+        validation_before_training=True,validation_initial_step=20,validation_interval=500,
+        checkpoint_interval=500,log_interval=20)
+    del packet;gc.collect();released([4,5,6]);publish()
+    preliminary=out/'configuration-candidate.json';write(preliminary,config)
+    env=dict(os.environ,CUDA_VISIBLE_DEVICES='4,5,6',OMP_NUM_THREADS='2',MKL_NUM_THREADS='2',
+        OPENBLAS_NUM_THREADS='1',PYTHONDONTWRITEBYTECODE='1',NCCL_P2P_DISABLE='1',NCCL_DEBUG='WARN',
+        TORCH_NCCL_ASYNC_ERROR_HANDLING='1',NCCL_ASYNC_ERROR_HANDLING='1',TMPDIR=str(out),
+        TRITON_CACHE_DIR=str(out/'triton'),TORCH_EXTENSIONS_DIR=str(out/'extensions'))
+    requested=[];child=None
+    signal.signal(signal.SIGTERM,lambda *_:requested.append('SIGTERM'))
+    signal.signal(signal.SIGINT,lambda *_:requested.append('SIGINT'))
+    def run(name,command,environment,limit):
+        nonlocal child
+        current=out/name;record=dict(name=name,command=command,started_at=time.time())
+        state['stages'].append(record);state.update(status='RUNNING',phase=name);state.pop('progress',None);publish()
+        with (out/(name+'.log')).open('x') as log:
+            child=subprocess.Popen(command,env=environment,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
+            record['pid']=child.pid;publish();start=time.monotonic();deadline=None;last=start;previous=-1
+            while child.poll() is None:
+                telemetry=gpu_state();progress=current/'progress.json'
+                if progress.exists():
+                    row=read(progress);state['progress']=row
+                    if row['step']!=previous:previous=row['step'];last=time.monotonic()
+                reason=requested or ((out/'STOP').exists() and 'owned STOP')
+                if shutil.disk_usage(out).free<20*2**30:reason='disk floor'
+                if time.monotonic()-start>limit:reason='stage time budget'
+                if time.monotonic()-last>1200:reason='no progress for20min'
+                if reason and deadline is None:
+                    current.mkdir(exist_ok=True);(current/'STOP').touch();deadline=time.monotonic()+180
+                    state.update(status='STOPPING',stop_reason=reason)
+                if deadline and time.monotonic()>deadline:raise TimeoutError('owned child ignored STOP')
+                state.update(gpu=telemetry,free_gib=shutil.disk_usage(out).free/2**30,elapsed_s=time.time()-state['started_at']);publish()
+                with (out/'gpu.jsonl').open('a') as gpu:gpu.write(__import__('json').dumps(dict(time=time.time(),phase=name,gpus=telemetry))+'\n')
+                time.sleep(10)
+        record['exit_code']=child.returncode
+        result=read(current/'result.json') if (current/'result.json').exists() else {}
+        record['result']=result;publish();return result,child.returncode,record
+    def command(name,config_path,world,checkpoint=None,extra=()):
+        prefix=[sys.executable,'-u'] if world==1 else [sys.executable,'-m','torch.distributed.run','--standalone','--nnodes=1','--nproc_per_node=3']
+        args=prefix+[str(Path(__file__).with_name('train_pretrain.py')),'--config',str(config_path),
+            '--manifest',str(a.recipe.resolve()),'--stats',str(a.recipe.parent/'stats.json'),
+            '--output',str(out/name),'--workers','8' if world==3 else '4','--git-commit',a.git_commit]
+        args+=['--resume',str(checkpoint)] if checkpoint else ['--initialize-geometry-from',str(source)]
+        return args+list(extra)
+    try:
+        preflight=[sys.executable,'-u',str(TASK/'tools/audit/check_geometry_gradients.py'),
+            '--config',str(preliminary),'--manifest',str(a.recipe.resolve()),'--stats',str(a.recipe.parent/'stats.json'),
+            '--checkpoint',str(source),'--output',str(out/'gpu-preflight')]
+        _,code,_=run('gpu-preflight',preflight,dict(env,CUDA_VISIBLE_DEVICES='4'),600)
+        if code:raise RuntimeError('real geometry gradient/coverage preflight failed')
+        gradient=read(out/'gpu-preflight/report.json');state['gradient_preflight']=gradient
+        config['geometry_weight']=gradient['recommended_geometry_weight'];publish()
+        selected=None
+        for batch in (96,80,64):
+            released([4,5,6]);candidate=dict(config,batch_size=batch)
+            path=out/('config-b%d.json'%batch);write(path,candidate);name='capacity-b%d'%batch
+            result,code,record=run(name,command(name,path,1,extra=['--capacity-probe-updates','8']),dict(env,CUDA_VISIBLE_DEVICES='4'),600)
+            if code:
+                if 'out of memory' in (out/(name+'.log')).read_text().lower():continue
+                raise RuntimeError('geometry capacity test failed')
+            if result.get('status')!='COMPLETED':raise RuntimeError('capacity test did not complete')
+            if result['peak_reserved_gib']<=21.5:
+                selected=(batch,path,candidate);record['selected']=True;break
+        if selected is None:raise RuntimeError('no bounded geometry batch passed capacity')
+        batch,config_path,config=selected;state.update(local_batch=batch,global_batch=batch*3,
+            geometry_weight=config['geometry_weight'],target_updates=10000,max_seconds=14400);publish()
+        released([4,5,6]);checkpoint=None
+        for name,extra in [('readiness',['--steps','8']),('strict-recovery',['--recovery-probe-updates','2']),('training',[])]:
+            result,code,record=run(name,command(name,config_path,3,checkpoint,extra),env,1800 if name!='training' else 14700)
+            if code:raise RuntimeError('geometry '+name+' failed; inspect log')
+            if result['status']!='COMPLETED':state.update(status=result['status']);publish();return
+            step=result['last_step'];checkpoint=out/name/('step%06d.pt'%step)
+            record['checkpoint_audit']=audit(checkpoint,3,batch,step,normalizer);publish()
+        state.update(status='COMPLETED');publish()
+    except BaseException as error:
+        state.update(status='FAILED',error=repr(error));publish();raise
+    finally:
+        if child is not None and child.poll() is None:
+            os.killpg(child.pid,signal.SIGTERM)
+            try:child.wait(timeout=20)
+            except subprocess.TimeoutExpired:os.killpg(child.pid,signal.SIGKILL);child.wait()
+
+
+if __name__=='__main__':main()
