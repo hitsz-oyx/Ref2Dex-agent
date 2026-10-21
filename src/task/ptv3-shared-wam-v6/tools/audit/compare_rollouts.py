@@ -69,7 +69,7 @@ def score(real, pred, valid, present):
 
 def run(args):
     started=time.monotonic();out=args.output.resolve()
-    out.mkdir(parents=True,exist_ok=False)
+    out.mkdir(parents=True,exist_ok=args.continue_existing)
     if __import__('shutil').disk_usage(out).free<25*2**30:raise ValueError('25GiB preflight floor')
     torch.set_num_threads(2);torch.manual_seed(246)
     torch.backends.cuda.matmul.allow_tf32=False
@@ -86,6 +86,10 @@ def run(args):
         'apple uses measured sparse11 with remaining joints/skin explicitly invalid, no fabricated FK',
         'future hand never enters history; predicted skin is a transported proxy',
         'offline motion-only, no physical execution or contact forces'])
+    if args.continue_existing:
+        report=read(out/'result.json')
+        if report['work_version']!='v6.matched-rollout.v1':raise ValueError('different evaluation protocol')
+        report.setdefault('continuation_commits',[]).append(args.git_commit)
     write(out/'result.json',report)
     for label,checkpoint in models:
         saved=torch.load(checkpoint,map_location='cpu',weights_only=False);config=saved['config']
@@ -105,6 +109,7 @@ def run(args):
             if not np.isfinite(h).all() or not np.isfinite(s).all():raise ValueError('nonfinite prediction')
             return h,s
         for case,record in enumerate(old['reports']):
+            if any(r['model']==label and r['kind']=='grab' and r['case']==case for r in report['reports']):continue
             folder=dataset_root/'hands/sequences'/('s1-%05d'%record['source_sequence_id'])
             meta=read(folder/'meta.json');assert meta['source_sequence']==record['sequence']
             seq={p.stem:np.load(p,mmap_mode='r') for p in folder.glob('*.npy')}
@@ -171,6 +176,7 @@ def apple(args,out,label,forward,report):
     np.testing.assert_allclose(geo['query'],base['flow_query'],atol=1e-7,rtol=0)
     actual=base['teacher_hand'];real_pose=base['object_poses'];n=len(actual);ids=np.asarray(SPARSE11_IN_21)
     for mode in ('fixed','scheduler-unknown','scheduler-events'):
+        if any(r['model']==label and r['kind']=='apple' and r['mode']==mode for r in report['reports']):continue
         ctl=TaskController(TaskSpec.from_packet(ep['task_spec']),ep['object_points'])
         hand=np.zeros((n,2,21,3));pose=np.full_like(real_pose,np.nan);dense=np.zeros((4,2,778,3),np.float32)
         for t in range(4):hand[t,0,ids]=actual[t]
@@ -191,7 +197,8 @@ def apple(args,out,label,forward,report):
                 future=hand[t]+hd@pose[t,:3,:3].T;objects,_=forecast_object_poses(geo['query'],sd,pose[t])
             except (ValueError,RuntimeError) as e:stop=dict(tick=t,reason=str(e));break
             for k,frame in enumerate(range(t+1,min(t+9,n))):
-                hand[frame]=future[k];pose[frame]=objects[k];valid[frame]=True;decision=observe(frame)
+                hand[frame]=future[k];pose[frame]=objects[k];valid[frame]=True
+                if mode!='fixed':decision=observe(frame)
                 if mode!='fixed' and decision.terminated:stop=dict(tick=frame,reason=decision.failure_reason or 'task_complete');break
             if stop:break
         pred=hand[:,0,ids];present=np.ones((1,11),bool)
@@ -256,4 +263,5 @@ def render(args):
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('mode',choices=['infer','render']);p.add_argument('--output',type=Path,required=True)
     p.add_argument('--parent',type=Path);p.add_argument('--geometry',type=Path);p.add_argument('--stats',type=Path);p.add_argument('--git-commit')
+    p.add_argument('--continue-existing',action='store_true')
     args=p.parse_args();run(args) if args.mode=='infer' else render(args)

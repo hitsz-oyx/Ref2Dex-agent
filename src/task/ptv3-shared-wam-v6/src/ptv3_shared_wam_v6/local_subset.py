@@ -109,8 +109,9 @@ def initialize_geometry_weights(model, saved, checkpoint, config, identity):
         if value.is_floating_point() and not torch.isfinite(value).all():
             raise ValueError('nonfinite geometry initialization tensor: '+name)
     model.load_state_dict(saved['model'], strict=True)
-    return dict(kind='weights-only-new-geometry-objective', checkpoint=str(checkpoint.resolve()),
+    return dict(kind=('weights-only-matched-no-geometry-control' if config.get('geometry_loss_disabled') else 'weights-only-new-geometry-objective'), checkpoint=str(checkpoint.resolve()),
         source_step=saved['step'],source_data_identity=identity,source_objective='v5.global-masked-joint21-surface16.v1',
         optimizer_restored=False,rng_restored=False,training_step_reset=True,
         normalization='exact inherited checkpoint buffers',
-        reset_reason='new auxiliary objective; fresh optimizer/RNG/warmup/selection and an independent training budget')
+        reset_reason=('matched fresh-optimizer control of geometry objective' if config.get('geometry_loss_disabled') else
+                      'new auxiliary objective; fresh optimizer/RNG/warmup/selection and an independent training budget'))

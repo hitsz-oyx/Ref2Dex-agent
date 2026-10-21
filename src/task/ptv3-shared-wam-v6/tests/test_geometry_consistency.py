@@ -133,3 +133,31 @@ def test_geometry_initialization_preserves_weights_and_rejects_scale_or_data_cha
     model.normalizer.hand_std.fill_(2.)
     with pytest.raises(ValueError,match='normalization'):
         initialize_geometry_weights(model,saved,tmp_path/'latest.pt',geometry_config(),'same')
+
+
+def test_matched_control_exactly_reproduces_base_loss_and_gradients_without_geometry_graph(monkeypatch):
+    from test_v5_contract import Geometry,config,stats,batch
+    from ptv3_shared_wam_v6.model import SharedWAMV6
+    from ptv3_shared_wam_v6.contracts import SCHEMA
+    from ptv3_shared_wam_v6.events import EVENT_ENCODING
+    from ptv3_shared_wam_v6 import objectives
+    c=dict(config(),**geometry_config(),geometry_loss_disabled=True)
+    c.update(schema=SCHEMA,event_conditioning=True,event_encoding=EVENT_ENCODING,checkpoint_contact=False)
+    m=SharedWAMV6(stats(),c,Geometry(8)).train();b=batch();b['dense_hand_part'].fill_(3)
+    b.update(event_type=torch.tensor([1]),event_delta_steps=torch.tensor([8.]),event_valid=torch.tensor([True]),event_hz=torch.tensor([30]))
+    prediction=m(b)
+    def forbidden(*args,**kwargs):raise AssertionError('control must not build a geometry autograd graph')
+    original=objectives.geometry_components;monkeypatch.setattr(objectives,'geometry_components',forbidden)
+    control,ct=forecast_loss(prediction,b,c,m.normalizer,step=500)
+    baseline,bt=forecast_loss(prediction,b,dict(c,geometry_consistency=False),m.normalizer,step=500)
+    torch.testing.assert_close(control,baseline,rtol=0,atol=0)
+    parameters=(m.hand_future.mlp[-1].weight,m.scene_future.mlp[-1].weight)
+    left=torch.autograd.grad(control,parameters,retain_graph=True)
+    right=torch.autograd.grad(baseline,parameters,retain_graph=True)
+    for a,z in zip(left,right):torch.testing.assert_close(a,z,rtol=0,atol=0)
+    assert 'geometry_contact' not in ct and objectives.active_geometry_weight(c,500)==0
+    assert objectives.objective_semantics(c)==objectives.BASE_SEMANTICS
+    monkeypatch.setattr(objectives,'geometry_components',original)
+    diagnostics=objectives.loss_components(prediction,b,c,m.normalizer,torch.float64)
+    assert diagnostics.geometry_diagnostics is not None
+    assert 'geometry_contact' in diagnostics

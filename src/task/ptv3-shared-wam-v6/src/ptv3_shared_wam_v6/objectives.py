@@ -9,11 +9,11 @@ GEOMETRY_OBJECTIVE = 'v6.global-masked-joint21-surface16.geometry-relative.v1'
 
 
 def objective_semantics(config):
-    return GEOMETRY_OBJECTIVE if config.get('geometry_consistency') else BASE_SEMANTICS
+    return GEOMETRY_OBJECTIVE if config.get('geometry_consistency') and not config.get('geometry_loss_disabled') else BASE_SEMANTICS
 
 
 def active_geometry_weight(config, step=None):
-    if not config.get('geometry_consistency'):return 0.
+    if not config.get('geometry_consistency') or config.get('geometry_loss_disabled'):return 0.
     warmup = config['geometry_warmup_updates']
     return config['geometry_weight']*(min(1., step/warmup) if step is not None else 1.)
 
@@ -41,7 +41,10 @@ def combine_components(means,config,step=None):
 
 
 def forecast_loss(prediction,batch,config,normalizer,distributed=False,step=None):
-    components=loss_components(prediction,batch,config,normalizer)
-    total,terms=combine_components(normalized_components(components,distributed),config,step)
+    # Matched control removes the entire geometry autograd graph. Evaluation
+    # still measures geometric diagnostics through loss_components above.
+    training_config=dict(config,geometry_consistency=False) if config.get('geometry_loss_disabled') else config
+    components=loss_components(prediction,batch,training_config,normalizer)
+    total,terms=combine_components(normalized_components(components,distributed),training_config,step)
     terms['components']=components
     return total,terms

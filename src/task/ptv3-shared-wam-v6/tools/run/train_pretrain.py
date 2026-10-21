@@ -102,10 +102,13 @@ def main():
     p.add_argument('--capacity-probe-updates',type=int)
     p.add_argument('--resume',type=Path);p.add_argument('--initialize-from',type=Path)
     p.add_argument('--initialize-geometry-from',type=Path)
+    p.add_argument('--preserve-all-checkpoints',action='store_true')
+    p.add_argument('--checkpoint-budget-gib',type=int,default=32)
     p.add_argument('--git-commit',required=True);a=p.parse_args()
     if sum(bool(x) for x in (a.resume,a.initialize_from,a.initialize_geometry_from))>1:
         raise ValueError('choose one resume/initialization source')
     config=read_json(a.config);stats=read_json(a.stats)
+    if not 8<=a.checkpoint_budget_gib<=32:raise ValueError('checkpoint preservation budget must be8..32GiB')
     validate_geometry_config(config)
     recipe=validate_recipe(a.manifest,a.stats)
     if a.capacity_probe_updates and (not (a.resume or a.initialize_geometry_from) or a.smoke or a.recovery_probe_updates
@@ -208,6 +211,7 @@ def main():
             loader=dict(context=a.loader_context,workers=a.workers,timeout_s=a.loader_timeout),
             trajectory_selection_protocol=TAU_SELECTION,recovery_probe=bool(a.recovery_probe_updates),continuation_updates=a.continuation_updates,
             event_recipe=recipe,capacity_probe_updates=a.capacity_probe_updates,
+            checkpoint_preservation=dict(all=a.preserve_all_checkpoints,budget_gib=a.checkpoint_budget_gib),
             source_ids=dataset.meta['source_ids'],max_seconds=config['max_seconds'],min_free_gib=20,config=config))
     start=time.monotonic();times=[];events=[];seen=set();draws=Counter();loss_value=None;step=first-1;completed_step=first-1;checkpoints_written=0;last_saved=None
 
@@ -238,8 +242,9 @@ def main():
             protected=retained_steps([int(f.stem[4:]) for f in recent],config)|({best_step} if best_step else set())
             if tau_best:protected.add(tau_best['step'])
             for old in recent:
-                if int(old.stem[4:]) not in protected:old.unlink()
-            if sum(f.stat().st_size for f in a.output.iterdir() if f.is_file() and not f.is_symlink())>config['artifact_budget_bytes']:
+                if not a.preserve_all_checkpoints and int(old.stem[4:]) not in protected:old.unlink()
+            artifact_budget=a.checkpoint_budget_gib*2**30 if a.preserve_all_checkpoints else config['artifact_budget_bytes']
+            if sum(f.stat().st_size for f in a.output.iterdir() if f.is_file() and not f.is_symlink())>artifact_budget:
                 raise RuntimeError('owned v6 artifact budget exceeded')
         last_saved=step
         if world>1:dist.barrier()
