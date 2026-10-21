@@ -36,10 +36,10 @@ def main():
         raise ValueError('at least8GiB free on the explicitly selected GPU required')
     stats = json.loads(args.stats.read_text())
     dataset = V6Windows(args.manifest, 'train')
-    dataset.pools = {1: dataset.pools[1]}
+    dataset.pools = {'1': dataset.pools['1']}
     eval_config = dict(config, validation_seed=170, validation_samples=32,
                        validation_microbatch_size=2)
-    indices = np.random.default_rng(170).choice(dataset.pools[1], 32, replace=False).tolist()
+    indices = np.random.default_rng(170).choice(dataset.pools['1'], 32, replace=False).tolist()
     report = dict(status='RUNNING', scope='fixed32 GRAB TRAIN examples, inference only; actual production evaluator',
                   seed=170, indices=indices, python=sys.version, torch=torch.__version__,
                   git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
@@ -52,7 +52,7 @@ def main():
         step = int(saved['step']);del saved;gc.collect()
         torch.cuda.reset_peak_memory_stats()
         evaluation = evaluate_condition(model, dataset, eval_config, 'cuda:0')
-        source = evaluation['sources'][1]
+        source = evaluation['sources']['1']
         metrics = source['metrics']
         summary = dict(hand_mm=source['hand_epe_mm'],
             object_h08_mm=metrics['scene/h08']['mean'], object_h24_mm=metrics['scene/h24']['mean'],
