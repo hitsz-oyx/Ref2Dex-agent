@@ -1,5 +1,35 @@
 # WAM v6 state — 2026-10-21
 
+## 2026-10-21 Independent local subset training RUNNING
+
+User authorized completing preparation, saving/stopping PPO and starting WAM.
+1177 local sequences/33672 TRAIN/3356 DEV windows admitted under an explicit
+local-only subset scope, disjoint sequences; original engineering data unchanged.
+Initialize model-only from local step23758, exact inherited normalizer buffers,
+new optimizer/RNG/count. GRAB~98.81% TRAIN sampling; no new coupling loss or
+claim of strict full-nine-source continuation. All original full-recipe gates
+remain strict.21 v6 tests pass; real2351 reader endpoints pass.
+
+PPO saved/stopped normally at1575, complete61,158,850byte checkpoint verified;
+all3 ranks/six workers/supervisor exited. WAM8-step save→2-step strict resume
+passed:568 optimizer states all at8 then10, finite and scales unchanged. Frozen
+d20b565c; current local-subset-pretrain-20261021-r2 training step80 at startup,
+GPU4 single/local64/global64, LR1e-5/warmup50, target2000 or cumulative4h.
+Measured1.36updates/s, allocated peak9.54GiB/physical12–13GiB, GPU76–100%;
+GPU5/6 idle, free216.92GiB. Initial ETA~30min including approximate overhead,
+not a promised completion time. First r1 attempt had no update, failed on long
+IPC socket path; fixed with project-local short tmp path, preserved evidence.
+
+Latest sustained checkpoint/DEV200 published. GRAB hand EPE49.9303→51.5141mm,
+macro loss1.077912→1.065935; no accuracy benefit established. Continue the bounded
+pilot, preserving initial/readiness/best checkpoints and reporting metrics apart.
+[Local training card](experiments/probes/P-20261021-wam-v6-local-subset.md).
+Live: outputs/ptv3-shared-wam-v6/local-subset-pretrain-20261021-r2/process.json;
+startup-acceptance.json and training/progress.json; supervisor806802/worker810310.
+Root STOP requests saved termination. Existing remote strict resume remains
+blocked on its recipe/stats/index inputs; local adaptation does not replace it.
+
+
 ## 2026-10-21 Local data subset prepared; no training
 
 Fresh source-header inventory covers39526 sequences. Target /home2 (/dev/md0)

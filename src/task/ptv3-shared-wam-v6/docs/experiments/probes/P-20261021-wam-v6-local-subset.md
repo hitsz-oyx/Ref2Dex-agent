@@ -5,7 +5,7 @@ experiment_id: P-20261021-wam-v6-local-subset
 date: 2026-10-21
 task: ptv3-shared-wam-v6
 branch: main
-git_commit: pending
+git_commit: d20b565c
 claim_id: C1
 hypothesis_family: HF-v6-local-adaptation
 probe_index_in_family: 1
@@ -13,8 +13,8 @@ seed_pool: probe
 seeds: [170,171]
 decision_changed_if_positive: use the bounded local recipe for subsequent contact-consistency and rollout interventions
 decision_changed_if_negative: resolve training or data mismatch before investing in coupling changes
-status: PREPARING
-run_id: local-subset-pretrain-20261021-r1
+status: RUNNING
+run_id: local-subset-pretrain-20261021-r2
 ---
 
 # Local GRAB-dominant WAM-v6 adaptation
@@ -63,11 +63,61 @@ leaving the sustained run active. No guarantee that local adaptation cures
 free-feedback drift or improves physical grasping.
 
 Outputs: outputs/ptv3-shared-wam-v6/local-subset-recipe-20261021-r1/ and
-outputs/ptv3-shared-wam-v6/local-subset-pretrain-20261021-r1/; readiness and
+outputs/ptv3-shared-wam-v6/local-subset-pretrain-20261021-r2/; readiness and
 recovery use separate sibling directories. Logs/code archive and switch receipt
 belong to the declared output/tmp directories. Environment: local graspenv,
 Python3.8.20/Torch2.4.1+cu121; inspect runtime at startup.
 
 ## Results
 
-Preparation in progress. No training result claimed yet.
+Preparation PASS:2351 actual V6 reader endpoints,1177 sequences,33672 TRAIN/3356
+DEV windows, no shared sequence IDs.7 initial focused tests passed; an additional
+full-recipe-versus-subset admission regression makes8 passing tests. Code
+preparation d1079f6a; launch fixed d20b565c and archived under
+`tmp/local-subset-pretrain-20261021-r2/`. Third-party PointWorld is a read-only
+symlink to the installed repository dependency. Runtime versions are written
+into each stage run-manifest.
+
+PPO r3 normal STOP at1575: all3 ranks STOPPED,6 workers/supervisor exited,
+61,158,850byte final model+optimizer CPU-loaded and finite. No unrelated
+processes stopped. First r1 readiness failed before any optimizer update due
+to AF_UNIX path length in the long output directory; retained as diagnostic
+evidence. Fixed by putting multiprocessing IPC under the project's short
+`tmp/v6i-<pid>` path. r2 rechecks the saved PPO checkpoint and reuses its normal
+STOP; no redundant training/resume of PPO.
+
+Readiness8 updates and strict recovery8→10 PASS. Complete1,186,322,105byte
+checkpoint has568 optimizer states, all at8; recovery has all568 at10. Both
+full CPU audits find finite weights/moments and identical inherited normalizer
+buffers. Actual entrypoint resume/config/data/effective batch bindings verified.
+Sustained training active onGPU4 at startup acceptance step80, loss1.132238,
+1.3559updates/s, CUDA allocated peak9.54GiB. Last four15s GPU samples show
+99/76/78/100% utilization, physical memory12,075–13,271MiB. GPUs5/6 remain2MiB
+and0%; unrelated0–3/7 jobs unchanged. Free disk216.92GiB. Measured remaining
+step-only ETA23.6min excludes periodic DEV/checkpoints; initial planning~30min,
+with4h upper boundary. These are startup measurements, not completion claims.
+
+Fixed DEV GRAB hand EPE at initialization49.9303mm, after8 updates49.8771mm;
+source-macro objective1.077912→1.076177. This tiny startup difference is not
+scientific evidence of improvement. No new rollout/physical success measured.
+Baseline and current DEV panels are not interchangeable with the remote full
+recipe; do not compare their scores as if evaluation admission were identical.
+
+Live receipt: outputs/ptv3-shared-wam-v6/local-subset-pretrain-20261021-r2/process.json.
+Startup acceptance: same directory/startup-acceptance.json; per-stage config,
+run-manifest, progress, DEV reports and checkpoints under readiness/recovery/training.
+Conda history exported; Python3.8.20, Torch2.4.1+cu121/CUDA12.1. Supervisor806802,
+training worker810310. STOP at the run root requests a controlled saved exit.
+
+Repository verification:21 tests in the complete v6 test suite passed after the final fix; changed-document/seed/card checks pass. The global `tools/verify.py
+--changed` was also run, and fails on pre-existing missing v2 schema fields in
+six trajectory-policy experiment cards. Those unrelated cards were left intact;
+no new-card or seed-ledger failure was reported.
+
+First scheduled sustained DEV at200 is published. GRAB hand EPE51.5141mm versus
+initial49.9303mm; macro objective1.065935 versus1.077912. Thus loss improvement
+must not be presented as improved hand trajectory accuracy. Continue the bounded
+2000-update adaptation to observe the prescribed trajectory metrics; do not
+promote it as a better execution model based on this early result. Original
+initialization and readiness checkpoints remain intact. The first sustained
+checkpoint CPU audit is recorded in sustained-acceptance.json.

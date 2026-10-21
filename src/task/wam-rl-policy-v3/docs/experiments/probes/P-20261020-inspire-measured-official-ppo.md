@@ -13,9 +13,18 @@ seed_pool: probe
 seeds: [246, 247, 248]
 decision_changed_if_positive: continue the measured goal WAM policy improvement route
 decision_changed_if_negative: diagnose measured training dynamics before adding scale or changing the method
-status: RUNNING
+status: STOPPED
 run_id: inspire-measured-official-20261020-r3
 ---
+
+2026-10-21 user-authorized resource switch: r3 normal STOP at1575; all3 ranks
+STOPPED, six workers and supervisor exited. Final rank0 checkpoint61,158,850bytes
+CPU-loaded with finite model/optimizer and nonempty optimizer state. Training
+count53347 completed episodes, full-task successes0; this is not deterministic
+evaluation or proof of zero grasp/lift rate. Source mismatches/sync errors0.
+Preserved final checkpoint and all evidence; no PPO restart. GPU4 now supports
+local WAM adaptation; GPU5/6 idle. Switch verification is in
+outputs/ptv3-shared-wam-v6/local-subset-pretrain-20261021-r2/process.json.
 
 User requests starting PPO now onGPU4/5/6 concurrently with independent
 trajectory visualization onGPU7. This is an explicit resource allocation for

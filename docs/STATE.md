@@ -1,3 +1,14 @@
+## 2026-10-21 PPO已保存停止，本地WAM子集训练启动
+
+PPO r3按用户授权正常停在1575，完整model/optimizer checkpoint已校验，三rank及全部
+worker退出。本地WAM独立配方1177序列/33672 TRAIN/3356 DEV，step23758仅模型初始化、
+保留原归一化，新优化器；8步保存+2步严格恢复通过，持续训练已到至少200步。GPU4单卡64，
+GPU5/6保留空闲，2000步或4h边界，当前约1.36步/s、显存allocated9.54GiB、盘余216.92GiB。
+这是GRAB为主的独立子集适配，未新增接触一致性loss，未声称解决漂移或原九源严格续训。
+首个DEV200的GRAB手EPE49.93→51.51mm，宏loss下降不能等同轨迹改善；继续有界观察。
+[训练状态](../src/task/ptv3-shared-wam-v6/docs/STATE.md)、
+[实验卡](../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261021-wam-v6-local-subset.md)。
+
 ## 2026-10-21 Inspire到1570轮，确认reward日志遗漏与比较边界
 
 10:24北京时间，GPU4/5/6三rank均到1570轮，supervisor及六worker存活；

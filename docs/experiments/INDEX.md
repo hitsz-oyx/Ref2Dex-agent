@@ -638,8 +638,8 @@
 | [P-20261019-inspire-scheduled-executor](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261019-inspire-scheduled-executor.md) | P-20261019-inspire-scheduled-executor | 见原卡 | 见原卡 | probes/UNCLEAR |
 | [P-20261019-inspire-shadow-parity](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261019-inspire-shadow-parity.md) | P-20261019-inspire-shadow-parity | 见原卡 | 见原卡 | probes/RUNNING |
 | [P-20261019-inspire-task-contract](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261019-inspire-task-contract.md) | P-20261019-inspire-task-contract | 见原卡 | re-audit the same immutable660 raw executions, preserving all other | probes/COMPLETED |
-| [P-20261020-inspire-measured-official-ppo](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-inspire-measured-official-ppo.md) | P-20261020-inspire-measured-official-ppo | 见原卡 | can the actually measured goal+WAM observation support policy | probes/RUNNING |
-| [P-20261020-wam-mano-preview](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-wam-mano-preview.md) | P-20261020-wam-mano-preview | 见原卡 | 见原卡 | probes/COMPLETED |
+| [P-20261020-inspire-measured-official-ppo](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-inspire-measured-official-ppo.md) | P-20261020-inspire-measured-official-ppo | 见原卡 | can the actually measured goal+WAM observation support policy | probes/STOPPED |
+| [P-20261020-wam-mano-preview](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-wam-mano-preview.md) | P-20261020-wam-mano-preview | 见原卡 | separate an Inspire deployment mismatch from failures already present | probes/COMPLETED |
 
 ## HF-shadow-bc-ppo
 
@@ -904,6 +904,12 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261019-wam-v6-event-continuation](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261019-wam-v6-event-continuation.md) | Four-GPU v6 event-goal continuation readiness | 见原卡 | retain ready v6 checkpoints; keep v5 running pending a separate long-run choice. | probes/COMPLETED |
+
+## HF-v6-local-adaptation
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261021-wam-v6-local-subset](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261021-wam-v6-local-subset.md) | Local GRAB-dominant WAM-v6 adaptation | 见原卡 | 见原卡 | probes/RUNNING |
 
 ## HF-video-data-readiness
 
