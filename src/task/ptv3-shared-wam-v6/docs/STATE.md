@@ -1,3 +1,14 @@
+# 2026-10-21 FP32 stable through3000; short-horizon gain unresolved
+
+Actual strict-FP32/backend arm has passed the BF16 instability interval.
+At3040 gradient0.761 versus BF16=83.95; shared/context RMS3.63/5.64.
+GRAB fixed DEV3000 hand52.229mm, object-h24=14.150mm versus BF16=39.462mm
+and own init15.829mm. Object-h08=33.398mm still worse than init30.934mm.
+Available-source macro hand32.647→33.244mm and DEV objective1.1253→1.1743
+worsen; no overall accuracy or rollout-drift claim. Continue unchanged4h bound,
+about50min remaining; GPUs99–100%, free184GiB. No new rolling video evaluation.
+[Precision experiment](experiments/probes/P-20261021-wam-v6-strict-fp32.md).
+
 # 2026-10-21 Healthy4371 strict FP32 training RUNNING
 
 User-requested healthy-start full FP32 arm actually launched, frozen1b57a487,

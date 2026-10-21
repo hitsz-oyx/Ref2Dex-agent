@@ -185,3 +185,35 @@ and object h08 still do not improve versus initialization. BF16 also had finite
 small gradients through600, so this prefix cannot show prevention of its later
 instability. No new rolling execution/video evaluated. Receipt in output root:
 status-dev500-comparison.json. Next decision checkpoint remains DEV1000+.
+
+## Fixed DEV3000 / live3060 monitoring
+
+The precision/backend arm has crossed the old BF16 instability interval. Logged
+FP32 max gradient through3040=1.4248 versus BF16=237.22; at3040 norms0.7614 versus
+83.9506. Shared/context RMS remain3.634/5.640 in the live FP32 batch. These
+minibatch RMS measurements are not identical-input checkpoint diagnostics.
+
+Same fixed GRAB DEV, mm:
+
+| Metric | FP32 init | FP32 step3000 | BF16 step3000 |
+| --- | ---: | ---: | ---: |
+| Hand mean |52.6872|52.2290|56.6400|
+| Object h08 |30.9338|33.3978|34.3479|
+| Object h24 |15.8287|14.1503|39.4621|
+| Geometry relative |22.5406|19.2128|27.1794|
+
+Object h24 is about64% lower than matched BF16, and~11% lower than own init.
+Hand mean changes little versus init; the consumed8-frame object endpoint still
+worsens~8% versus init. Available-source macro hand32.6466→33.2437mm and total
+DEV objective1.12533→1.17428 also worsen; do not promote GRAB results to an overall
+accuracy improvement. Macro object-h24=9.8422→9.6464mm (BF16 step3000=31.4737).
+No new rolling execution/video measured. Precision and kernel backend changed
+together, so this one matched exploratory arm does not isolate precision alone.
+
+Actual run continues with no config changes; loss0.69814,
+throughput0.270updates/s, allocated peak15.988GiB,
+physical~22GiB/card, GPUs99–100%, free184.27GiB. Remaining declared
+training budget approximately48.8min; keep original
+4h boundary and saved stop. Receipt: status-dev3000-comparison.json in run root.
+Decision: finish the bounded arm; stability has improved through3000, but useful
+8-frame trajectory gain and rolling drift reduction remain unresolved.
