@@ -111,15 +111,16 @@ def main():
         raise ValueError('insufficient disk peak headroom before switch')
     metadata = read(ppo/'manifest.json')
     if (metadata['run_id'] != 'inspire-measured-official-20261020-r3'
-            or metadata['status'] != 'RUNNING' or metadata['gpus'] != [4, 5, 6]):
+            or metadata['status'] not in ('RUNNING', 'STOPPED') or metadata['gpus'] != [4, 5, 6]):
         raise ValueError('only the user-authorized active PPO r3 may be stopped')
     marker = 'inspire-measured-official-20261020-r3'
     pids = [int(metadata['pid'])]+[int(row['pid']) for row in metadata['stages']]
     for pid in pids:
         if alive(pid): verify_owned_process(pid, marker)
     state.update(status='STOPPING_PPO', ppo_output=str(ppo), ppo_pids=pids,
-                 ppo_before=[read(ppo/('rank-'+str(r))/'progress.json') for r in range(3)])
-    publish(); (ppo/'STOP').touch(exist_ok=False)
+                 ppo_before=[read(ppo/('rank-'+str(r))/'progress.json') for r in range(3)],
+                 existing_stop_requested=(ppo/'STOP').exists())
+    publish(); (ppo/'STOP').touch(exist_ok=True)
     deadline = time.monotonic()+300
     while any(alive(pid) for pid in pids):
         if time.monotonic() > deadline:

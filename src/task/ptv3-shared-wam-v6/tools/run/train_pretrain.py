@@ -172,8 +172,8 @@ def main():
                 num_workers=a.workers,pin_memory=device.startswith('cuda'),
                 generator=torch.Generator().manual_seed(seed*1009+rank))
     if a.workers:
-        ipc=a.output.resolve()/'ipc'
-        ipc.mkdir(exist_ok=True,mode=0o700)
+        ipc=Path(os.environ.get('REF2DEX_RUN_ROOT',paths.ROOT))/'tmp'/('v6i-'+str(os.getpid()))
+        ipc.mkdir(parents=True,exist_ok=True,mode=0o700)
         os.environ['TMPDIR']=str(ipc);tempfile.tempdir=str(ipc)
         multiprocessing.current_process()._config['tempdir']=str(ipc)
     kwargs.update(loader_options(a.workers,a.loader_timeout,a.loader_context))
