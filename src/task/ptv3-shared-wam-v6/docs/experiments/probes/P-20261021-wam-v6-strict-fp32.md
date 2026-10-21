@@ -238,3 +238,50 @@ Python graspenv/Torch2.4.1+cu121, model and precision code1b57a487, eval mode an
 real current-observation/planned-event data. Seed170 is diagnostic reuse from
 the same exploratory arm, not an independent replication. Audit script commit
 and selected indices will be saved in the report under the existing run.
+
+### Fixed TRAIN diagnostic completed: generalization gap, not demonstrated capacity saturation
+
+Bounded probe completed in20.10s on GPU7, peak allocated<0.453GiB.
+Audit commit9488e449,32 fixed GRAB TRAIN indices/seed170, source4371 and FP32
+step3000, strict FP32/eval and unchanged production evaluator; no optimizer or
+main training changes. Initial r1 stopped at source-pool key lookup before
+inference (integer1 versus reader's string'1'); corrected r2 is the completed
+report. Source/data/checkpoints remained intact; failed log retained in project tmp.
+
+| Metric / mm | Fixed TRAIN init | Fixed TRAIN3000 | Fixed DEV init | Fixed DEV3000 |
+| --- | ---: | ---: | ---: | ---: |
+| Hand mean |23.8091|21.1200|52.6872|52.2290|
+| Hand prefix1–8 mean |8.6147|8.1009|15.6812|15.8990|
+| Object prefix1–8 mean |6.5086|5.7843|17.0177|18.1306|
+| Object h08 |10.9751|9.3245|30.9338|33.3978|
+| Object h24 |16.7872|15.5813|15.8287|14.1503|
+| Geometry relative |17.9920|14.0825|22.5406|19.2128|
+
+TRAIN scene normalized loss0.06342→0.04653, hand0.04269→0.03453, full
+objective0.79342→0.72669. This is a same-input checkpoint differential, stronger
+than comparing unrelated random training batches. Fixed DEV scene normalized
+loss instead0.31926→0.34456; GRAB contact BCE roughly flat0.30937→0.30867,
+part CE worsens0.53025→0.55057. All-source macro objective rises. Current draws
+are99.809% GRAB, explaining a plausible cross-source adaptation pressure; the
+within-GRAB gap means source imbalance alone is not an established full cause.
+Only32 examples/panel; no uncertainty interval or universal overfitting claim.
+
+Read-only code checks explain why the metrics can diverge, without proving a
+sole causal mechanism: V5 sample_window supplies goal_object_delta=future_flow[-1],
+i.e. the offline24-frame object endpoint is a conditioning input. Intermediate
+motion still must be inferred. The training objective combines24-horizon
+normalized squared coordinate error, contact BCE, part CE and relative geometry;
+it is not the consumed1–8-frame physical EPE metric. Coordinate normalizers
+already vary by horizon, so do not claim all horizons have equal physical weights
+or that simply upweighting early frames is a validated remedy. Geometry's common
+translation invariance is covered by the existing test; relative contact can
+remain consistent while both trajectories share an absolute-position error.
+No gradient-cosine conflict measurement or architecture-capacity ablation has
+been run, so neither loss conflict nor FFN capacity exhaustion is established.
+
+Decision: keep the bounded precision arm unchanged to its declared boundary.
+Do not extend training or enlarge FFN merely because TRAIN still improves.
+Next discriminating work should target held-out sequence/object/action slices
+and a frozen short-prefix checkpoint criterion; any data balancing/loss-weight
+change needs a separate matched arm. Rolling evaluation remains required before
+claiming drift reduction. Evidence: fixed-train-gap-r2/report.json.

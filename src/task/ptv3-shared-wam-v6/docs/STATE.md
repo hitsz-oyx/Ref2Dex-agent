@@ -1,3 +1,16 @@
+# 2026-10-21 Fixed TRAIN probe supports a generalization gap
+
+32 fixed GRAB TRAIN examples improve from4371 to FP32 new3000: object prefix8
+6.509→5.784mm, hand23.809→21.120mm, normalized scene loss0.0634→0.0465.
+Fixed DEV object prefix8 worsens17.018→18.131mm. Optimization still progresses;
+capacity saturation and gradient conflict are not established. Offline object
+t+24 endpoint is directly conditioned; relative geometry permits common absolute
+drift. Neither endpoint nor contact improvement certifies useful prefix gains.
+GPU7 read-only probe20.1s/<0.453GiB; active three-card training unchanged under
+original4h bound. Next work should separate held-out data slices and prefix
+selection before extending training or expanding the FFN.
+[Experiment evidence](experiments/probes/P-20261021-wam-v6-strict-fp32.md).
+
 # 2026-10-21 FP32 stable through3000; short-horizon gain unresolved
 
 Actual strict-FP32/backend arm has passed the BF16 instability interval.
