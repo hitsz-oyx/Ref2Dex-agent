@@ -905,6 +905,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261019-wam-v6-event-continuation](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261019-wam-v6-event-continuation.md) | Four-GPU v6 event-goal continuation readiness | 见原卡 | retain ready v6 checkpoints; keep v5 running pending a separate long-run choice. | probes/COMPLETED |
 
+## HF-v6-geometry-ab
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261021-wam-v6-geometry-ab](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261021-wam-v6-geometry-ab.md) | Matched geometry ablation and old-video rollout comparison | 见原卡 | 见原卡 | probes/PREPARING |
+
 ## HF-v6-geometry-consistency
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
