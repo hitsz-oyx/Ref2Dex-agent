@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [170,171]
 decision_changed_if_positive: retain the geometric objective for fixed-sequence rollout comparison while monitoring physical-unit trajectory errors
 decision_changed_if_negative: revisit geometry correspondence quality or gradient balance before expanding this method
-status: RUNNING
+status: COMPLETED
 run_id: geometry-consistency-20261021-r1
 ---
 
@@ -372,3 +372,15 @@ no required post-residual norm. It is a candidate stabilization, not a proven
 root cause. Details/source metadata: paper/pointworld/ffn-comparison.md and
 schema.json. Audit: outputs/ptv3-shared-wam-v6/pointworld-ffn-audit-20261021-r1/.
 No active model, checkpoint or training configuration changed.
+
+## Completed10000 and follow-up precision arm
+
+Original BF16/TF32 run completed10000 normally, elapsed12907.30s, final
+loss0.93622; final568-state/world3/RNG/normalizer checkpoint audit PASS.
+GRAB fixed DEV final hand56.4268mm, hand-h24=105.1461mm,
+object-h24=30.3106mm, geometry-relative19.4088mm. Initial corresponding
+hand52.6763mm/object-h24=15.8196mm/geometry-relative22.5379mm: better geometric
+relative error did not establish better tau/object prediction. Later natural
+recovery does not remove the earlier FFN amplitude instability. GPUs4/5/6 have
+released. User now requests a new strict-FP32 healthy4371 training arm; see
+[P-20261021-wam-v6-strict-fp32](P-20261021-wam-v6-strict-fp32.md).

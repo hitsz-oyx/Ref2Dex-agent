@@ -915,13 +915,19 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261021-wam-v6-geometry-consistency](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261021-wam-v6-geometry-consistency.md) | Predicted hand/object contact geometry consistency | 见原卡 | distinguish a geometry-derivative singularity, attention numerical | probes/RUNNING |
+| [P-20261021-wam-v6-geometry-consistency](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261021-wam-v6-geometry-consistency.md) | Predicted hand/object contact geometry consistency | 见原卡 | distinguish a geometry-derivative singularity, attention numerical | probes/COMPLETED |
 
 ## HF-v6-local-adaptation
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261021-wam-v6-local-subset](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261021-wam-v6-local-subset.md) | Local GRAB-dominant WAM-v6 adaptation | 见原卡 | 见原卡 | probes/STOPPED |
+
+## HF-v6-training-precision
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261021-wam-v6-strict-fp32](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261021-wam-v6-strict-fp32.md) | Healthy-checkpoint strict FP32 geometry training | preparation and38 v6 tests PASS; actual capacity/save/recovery pending. | run bounded healthy-start FP32 training; do not infer a cure from startup. | probes/PREPARING |
 
 ## HF-video-data-readiness
 
