@@ -164,3 +164,14 @@ Initial throughput~0.32updates/s, target10000 would take~9h before additional
 periodic overhead, so the4h bound likely binds first. Free178.56GiB;
 startup receipt/config delta/init-parity receipts retained in output root.
 No efficacy or rollout-drift claim from this short startup.
+
+### Sustained acceptance at60
+
+LR warmup50 passed. Loss0.729200, pre-clip norm0.9160,
+shared/context RMS3.860/5.877,
+peak allocated16.012GiB. Geometry weight is still on its
+100-update ramp; no full-ramp or later-efficacy claim. Latest selected GPUs
+sampled100%, physical22269/21117/20831MiB, free178.56GiB.
+Progress-window rate0.245updates/s includes initial DEV/save
+overhead; preserve the4h cap. startup-acceptance.json refreshed with exact
+preflight, stage audits, full config delta and current telemetry.
