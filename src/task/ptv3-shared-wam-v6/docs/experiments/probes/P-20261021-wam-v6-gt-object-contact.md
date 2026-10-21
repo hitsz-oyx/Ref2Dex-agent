@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [170,171]
 decision_changed_if_positive: retain GT-object geometric contact supervision if held-out short-prefix hand and object errors improve without shared-feature instability
 decision_changed_if_negative: inspect predicted-hand proxy fidelity and task-generalization gaps before scaling contact supervision
-status: RUNNING
+status: STOPPED
 run_id: gt-object-contact-20261021-r1
 ---
 
@@ -25,8 +25,8 @@ compute contact probability and align it to GT contact labels. User explicitly
 selected this over the old relative-vector loss, whose object terms would cancel
 if both sides used GT object geometry. This is a new objective, not strict resume.
 
-Result: old run saved/stopped3337;44 tests, real gradient preflight, capacity96, world3 save8 and strict recovery2 PASS; sustained training RUNNING.
-Decision: launch a bounded healthy4371 FP32 arm after real GPU preflight.
+Result: new arm saved/stopped3238 at its4h boundary; final checkpoint audit PASS; fixed DEV3000 shows no short-prefix or GT-contact gain.
+Decision: do not extend this GT-object probability package; preserve checkpoints and investigate the held-out trajectory gap before another training arm.
 
 ## Fixed data and inputs
 
@@ -228,3 +228,31 @@ in place; remaining approximately13.4min at this snapshot.
 Current status remains RUNNING; it has not stopped yet. Receipt in run root:
 status-dev3000-comparison.json. Further spending on this exact package is not
 supported by the observed fixed-panel results.
+
+## 2026-10-22 Final saved stop and repository result checkpoint
+
+Actual execution status STOPPED normally at3238, exit code0; no loader error.
+This sustained stage performed3228 updates following the real8+2 readiness/
+recovery chain, so the new-objective total is3238. The final complete checkpoint
+is training/step003238.pt,1,186,351,949bytes. Independent CPU audit PASS:
+568 finite Adam states all3238, model tensors finite,3 RNG payloads,
+world3/local96/global288, and all4 normalizer buffers exactly equal to inherited
+TRAIN stats. Supervisor1572421 and torchrun1583025 exited. No restart or budget
+extension. Audit receipt: final-stop-audit.json in the output root.
+
+The final checkpoint cumulative new-objective elapsed time is14402.59s; the
+sustained-stage result alone reports14286.84s, excluding inherited readiness/
+recovery time. The small overrun is one update/save boundary, not a new budget.
+Supervisor wall time14555.96s also includes disposable capacity/preflight and
+startup. Peak allocated16.040GiB/reserved21.285GiB, recent compute throughput
+0.2397updates/s. Preserved main checkpoints:20,3000,3238, plus separate
+readiness/recovery artifacts; no checkpoint overwritten.
+
+Latest actual fixed DEV remains3000. There is no DEV3238 evaluation, so the
+reported hand52.588/object-prefix8=18.231/object-h24=14.660mm and GT contact
+MAE0.141773 are the3000 checkpoint results, not final3238 metrics. This package
+has not demonstrated benefit over the earlier strict-FP32 arm; do not attribute
+the result solely to GT object source or claim statistical universal harm.
+No rolling evaluation or robot success measurement was run for this arm.
+Implementation and prior44-test/real-GPU checks were already committed; this
+repository checkpoint finalizes status, evidence links and the bounded decision.

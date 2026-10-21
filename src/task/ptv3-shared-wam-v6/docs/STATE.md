@@ -1,13 +1,19 @@
-# 2026-10-21 GT2048 probability arm shows no DEV gain through3000
+# 2026-10-22 GT2048 contact arm saved/stopped3238; no held-out benefit
 
-GRAB DEV3000 hand52.588/object-prefix8=18.231/object-h24=14.660mm,
-previous FP32 matched3000=52.229/18.131/14.150mm. New GT contact MAE
-0.14122→0.14177 and near-contact0.30446→0.30550, no improvement.
-Source-macro hand32.647→33.383mm; first8 hand/object errors exceed init.
-Numerically stable, no rollout evaluation, no sole-cause or statistical harm claim.
-Do not extend this package; existing4h saved-stop remains active, about15min
-left at snapshot, status still RUNNING. See status-dev3000-comparison.json.
-[Experiment](experiments/probes/P-20261021-wam-v6-gt-object-contact.md).
+Execution STOPPED normally at the original4h boundary, final complete
+training/step003238.pt (1,186,351,949bytes). CPU audit PASS:568 finite optimizer
+states all3238, model finite, RNG3/world3/global288, all4 normalizers exact.
+Supervisor1572421 and torchrun1583025 exited; no extension/restart.
+Checkpoint cumulative elapsed14402.59s; stage-only result14286.84s excludes
+readiness/recovery time. final-stop-audit.json records the evidence.
+
+Latest fixed DEV is3000, not3238: GRAB hand52.588/object-prefix8=18.231/
+object-h24=14.660mm, previous matched FP32=52.229/18.131/14.150mm.
+GT geometry contact MAE0.14122→0.14177, no gain; macro hand32.647→33.383mm.
+Do not extend this package based on these results. No statistical universal
+harm, sole-cause or rolling-success claim. Retain20/3000/3238 and separate
+readiness/recovery artifacts for inspection; original FP32 source3337 preserved.
+[Final experiment record](experiments/probes/P-20261021-wam-v6-gt-object-contact.md).
 
 # 2026-10-21 GT2048 contact probability training RUNNING
 
