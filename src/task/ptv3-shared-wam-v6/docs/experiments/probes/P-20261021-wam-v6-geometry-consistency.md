@@ -165,3 +165,48 @@ Startup acceptance: startup-acceptance.json records the exact40→100 update
 interval (240.56 samples/s), six recent GPU samples, full gradients/audits and
 exact initialization DEV. Compute-only remaining ETA3.29h excludes periodic
 DEV/save overhead; cumulative4h bound remains authoritative.
+
+
+## Read-only gradient diagnosis after sustained degradation, 2026-10-21
+
+User asks why object supervision does not prevent drift. The scene objective
+is present with scene_weight=1: masked motion-weighted normalized point-flow
+MSE, alongside hand_weight=1 and C/part. Actual backward includes this objective;
+clip_grad=1 applies to all parameters before AdamW.step. A relative contact
+objective alone is invariant to common translations, but the scene and hand
+supervision break that invariance. This geometric ambiguity cannot by itself
+explain failure to minimize the full supervised objective.
+
+Deterministic four-example TRAIN audit uses identical indices109941/121397/
+156119/158552, seed170, train-mode BF16, source4371 versus pinned geometry4500
+versus saved geometry7500. No optimizer updates. Output:
+outputs/ptv3-shared-wam-v6/geometry-gradient-diagnosis-20261021-r1/report.json.
+Entry: tools/audit/diagnose_geometry_balance.py. Real CUDA execution completed
+three checkpoints in16.45s, peak allocated1.944GiB on GPU7, leaving the active
+three-card run and other processes untouched.
+
+| Checkpoint | Scene loss | Original loss gradient norm | Scene-only norm | Weighted geometry norm | Scene/geometry cosine |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| source4371 | 0.03406 | 5.354 | 2.765 | 1.019 | 0.171 |
+| geometry4500 | 0.38209 | 2455.665 | 2432.540 | 326.372 | 0.904 |
+| geometry7500 | 4.72008 | 163.368 | 157.655 | 6.751 | 0.711 |
+
+Weighted geometry loss0.01625/0.04364/0.11181, original objective0.88714/
+1.79343/6.06263. Thus this fixed batch does not support the simple hypothesis
+that a dominating geometry gradient opposes/suppresses object supervision:
+removing the geometry graph at4500 still leaves original gradient norm2456,
+mostly from the scene objective, and scene/geometry gradients are aligned.
+This does not establish the historical trigger or prove geometry harmless on
+other batches. Full matched continuation is still pending, not replaced by
+this same-checkpoint gradient deletion.
+
+TRAIN log median preclip norm100–500 is0.936;1000–2000 is11.85;2000–3000 is57.93;
+3000–4000 is200.88;4000–4500 is818.90. Scene loss itself rises, then increases
+abruptly around5140. The symptom is sustained optimization instability on TRAIN
+as well as DEV, rather than only worse generalization or a smaller valid
+relative-contact error. At4500 the audited total norm2749.26 implies global
+clip factor0.000364; Adam preconditioning/history means this is not itself a
+measurement of the actual parameter update or a proven cause. Next diagnostic
+should localize scene-readout sensitivity and inspect optimizer updates, with a
+matched no-geometry continuation to distinguish triggering mechanisms. No fix,
+new long training, stop, or active-config mutation was performed by this audit.
