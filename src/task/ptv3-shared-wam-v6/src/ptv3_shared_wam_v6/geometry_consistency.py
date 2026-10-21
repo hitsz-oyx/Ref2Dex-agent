@@ -10,6 +10,7 @@ import torch
 import torch.nn.functional as F
 
 GEOMETRY_ENCODING = 'v6.observed-skin-bone-frames.affine-object.contact-relative.v1'
+GT_OBJECT_ENCODING = 'v6.gt-object2048.pred-skin.contact-probability.v1'
 BONES = tuple((0 if j == 0 else base+j-1, base+j)
               for base in (1, 5, 9, 13, 17) for j in range(4))
 
@@ -17,11 +18,21 @@ BONES = tuple((0 if j == 0 else base+j-1, base+j)
 def validate_geometry_config(config):
     if not config.get('geometry_consistency', False):
         return
-    if (config.get('geometry_encoding') != GEOMETRY_ENCODING
+    source = config.get('geometry_object_source', 'predicted')
+    dense_gt = source == 'gt_dense2048'
+    expected_encoding = GT_OBJECT_ENCODING if dense_gt else GEOMETRY_ENCODING
+    if source not in ('predicted', 'gt_dense2048'):
+        raise ValueError('explicit predicted or gt_dense2048 geometry object source required')
+    if dense_gt and (config.get('geometry_queries') != 2048
+                    or config.get('geometry_contact_radius_m') != .003
+                    or config.get('geometry_contact_falloff_m') != .010
+                    or config.get('geometry_contact_smoothing_m') != .001):
+        raise ValueError('GT object contact requires complete2048 queries and explicit3mm/10mm/1mm transfer')
+    if (config.get('geometry_encoding') != expected_encoding
             or not 0 < config.get('geometry_weight', 0) <= .1
             or not 0 <= config.get('geometry_clearance_weight', -1) <= 1
             or not 1 <= config.get('geometry_warmup_updates', 0) <= 1000
-            or not 2 <= config.get('geometry_queries', 0) <= 256
+            or not 2 <= config.get('geometry_queries', 0) <= (2048 if dense_gt else 256)
             or not 1 <= config.get('geometry_query_chunk', 0) <= 64
             or not .001 <= config.get('geometry_scale_m', 0) <= .05
             or not 0 <= config.get('geometry_clearance_tolerance_m', -1) <= .01
@@ -105,6 +116,9 @@ def gather_vertices(vertices, index):
 
 def geometry_components(prediction, batch, config, reduction_dtype=None):
     validate_geometry_config(config)
+    if config.get('geometry_object_source') == 'gt_dense2048':
+        from .geometry_gt_contact import gt_object_contact_components
+        return gt_object_contact_components(prediction, batch, config, reduction_dtype)
     device = prediction['trajectory'].device
     # Float32 geometry under BF16 training; nearest-index searches are detached,
     # then selected distances/correspondences are recomputed with gradients.

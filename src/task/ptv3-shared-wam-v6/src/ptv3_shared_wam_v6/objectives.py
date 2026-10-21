@@ -9,6 +9,8 @@ GEOMETRY_OBJECTIVE = 'v6.global-masked-joint21-surface16.geometry-relative.v1'
 
 
 def objective_semantics(config):
+    if config.get('geometry_object_source') == 'gt_dense2048' and not config.get('geometry_loss_disabled'):
+        return 'v6.global-masked-joint21-surface16.gt-object-contact-probability.v1'
     return GEOMETRY_OBJECTIVE if config.get('geometry_consistency') and not config.get('geometry_loss_disabled') else BASE_SEMANTICS
 
 

@@ -27,7 +27,8 @@ def main():
     model=SharedWAMV6(stats,config).to(a.device)
     saved=torch.load(a.checkpoint,map_location='cpu',weights_only=False)
     binding=initialize_geometry_weights(model,saved,a.checkpoint,config,data_identity(a.manifest,a.stats));del saved
-    ds=V6Windows(a.manifest,'train');samples=[];indices=[]
+    gt_object=config.get('geometry_object_source')=='gt_dense2048'
+    ds=V6Windows(a.manifest,'train',geometry_gt_object=gt_object);samples=[];indices=[]
     for index,_ in ds.draw(64,170,0,0):
         row=ds[index]
         if ((row['contact_target']>.25)&row['interaction_valid']).any():
@@ -45,21 +46,23 @@ def main():
     weights=(model.hand_future.mlp[-1].weight,model.scene_future.mlp[-1].weight)
     base_grad=torch.autograd.grad(base,weights,retain_graph=True)
     old_contact_grad=torch.autograd.grad(base_terms['contact']+base_terms['part'],weights,retain_graph=True,allow_unused=True)
-    new_grad=torch.autograd.grad(geometry,weights+(prediction['trajectory'],prediction['scene']))
-    norm=lambda values:float(torch.stack([v.float().square().sum() for v in values]).sum().sqrt())
+    new_grad=torch.autograd.grad(geometry,weights+(prediction['trajectory'],prediction['scene']),allow_unused=gt_object)
+    norm=lambda values:float(torch.stack([v.float().square().sum() for v in values if v is not None]).sum().sqrt())
     base_norm,geometry_norm=norm(base_grad),norm(new_grad[:2])
     recommended=min(.05,max(.0001,.5*base_norm/max(geometry_norm,1e-12)))
-    coverage=diagnostics['geometry/positive_coverage'];coverage=coverage['sum']/max(coverage['count'],1)
+    coverage=diagnostics['geometry_gt/positive_coverage' if gt_object else 'geometry/positive_coverage'];coverage=coverage['sum']/max(coverage['count'],1)
     report=dict(status='PASS',scope='four real TRAIN contact examples, actual current checkpoint, GPU autograd; no optimizer updates',
         initialization=binding,indices=indices,python=sys.version,torch=torch.__version__,cuda=torch.version.cuda,device=a.device,
         base_loss=float(base),geometry_contact=float(means['geometry_contact']),geometry_clearance=float(means['geometry_clearance']),
         base_readout_gradient_norm=base_norm,geometry_readout_gradient_norm=geometry_norm,
         old_contact_readout_gradients=[None if g is None else float(g.norm()) for g in old_contact_grad],
-        new_geometry_gradient_norms=dict(zip(('hand_readout','object_readout','decoded_hand','decoded_object'),[float(g.norm()) for g in new_grad])),
+        new_geometry_gradient_norms=dict(zip(('hand_readout','object_readout','decoded_hand','decoded_object'),[None if g is None else float(g.norm()) for g in new_grad])),
         positive_coverage=coverage,geometry_diagnostics=diagnostics,recommended_geometry_weight=recommended,
         recommended_to_base_readout_gradient_ratio=recommended*geometry_norm/max(base_norm,1e-12),
         peak_allocated_gib=torch.cuda.max_memory_allocated()/2**30,elapsed_s=time.monotonic()-started)
-    if (coverage<.8 or any(not torch.isfinite(g).all() or g.norm()==0 for g in new_grad)
+    expected = (new_grad[0],new_grad[2]) if gt_object else new_grad
+    if (coverage<.8 or any(g is None or not torch.isfinite(g).all() or g.norm()==0 for g in expected)
+            or (gt_object and any(new_grad[i] is not None for i in (1,3)))
             or any(g is not None for g in old_contact_grad)):
         report['status']='FAIL'
     a.output.mkdir(exist_ok=False);(a.output/'report.json').write_text(json.dumps(report,indent=2,allow_nan=False)+'\n')

@@ -14,16 +14,21 @@ TASK=Path(__file__).resolve().parents[2];sys.path.insert(0,str(TASK/'src'))
 from ptv3_shared_wam_v6 import paths
 from launch_local_training import read,write,gpu_state,released
 from launch_local_scaled import audit
+from ptv3_shared_wam_v6.geometry_consistency import GT_OBJECT_ENCODING
 
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     for key in ('checkpoint','baseline-config','recipe','output'):p.add_argument('--'+key,type=Path,required=True)
-    p.add_argument('--git-commit',required=True);a=p.parse_args()
+    p.add_argument('--git-commit',required=True)
+    p.add_argument('--gt-object-contact',action='store_true');a=p.parse_args()
     a.output.mkdir(exist_ok=False);out=a.output.resolve();source=a.checkpoint.resolve()
     state=dict(status='PREPARING',supervisor_pid=os.getpid(),git_commit=a.git_commit,
         work_version='v6.strict-fp32-supervisor.v1',experiment_id='P-20261021-wam-v6-strict-fp32',
         physical_gpus=[4,5,6],run_id=out.name,started_at=time.time(),stages=[])
+    if a.gt_object_contact:
+        state.update(work_version='v6.gt-object-contact-supervisor.v1',
+                     experiment_id='P-20261021-wam-v6-gt-object-contact')
     def publish():write(out/'process.json',state)
     publish();torch.set_num_threads(2)
     released([4,5,6])
@@ -40,6 +45,10 @@ def main():
     if (config['geometry_weight']!=0.022920552754813268 or not config['geometry_consistency']
             or config['updates']!=10000 or config['max_seconds']!=14400):
         raise ValueError('matched geometry objective and original bounds required')
+    if a.gt_object_contact:
+        config.update(geometry_object_source='gt_dense2048',geometry_encoding=GT_OBJECT_ENCODING,
+                      geometry_queries=2048,geometry_contact_radius_m=.003,
+                      geometry_contact_falloff_m=.010,geometry_contact_smoothing_m=.001)
     state['matched_bf16_config']=str(a.baseline_config.resolve())
     state['changed_config_keys']=['amp','tf32','strict_fp32','fp32_attention_backend','monitor_activation_rms']
     del packet;gc.collect();publish()
@@ -84,6 +93,16 @@ def main():
         args+=['--resume',str(checkpoint)] if checkpoint else ['--initialize-geometry-from',str(source)]
         return args+list(extra)
     try:
+        if a.gt_object_contact:
+            preliminary=out/'configuration-candidate.json';write(preliminary,config)
+            preflight=[sys.executable,'-u',str(TASK/'tools/audit/check_geometry_gradients.py'),
+                '--config',str(preliminary),'--manifest',str(a.recipe.resolve()),
+                '--stats',str(a.recipe.parent/'stats.json'),'--checkpoint',str(source),
+                '--output',str(out/'gpu-preflight')]
+            _,code,_=run('gpu-preflight',preflight,dict(env,CUDA_VISIBLE_DEVICES='4'),600)
+            if code:raise RuntimeError('GT-object contact gradient/coverage preflight failed')
+            gradient=read(out/'gpu-preflight/report.json');state['gradient_preflight']=gradient
+            config['geometry_weight']=gradient['recommended_geometry_weight'];publish()
         selected=None
         # Test matched batch96 first; only lower when real memory requires it.
         for batch in (96,80,64):
