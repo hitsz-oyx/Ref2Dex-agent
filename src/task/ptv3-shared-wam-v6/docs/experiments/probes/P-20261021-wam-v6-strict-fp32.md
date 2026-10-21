@@ -164,3 +164,24 @@ peak allocated15.966GiB. Recent60→100
 throughput0.303updates/s. Free187.08GiB. No amplitude explosion yet in this
 short prefix; later stability and rolling accuracy still unproven. Main acceptance
 receipt refreshed; original60 snapshot retained as startup-acceptance-step60.json.
+
+## Fixed DEV500 / live620 monitoring
+
+Same fixed GRAB DEV panel, mm:
+
+| Metric | FP32 init | FP32 step500 | BF16 step500 |
+| --- | ---: | ---: | ---: |
+| Hand mean |52.6872|52.9030|53.0297|
+| Object h08 |30.9338|32.0628|32.2785|
+| Object h24 |15.8287|13.2844|16.7900|
+| Geometry relative |22.5406|21.0771|21.2564|
+
+Live620 loss0.72510, pre-clip norm0.9040, shared/context
+RMS3.894/6.009,
+finite. Latest throughput0.252updates/s; GPUs4/5/6 sampled100%,
+free disk185.90GiB. Continue unchanged under the existing4h bound.
+Object h24 improves versus own initialization and matched BF16 step500; hand
+and object h08 still do not improve versus initialization. BF16 also had finite
+small gradients through600, so this prefix cannot show prevention of its later
+instability. No new rolling execution/video evaluated. Receipt in output root:
+status-dev500-comparison.json. Next decision checkpoint remains DEV1000+.
