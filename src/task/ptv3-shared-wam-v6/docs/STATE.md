@@ -8,10 +8,10 @@ AMP and matmul/cuDNN/spconv TF32 off.38 tests pass. No vendor/architecture edits
 Same source4371/geometry weight/goals/events/local207579 TRAIN/3356 DEV/seeds/LR;
 fresh optimizer only at initialization, then strict recovery/continuation.
 
-Sustained startup accepted at60, loss0.7267, norm0.918,
-shared/context RMS3.86/5.89; warmup50 passed, geometry ramp100 not yet complete.
-Recent0.329updates/s, GPU average~96–97%, physical20–22GiB/card,
-free187.09GiB.10000 updates or4h cumulative; at FP32 speed time bound likely
+Sustained startup accepted at100, loss0.7583, norm0.851,
+shared/context RMS3.87/6.06; LR and geometry warmups both complete.
+Recent0.303updates/s, GPU average~96–97%, physical20–22GiB/card,
+free187.08GiB.10000 updates or4h cumulative; at FP32 speed time bound likely
 binds first. Root STOP saves/stops. No later-stability/drift benefit established.
 Initial GRAB hand52.6872/object-h24=15.8287mm; step20=52.5363/15.0312mm.
 Short prefix only; compare500/1000+ and frozen rollouts before any efficacy claim.

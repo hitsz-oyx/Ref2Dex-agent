@@ -154,3 +154,13 @@ are engineering acceptance, not proof that later FFN amplification or rollout
 drift is fixed. Compare fixed DEV500/1000+ and the existing frozen rollout panel
 before promoting a numerical-stability or tau-accuracy claim. No further
 training architecture/loss/LR changes were introduced for this precision arm.
+
+### Full-weight100-update acceptance
+
+Sustained training now reached100; both LR and geometry warmups
+complete. Loss0.758336, pre-clip norm0.8510,
+shared/context RMS3.866/6.060,
+peak allocated15.966GiB. Recent60→100
+throughput0.303updates/s. Free187.08GiB. No amplitude explosion yet in this
+short prefix; later stability and rolling accuracy still unproven. Main acceptance
+receipt refreshed; original60 snapshot retained as startup-acceptance-step60.json.
