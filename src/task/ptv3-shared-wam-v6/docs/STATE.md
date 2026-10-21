@@ -1,5 +1,35 @@
 # WAM v6 state — 2026-10-21
 
+## 2026-10-21 User-requested three-GPU expanded training RUNNING
+
+Latest user requests multi-GPU, utilization and scale. Original single-GPU r2
+normal STOP saved1269. Explicit local data/topology transition retains model,
+568 optimizer states, normalizers, elapsed, selection and rank0 RNG;3-rank
+readiness1269→1277 and strict resume→1279 passed finite checkpoint audits and
+identical rank signatures. Full v6 suite23 passed.
+
+Current local-expanded-ddp-20261021-r1, frozen b1821d9c, GPUs4/5/6, local96/
+global288,8 workers/rank. This supersedes the previous two-idle-card arrangement
+for this user-requested run; no unrelated GPU0–3/7 processes affected. Capacity128
+adds only0.8% throughput versus96 but reserved21.90GiB versus17.02GiB, so96
+selected. Readiness compute248samples/s; sustained1300→1360 interval242.37samples/s
+versus the old single-GPU1020→1180 interval85.59samples/s, a measured2.83x
+increase. Different window pool/batch: practical throughput, not identical-load
+DDP scaling efficiency. Active at1360; peak allocated14.05GiB, physical~18GiB
+per card, free206.70GiB. Recent four10s GPU samples average76/98/96%, with
+startup/loading/synchronization fluctuations; do not equate NCCL spin with
+productive throughput. Initial ETA~3h to10000, within remaining4h cumulative
+budget. Acceptance snapshot contains the exact intervals and telemetry.
+
+TRAIN33672→207579 (all inherited GRAB TRAIN windows, sixfold), DEV3356 unchanged,
+1177 existing sequence caches reused, no new raw data copies. Still a GRAB-
+dominant subset, not the remote nine-source frozen recipe. Target cumulative
+10000 updates or14400s including earlier single-GPU training, LR1e-5/warmup50
+unchanged, DEV/checkpoint every500. Source checkpoint/readiness retained.
+Live outputs/ptv3-shared-wam-v6/local-expanded-ddp-20261021-r1/process.json and
+training/progress.json. Root STOP saves/stops. [Experiment card](experiments/probes/P-20261021-wam-v6-local-subset.md).
+
+
 ## 2026-10-21 Independent local subset training RUNNING
 
 User authorized completing preparation, saving/stopping PPO and starting WAM.

@@ -4,7 +4,7 @@
 三rank状态STOPPED，六worker及原supervisor均退出。rank0最终checkpoint
 `outputs/wam-rl-policy-v3/inspire-measured-official-20261020-r3/rank-0/official-iteration-1575.pt`
 61,158,850bytes，CPU完整加载、model/optimizer有限且optimizer非空；可按原身份恢复。
-GPU4/5/6已释放。当前不再运行PPO，不把以下历史RUNNING状态当作现状。
+GPU4/5/6已释放，随后按用户新指令三卡均用于扩大后的WAM训练。当前不再运行PPO，不把以下历史RUNNING状态当作现状。
 切换回执在`outputs/ptv3-shared-wam-v6/local-subset-pretrain-20261021-r2/process.json`。
 
 2026-10-21 10:24北京时间实查：r3三rank均到1570轮，supervisor及六worker存活，

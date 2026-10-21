@@ -5,7 +5,7 @@ experiment_id: P-20261021-wam-v6-local-subset
 date: 2026-10-21
 task: ptv3-shared-wam-v6
 branch: main
-git_commit: d20b565c
+git_commit: b1821d9c
 claim_id: C1
 hypothesis_family: HF-v6-local-adaptation
 probe_index_in_family: 1
@@ -156,5 +156,37 @@ combined new transition/readiness/training peak reserved~16GiB, free floor20GiB.
 Configuration/data/topology changes are explicit; ordinary resume stays strict.
 
 Live output: outputs/ptv3-shared-wam-v6/local-expanded-ddp-20261021-r1/.
-Capacity and actual DDP startup results pending; do not claim scaling before
-measuring aggregate samples/s and actual three-GPU utilization.
+Capacity results:batch96 steady89.8608samples/s, allocated13.5607GiB,
+reserved17.0195GiB; batch128 steady90.6067samples/s, allocated17.7858GiB,
+reserved21.8965GiB.128 adds only0.83% throughput while exceeding the21GiB
+reserved-headroom criterion, so select96/global288. Neither probe contributes
+updates to the resumed training checkpoint.
+
+Frozen b1821d9c, supervisor842614. Actual three-rank readiness1269→1277 and
+strict recovery1277→1279 PASS. Both saved checkpoints CPU-loaded with568 finite
+optimizer states at their exact update,3 RNG payloads, unchanged normalizer
+buffers and effective global288 contract. Both checks record three identical
+parameter signatures.8-update readiness steady compute0.86148updates/s,
+248.106samples/s; CUDA forward/loss347.22ms, backward736.31ms, optimizer14.38ms.
+Startup/recovery timings include DEV and checkpoint overhead and should not be
+mistaken for sustained training throughput. Sustained phase now running.
+
+Full v6 suite23 passed, including new tests rejecting hidden DEV, TRAIN-removal,
+optimizer-config or RNG changes during explicit data/world-size migration.
+Source step1269 optimizer/RNG/elapsed was retained; new10000-step plan does
+not reset budget or consume disposable capacity trajectories.
+
+Sustained acceptance PASS at1360. Measured update-only interval1300→1360:
+60 updates in71.2964s,242.368samples/s. Prior single-GPU1020→1180:160 updates
+in119.6385s,85.591samples/s. Practical throughput2.8317x; the pool and local
+batch changed, so not a matched identical-workload scaling claim. Three-card
+physical memory~18GiB/card with5–6GiB free; allocated peak14.05GiB. Four recent
+10s GPU samples average75.75/97.5/96.25%, with loading/sync fluctuations;
+instantaneous earlier snapshot100/97/100%. Disk206.70GiB. Estimated remaining
+~3h including periodic overhead, with inherited cumulative4h guard enforced.
+
+Exact evidence: outputs/ptv3-shared-wam-v6/local-expanded-ddp-20261021-r1/
+startup-acceptance.json. Persistent supervisor continues monitoring; no detached
+unbounded writer. Source model/moments and original/subset/frozen data remain
+preserved. This is training scale-up, not evidence that free-feedback hand/object
+drift is solved; future DEV and rollout evidence remain separate.

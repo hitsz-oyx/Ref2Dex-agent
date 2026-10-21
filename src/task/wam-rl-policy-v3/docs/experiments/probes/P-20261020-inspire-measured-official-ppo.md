@@ -23,7 +23,7 @@ CPU-loaded with finite model/optimizer and nonempty optimizer state. Training
 count53347 completed episodes, full-task successes0; this is not deterministic
 evaluation or proof of zero grasp/lift rate. Source mismatches/sync errors0.
 Preserved final checkpoint and all evidence; no PPO restart. GPU4 now supports
-local WAM adaptation; GPU5/6 idle. Switch verification is in
+local WAM adaptation; the subsequent explicit multi-GPU request assigns all three4/5/6 to WAM. Switch verification is in
 outputs/ptv3-shared-wam-v6/local-subset-pretrain-20261021-r2/process.json.
 
 User requests starting PPO now onGPU4/5/6 concurrently with independent
