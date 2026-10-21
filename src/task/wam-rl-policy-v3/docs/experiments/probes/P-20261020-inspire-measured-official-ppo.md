@@ -283,3 +283,25 @@ utilization37.8/37.9/43.9%, total peak15,240MiB each. WAM and CPU task packing
 remain the collector's major cost. All six workers and supervisor are alive;
 this is a long-running handoff, not experiment completion, convergence or a
 method-gain claim. The original failed startup remains in limitations.
+
+## 2026-10-21 live status check
+
+At09:54 Asia/Shanghai, r3 ranks all reached cumulative1520,25780 local new
+optimizer steps, approximately13.1h elapsed; supervisor and six workers alive.
+No new PhysX failure. Native PD/source and policy log-prob/sync errors remain0.
+Live snapshot: r3/status-20261021T015435Z.json.
+
+Global ended training episodes51322, full TaskController successes0, workspace
+failures26952 (52.5%). These are stochastic online training counters, not a
+fixed-panel evaluation. Full task success is not the same as grasp/lift; those
+per-episode quantities are computed in the env but not aggregated by this
+runner. Other failure reasons are not individually counted in current logs.
+The last100 logged iterations average35.93s; value loss near0.01 alone provides
+no convergence evidence. Prioritize stage/grasp/reward diagnostics before
+interpreting longer training as progress; this status check itself did not
+alter or stop the authorized training.
+
+Thirty seconds sampled at2s: meanGPU utilization49.3/33.1/46.8%, total peaks
+15240/15240/15306MiB. Remaining original training allowance32.56h; local disk
+222GiB free. Rank0 keeps500/1000/1500 plus the latest3 checkpoints, bounded as
+specified. Latest progress and checkpoint iteration advance normally.
