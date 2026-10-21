@@ -53,6 +53,46 @@ def reference_attention(attention, query, context, mask):
     return F.linear(result, attention.out_proj.weight.double(), attention.out_proj.bias.double()).float()
 
 
+def fp32_varlen_attention(qkv, cu_seqlens, max_seqlen, dropout_p=0., softmax_scale=None):
+    """Process-local FP32 replacement for PTv3's forced-low-precision Flash kernel."""
+    if qkv.dtype != torch.float32 or dropout_p != 0:
+        raise ValueError('FP32 diagnostic requires float32 QKV and zero dropout')
+    lengths = (cu_seqlens[1:]-cu_seqlens[:-1]).long()
+    groups = torch.repeat_interleave(torch.arange(len(lengths), device=qkv.device), lengths)
+    local = torch.arange(len(qkv), device=qkv.device)-cu_seqlens[:-1].long()[groups]
+    padded = qkv.new_zeros((len(lengths), max_seqlen, *qkv.shape[1:]))
+    padded[groups, local] = qkv
+    query, key, value = padded.unbind(2)
+    valid = torch.arange(max_seqlen, device=qkv.device)[None] < lengths[:, None]
+    with torch.backends.cuda.sdp_kernel(enable_flash=False, enable_math=True, enable_mem_efficient=False):
+        output = F.scaled_dot_product_attention(query.transpose(1, 2), key.transpose(1, 2),
+            value.transpose(1, 2), attn_mask=valid[:, None, None], dropout_p=0., scale=softmax_scale)
+    return output.transpose(1, 2)[groups, local]
+
+
+def check_varlen_reference():
+    """Validate segment packing and gradients against an explicit FP64 loop."""
+    lengths = [5, 8, 3]
+    cu = torch.tensor([0, 5, 13, 16], device='cuda', dtype=torch.int32)
+    values = torch.randn(16, 3, 2, 8, device='cuda', requires_grad=True)
+    reference_input = values.detach().double().requires_grad_()
+    actual = fp32_varlen_attention(values, cu, max_seqlen=8, softmax_scale=8**-.5)
+    result, offset = [], 0
+    for length in lengths:
+        q, k, v = reference_input[offset:offset+length].unbind(1)
+        q, k, v = (x.transpose(0, 1) for x in (q, k, v))
+        result.append((((q @ k.transpose(-1, -2))*8**-.5).softmax(-1) @ v).transpose(0, 1))
+        offset += length
+    expected = torch.cat(result)
+    actual.square().sum().backward()
+    expected.square().sum().backward()
+    forward_error = float((actual.double()-expected).abs().max())
+    gradient_error = float((values.grad.double()-reference_input.grad).abs().max())
+    if forward_error > 2e-6 or gradient_error > 5e-6:
+        raise ValueError('FP32 variable-length attention reference mismatch')
+    return dict(forward_max_error=forward_error, gradient_max_error=gradient_error)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for key in ('config', 'manifest', 'stats', 'output'):
@@ -61,10 +101,28 @@ def main():
     parser.add_argument('--modes', nargs='+', default=['bf16-default', 'bf16-math', 'fp32',
                         'fp32-attention-only', 'bf16-shared-ln', 'bf16-context-ln', 'fp32-shared-ln'])
     parser.add_argument('--detailed-layers', action='store_true')
+    parser.add_argument('--full-fp32', action='store_true',
+                        help='Disable external autocast; PTv3 still casts QKV unless --strict-fp32-attention is also set')
+    parser.add_argument('--strict-fp32-attention', action='store_true',
+                        help='Also replace PTv3 Flash attention with a validated process-local FP32 math reference')
     args = parser.parse_args()
     args.output.mkdir(exist_ok=False)
     torch.set_num_threads(2)
     torch.backends.cuda.matmul.allow_tf32 = False
+    if args.full_fp32:
+        torch.backends.cudnn.allow_tf32 = False
+    reference_check = None
+    if args.strict_fp32_attention:
+        if not args.full_fp32:
+            raise ValueError('strict FP32 attention requires --full-fp32')
+        sys.path.insert(0, str(paths.ROOT/'third_party/PointWorld'))
+        import ptv3.ptv3 as vendor_attention
+        import spconv.constants as sparse_constants
+        if hasattr(sparse_constants, 'SPCONV_ALLOW_TF32'):
+            sparse_constants.SPCONV_ALLOW_TF32 = False
+        reference_check = check_varlen_reference()
+        vendor_attention.prepare_flash_attn_dtype = lambda values: values.float()
+        vendor_attention.flash_attn_varlen_qkvpacked_func = fp32_varlen_attention
     config = json.loads(args.config.read_text())
     normalizer = json.loads(args.stats.read_text())
     dataset = V6Windows(args.manifest, 'train')
@@ -78,6 +136,9 @@ def main():
             break
     batch = {k: v.cuda() for k, v in collate(samples).items()}
     report = dict(indices=indices, checkpoints=[], python=sys.version, torch=torch.__version__,
+                  full_forward_amp=not args.full_fp32, tf32=False,
+                  ptv3_attention=('FP32 math reference' if args.strict_fp32_attention else 'vendor forced BF16/FP16 Flash'),
+                  varlen_reference_validation=reference_check,
                   scope='scene-head precision/backend differential on detached actual TRAIN activations; no updates')
     begun = time.monotonic()
     for path in args.checkpoints:
@@ -115,7 +176,7 @@ def main():
                              for name in ('self_attn', 'norm1', 'norm2', 'linear1', 'linear2'))
         hooks = [module.register_forward_hook(inspect_output(name)) for name, module in model.named_modules()
                  if name in inspected]
-        with torch.no_grad(), torch.autocast('cuda', dtype=torch.bfloat16):
+        with torch.no_grad(), torch.autocast('cuda', dtype=torch.bfloat16, enabled=not args.full_fp32):
             prediction = model(batch)
             _, terms = base_loss(prediction, batch, config, model.normalizer)
         hook.remove()
@@ -133,7 +194,7 @@ def main():
         width, heads = attention.embed_dim, attention.num_heads
         # Projected QK statistics use the actual BF16 projection inputs/weights,
         # but FP32 products/softmax for a readable conditioning diagnostic.
-        with torch.no_grad(), torch.autocast('cuda', dtype=torch.bfloat16):
+        with torch.no_grad(), torch.autocast('cuda', dtype=torch.bfloat16, enabled=not args.full_fp32):
             q = F.linear(captured['query'], attention.in_proj_weight[:width], attention.in_proj_bias[:width])
             k = F.linear(captured['context'], attention.in_proj_weight[width:2*width], attention.in_proj_bias[width:2*width])
         q = q.view(len(q), -1, heads, width//heads).transpose(1, 2).float()

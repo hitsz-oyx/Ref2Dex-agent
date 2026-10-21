@@ -30,6 +30,7 @@ from ptv3_shared_wam_v5.checkpoints import checkpoint_due,retained_steps
 from ptv3_shared_wam_v5.metrics import forecast_metrics,merge_metrics,summarize_metrics
 from ptv3_shared_wam_v6.objectives import forecast_loss,loss_components,objective_semantics,combine_components,active_geometry_weight
 from ptv3_shared_wam_v6.geometry_consistency import validate_geometry_config
+from ptv3_shared_wam_v6.precision import ActivationMonitor
 from ptv3_shared_wam_v5.training_contract import execution_contract,validate_resume,loader_options,restore_optimizer_state
 from ptv3_shared_wam_v5.selection import trajectory_score,bootstrap_trajectory,TAU_SELECTION
 from ptv3_shared_wam_v4.objectives import normalized_components
@@ -152,6 +153,9 @@ def main():
         raise ValueError('fresh output required; resume into a new directory without overwriting or rotating previous checkpoints')
     identity=hashlib.sha256(a.manifest.read_bytes()+a.stats.read_bytes()).hexdigest()
     model=SharedWAMV6(stats,config).to(device)
+    if config.get('strict_fp32') and any(p.dtype!=torch.float32 for p in model.parameters()):
+        raise ValueError('strict FP32 requires all model parameters float32')
+    activation_monitor=ActivationMonitor(model) if config.get('monitor_activation_rms') and rank==0 else None
     optimizer=torch.optim.AdamW(model.parameter_groups(config['geometry_lr'],config['shared_lr']),
         weight_decay=config['weight_decay'],fused=device.startswith('cuda'))
     first=1;previous_elapsed=0.;best_score=None;best_step=None;best_path=None;tau_best=None;resume_binding=None;migration_binding=None;topology_transition=None;initialization_binding=None
@@ -206,6 +210,7 @@ def main():
         write(a.output/'run-manifest.json',dict(schema=SCHEMA,work_version=SCHEMA,git_commit=a.git_commit,
             run_id=a.output.name,data_identity=identity,input_semantics=INPUT_SEMANTICS,label_semantics=LABEL_SEMANTICS,
             objective_semantics=objective_semantics(config),engineering_smoke=a.smoke,device=device,world_size=world,
+            precision_runtime=model.precision_runtime,
             python=sys.version,torch=torch.__version__,cuda=torch.version.cuda,steps=last,batch_size=batch_size,
             execution_contract=contract,resume_binding=resume_binding,migration_binding=migration_binding,topology_transition=topology_transition,initialization_binding=initialization_binding,
             loader=dict(context=a.loader_context,workers=a.workers,timeout_s=a.loader_timeout),
@@ -278,6 +283,8 @@ def main():
         optimizer.param_groups[1]['lr']=config['shared_lr']*multiplier
         ev=[torch.cuda.Event(enable_timing=True) for _ in range(4)] if device.startswith('cuda') else None
         if ev:ev[0].record()
+        if activation_monitor:
+            activation_monitor.enabled=step<=first+2 or step%config['log_interval']==0
         with torch.autocast('cuda' if device.startswith('cuda') else 'cpu',dtype=torch.bfloat16,enabled=device.startswith('cuda') and config.get('amp',True)):
             prediction=wrapped(batch);loss,terms=forecast_loss(prediction,batch,config,model.normalizer,world>1,step=step)
         if ev:ev[1].record()
@@ -310,6 +317,7 @@ def main():
                     event_goal_gradient_norm_after_clip=event_grad,
                     event_goal_output_weight_norm=float(model.event_goal.encoder[-1].weight.detach().float().norm()),
                     status='RUNNING',step=step,loss=objective,terms=means,grad_norm=float(norm),
+                    activation_rms=dict(activation_monitor.values) if activation_monitor else None,
                     geometry_weight=active_geometry_weight(config,step),
                     elapsed_s=previous_elapsed+times[-1],updates_per_s=rate,
                     eta_seconds=(last-step)/rate if rate else None,global_batch=batch_size*world,world_size=world,

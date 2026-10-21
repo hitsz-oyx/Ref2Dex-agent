@@ -109,6 +109,8 @@ class SharedWAMV6(nn.Module):
             if config.get('event_encoding')!=EVENT_ENCODING:
                 raise ValueError('explicit planned contact/release event encoding required')
             self.event_goal=EventGoalResidual(width)
+        from .precision import configure_strict_fp32
+        self.precision_runtime = configure_strict_fp32(self, config)
 
     def encode_hand(self, batch):
         valid = batch["start_hand_valid"].bool()
