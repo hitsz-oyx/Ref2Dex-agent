@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [170,171]
 decision_changed_if_positive: use the bounded local recipe for subsequent contact-consistency and rollout interventions
 decision_changed_if_negative: resolve training or data mismatch before investing in coupling changes
-status: RUNNING
+status: STOPPED
 run_id: local-expanded-ddp-20261021-r1
 ---
 
@@ -190,3 +190,17 @@ startup-acceptance.json. Persistent supervisor continues monitoring; no detached
 unbounded writer. Source model/moments and original/subset/frozen data remain
 preserved. This is training scale-up, not evidence that free-feedback hand/object
 drift is solved; future DEV and rollout evidence remain separate.
+
+
+## Saved handoff to new geometry objective
+
+User requested adding geometric contact consistency and initializing from the
+current checkpoint. Expanded baseline received a graceful owned STOP and saved
+training/step004371.pt (1,186,352,333bytes). Full CPU audit passes finite model,
+568 optimizer states all4371,3 RNG payloads, world3/global288 and normalization.
+Supervisor842614 and its torchrun/workers exited normally. Historical RUNNING
+snapshots above are not live state. Outputs and checkpoints remain preserved.
+The new objective copies these exact model weights/normalizers but starts fresh
+optimizer/RNG/update/selection state; see
+[geometry experiment](P-20261021-wam-v6-geometry-consistency.md). No success or
+drift-improvement claim follows from the handoff.

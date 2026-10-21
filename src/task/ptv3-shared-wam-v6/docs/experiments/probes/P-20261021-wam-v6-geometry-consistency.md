@@ -5,7 +5,7 @@ experiment_id: P-20261021-wam-v6-geometry-consistency
 date: 2026-10-21
 task: ptv3-shared-wam-v6
 branch: main
-git_commit: recorded-in-run-manifest
+git_commit: b852f39cb016b2a04332c3ffd5a09037cc3ca7db
 claim_id: C1
 hypothesis_family: HF-v6-geometry-consistency
 probe_index_in_family: 1
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [170,171]
 decision_changed_if_positive: retain the geometric objective for fixed-sequence rollout comparison while monitoring physical-unit trajectory errors
 decision_changed_if_negative: revisit geometry correspondence quality or gradient balance before expanding this method
-status: PREPARING
+status: RUNNING
 run_id: geometry-consistency-20261021-r1
 ---
 
@@ -106,11 +106,62 @@ Code archive/logs: tmp/geometry-consistency-20261021-r1/.
 invariance, far-contact gradients to both outputs, noncontact no-pull/overlap
 separation, missing-geometry/NaN masking, gradients to actual SharedWAMV6
 coordinate readouts, and explicit weights-only initialization/normalizer binding.
-The complete v6 suite before the last diagnostic/logging edits passed30 tests;
-run final tests and real-checkpoint GPU preflight before claiming startup ready.
+The final complete v6 suite passes30 tests in8.62s under graspenv. GPU preflight
+and the actual three-rank save/recovery checks also pass, as recorded below.
 
 Method limitations: skinned observed surface is an approximate future mesh,
 and arbitrary predicted object flow is extended affinely. Paired-GT calibration
 avoids a known proxy target bias but does not prove exact contact or prevent
 every penetration. No matched no-geometry continuation control or physical
 rollout comparison has yet run; no claim of solving drift or improving grasping.
+
+
+## Actual launch and startup evidence
+
+Frozen implementation b852f39cb016b2a04332c3ffd5a09037cc3ca7db, supervisor943417,
+run geometry-consistency-20261021-r1. The old expanded run stopped normally at
+4371; its complete1,186,352,333byte training/step004371.pt is the initialization,
+not an earlier best checkpoint or remote23758. CPU audit passes finite model,
+568 Adam states at4371,3 RNG payloads, world3/global288 and inherited normalizers.
+All old model parameters/buffers are copied; optimizer/RNG/step/selection are
+explicitly reset for this new objective. Later8→10 recovery is strict within
+this new objective.
+
+Actual current-checkpoint GPU preflight on four TRAIN examples passes. Original
+C/part-only gradients to both coordinate readouts are None. New geometry gives
+hand_readout16.60445/object_readout20.80343 and decoded hand5.33547/object1.60874
+(nonzero finite gradient norms). Eligible positive coverage2897/2897=100%.
+Base coordinate-readout norm1.220175 versus raw geometry26.617487 selects frozen
+weight0.022920552754813268, yielding full-weight gradient ratio0.5; ramp100 updates.
+These four TRAIN examples only calibrate the loss and check connectivity.
+
+Actual batch96 capacity8 updates passes, allocated13.594GiB/reserved15.342GiB.
+Keep three3090 GPUs4/5/6, local96/global288. Real readiness8 updates saves a
+complete1,186,348,749byte checkpoint:568 optimizer states at8,3 RNG payloads,
+identical three-rank parameter signatures and exact inherited normalizers.
+Strict recovery8→10 passes the same audit (1,186,351,629bytes, all states10).
+Sustained training resumes10 and has reached100 with finite loss0.75918,
+grad_norm0.86805, nonzero geometry_contact0.55237/geometry_clearance0.07497 and
+full weight0.02292055; allocated peak14.125GiB. Instantaneous selected GPU
+utilization100/95/99%, physical memory21,013/20,299/19,001MiB; free197.71GiB.
+No OOM, NaN, loader failure or unrelated process termination observed.
+
+The fixed32-GRAB-example DEV panel at the exact4371 initialization has hand
+EPE52.67626mm, geometry relative22.53791mm, predicted proxy gap23.53811mm,
+GT-proxy gap4.22592mm, noncontact violation2.06307mm, positive coverage100%.
+This is the correct before point for later geometry-run comparisons; the
+historical remote23758/local-original49.9303mm panel starts from different weights.
+DEV at20 is operational startup evidence, not a meaningful efficacy verdict.
+
+Full trace: process.json, gpu-preflight/report.json, config-b96.json,
+readiness/dev-step000000.json, per-stage result/checkpoint audits, training/
+progress.json and train.jsonl under the declared output. Source/runtime metadata
+are in each run-manifest; code archive and supervisor log are project-local tmp.
+Root STOP requests a saved stop. Enforced budget10000 updates or cumulative4h,
+20GiB free-space floor, bounded checkpoint retention; source checkpoint retained.
+No free-feedback rollout or physical grasping evaluation yet.
+
+Startup acceptance: startup-acceptance.json records the exact40→100 update
+interval (240.56 samples/s), six recent GPU samples, full gradients/audits and
+exact initialization DEV. Compute-only remaining ETA3.29h excludes periodic
+DEV/save overhead; cumulative4h bound remains authoritative.

@@ -1,6 +1,36 @@
 # WAM v6 state — 2026-10-21
 
-## 2026-10-21 User-requested three-GPU expanded training RUNNING
+## 2026-10-21 Geometry consistency training RUNNING from latest local4371
+
+User-requested predicted hand/object geometry objective implemented and launched
+from the baseline's normally saved final4371, frozen b852f39c. SharedWAMV6 goal
+and event conditioning remain active. Observed skin follows predicted joint21;
+predicted object flow moves surface queries. Positive contacts supervise the
+predicted relative vector against its GT-proxy counterpart; local noncontact
+clearance adds separation gradients. Approximate geometry, not exact mesh/SDF.
+
+Old C-only loss has no direct coordinate-readout gradients; actual source4371
+GPU preflight confirms new gradients to both readouts/decoded outputs and100%
+eligible coverage on four TRAIN examples. TRAIN-only gradient calibration gives
+weight0.02292055275, ramp100. All model weights/normalizers copied exactly;
+fresh optimizer/RNG/count/selection for the changed objective.30 v6 tests pass.
+Three-card8-update save→2 strict recovery passes full568-state/RNG/normalizer
+checks and identical rank signatures. Sustained stage has reached100 with finite
+loss and nonzero geometry terms. Capacity96 passes13.59GiB allocated/15.34GiB
+reserved; training allocated peak14.12GiB, sampled utilization100/95/99%,
+physical18–21GiB/card. Free197.71GiB. Initial compute~240samples/s; periodic
+DEV/checkpoint overhead affects sustained ETA.10000 updates or new-objective
+cumulative4h boundary,20GiB disk floor. No accuracy or drift benefit established.
+
+GPU4/5/6, global288, existing TRAIN207579/DEV3356 recipe and normalizers retained.
+Exact4371 baseline GRAB handEPE52.6763mm/geometry relative22.5379mm on fixed32
+DEV examples; compare future metrics with this before point. Old expanded run
+is STOPPED4371; older RUNNING sections below are historical. Live supervisor
+943417, outputs/ptv3-shared-wam-v6/geometry-consistency-20261021-r1/process.json
+and training/progress.json; root STOP saves/stops.
+[Geometry experiment](experiments/probes/P-20261021-wam-v6-geometry-consistency.md).
+
+## 2026-10-21 Historical three-GPU expanded training (now STOPPED4371)
 
 Latest user requests multi-GPU, utilization and scale. Original single-GPU r2
 normal STOP saved1269. Explicit local data/topology transition retains model,

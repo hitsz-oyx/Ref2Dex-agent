@@ -1,3 +1,14 @@
+## 2026-10-21 WAM几何接触一致性已加入，最新4371初始化三卡训练
+
+原本地三卡WAM正常保存停止4371，新分支直接从预测手/物体坐标计算相对接触几何loss，
+与GT对应几何对齐，并加局部非接触间隙约束；保留v6 goal/event条件。真实GPU核验新loss
+到两坐标输出梯度非零，旧C-only没有这条直接梯度；四个TRAIN标定样本覆盖100%。
+模型和归一化从4371精确继承，因目标变化重置optimizer/计数；新目标8步保存+2步严格恢复
+通过，30项v6测试通过，持续三卡训练已到100。GPU4/5/6每卡96/global288，allocated约14GiB，
+盘余197.7GiB；新目标10000步或累计4h上限，20GiB磁盘保护。尚不能声称改善漂移，需与
+精确初始化的固定DEV及后续滚动比较。详见[当前WAM状态](../src/task/ptv3-shared-wam-v6/docs/STATE.md)、
+[实验卡](../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261021-wam-v6-geometry-consistency.md)。
+
 ## 2026-10-21 按用户要求扩为三卡WAM和六倍训练窗口
 
 单卡WAM正常保存1269后，显式迁移为GPU4/5/6三卡DDP，每卡96/global288，其他用户
