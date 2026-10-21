@@ -1,3 +1,25 @@
+## 2026-10-22 Flow matching已完成短试验并进入三卡12h长训
+
+机主飞书授权已执行：冻结0917f47e，独立session supervisor1926227（PPID1），
+长训torchrun1947491；仅GPU4/5/6，local96/global288，严格FP32、goal/event及
+最新GT物体2048点contact概率loss（λ0.05）保留。没有碰其他作业/卡或凭据。
+47测试、真实梯度、容量8、三卡8保存＋2严格恢复、128试验及采样审计通过；
+617份有限Adam状态/RNG3/归一化/三卡参数一致。128固定TRAIN向量场MSE比
+当前零场参考低11.7%，但GRAB DEV物体前8帧17.800→18.699mm、手全程
+55.222→56.571mm，尚无验证收益；按指令继续长训，不能宣称漂移已解决。
+
+01:33持续训练160步，loss0.8639、梯度1.2235、shared/context RMS3.77/5.84，
+约0.310步/s（总89样本/s），GPU89/93/98%、约20GiB/卡，磁盘余153.79GiB。
+上限30000步或累计12h；当前预计最终约1.2–1.4万步、10月22日13:20–13:30结束，
+08:00预计约7000–7500步，受验证暂停/资源波动影响。每500步验证/存盘。
+数据仍是本地207579 TRAIN/3356 DEV、约99.8%GRAB，并非补齐远端全量数据。
+
+输出/日志根：`outputs/ptv3-shared-wam-v6/flowmatching-overnight-20261022-r2/`；
+`training.log`、`training/`、`process.json`（合并时间上限的ETA）、`startup-health.json`。
+启动receipt/supervisor日志：`tmp/flowmatching-overnight-20261022-r2/`。
+20GiB磁盘停止线，原checkpoint全部保留；root输出STOP请求保存停止。
+[试验过程、判断和精确启动命令](../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261022-wam-v6-flowmatching.md)。
+
 ## 2026-10-22 Flow matching三卡短试验RUNNING，随后自动长训
 
 按机主飞书指令实现WAM-v6手/物联合残差flow，保留最新GT2048物体contact概率

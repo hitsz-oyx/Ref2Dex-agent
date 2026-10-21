@@ -1,3 +1,23 @@
+# 2026-10-22 FM trial complete; sustained three-rank training RUNNING
+
+Frozen0917f47e;supervisor1926227 PPID1/SID1926227,torchrun1947491 separateSID.
+Only GPUs4/5/6,local96/global288,strictFP32,latestGT-object2048 contact0.05,
+goal/events retained. No other jobs/cards/credentials touched.47 tests and real
+preflight/capacity8/DDP8+strict2/trial128/ODE audit PASS:617 finite Adam states,
+RNG3,exact scales,equal rank signatures. Fixed four-TRAIN teacher MSE ratio0.883
+to current zero field; fixed GRAB DEV prefix-object17.800→18.699mm and hand
+55.222→56.571mm,no held-out benefit yet. Owner-directed longer exploration.
+
+At01:33 main160 loss0.8639/norm1.2235/shared-context RMS3.77/5.84 finite,
+0.310updates/s,GPUs89/93/98%,~20GiB/card,free153.79GiB. Bound30k or cumulative
+12h;estimated~12k–14k/13:20–13:30+08,08:00~7000–7500,provisional. DEV/save500.
+Local207579 TRAIN/3356 DEV,~99.8%GRAB;no new data. Output
+`outputs/ptv3-shared-wam-v6/flowmatching-overnight-20261022-r2/`:training.log,
+training/,process.json boundedETA,startup-health.json. Launcher receipt and
+supervisor.log in matching tmp/run directory. Disk20GiB floor;owned rootSTOP
+requests saving/stopping. No rollout/effectiveness claim.
+[Full record and exact commands](experiments/probes/P-20261022-wam-v6-flowmatching.md).
+
 # 2026-10-22 Joint conditional residual flow trial RUNNING
 
 Owner requests runnable FM trial then longer three-card training onGPU4/5/6.

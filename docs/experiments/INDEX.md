@@ -927,7 +927,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261022-wam-v6-flowmatching](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261022-wam-v6-flowmatching.md) | Joint hand/object conditional residual flow with GT-object contact | real-input gradients, batch96 capacity, DDP8 save and strict2 recovery PASS; 128-step trial RUNNING. | owner explicitly requests longer training after the runnable trial; efficacy remains open. | probes/RUNNING |
+| [P-20261022-wam-v6-flowmatching](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261022-wam-v6-flowmatching.md) | Joint hand/object conditional residual flow with GT-object contact | 128-step trial/sampling/recovery PASS; teacher field improves11.7% versus current zero field, DEV prefix not improved; longer DDP training s | proceed with owner-requested longer training because the flow is technically trainable; no held-out gain established at128. | probes/RUNNING |
 
 ## HF-v6-local-adaptation
 
