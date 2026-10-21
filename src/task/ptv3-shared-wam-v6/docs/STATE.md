@@ -1,5 +1,34 @@
 # WAM v6 state — 2026-10-21
 
+## 2026-10-21 Geometry rollout measured; matched control awaits resource plan
+
+Frozen parent4371 versus geometry+4500 evaluated on GPU7 (436.53MiB allocated)
+without touching active4/5/6 or unrelated users. Same four old GRAB TRAIN
+anchors/H4/true t+24 goals, forecast24/consume8/predicted-state feedback, common11
+scoring. Old v4/parent4371/geometry4500 means in mm: eyeglasses67.07/90.36/88.40,
+bowl220.00/292.50/302.08, stamp52.19/179.84/195.66, bunny43.79/178.22/228.01.
+Thus no consistent GRAB drift improvement; three worsen relative to parent.
+All eight generated-history/raw-coordinate audits pass, no stop/truncated tail.
+V6 native21/observed skin differs from v4 inputs; not a matched-loss causal test.
+
+Apple same sparse11 initial observations (missing geometry explicitly masked):
+geometry fixed replay improves old-v4 mean674.87→228.32mm, but endpoint1272.47mm.
+TaskController unknown-event mean664.59→330.26mm, worse than parent260.58mm;
+planned-event variant318.39mm, parent179.88mm. Both stop acquire_timeout at15s,
+447 common frames, zero established grasp ticks. No physics/generalization claim.
+Seven four-panel videos are being encoded under the evaluation output.
+
+Control entrypoint/test/queue prepared,31 v6 tests pass. Same source4371 and
+fresh optimizer/draw streams/world3/local96/global288; only geometry training
+graph disabled, DEV diagnostics retained. All new control checkpoints preserved.
+Existing geometry500/4500 pinned independently before source rotation. Proposed
+automatic three-card launch after current run naturally releases4/5/6 requires
+the pending user resource-plan response; no watcher/control training started.
+Current geometry training continued untouched to5620 at14:14 (loss9.44425).
+[AB experiment](experiments/probes/P-20261021-wam-v6-geometry-ab.md).
+Artifacts: outputs/ptv3-shared-wam-v6/geometry-ab-rollout-20261021-r1/evaluation/
+(result.json/comparison.json/data-audit.json) and control-queue-plan.json at root.
+
 ## 2026-10-21 Geometry consistency training RUNNING from latest local4371
 
 User-requested predicted hand/object geometry objective implemented and launched

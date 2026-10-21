@@ -5,7 +5,7 @@ experiment_id: P-20261021-wam-v6-geometry-ab
 date: 2026-10-21
 task: ptv3-shared-wam-v6
 branch: main
-git_commit: recorded-in-run-manifest
+git_commit: deb1298b9fe02c51e37c5f425884fdc7ca501450
 claim_id: C1
 hypothesis_family: HF-v6-geometry-ab
 probe_index_in_family: 1
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [170,171,246]
 decision_changed_if_positive: retain geometric supervision only if matched continuation and common-frame rollout errors improve
 decision_changed_if_negative: reject this geometry implementation or optimization setting as an improvement over the parent
-status: PREPARING
+status: AWAITING_RESOURCE_PLAN_REPLY
 run_id: geometry-ab-rollout-20261021-r1
 ---
 
@@ -83,3 +83,91 @@ different objectives. Record exact config diff and checkpoint/source identities.
 No result yet: initially geometric-run DEV4500 is worse than exact4371 baseline,
 but that alone does not isolate the loss's causal effect. Both source4371
 and geometric500/4500 remain preserved independently of active run rotation.
+
+
+## Rollout results and engineering evidence
+
+Inference COMPLETED on GPU7, code b6e9be29 plus bounded continuation fix deb1298b;
+peak allocated436.53MiB, no interference with active GPUs4/5/6 or other users.
+First pass completed all four GRAB cases for each model, then failed in apple
+fixed-goal visualization preparation because an unused controller was observed
+after terminal state. Fix stops consulting the controller in fixed replay mode;
+resume skips completed immutable cases and only computes missing apple modes.
+Logs/first attempt preserved; result continuation_commits records both versions.
+
+CPU initial-builder check reproduces native sample_window exactly for geometry,
+joints, skin and histories; goal difference7.45e-9m. Static skin transport error
+7.45e-9m. All eight GRAB generated-history/reconstruction audits pass: stored
+hand histories and coordinate reconstruction differences0; object reconstruction
+max3.26e-8m; raw metric reproduction difference0mm. No future recorded hands or
+skins are inserted into subsequent histories. Complete v6 suite31 passed8.12s,
+including exact equality of control/base loss and coordinate-head gradients,
+rejection of any geometry graph in control training, and retained DEV diagnostics.
+
+Common11-point mean errors (mm), forecast24/consume8/predicted history:
+
+| TRAIN case | Old v4-80000 | Parent v6-4371 | Geometry v6 +4500 | Geometry versus parent |
+| --- | ---: | ---: | ---: | ---: |
+| eyeglasses | 67.07 | 90.36 | 88.40 | -2.18% |
+| bowl | 220.00 | 292.50 | 302.08 | +3.28% |
+| stamp | 52.19 | 179.84 | 195.66 | +8.80% |
+| bunny | 43.79 | 178.22 | 228.01 | +27.94% |
+
+All common frames retained180/44/180/161; no numerical/workspace stops. Compared
+with old v4, geometry errors increase31.8%,37.3%,274.9%,420.7%. Geometry endpoint
+errors88.63/886.68/250.09/995.21mm. Native v6 uses observed joint21/skin while v4
+has11 points, so architecture/input differences preclude loss-only causation.
+Same-architecture parent comparison still has unmatched extra training time.
+
+Apple sparse11 input diagnostic:
+
+| Goal/event mode | Old v4 mean mm | Parent4371 | Geometry4500 | Coverage |
+| --- | ---: | ---: | ---: | --- |
+| fixed replay, unknown event | 674.87 | 285.26 | 228.32 | all647 predicted frames |
+| TaskController, unknown event | 664.59 | 260.58 | 330.26 |447 common frames, timeout15s |
+| TaskController, planned event | 664.59 | 179.88 | 318.39 |447 common frames, timeout15s |
+
+Both scheduler variants establish grasp0 ticks and stop acquire_timeout at450.
+Geometry improves means versus old v4 by66.2%/50.3%/52.1%, but remains severe:
+fixed-goal endpoint1272.47mm, scheduler endpoints581.93/540.23mm. Versus parent,
+fixed replay improves20.0%, scheduler unknown worsens26.7%, planned-event arm
+worsens77.0%. Planned events are additional v6 input, not an identical v4 event
+condition. Apple has sparse11 only, missing skin/extra joints explicitly masked;
+this cannot establish full native-v6 robot deployment efficacy.
+
+Artifacts: evaluation/result.json, comparison.json, data-audit.json, raw npz
+and seven four-panel videos (recorded / old-v4 / parent4371 / geometry4500).
+The model named geometry4500 means4500 new-objective updates after initializing
+from4371; no claim that this is the latest active step. Current run continued
+untouched to5620 at14:14, loss9.44425; this operational observation is separate
+from the frozen4500 evaluation. No files/checkpoints were deleted by this task.
+
+## Matched-control readiness, not yet a scientific result
+
+New flag geometry_loss_disabled=true is the sole training config difference.
+It removes the geometry training graph entirely and sets its training weight0;
+DEV still computes all geometry diagnostics with zero objective contribution.
+Same actual entrypoint and8→10 strict-recovery stages; all source weights,
+normalizers and fresh-optimizer semantics unchanged. Preserve every control
+checkpoint using a separate CLI32GiB/stage ceiling (retention is operational).
+Queue compares fixed DEV500/4500 automatically as files arrive and verifies
+initial hand DEV against exact4371 within.01mm. Frozen dataset/seed equality
+and per-metric coverage are checked; no hidden single-GPU accumulation.
+
+Concrete queue command/config diff/environment saved in control-queue-plan.json.
+User was asked to choose automatic three-card launch after natural release or
+prepare-only. No response received yet; no watcher/training started without
+that resource-plan answer. Current GPU7 contains another user's6.7GiB process,
+so it was used only for bounded~0.44GiB inference. GPUs0–3 untouched. The matched
+control is still pending; do not claim the loss alone caused observed decline.
+
+Additional Decision diagnostic before interpreting UNKNOWN-event rollouts:
+repeat the same four GRAB cases with the recorded next-contact/release plan
+supplied to both v6 checkpoints, separately labelled planned. This distinguishes
+an absent planned-event instruction from a failure of the native conditioned
+model; a positive result would narrow the drift finding to unknown-event use.
+The frozen teacher event timeline is an oracle instruction, just like the
+recorded t+24 object endpoint; it is not generated-state scheduler feedback or
+an extra measured hand history. Do not mix this arm with the old v4 interface
+comparison. Reuse the same GPU7 budget, eight short sequences, preserve all
+previous outputs and add separate planned video filenames.

@@ -90,6 +90,9 @@ def run(args):
         report=read(out/'result.json')
         if report['work_version']!='v6.matched-rollout.v1':raise ValueError('different evaluation protocol')
         report.setdefault('continuation_commits',[]).append(args.git_commit)
+        report['status']='RUNNING'
+        for label,checkpoint in models:
+            if label in report['models'] and report['models'][label]['checkpoint']!=str(checkpoint.resolve()):raise ValueError('continuation checkpoint changed')
     write(out/'result.json',report)
     for label,checkpoint in models:
         saved=torch.load(checkpoint,map_location='cpu',weights_only=False);config=saved['config']
@@ -109,7 +112,7 @@ def run(args):
             if not np.isfinite(h).all() or not np.isfinite(s).all():raise ValueError('nonfinite prediction')
             return h,s
         for case,record in enumerate(old['reports']):
-            if any(r['model']==label and r['kind']=='grab' and r['case']==case for r in report['reports']):continue
+            if any(r['model']==label and r['kind']=='grab' and r['case']==case and r.get('event_mode','unknown')==args.grab_events for r in report['reports']):continue
             folder=dataset_root/'hands/sequences'/('s1-%05d'%record['source_sequence_id'])
             meta=read(folder/'meta.json');assert meta['source_sequence']==record['sequence']
             seq={p.stem:np.load(p,mmap_mode='r') for p in folder.glob('*.npy')}
@@ -124,6 +127,11 @@ def run(args):
             skin=np.asarray(seq['surface_offsets'][start:start+4],np.float32)+joints[:4,:,None,0,:]
             jv=np.asarray(seq['joint_valid'][start:start+4]).all(0);dv=np.broadcast_to(np.asarray(seq['surface_valid'][start:start+4]).all(0)[:,None],(2,778)).copy()
             parts=np.asarray(seq['surface_parts']);hand=np.full_like(joints[:n],np.nan);pose=np.full_like(poses[:n],np.nan)
+            planned=None
+            if args.grab_events=='planned':
+                recipe=read(ROOT/'outputs/ptv3-shared-wam-v6/local-expanded-recipe-20261021-r1/manifest.json')
+                events=read(recipe['event_manifest']);event_row=next(x for x in events['sequences'] if x['key']==folder.name)
+                planned={k:np.load(Path(event_row['path'])/(k+'.npy'),mmap_mode='r') for k in ('event_type','event_delta_steps','event_valid')}
             dense=np.full((n,2,778,3),np.nan);hand[:4]=joints[:4];pose[:4]=poses[:4];dense[:4]=skin
             valid=np.zeros(n,bool);stop=None;inputs=[];outputs=[];scene_outputs=[];input_pose=[]
             # Independent roundtrip against the training reader at the initial anchor.
@@ -136,7 +144,8 @@ def run(args):
             if max(roundtrip.values())>.003:raise ValueError('initial training/online mismatch '+str(roundtrip))
             for t in range(3,n-1,8):
                 try:
-                    sample=online(geo,pose[t-3:t+1],hand[t-3:t+1],dense[t-3:t+1],jv,dv,parts,poses[t+24])
+                    event=dict(event_hz=30,**{k:v[start+t,0] for k,v in planned.items()}) if planned else None
+                    sample=online(geo,pose[t-3:t+1],hand[t-3:t+1],dense[t-3:t+1],jv,dv,parts,poses[t+24],event)
                     hd,sd=forward(sample);idx=np.arange(t+1,min(t+9,n))
                     future=hand[t]+hd@pose[t,:3,:3].T
                     future_skin=extend_skin(hand[t],dense[t],jv,dv,future[:len(idx)])
@@ -147,10 +156,12 @@ def run(args):
             common=valid&base['valid'];pred=hand[:,:,ids];error,metrics=score(base['real_hand'],pred,common,base['hand_present'])
             _,bm=score(base['real_hand'],base['free_hand'],common,base['hand_present'])
             objerr=np.linalg.norm(pose[:,:3,3]-base['real_object'][:,:3,3],axis=-1)*1000
-            row=dict(model=label,case=case,sequence=record['sequence'],kind='grab',**metrics,
+            row=dict(model=label,case=case,event_mode=args.grab_events,sequence=record['sequence'],kind='grab',**metrics,
                 old_v4_common_mean_mm=bm['mean_mm'],improvement_percent=100*(1-metrics['mean_mm']/bm['mean_mm']) if metrics['mean_mm'] is not None else None,
                 object_translation_mean_mm=float(objerr[common].mean()) if common.any() else None,stop=stop,roundtrip_max_difference=roundtrip)
-            np.savez_compressed(out/(label+'-case%d.npz'%case),real=base['real_hand'],hand=pred,pose=pose,
+            filename=label+('-planned' if args.grab_events=='planned' else '')+'-case%d.npz'%case
+            if (out/filename).exists():raise ValueError('refuse prediction overwrite')
+            np.savez_compressed(out/filename,real=base['real_hand'],hand=pred,pose=pose,
                 real_pose=base['real_object'],valid=valid,common=common,present=base['hand_present'],error_mm=error,
                 input_hand=np.asarray(inputs),input_pose=np.asarray(input_pose),delta=np.asarray(outputs),scene=np.asarray(scene_outputs),
                 generated_joint21=hand,old_hand=base['free_hand'],old_pose=base['free_object'],surface=base['surface'])
@@ -225,7 +236,8 @@ def render(args):
     from matplotlib.animation import FFMpegWriter
     out=args.output;reports=read(out/'result.json');bones=[(0,i) for i in range(1,6)]+[(i,i+5) for i in range(1,6)]
     movie_names=[]
-    for key in ['case%d'%i for i in range(4)]+['apple-fixed','apple-scheduler-unknown','apple-scheduler-events']:
+    keys=['planned-case%d'%i for i in range(4)] if args.render_planned_only else ['case%d'%i for i in range(4)]+['apple-fixed','apple-scheduler-unknown','apple-scheduler-events']
+    for key in keys:
         arrays=[]
         for label in ('parent4371','geometry4500'):
             with np.load(out/(label+'-'+key+'.npz')) as z:arrays.append({k:z[k].copy() for k in z.files})
@@ -255,13 +267,17 @@ def render(args):
                     text.set_text(('error %.1fmm'%error) if good else 'STOP / no prediction')
                 title.set_text('%s | WAM24 / consume8 | t=%.2fs | playback 2x slower\nCommon11 points; no physical execution'% (key,t/30));writer.grab_frame()
         plt.close(fig);movie_names.append(name);print('rendered',name,flush=True)
-    listing=out/'video-list.txt';listing.write_text(''.join("file '%s'\n"%str((out/x).resolve()) for x in movie_names[:4]))
-    subprocess.run(['ffmpeg','-v','error','-n','-f','concat','-safe','0','-i',str(listing),'-c','copy',str(out/'train-cases-comparison.mp4')],check=True)
-    write(out/'visualization.json',dict(status='COMPLETED',videos=movie_names,combined='train-cases-comparison.mp4',fps=15,real_hz=30))
+    suffix='-planned' if args.render_planned_only else ''
+    listing=out/('video-list'+suffix+'.txt');listing.write_text(''.join("file '%s'\n"%str((out/x).resolve()) for x in movie_names[:4]))
+    combined='train-cases'+suffix+'-comparison.mp4'
+    subprocess.run(['ffmpeg','-v','error','-n','-f','concat','-safe','0','-i',str(listing),'-c','copy',str(out/combined)],check=True)
+    write(out/('visualization'+suffix+'.json'),dict(status='COMPLETED',videos=movie_names,combined=combined,fps=15,real_hz=30))
 
 
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('mode',choices=['infer','render']);p.add_argument('--output',type=Path,required=True)
     p.add_argument('--parent',type=Path);p.add_argument('--geometry',type=Path);p.add_argument('--stats',type=Path);p.add_argument('--git-commit')
     p.add_argument('--continue-existing',action='store_true')
+    p.add_argument('--grab-events',choices=['unknown','planned'],default='unknown')
+    p.add_argument('--render-planned-only',action='store_true')
     args=p.parse_args();run(args) if args.mode=='infer' else render(args)

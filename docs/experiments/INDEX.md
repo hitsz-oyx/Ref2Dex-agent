@@ -909,7 +909,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261021-wam-v6-geometry-ab](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261021-wam-v6-geometry-ab.md) | Matched geometry ablation and old-video rollout comparison | 见原卡 | 见原卡 | probes/PREPARING |
+| [P-20261021-wam-v6-geometry-ab](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261021-wam-v6-geometry-ab.md) | Matched geometry ablation and old-video rollout comparison | 见原卡 | 见原卡 | probes/AWAITING_RESOURCE_PLAN_REPLY |
 
 ## HF-v6-geometry-consistency
 

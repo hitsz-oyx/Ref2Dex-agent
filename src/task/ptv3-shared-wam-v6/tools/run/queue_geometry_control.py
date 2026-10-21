@@ -18,6 +18,31 @@ from launch_local_training import read,write,gpu_state,released,alive
 from launch_local_scaled import audit
 
 
+def compare_dev(geometry_run,control_stage,output):
+    """Compare identical fixed panels as reports arrive, without GPU inference."""
+    comparison=dict(status='PENDING',unit='mm unless contact/mae',steps={})
+    for step in (500,4500):
+        name='dev-step%06d.json'%step
+        gp=geometry_run/'training'/name;cp=control_stage/name
+        if not cp.exists():continue
+        left,right=read(gp),read(cp)
+        if set(left['sources'])!=set(right['sources']):raise ValueError('fixed DEV source coverage changed')
+        sources={}
+        for sid,g in left['sources'].items():
+            c=right['sources'][sid];metrics={}
+            for key,value in g['metrics'].items():
+                if 'mean' not in value:continue
+                other=c['metrics'][key]
+                if value['count']!=other['count']:raise ValueError('fixed DEV metric sample coverage changed')
+                metrics[key]=dict(geometry=value['mean'],control=other['mean'],
+                    geometry_minus_control=value['mean']-other['mean'],count=value['count'])
+            sources[sid]=dict(hand_epe_mm=dict(geometry=g['hand_epe_mm'],control=c['hand_epe_mm'],
+                geometry_minus_control=g['hand_epe_mm']-c['hand_epe_mm']),metrics=metrics)
+        comparison['steps'][str(step)]=dict(sources=sources,geometry_report=str(gp),control_report=str(cp))
+    comparison['status']='COMPLETED' if len(comparison['steps'])==2 else 'PENDING'
+    write(output,comparison)
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--approved-wait-for-release',action='store_true',required=True)
@@ -86,10 +111,17 @@ def main():
                         state.update(status='STOPPING',stop_reason=reason)
                     if stop_deadline and time.monotonic()>stop_deadline:raise TimeoutError('owned control child ignored STOP')
                     state.update(gpu=gpu_state(),free_gib=shutil.disk_usage(out).free/2**30);publish();time.sleep(15)
+                    if name=='training':compare_dev(a.geometry_run,stage,out/'fixed-dev-comparison.json')
             record['exit_code']=child.returncode
             if child.returncode:raise RuntimeError('control stage failed '+name)
             result=read(stage/'result.json');record['result']=result;step=result['last_step'];checkpoint=stage/('step%06d.pt'%step)
             record['checkpoint_audit']=audit(checkpoint,3,96,step,normalizer);publish()
+            if name=='readiness':
+                before=read(a.geometry_run/'readiness/dev-step000000.json');actual=read(stage/'dev-step000000.json')
+                initial_diff={sid:actual['sources'][sid]['hand_epe_mm']-v['hand_epe_mm'] for sid,v in before['sources'].items()}
+                record['initial_DEV_hand_difference_mm']=initial_diff;publish()
+                if max(abs(v) for v in initial_diff.values())>.01:raise ValueError('control initialization DEV differs by>.01mm')
+            if name=='training':compare_dev(a.geometry_run,stage,out/'fixed-dev-comparison.json')
             if result['status']!='COMPLETED':state.update(status=result['status']);publish();return
         state.update(status='COMPLETED');publish()
     except BaseException as exc:state.update(status='FAILED',error=repr(exc));publish();raise
