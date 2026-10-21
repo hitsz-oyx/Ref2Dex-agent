@@ -1,16 +1,27 @@
-# 2026-10-21 Healthy4371 strict FP32 arm in capacity/readiness
+# 2026-10-21 Healthy4371 strict FP32 training RUNNING
 
-User requested training from a healthy checkpoint with full FP32. Frozen code
-1b57a487; supervisor1234454, run strict-fp32-pretrain-20261021-r1, GPUs4/5/6.
-Previous BF16 geometry run completed10000, final checkpoint audit PASS and all
-three GPUs released. Reuse source4371, same objective/geometry weight/data/goals/
-events/seeds/LR; fresh optimizer exactly as the BF16 geometry arm. Replace forced
-PTv3 half attention with FP32 efficient SDPA and disable matmul/cuDNN/spconv TF32.
-38 tests pass. Capacity96 then three-rank8+strict2 recovery are pending actual
-results. Budget10000 updates or4h;20GiB disk floor. Root STOP requests saved stop.
-No accuracy/stability improvement yet established; do not launch the queued
-no-geometry control on these resources during the requested FP32 arm.
+User-requested healthy-start full FP32 arm actually launched, frozen1b57a487,
+supervisor1234454, GPUs4/5/6, local96/global288. Capacity8, real three-rank8-save
+and strict2-recovery PASS:568 finite states/correct counts,3 RNG, exact scales,
+equal signatures. Actual PTv3×16 and dense attention×13 use FP32 efficient SDPA;
+AMP and matmul/cuDNN/spconv TF32 off.38 tests pass. No vendor/architecture edits.
+Same source4371/geometry weight/goals/events/local207579 TRAIN/3356 DEV/seeds/LR;
+fresh optimizer only at initialization, then strict recovery/continuation.
+
+Sustained startup accepted at60, loss0.7267, norm0.918,
+shared/context RMS3.86/5.89; warmup50 passed, geometry ramp100 not yet complete.
+Recent0.329updates/s, GPU average~96–97%, physical20–22GiB/card,
+free187.09GiB.10000 updates or4h cumulative; at FP32 speed time bound likely
+binds first. Root STOP saves/stops. No later-stability/drift benefit established.
+Initial GRAB hand52.6872/object-h24=15.8287mm; step20=52.5363/15.0312mm.
+Short prefix only; compare500/1000+ and frozen rollouts before any efficacy claim.
+
+Previous BF16 geometry run COMPLETED10000, final GRAB hand56.4268/object-h24
+30.3106mm, final checkpoint audit PASS, GPUs released before this arm. The
+queued no-geometry control is not launched during this user-prioritized FP32 run.
 [Precision experiment](experiments/probes/P-20261021-wam-v6-strict-fp32.md).
+Live: outputs/ptv3-shared-wam-v6/strict-fp32-pretrain-20261021-r1/process.json
+and training/progress.json; startup-acceptance.json records checks and telemetry.
 
 # WAM v6 state — 2026-10-21
 
