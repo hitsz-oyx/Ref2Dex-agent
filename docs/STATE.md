@@ -1,3 +1,12 @@
+## 2026-10-21 Inspire到1570轮，确认reward日志遗漏与比较边界
+
+10:24北京时间，GPU4/5/6三rank均到1570轮，supervisor及六worker存活；
+本run结束53174回合，完整任务成功0，workspace失败27792(52.27%)。
+自定义ppo.log未保存reward/return，三rank的TensorBoard事件文件均仅88bytes，
+因此历史reward曲线不可从现有日志还原，不能按loss推断奖励改善或收敛。
+BC父策略和旧teacher辅助结果的比较边界已补入[v3实验卡](../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-inspire-measured-official-ppo.md)。
+本次只保存现场与诊断事实，未补部署日志、改reward、重启训练或新增评估。
+
 ## 2026-10-21 Inspire训练稳定到1520轮，但完整任务成功仍为0
 
 r3三卡GPU4/5/6正常运行约13.1h，无新PhysX崩溃、动作回合或参数同步错误。

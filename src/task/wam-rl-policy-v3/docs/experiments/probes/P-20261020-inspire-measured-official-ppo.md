@@ -305,3 +305,56 @@ Thirty seconds sampled at2s: meanGPU utilization49.3/33.1/46.8%, total peaks
 15240/15240/15306MiB. Remaining original training allowance32.56h; local disk
 222GiB free. Rank0 keeps500/1000/1500 plus the latest3 checkpoints, bounded as
 specified. Latest progress and checkpoint iteration advance normally.
+
+## 2026-10-21 reward logging audit and historical comparison
+
+At10:24 Asia/Shanghai, all three ranks reached1570, approximately13.59h of
+this run. Supervisor and all six workers are alive. Ended training episodes
+53174, full TaskController successes0, workspace failures27792 (52.27%).
+Rank0 last100 iterations average36.31s; remaining original allowance32.05h,
+disk free about221.5GiB. Measured source mismatch/log-prob/synchronization
+errors remain0. Snapshot: outputs/wam-rl-policy-v3/inspire-measured-official-20261020-r3/status-20261021T022443Z.json.
+
+Confirmed logging defect: inspire_measured_official_ppo.py replaces ppo.log
+without persisting the official collector's mean_reward/rewbuffer or the
+environment's episode_results.return_sum. All three curve.jsonl streams lack
+reward/return fields, and all three TensorBoard event files are88bytes only.
+Reward still feeds official PPO storage and optimization; this finding does
+not mean reward was absent from training. Historical training reward cannot
+be reconstructed from saved losses or model/optimizer checkpoints. Logging
+has NOT been repaired in the frozen active run. No reward trend or convergence
+claim is supported by the existing value-loss curve.
+
+Historical comparison, checked against committed cards and actual artifacts:
+
+- Current BC source is Scheduled686 r4 DEV-best(step0), preserving the learned
+  Current421 goal parent but with initially zero tau/valid columns. On the fixed
+  four TRAIN motions/300 controls, parent and step0 each had2/4 lift5cm30,
+  followed by drops; full task completion was0/4 within the bounded window.
+  The trained50k endpoint had1/4 lift5cm30 and worse DEV command MAE
+  (0.05317855 versus0.04012461). See [BC card](P-20261020-inspire-scheduled686-bc.md)
+  and outputs/wam-rl-policy-v3/inspire-wam-goal-bc-20261020-r4/comparison.json.
+- Early DExplore shared-controller testing used WAM-v2, not this v4 executor.
+  Three fixed sequences had teacher holding but student held0; one airplane
+  diagnostic recovered holding with teacher wrist/student fingers, while
+  student wrist/teacher fingers still failed. Teacher-assisted holding is not
+  autonomous student success. See [shared native card](../../../../ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-shared-native-grasp.md)
+  and [component diagnosis](../../../../ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-inspire-component-oracle.md).
+- WAM-v3's frozen nine-source recipe includes OakInk2/GRAB/ARCTIC/UniDexGrasp/
+  TACO/HOT3D/DexYCB/H2O/HOI4D; it does not include DExplore. This source check
+  is separate from downstream DExplore experiments. The concrete recipe is
+  outputs/ptv3-shared-wam-v3/nine-source-strict-quality-20261015-r1/recipe.json.
+- PPO engine/capacity reuse does not imply identical tasks or reward: current
+  Inspire requires the TaskController's ordered SE3 path and terminal behavior,
+  using measured TaskReward rather than the Shadow native reward. At saved
+  PPO1500, actual Gaussian action standard deviations exp(2*log_std) span
+  0.2321–0.4064. Noise-induced failures remain a hypothesis, not a diagnosis.
+
+Next Decision Probe should distinguish BC weakness, PPO policy degradation,
+exploration-induced failures and task-stage/reward bottlenecks. The cheapest
+useful comparison is a fixed initial-state panel for the BC parent and saved
+PPO milestones, deterministic means first, reporting approach/contact/lift/
+hold/path progress and termination reasons separately; compare sampled actions
+only if needed to isolate exploration. Restore reward/episode telemetry for
+future training records. No such new evaluation, logging deployment, reward
+change or training restart was performed during this audit/commit request.

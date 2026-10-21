@@ -1,5 +1,17 @@
 # 当前状态
 
+2026-10-21 10:24北京时间实查：r3三rank均到1570轮，supervisor及六worker存活，
+本run结束53174回合、完整任务成功0、workspace失败27792(52.27%)；仍为随机训练计数。
+最近100轮rank0均值36.31s，剩余预算约32.05h，磁盘约221.5GiB可用。
+确认当前冻结runner的自定义ppo.log遗漏reward/return；三rank事件文件均仅88bytes。
+历史reward曲线无法由这些日志还原；此问题尚未修复到运行中的版本，不能声称奖励上升。
+当前BC起点是Scheduled686 r4 DEV-best(step0)，τ新增列起始为零；此前四TRAIN轨迹
+300拍仅2/4曾满足lift5cm30且之后均掉落，窗口内完整任务0/4。早期teacher/辅助控制的
+保持结果不能当作自主策略成绩，也不能直接与本次完整任务指标比较。
+快照为outputs/wam-rl-policy-v3/inspire-measured-official-20261020-r3/status-20261021T022443Z.json；
+详细证据及未验证假设见本Task的P-20261020-inspire-measured-official-ppo实验卡末节。
+本次仅记录结果与局限，未新增评估、修改冻结代码/reward或停止训练。
+
 2026-10-21 09:54北京时间实查：r3三rank均到累计1520轮，正常运行约13.1h，
 六worker仍存活，未再出现PhysX崩溃。训练累计结束51322回合，完整TaskController任务成功0，
 workspace失败26952(约52.5%)；这是在线随机训练计数，不是确定性评估，也不等于抓取/抬升率0。
