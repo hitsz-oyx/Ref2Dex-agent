@@ -350,3 +350,25 @@ paper/transformer-training-difficulty/.
 Final diagnostic verification: complete v6 suite31 tests PASS in8.00s,
 new audit Python syntax and changed-document/paper-metadata checks PASS.
 No production model/objective/trainer or active config changed in this diagnosis.
+
+
+## PointWorld FFN source comparison
+
+User asks to borrow FFN details without copying the full architecture. Clean
+PointWorld0548482 and official source inspected. Core MLP/GELU/4x/pre-norm
+mapping is the same; matched-weight CPU FP64 forward and input/parameter
+backward smoke gives exactly zero differences. LayerScale is NOT enabled in
+the release builder. PointWorld has scheduled residual DropPath up to0.3 and
+independently initialized hierarchical blocks; our added shared global768/12
+stack has no DropPath and starts from cloned equal-valued Torch layers.
+The actual pretrained4371 layers are already distinct. These differences are
+candidate comparisons, not proven causes or an excuse to reset learned weights.
+
+Our geometry PTv3 already uses the vendor code (configured DropPath0.1), and
+remains near its original feature scale in the measured examples. The diagnosis
+concerns the additional shared stack. Missing final output normalization alone
+was overemphasized previously: PointWorld also has pre-norm FFN residuals with
+no required post-residual norm. It is a candidate stabilization, not a proven
+root cause. Details/source metadata: paper/pointworld/ffn-comparison.md and
+schema.json. Audit: outputs/ptv3-shared-wam-v6/pointworld-ffn-audit-20261021-r1/.
+No active model, checkpoint or training configuration changed.

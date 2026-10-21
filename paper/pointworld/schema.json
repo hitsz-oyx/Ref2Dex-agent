@@ -1,0 +1,15 @@
+{
+  "title": "PointWorld: Scaling 3D World Models for In-The-Wild Robotic Manipulation",
+  "papers": [
+    {
+      "title": "PointWorld: Scaling 3D World Models for In-The-Wild Robotic Manipulation",
+      "arxiv_url": "https://arxiv.org/abs/2601.03782",
+      "code_url": "https://github.com/NVlabs/PointWorld"
+    }
+  ],
+  "verification_date": "2026-10-21",
+  "local_code": "third_party/PointWorld",
+  "local_commit": "0548482",
+  "notes": "ffn-comparison.md",
+  "scope": "FFN implementation/configuration comparison only; paper not read, no PointWorld reproduction."
+}

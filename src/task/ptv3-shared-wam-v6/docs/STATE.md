@@ -16,6 +16,10 @@ All4 normalizer tensors unchanged;568 finite optimizer states all4500, no
 negative second moments. Active run naturally recovers at9000: shared RMS5.12,
 scene-head gradient6.40; fixed GRAB DEV hand55.45mm/object-h24=37.26mm versus
 initial52.68/15.82mm. Not permanent monotone collapse, still no net object gain.
+PointWorld source comparison: GELU/4x/pre-norm FFN core matches exactly in a
+same-weight forward/backward smoke; release LayerScale disabled. Shared-stack
+DropPath and layer initialization differ from PointWorld. Missing final norm
+alone is not a demonstrated explanation. See paper/pointworld/ffn-comparison.md.
 [Detailed diagnostic evidence](experiments/probes/P-20261021-wam-v6-geometry-consistency.md).
 
 ## 2026-10-21 Geometry rollout measured; matched control awaits resource plan
