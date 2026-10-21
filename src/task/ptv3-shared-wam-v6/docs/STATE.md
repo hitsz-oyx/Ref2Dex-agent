@@ -1,3 +1,12 @@
+# 2026-10-22 Joint conditional residual flow preparation
+
+Owner requests runnable FM trial then longer three-card training onGPU4/5/6.
+Latest GT-object2048 contact retained,FP32,goal/events,healthy4371 plus new flow.
+Bound30000 updates or12h cumulative training,detached,no credentials. Real-data
+capacity/DDP8+2/trial128 pending. Local207579 TRAIN/3356 DEV,~99.8%GRAB.
+08:00 is interim review, no efficacy claim.
+[Experiment](experiments/probes/P-20261022-wam-v6-flowmatching.md).
+
 # 2026-10-22 GT2048 contact arm saved/stopped3238; no held-out benefit
 
 Execution STOPPED normally at the original4h boundary, final complete

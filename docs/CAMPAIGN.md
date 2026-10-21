@@ -120,3 +120,15 @@ export HTTPS_PROXY=http://127.0.0.1:7897
 
 
 
+
+## 2026-10-22 owner-authorized WAM flow-matching exception
+
+仅适用于 `P-20261022-wam-v6-flowmatching`：机主经飞书明确要求先试
+flow matching，短试验后直接大规模、延长训练，沿用最近 GT2048 object contact
+loss。此运行可用物理 GPU4/5/6 三卡，0–3/7 禁止触碰；覆盖旧运行4h上限，
+设为新目标累计43200s（12h）或30000 updates，以先到为准，非无限运行。
+不读写凭据，不影响其他作业，supervisor及训练以独立session脱离TUI。
+单阶段checkpoint预算8GiB，预计整轮新增<24GiB；可用空间低于20GiB保存停止。
+短试验包括真实数据梯度、容量、三卡保存/严格恢复及128步后ODE采样检查；
+技术检查通过即可按机主指令续训，不把可运行视为泛化或滚动性能提高。
+此例外不扩大其他实验预算，不使用其他GPU。

@@ -667,3 +667,10 @@ allocations:
     model_and_training_seed: 170
     fixed_DEV_panel_seed: 171
     reuse_reason: strict continuation of the learned v6 event branch and original draw stream; not an independent replication
+
+  P-20261022-wam-v6-flowmatching:
+    seed_pool: probe
+    model_and_training_seed: 170
+    fixed_DEV_panel_seed: 171
+    flow_evaluation_seed: 172
+    reuse_reason: matched inherited initialization and DEV panel; fixed sample-conditioned flow noise, not independent replication

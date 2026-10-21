@@ -923,6 +923,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261021-wam-v6-gt-object-contact](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261021-wam-v6-gt-object-contact.md) | GT2048 object and predicted-hand contact probability supervision | new arm saved/stopped3238 at its4h boundary; final checkpoint audit PASS; fixed DEV3000 shows no short-prefix or GT-contact gain. | do not extend this GT-object probability package; preserve checkpoints and investigate the held-out trajectory gap before another training a | probes/STOPPED |
 
+## HF-v6-joint-trajectory-flow
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261022-wam-v6-flowmatching](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261022-wam-v6-flowmatching.md) | Joint hand/object conditional residual flow with GT-object contact | implementation and unit contracts prepared; real-input and three-rank trial pending. | owner explicitly requests longer training after the runnable trial; efficacy remains open. | probes/PREPARING |
+
 ## HF-v6-local-adaptation
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
