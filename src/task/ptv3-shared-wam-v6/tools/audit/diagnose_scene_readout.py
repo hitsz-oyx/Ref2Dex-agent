@@ -20,8 +20,11 @@ from ptv3_shared_wam_v5.objectives import forecast_loss as base_loss
 
 def stats(x):
     x = x.detach().float()
-    return dict(shape=list(x.shape), norm=float(x.norm()), rms=float(x.square().mean().sqrt()),
-                absmax=float(x.abs().max()), finite=bool(torch.isfinite(x).all()))
+    result = dict(shape=list(x.shape), norm=float(x.norm()), rms=float(x.square().mean().sqrt()),
+                  absmax=float(x.abs().max()), finite=bool(torch.isfinite(x).all()))
+    if x.ndim == 3:
+        result['token_centered_rms'] = float((x-x.mean(1, keepdim=True)).square().mean().sqrt())
+    return result
 
 
 def scene_loss(model, scene_z, batch, config):
@@ -57,6 +60,7 @@ def main():
     parser.add_argument('--checkpoints', type=Path, nargs='+', required=True)
     parser.add_argument('--modes', nargs='+', default=['bf16-default', 'bf16-math', 'fp32',
                         'fp32-attention-only', 'bf16-shared-ln', 'bf16-context-ln', 'fp32-shared-ln'])
+    parser.add_argument('--detailed-layers', action='store_true')
     args = parser.parse_args()
     args.output.mkdir(exist_ok=False)
     torch.set_num_threads(2)
@@ -94,6 +98,8 @@ def main():
         activation_stats = {}
         def inspect_output(name):
             def inspect(module, inputs, output):
+                if isinstance(output, tuple):
+                    output = output[0]
                 if isinstance(output, torch.Tensor):
                     activation_stats[name] = stats(output)
                 elif isinstance(output, dict):
@@ -103,6 +109,10 @@ def main():
                      'hand_encoder', 'geometry.scene_proj', 'geometry.surface_encoder', 'geometry.voxel_fusion',
                      'scene_context'}
         inspected.update('interaction.layers.'+str(i) for i in range(config['shared_layers']))
+        if args.detailed_layers:
+            inspected.update('interaction.layers.'+str(i)+'.'+name
+                             for i in range(config['shared_layers'])
+                             for name in ('self_attn', 'norm1', 'norm2', 'linear1', 'linear2'))
         hooks = [module.register_forward_hook(inspect_output(name)) for name, module in model.named_modules()
                  if name in inspected]
         with torch.no_grad(), torch.autocast('cuda', dtype=torch.bfloat16):

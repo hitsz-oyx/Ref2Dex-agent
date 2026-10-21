@@ -1,6 +1,6 @@
 # WAM v6 state — 2026-10-21
 
-## 2026-10-21 Shared residual/context scale drift localized; diagnosis ongoing
+## 2026-10-21 Shared FFN scale drift localized; partial natural recovery at9000
 
 Read-only four-TRAIN-example audits reproduce degraded scene gradients without
 geometric loss. PTv3 token RMS1.62→1.86, but shared Transformer last-layer RMS
@@ -10,6 +10,12 @@ LayerNorm counterfactual lowers gradients yet worsens existing checkpoint loss,
 so it is not a validated hot repair. Six disposable optimizer steps do not show
 that resetting Adam resolves the issue. No source checkpoint or active run
 changed; original trigger and matched-control causality remain open.
+FFN-only4371 rollback in4500 copies lowers shared RMS423→14.45, while attention-
+only rollback leaves355.62; partial hybrids worsen accuracy, so no hot repair.
+All4 normalizer tensors unchanged;568 finite optimizer states all4500, no
+negative second moments. Active run naturally recovers at9000: shared RMS5.12,
+scene-head gradient6.40; fixed GRAB DEV hand55.45mm/object-h24=37.26mm versus
+initial52.68/15.82mm. Not permanent monotone collapse, still no net object gain.
 [Detailed diagnostic evidence](experiments/probes/P-20261021-wam-v6-geometry-consistency.md).
 
 ## 2026-10-21 Geometry rollout measured; matched control awaits resource plan

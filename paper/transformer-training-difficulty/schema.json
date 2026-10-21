@@ -1,0 +1,14 @@
+{
+  "title": "Understanding the Difficulty of Training Transformers",
+  "papers": [
+    {
+      "title": "Understanding the Difficulty of Training Transformers",
+      "arxiv_url": "https://arxiv.org/abs/2004.08249",
+      "code_url": "https://github.com/LiyuanLucasLiu/Transformer-Clinic",
+      "venue": "EMNLP 2020"
+    }
+  ],
+  "verification_date": "2026-10-21",
+  "notes": "notes.md",
+  "scope": "Primary abstract and author repository consulted for WAM instability diagnosis; no method implementation or reproduction."
+}

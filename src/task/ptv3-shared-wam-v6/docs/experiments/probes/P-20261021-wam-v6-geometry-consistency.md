@@ -286,3 +286,67 @@ Open work: determine which shared residual sublayers/parameter updates initiate
 the scale drift, verify optimizer/normalizer contracts directly, and use a
 matched no-geometry continuation to isolate its historical cause. No active
 training stop, hot edit, automatic control queue or validated recovery claim.
+
+
+## Shared FFN rollback and natural recovery check
+
+Additional detailed-layer audit localizes the main amplification to the shared
+FFNs. Layer5 (zero-based) linear2 output RMS0.315→24.337, layer11 linear2
+0.544→81.683; respective LayerNorm inputs to those FFNs remain approximately
+unit RMS. Layer11 linear2's estimated top singular value grows5.57→11.64,
+although its Frobenius norm only changes27.56→29.77. Scene-context estimated
+top singular value1.60→4.78. These are16-iteration power estimates, not exact
+SVDs. Parameter-state audit finds all4 inherited normalizer tensors exactly
+unchanged,568 optimizer state counters at4500, no nonfinite state tensors or
+negative second moments. Baseline b1821 versus launch b852 has no model.py or
+normalizer implementation change.
+
+Group rollbacks substitute only specified4371 parameters into disposable4500
+copies; same four TRAIN inputs, no optimizer step, no model file write:
+
+| Parameter group restored | Shared RMS | Context RMS | Scene gradient norm | Scene loss |
+| --- | ---: | ---: | ---: | ---: |
+| None | 423.14 | 3408.45 | 2432.54 | 0.3821 |
+| Shared FFNs | 14.45 | 96.22 | 159.45 | 2.1741 |
+| Shared attention | 355.62 | 2871.95 | 5979.51 | 0.6589 |
+| Shared LayerNorms | 408.99 | 3293.36 | 1102.39 | 0.4136 |
+| Scene context projection | 423.14 | 1017.42 | 6070.79 | 7.1351 |
+| Entire shared Transformer | 3.78 | 11.45 | 47.30 | 0.5733 |
+| Shared linear2 only | 55.73 | 305.96 | 101.59 | 3.7959 |
+| Full source reference | 3.58 | 5.58 | 2.76 | 0.0341 |
+
+This intervention supports the shared FFNs as a major source of residual-scale
+amplification, not merely a correlation with scene gradients. It does not make
+hybrid checkpoints accurate: changed groups interact with adapted downstream
+weights, and partial restorations often raise the loss. Source weights are
+preserved; no hybrid is proposed for execution or resumed training.
+
+The active run naturally partially recovers by9000. Fixed32-GRAB DEV hand
+EPE55.4514mm (initial52.6763), hand h24=101.362mm (initial102.509), object h24=
+37.2623mm (initial15.8196), geometry-relative24.1056mm (initial22.5379).
+Thus the7000 deterioration is not permanent monotone collapse, but there is
+still no net object/relative-contact improvement. Four-TRAIN audit at9000 shows
+shared RMS5.119, context16.740, scene-head gradient6.399 (FP32=6.388), compared
+with hundreds/thousands during the unstable phase. Recovery of feature scale
+and gradient conditioning co-occurs with physical error recovery.
+
+Evidence under outputs/ptv3-shared-wam-v6/: shared-layer-diagnosis-20261021-r1,
+shared-rollback-diagnosis-20261021-r1 (8 variants,17.31s, peak1.104GiB),
+parameter-state-diagnosis-20261021-r1, recovery-9000-diagnosis-20261021-r1,
+and instability-diagnosis-summary-20261021-r1/ (summary.json, curves.png).
+Remaining historical attribution: new geometry loss, fresh optimizer and
+continued adaptation are not isolated without matched continuation. The
+observed failure path is shared FFN/residual scale growth → scene-context gain
+→ ill-conditioned prediction/gradient path, aggravated by low precision.
+A normalization insertion changes checkpoint behavior, and simple FP32 or
+Adam reset has not established a recovery method. No production change made.
+
+Related primary research on residual amplification:
+[Understanding the Difficulty of Training Transformers](https://arxiv.org/abs/2004.08249).
+This motivates the diagnostics; it does not prove our trigger or validate an
+unrun repair. Local notes and source metadata are under
+paper/transformer-training-difficulty/.
+
+Final diagnostic verification: complete v6 suite31 tests PASS in8.00s,
+new audit Python syntax and changed-document/paper-metadata checks PASS.
+No production model/objective/trainer or active config changed in this diagnosis.
