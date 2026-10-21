@@ -915,7 +915,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261021-wam-v6-geometry-consistency](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261021-wam-v6-geometry-consistency.md) | Predicted hand/object contact geometry consistency | 见原卡 | 见原卡 | probes/RUNNING |
+| [P-20261021-wam-v6-geometry-consistency](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261021-wam-v6-geometry-consistency.md) | Predicted hand/object contact geometry consistency | 见原卡 | distinguish a geometry-derivative singularity, attention numerical | probes/RUNNING |
 
 ## HF-v6-local-adaptation
 

@@ -1,5 +1,17 @@
 # WAM v6 state — 2026-10-21
 
+## 2026-10-21 Shared residual/context scale drift localized; diagnosis ongoing
+
+Read-only four-TRAIN-example audits reproduce degraded scene gradients without
+geometric loss. PTv3 token RMS1.62→1.86, but shared Transformer last-layer RMS
+3.58→423.15 and scene_context5.58→3408.50 (source4371 versus geometry4500).
+FP32/FP64 reduce numerical amplification but retain large scene-head gradients.
+LayerNorm counterfactual lowers gradients yet worsens existing checkpoint loss,
+so it is not a validated hot repair. Six disposable optimizer steps do not show
+that resetting Adam resolves the issue. No source checkpoint or active run
+changed; original trigger and matched-control causality remain open.
+[Detailed diagnostic evidence](experiments/probes/P-20261021-wam-v6-geometry-consistency.md).
+
 ## 2026-10-21 Geometry rollout measured; matched control awaits resource plan
 
 Frozen parent4371 versus geometry+4500 evaluated on GPU7 (436.53MiB allocated)

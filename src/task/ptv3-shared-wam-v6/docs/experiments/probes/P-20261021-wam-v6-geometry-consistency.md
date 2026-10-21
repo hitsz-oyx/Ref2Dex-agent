@@ -210,3 +210,79 @@ measurement of the actual parameter update or a proven cause. Next diagnostic
 should localize scene-readout sensitivity and inspect optimizer updates, with a
 matched no-geometry continuation to distinguish triggering mechanisms. No fix,
 new long training, stop, or active-config mutation was performed by this audit.
+
+
+## Layer, precision and optimizer localization (saved diagnostic checkpoint)
+
+Decision: distinguish a geometry-derivative singularity, attention numerical
+amplification, shared-feature scale drift, and optimizer corruption before
+choosing a repair. Reuse the same four actual TRAIN examples and preserved
+4371/500/4500/7500 checkpoints. All source files and active training remain
+unchanged. Single-batch GPU7 diagnostics, no new production training, no saved
+model/checkpoint. Two standalone audit tools are now versioned:
+`tools/audit/diagnose_scene_readout.py` and
+`tools/audit/diagnose_optimizer_update.py`.
+
+Forward hooks localize the scale increase upstream of the scene readout:
+
+| Activation RMS | Source4371 | Geometry4500 |
+| --- | ---: | ---: |
+| PTv3 scene tokens | 1.62 | 1.86 |
+| Shared Transformer layer0 | 1.99 | 2.31 |
+| Shared Transformer layer3 | 2.51 | 5.51 |
+| Shared Transformer layer5 | 2.81 | 36.47 |
+| Shared Transformer layer11 | 3.58 | 423.15 |
+| Scene context projection | 5.58 | 3408.50 |
+
+Input tensors and goals are identical across checkpoints. The main scale drift
+appears across the shared pre-norm Transformer residual stream; PTv3 features
+remain near their original scale on this batch. The shared encoder has no final
+output LayerNorm; scene_context consumes its raw residual stream. This
+localizes an amplification path, not yet the original optimization trigger.
+At4500 projected attention logits reach approximately7.54e6. The isolated scene
+head reproduces large gradients with the upstream activations detached and
+without any contact/geometric loss, so a hand-skin derivative is not necessary
+to reproduce this failure at the degraded checkpoint.
+
+Same captured activations, no weight update: BF16, mathematical SDP, FP32,
+FP32 attention alone, and explicit FP64 attention reference were compared.
+A representative4500 capture gives scene-head gradient norms1992.15 in BF16,
+1193.76 in FP32 and1167.70 with FP64 attention. Query-input gradient norms are
+56.40/0.01762/0.00724 respectively; thus low precision amplifies a sensitive
+path, but higher precision alone leaves a genuinely ill-conditioned readout.
+Centering the keys (mathematically softmax-shift invariant) gives1176.47 in
+FP32 and does not remove the large parameter gradients either.
+
+Stateless shared-output LayerNorm lowers a4500 isolated-head gradient from
+about1127 to25.8; context LayerNorm lowers it to9.73. However the scene loss
+increases0.375→3.295/3.740. This is a counterfactual localization, not a validated
+repair: inserting normalization into the already trained checkpoint changes
+its function and cannot be hot-applied as if it preserved predictions.
+
+Six disposable one-step checks (500/4500 × restored Adam/fresh Adam/SGD), no
+checkpoint write. At4500 restored Adam changes same-batch total1.83707→1.80021;
+fresh Adam at full1e-5 changes1.83707→3.30338; clipped SGD changes it to1.80654.
+This does not prove stored optimizer corruption or that resetting Adam fixes
+anything. Four samples and a full-LR reset differ from the actual world3/
+global288 training and50-step warmup; no matched-continuation conclusion.
+Stored Adam can improve this batch despite a locally positive gradient/update
+dot product, emphasizing that BF16/conditioning and finite steps prevent a
+simple first-order sign argument from resolving the trigger.
+
+Audit reports live under outputs/ptv3-shared-wam-v6/:
+scene-readout-diagnosis-20261021-r1/ (12.36s),
+scene-activation-diagnosis-20261021-r1/ (11.41s),
+scene-normalization-diagnosis-20261021-r1/ (10.31s),
+scene-key-centering-diagnosis-20261021-r1/ (8.74s), and
+optimizer-update-diagnosis-20261021-r1/ (24.84s).
+Peak one-step CUDA allocation2.14GiB, within available GPU7 capacity.
+Each has report.json with arguments/indices/versions, per-mode/per-step losses,
+gradients, activation scales and memory. Different seeded full-model captures
+show small CUDA floating-point variations that the ill-conditioned readout
+magnifies; within each precision comparison the captured inputs are identical.
+Do not treat cross-run scalar equality as guaranteed by a fixed seed.
+
+Open work: determine which shared residual sublayers/parameter updates initiate
+the scale drift, verify optimizer/normalizer contracts directly, and use a
+matched no-geometry continuation to isolate its historical cause. No active
+training stop, hot edit, automatic control queue or validated recovery claim.
