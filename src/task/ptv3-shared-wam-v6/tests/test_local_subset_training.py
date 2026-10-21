@@ -10,6 +10,7 @@ from ptv3_shared_wam_v6.local_subset import (
     validate_local_execution, validate_local_parent,
 )
 from ptv3_shared_wam_v6.contracts import SCHEMA
+from test_v6_training import packet
 
 
 def local_packet(tmp_path):
@@ -70,3 +71,37 @@ def test_weights_only_initialization_preserves_scale_and_rejects_changes(tmp_pat
     model.normalizer.hand_mean.fill_(1.)
     with pytest.raises(ValueError, match='normalization'):
         initialize_weights(model, saved, checkpoint, recipe)
+
+
+def test_subset_admission_does_not_relax_complete_recipe(packet):
+    import json
+    from ptv3_shared_wam_v6.recipe import validate_recipe
+    from ptv3_shared_wam_v5.cache_contract import metadata_identity
+    root, recipe, _, _ = packet
+    parent = json.loads((root/'parent.json').read_text())
+    stats = json.loads((root/'stats.json').read_text())
+    parent.update(local_subset_scope=LOCAL_SCOPE, engineering_subset=True,
+                  original_frozen_windows_recovered=False, pending_sequences=38349)
+    recipe.update(local_subset_scope=LOCAL_SCOPE, initialization_checkpoint='/checkpoint',
+                  index_identities={}, strata_identities={}, windows=dict(train=1, dev=1))
+    stats.update(method='checkpoint-normalizer-buffers; inherited TRAIN scales; no moments refit',
+                 initialization_checkpoint='/checkpoint')
+    for split, seq_id in (('train', 0), ('dev', 1)):
+        for field, data in (('indices', [[seq_id, 0, 3]]), ('strata', [0])):
+            path = root/(split+'-'+field+'.npy')
+            np.save(path, np.array(data, np.int32))
+            parent[field][split] = str(path)
+            recipe['index_identities' if field == 'indices' else 'strata_identities'][split] = index_identity(path)
+    (root/'parent.json').write_text(json.dumps(parent))
+    (root/'stats.json').write_text(json.dumps(stats))
+    events = json.loads((root/'events.json').read_text())
+    events['parent_manifest_identity'] = metadata_identity(root/'parent.json')
+    (root/'events.json').write_text(json.dumps(events))
+    for key in ('parent_manifest', 'event_manifest', 'stats'):
+        recipe[key+'_identity'] = metadata_identity(recipe[key])
+    (root/'manifest.json').write_text(json.dumps(recipe))
+    validate_recipe(root/'manifest.json')
+    del recipe['local_subset_scope']
+    (root/'manifest.json').write_text(json.dumps(recipe))
+    with pytest.raises(ValueError, match='complete nine-source'):
+        validate_recipe(root/'manifest.json')
