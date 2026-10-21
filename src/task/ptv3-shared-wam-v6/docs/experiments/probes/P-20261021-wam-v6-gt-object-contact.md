@@ -175,3 +175,27 @@ sampled100%, physical22269/21117/20831MiB, free178.56GiB.
 Progress-window rate0.245updates/s includes initial DEV/save
 overhead; preserve the4h cap. startup-acceptance.json refreshed with exact
 preflight, stage audits, full config delta and current telemetry.
+
+## DEV500 / live640: no demonstrated early gain
+
+Run remains RUNNING, loss0.745052, norm0.9311, shared/context RMS
+3.820/5.925; no scale explosion.
+Selected GPUs sampled100%, throughput0.226updates/s, free177.40GiB.
+Same fixed GRAB DEV comparison, mm except contact probability:
+
+| Metric | Init | Previous FP32 step500 | GT-object step500 |
+| --- | ---: | ---: | ---: |
+| Hand mean |52.6872|52.9030|53.2639|
+| Hand prefix1–8 mean |15.6812|15.6216|15.6837|
+| Object prefix1–8 mean |17.0177|17.4378|17.4950|
+| Object h24 |15.8287|13.2844|13.5366|
+| Predicted-both geometry relative |22.5406|21.0771|22.6323|
+
+GT-object geometric contact MAE0.141219→0.141255, effectively flat;
+near-contact MAE0.304455→0.302464, small change only. Available-source macro
+hand32.6466→32.8360mm (previous FP32 step500=32.6810mm), no macro gain.
+The favorable object-h24 change relative to init also occurs in the previous
+arm, so it does not establish a new GT-object-contact benefit. No new rollout.
+Continue unchanged within the already declared4h bound, reassess fixed DEV1000;
+this early comparison does not establish eventual failure or which changed
+ingredient caused the result. Receipt: status-dev500-comparison.json.
