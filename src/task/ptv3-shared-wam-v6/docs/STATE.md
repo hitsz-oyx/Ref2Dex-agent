@@ -1,3 +1,14 @@
+# 2026-10-21 GT2048 probability arm shows no DEV gain through3000
+
+GRAB DEV3000 hand52.588/object-prefix8=18.231/object-h24=14.660mm,
+previous FP32 matched3000=52.229/18.131/14.150mm. New GT contact MAE
+0.14122→0.14177 and near-contact0.30446→0.30550, no improvement.
+Source-macro hand32.647→33.383mm; first8 hand/object errors exceed init.
+Numerically stable, no rollout evaluation, no sole-cause or statistical harm claim.
+Do not extend this package; existing4h saved-stop remains active, about15min
+left at snapshot, status still RUNNING. See status-dev3000-comparison.json.
+[Experiment](experiments/probes/P-20261021-wam-v6-gt-object-contact.md).
+
 # 2026-10-21 GT2048 contact probability training RUNNING
 
 User-chosen GT2048 object plus predicted-hand contact-probability supervision

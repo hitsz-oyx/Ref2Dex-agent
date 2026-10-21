@@ -199,3 +199,32 @@ arm, so it does not establish a new GT-object-contact benefit. No new rollout.
 Continue unchanged within the already declared4h bound, reassess fixed DEV1000;
 this early comparison does not establish eventual failure or which changed
 ingredient caused the result. Receipt: status-dev500-comparison.json.
+
+## DEV3000 / live3040: no held-out benefit through the bounded arm
+
+Stable optimization persists: loss0.686413, norm0.7491, shared/context
+RMS3.618/5.590.
+Same fixed GRAB panel, mm:
+
+| Metric | Init | Previous FP32 step3000 | GT-object step3000 |
+| --- | ---: | ---: | ---: |
+| Hand mean |52.6872|52.2290|52.5880|
+| Hand prefix1–8 mean |15.6812|15.8990|15.9814|
+| Object prefix1–8 mean |17.0177|18.1306|18.2310|
+| Object h24 |15.8287|14.1503|14.6603|
+| Predicted-both geometry relative |22.5406|19.2128|21.7026|
+
+GT-geometry contact MAE0.141219→0.141773 and near-contact
+0.304455→0.305500: neither improves. Available-source macro hand
+32.6466→33.3826mm (previous arm33.2437mm). Most new-versus-old physical
+changes are small; this32-example exploratory panel supplies no evidence of
+benefit, not a statistically established universal degradation. No rollout run.
+Random TRAIN-window means decline (see receipt), so finite optimization alone
+has not produced held-out contact/prefix improvements. No claim that object
+noise is irrelevant: this package also changes loss form, query count and weight.
+
+Decision: do not extend the experiment. Leave the existing saved-stop4h boundary
+in place; remaining approximately13.4min at this snapshot.
+Current status remains RUNNING; it has not stopped yet. Receipt in run root:
+status-dev3000-comparison.json. Further spending on this exact package is not
+supported by the observed fixed-panel results.
