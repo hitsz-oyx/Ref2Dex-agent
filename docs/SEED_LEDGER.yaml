@@ -25,6 +25,11 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261021-wam-v6-gt-object-contact:
+    seed_pool: probe
+    model_and_training_seed: 170
+    fixed_DEV_panel_seed: 171
+    reuse_reason: healthy4371 GT-object contact objective arm matched to FP32 ancestor and inherited streams; not independent replication
   P-20261021-wam-v6-strict-fp32:
     seed_pool: probe
     model_and_training_seed: 170

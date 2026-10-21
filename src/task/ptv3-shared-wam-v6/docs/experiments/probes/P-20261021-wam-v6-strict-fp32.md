@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [170,171]
 decision_changed_if_positive: retain strict FP32 if activation scale and physical-unit DEV errors remain better than the matched BF16 ancestor run
 decision_changed_if_negative: investigate optimizer-residual conditioning rather than assuming precision alone fixes drift
-status: RUNNING
+status: STOPPED
 run_id: strict-fp32-pretrain-20261021-r1
 ---
 
@@ -285,3 +285,13 @@ Next discriminating work should target held-out sequence/object/action slices
 and a frozen short-prefix checkpoint criterion; any data balancing/loss-weight
 change needs a separate matched arm. Rolling evaluation remains required before
 claiming drift reduction. Evidence: fixed-train-gap-r2/report.json.
+
+## User-requested saved stop3337
+
+User requested stopping this arm before the GT2048-object contact-probability
+experiment. Owned root STOP saved step3337 normally; optimizer568 states all3337,
+RNG3/world3/global288, all model/optimizer tensors finite and normalizers exact.
+Complete1,186,351,693-byte checkpoint preserved. Supervisor1234454 and launcher
+1244023 exited; GPUs4/5/6 released. No unknown process killed or older checkpoint
+overwritten. user-stop-receipt.json records the full audit. New objective arm:
+[P-20261021-wam-v6-gt-object-contact](P-20261021-wam-v6-gt-object-contact.md).
