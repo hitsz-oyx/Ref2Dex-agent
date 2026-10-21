@@ -1,3 +1,17 @@
+# 2026-10-21 Healthy4371 strict FP32 arm in capacity/readiness
+
+User requested training from a healthy checkpoint with full FP32. Frozen code
+1b57a487; supervisor1234454, run strict-fp32-pretrain-20261021-r1, GPUs4/5/6.
+Previous BF16 geometry run completed10000, final checkpoint audit PASS and all
+three GPUs released. Reuse source4371, same objective/geometry weight/data/goals/
+events/seeds/LR; fresh optimizer exactly as the BF16 geometry arm. Replace forced
+PTv3 half attention with FP32 efficient SDPA and disable matmul/cuDNN/spconv TF32.
+38 tests pass. Capacity96 then three-rank8+strict2 recovery are pending actual
+results. Budget10000 updates or4h;20GiB disk floor. Root STOP requests saved stop.
+No accuracy/stability improvement yet established; do not launch the queued
+no-geometry control on these resources during the requested FP32 arm.
+[Precision experiment](experiments/probes/P-20261021-wam-v6-strict-fp32.md).
+
 # WAM v6 state — 2026-10-21
 
 ## 2026-10-21 Shared FFN scale drift localized; partial natural recovery at9000

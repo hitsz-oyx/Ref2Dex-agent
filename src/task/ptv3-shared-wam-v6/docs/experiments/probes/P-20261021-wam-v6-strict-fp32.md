@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [170,171]
 decision_changed_if_positive: retain strict FP32 if activation scale and physical-unit DEV errors remain better than the matched BF16 ancestor run
 decision_changed_if_negative: investigate optimizer-residual conditioning rather than assuming precision alone fixes drift
-status: PREPARING
+status: RUNNING
 run_id: strict-fp32-pretrain-20261021-r1
 ---
 
@@ -27,7 +27,7 @@ arithmetic precision, while monitoring activation amplitude and physical errors.
 Existing degraded weights still perform poorly under strict FP32 inference;
 that does not answer whether healthy-start FP32 training prevents the instability.
 
-Result: preparation and38 v6 tests PASS; actual capacity/save/recovery pending.
+Result:38 tests and actual local96 capacity / world3 save8 / strict recovery2 PASS; sustained FP32 training RUNNING.
 Decision: run bounded healthy-start FP32 training; do not infer a cure from startup.
 
 ## Fixed protocol and environment
@@ -93,3 +93,64 @@ with BF16/TF32; no recovery of lost data precision is implied. Constant data/LR/
 losses do not guarantee stability, and contact geometry remains an approximate
 proxy. Judge effectiveness from later fixed DEV and identical rollout panels,
 not one noisy loss or short startup. Four-hour budget may bind before10000.
+
+## Actual launch and acceptance boundaries
+
+Frozen code1b57a487, supervisor1234454. Healthy source4371 audit PASS:
+world3/global288,568 finite Adam states all4371,3 RNG entries and exact scales.
+Initialization itself copies model/normalizers only and resets the optimizer,
+as declared above. Capacity96 completed8 real full optimizer updates;15.433GiB
+peak allocated/17.156GiB reserved,0.4007 updates/s; no capacity checkpoint.
+
+Actual3-card readiness8 completed, then2 strict recovery updates completed10.
+Both checkpoints audited PASS,568 finite states all8/all10,3 RNG entries,
+world3/global288 and exact normalizer buffers. All3 parameter signatures equal
+at both boundaries. Readiness allocated15.80GiB/reserved18.03GiB; strict recovery
+reserved17.74GiB. Sustained training loads step10 with original Adam/RNG/count,
+not another restart. Actual run manifests record16 PTv3 serialized and13 dense
+attention adapters, float32, all TF32 modes disabled.
+
+An additional real-head-shape FP64 differential checks efficient FP32 at
+12×64/330,8×32/330 and16×16/128: max forward2.2814e-6, input gradient1.9561e-6,
+relative L2<7.71e-7. Float32 atol/rtol1e-5 checks PASS; an initial absolute-only
+2e-6 threshold was too tight at the8×32 shape and is recorded in the receipt.
+BF16-rounded-input reference errors0.00326–0.01404, clearly distinct from FP32
+rounding. Receipt: fp32-kernel-reference.json in the output root. This is a
+numerical engineering check, not evidence that training instability is fixed.
+
+Fixed GRAB DEV comparison (mm, same inherited seed171 panel):
+
+| Arm / update | hand | hand h24 | object h24 | geometry relative |
+| --- | ---: | ---: | ---: | ---: |
+| BF16 geometry /0 |52.6763|102.5091|15.8196|22.5379|
+| FP32 geometry /0 |52.6872|102.5778|15.8287|22.5406|
+| BF16 geometry /20 |52.4849|101.9785|15.2661|22.4074|
+| FP32 geometry /20 |52.5363|102.1186|15.0312|22.4491|
+
+These early results establish comparable initialization and finite updates;
+they do not demonstrate a persistent advantage or improved rolling execution.
+
+## Sustained startup acceptance at60
+
+Actual FP32 training has passed LR warmup50 and reached60; loss0.726686,
+pre-clip norm0.9180, shared/context RMS
+3.863/5.887,
+all finite. The geometry coefficient is still on its declared100-update ramp.
+Recent40→60 throughput0.329 updates/s (~94.8 samples/s), slower than
+BF16 as expected; initial compute-only0.36 updates/s excludes some overhead.
+At this rate10000 would need roughly8h, so the4h time budget likely binds first.
+Do not advertise10000 as an expected completed target within4h.
+
+Latest6 supervisor samples average GPU4/5/6 utilization96.5/96.3/97.3%, physical
+memory22225/20733/21125MiB; main allocated peak15.84GiB at this point.
+These utilization values include synchronization; they do not independently
+measure useful FLOPs. Free disk187.09GiB, well above20GiB stop boundary.
+Startup acceptance receipt records capacity,8+2 audits, precise backend/runtime,
+progress/telemetry and bounds at outputs/ptv3-shared-wam-v6/
+strict-fp32-pretrain-20261021-r1/startup-acceptance.json.
+
+Decision: continue the existing bounded FP32 run. Current finite activations
+are engineering acceptance, not proof that later FFN amplification or rollout
+drift is fixed. Compare fixed DEV500/1000+ and the existing frozen rollout panel
+before promoting a numerical-stability or tau-accuracy claim. No further
+training architecture/loss/LR changes were introduced for this precision arm.

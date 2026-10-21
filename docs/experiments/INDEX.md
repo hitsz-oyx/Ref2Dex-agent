@@ -927,7 +927,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261021-wam-v6-strict-fp32](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261021-wam-v6-strict-fp32.md) | Healthy-checkpoint strict FP32 geometry training | preparation and38 v6 tests PASS; actual capacity/save/recovery pending. | run bounded healthy-start FP32 training; do not infer a cure from startup. | probes/PREPARING |
+| [P-20261021-wam-v6-strict-fp32](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261021-wam-v6-strict-fp32.md) | Healthy-checkpoint strict FP32 geometry training | 38 tests and actual local96 capacity / world3 save8 / strict recovery2 PASS; sustained FP32 training RUNNING. | run bounded healthy-start FP32 training; do not infer a cure from startup. | probes/RUNNING |
 
 ## HF-video-data-readiness
 
