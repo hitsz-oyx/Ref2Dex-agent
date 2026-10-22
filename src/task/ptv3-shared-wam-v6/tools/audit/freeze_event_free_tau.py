@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Freeze an event-free policy and fail-closed launch preflight; never train.
+"""Frozen-policy launch preflight, with explicit brief34 GPU authorization.
 
-The adapters below are auditable prototypes. They are NOT installed into the
-production reader or runtime. A passing prototype must not release training.
+Never trains. Event policy is enforced in production; missing scheduler goal
+inputs continue to block the curated reader before CUDA/optimizer creation.
 """
 import argparse
 from datetime import datetime, timezone
@@ -19,7 +19,7 @@ import torch
 TASK = Path(__file__).resolve().parents[2]
 ROOT = TASK.parents[2]
 sys.path.insert(0, str(TASK / 'src'))
-from ptv3_shared_wam_v6.events import event_packet, event_features
+from ptv3_shared_wam_v6.events import event_features, unknown_event_packet, apply_event_input_policy
 from ptv3_shared_wam_v6.data import V6Windows, collate
 from ptv3_shared_wam_v6.online_runtime import online, GOAL_SEMANTICS
 
@@ -30,13 +30,13 @@ EVENT_DTYPES = dict(event_type=np.int64, event_delta_steps=np.float32,
 
 def unknown_packet():
     """One existing canonical packet constructor, including the validity bit."""
-    packet = event_packet('NONE', 0., False)
+    packet = unknown_event_packet()
     return {key: EVENT_DTYPES[key](value) for key, value in packet.items()}
 
 
 def event_free_sample(sample):
     """Change only four event inputs; never touch supervision or goal tensors."""
-    return dict(sample, **unknown_packet())
+    return apply_event_input_policy(sample,POLICY)
 
 
 def event_free_collate(samples):
@@ -81,7 +81,7 @@ def tuple_rows(manifest):
     return result
 
 
-def measure_resources():
+def measure_resources(resource_policy=None):
     gpu = subprocess.run([
         'nvidia-smi', '--query-gpu=index,uuid,memory.used,memory.total,utilization.gpu',
         '--format=csv,noheader,nounits'], capture_output=True, text=True)
@@ -91,6 +91,8 @@ def measure_resources():
     if gpu.returncode or processes.returncode:
         return dict(status='FAILED_GPU_QUERY', error=gpu.stderr+processes.stderr,
                     filesystem_free_bytes=shutil.disk_usage('/home2').free)
+    policy = resource_policy or {}
+    authorized = set(policy.get('authorized_training_pool', []))
     active_uuids = {line.split(',')[0].strip()
                     for line in processes.stdout.splitlines() if line.strip()}
     rows = []
@@ -99,15 +101,22 @@ def measure_resources():
         rows.append(dict(index=int(index), uuid=uuid, memory_used_mib=int(used),
                          memory_total_mib=int(total), utilization_percent=int(util),
                          has_compute_process=uuid in active_uuids,
+                         owner_authorized_for_training=int(index) in authorized,
                          owner_reserved=int(index) in (4, 5, 6, 7)))
     available = [r['index'] for r in rows if not r['owner_reserved']
+                 and not r['has_compute_process'] and r['memory_used_mib'] < 256
+                 and r['utilization_percent'] == 0]
+    available_authorized = [r['index'] for r in rows if r['index'] in authorized
                  and not r['has_compute_process'] and r['memory_used_mib'] < 256
                  and r['utilization_percent'] == 0]
     return dict(status='MEASURED', measured_at=datetime.now(timezone.utc).isoformat(),
                 filesystem_free_bytes=shutil.disk_usage('/home2').free,
                 gpus=rows, compute_processes_csv=processes.stdout,
                 available_unreserved_gpus=available,
-                required_free_gpus_after_launch=2)
+                available_authorized_gpus=available_authorized,
+                allocation_policy=policy,
+                required_free_gpus_after_launch=policy.get('spare_exemption', {}).get(
+                    'required_spares_this_allocation', 2))
 
 
 def boundary_probe(recipe_path, curated):
@@ -144,15 +153,31 @@ def boundary_probe(recipe_path, curated):
     deployment = collate([online(geo, np.tile(np.eye(4), (4, 1, 1)),
         np.zeros((4, 2, 21, 3), np.float32), np.zeros((4, 2, 778, 3), np.float32),
         np.ones((2, 21), bool), np.zeros((2, 778), bool),
-        np.zeros((2, 778), np.int64), np.eye(4), unknown_packet()) for _ in samples])
+        np.zeros((2, 778), np.int64), np.eye(4),
+        dict(event_type=2,event_delta_steps=8.,event_valid=True,event_hz=30),
+        event_input_policy=POLICY) for _ in samples])
     packet_equal = all(torch.equal(masked[k], deployment[k]) for k in EVENT_DTYPES)
+    policy_reader=V6Windows(recipe_path,'train',geometry_gt_object=True,event_input_policy=POLICY)
+    production_batch=collate([policy_reader[record['reader_index']] for record in evidence])
+    reader_packet_equal=all(torch.equal(masked[k],production_batch[k]) for k in EVENT_DTYPES)
+    supervised_keys=[k for k in non_event if k not in ('event_raw_invalid','event_condition_dropout')]
+    supervision_unchanged=all(torch.equal(raw[k],production_batch[k]) for k in supervised_keys)
+    bound=V6Windows(recipe_path,'train',geometry_gt_object=True,event_input_policy=POLICY,
+        curated_manifest=ROOT/'outputs/ptv3-shared-wam-v6/tau-curated-20261023-r7/curated-manifest.json')
+    drawn=bound.draw(96,seed=170,step=1,rank=0)
+    try:
+        bound[0]
+    except ValueError as error:
+        goal_binding_error=str(error)
+    else:
+        goal_binding_error=None
     for i, record in enumerate(evidence):
         record.update(raw_event={key: raw[key][i].item() for key in EVENT_DTYPES},
                       frozen_event={key: masked[key][i].item() for key in EVENT_DTYPES},
                       reader_goal_equals_realized_endpoint=bool(torch.equal(
                           raw['goal_object_delta'][i], raw['scene_target'][i, 0, -1])))
-    return dict(status='PROTOTYPE_ONLY_NOT_PRODUCTION_WIRING',
-                reader_windows=len(dataset), examples=evidence,
+    return dict(status='PRODUCTION_EVENT_POLICY_INSTALLED_GOAL_BINDING_PENDING',
+                reader_windows=len(bound), legacy_reader_windows=len(dataset), examples=evidence,
                 event_shapes={key: list(masked[key].shape) for key in EVENT_DTYPES},
                 event_dtypes={key: str(masked[key].dtype) for key in EVENT_DTYPES},
                 model_event_features_shape=list(features.shape),
@@ -160,7 +185,32 @@ def boundary_probe(recipe_path, curated):
                 valid_count=int(valid.sum()), known_none_count=int(((masked['event_type']==0)&valid).sum()),
                 non_event_fields_unchanged=unchanged, unchanged_fields=non_event,
                 deployment_packet_bitwise_equal=packet_equal,
-                production_training_wired=False, production_runtime_policy_enforced=False)
+                production_reader_packet_bitwise_equal=reader_packet_equal,
+                production_supervision_and_goal_unchanged=supervision_unchanged,
+                future_event_sidecars_read_by_policy_reader=len(policy_reader.event_cache),
+                curated_sampler_draw_count=len(drawn),
+                curated_sampler_draw_indices=[int(index) for index,drop in drawn],
+                curated_goal_binding_error=goal_binding_error,
+                production_training_wired=reader_packet_equal and supervision_unchanged,
+                production_runtime_policy_enforced=packet_equal)
+
+
+def gpu_allocation_gate(resources, world_size):
+    """Owner-scoped brief34 exception; no implicit global-spare waiver."""
+    if resources.get('status') != 'MEASURED':
+        return False
+    policy = resources.get('allocation_policy', {})
+    exemption = policy.get('spare_exemption', {})
+    if exemption:
+        if (exemption.get('authorization') != 'owner brief34, 2026-10-23'
+                or exemption.get('required_spares_this_allocation') != 0
+                or exemption.get('no_other_gate_waived') is not True
+                or policy.get('owner_authorized_project_pool') != [4, 5, 6, 7]
+                or policy.get('authorized_training_pool') != [4, 5, 6]
+                or policy.get('protected_gpus') != [0, 1, 2, 3, 7]):
+            return False
+        return len(set(resources.get('available_authorized_gpus', [])) & {4, 5, 6}) >= world_size
+    return len(resources.get('available_unreserved_gpus', [])) >= world_size + 2
 
 
 def launch_gates(probe, scheduler_receipt, resources, expected_bytes, world_size=3):
@@ -169,8 +219,7 @@ def launch_gates(probe, scheduler_receipt, resources, expected_bytes, world_size
             probe['production_training_wired'] and probe['production_runtime_policy_enforced']),
         curated_training_reader_connected=probe['reader_windows'] == 6000,
         scheduler_goal_cache_available=scheduler_receipt['counts']['scheduler_eligible_windows'] == 6000,
-        gpu_allocation_available=(resources.get('status') == 'MEASURED' and
-            len(resources.get('available_unreserved_gpus', [])) >= world_size + 2),
+        gpu_allocation_available=gpu_allocation_gate(resources, world_size),
         disk_available=resources['filesystem_free_bytes'] - expected_bytes >= 20 * 2**30)
     return dict(status='PREFLIGHT_PASS' if all(gates.values()) else 'BLOCKED_PREFLIGHT',
                 gates=gates, training_updates=0, launch=None)
@@ -203,7 +252,7 @@ def main():
     curated = json.loads(curated_path.read_text())
     tuples = tuple_rows(curated)
     tuples_payload = canonical_bytes(tuples)
-    resources = measure_resources()
+    resources = measure_resources(recipe['resource_policy'])
     prior = json.loads(prior_receipt_path.read_text())
     head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
     # Bound the small audit BEFORE writing. No checkpoints are created here.

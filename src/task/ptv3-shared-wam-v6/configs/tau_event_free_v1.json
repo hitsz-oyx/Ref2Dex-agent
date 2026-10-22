@@ -59,8 +59,18 @@
   "budget_status": "conservative proposed ceiling; not an executable legacy train config",
   "resource_policy": {
     "no_preemption": true,
-    "owner_reserved_gpus": [4, 5, 6, 7],
-    "leave_idle_gpus": 2,
+    "owner_authorized_project_pool": [4, 5, 6, 7],
+    "authorized_training_pool": [4, 5, 6],
+    "protected_gpus": [0, 1, 2, 3, 7],
+    "protected_pids": [2730517, 2730518, 2730519, 2730520],
+    "spare_policy": "Require spare only when surplus exists inside the owner-authorized pool; do not count GPUs 0-3 belonging to zyc. GPU 7 is occupied by the higher-priority executor line.",
+    "spare_exemption": {
+      "authorization": "owner brief34, 2026-10-23",
+      "reason": "Fixed project pool 4/5/6/7; GPU 7 protected for executor; released GPUs 4/5/6 exclusively authorized for world_size=3 tau training.",
+      "default_spares": 2,
+      "required_spares_this_allocation": 0,
+      "no_other_gate_waived": true
+    },
     "queue_if_unavailable": true,
     "gpu_long_jobs_other_than_training": 0
   },

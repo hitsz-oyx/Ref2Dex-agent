@@ -10,6 +10,7 @@ from .data import collate
 from ptv3_shared_wam_v5.data import history, transform
 from ptv3_shared_wam_v5.contracts import SPARSE11_IN_21
 from .executor_bridge import full21_to_sparse11
+from .events import apply_event_input_policy, validate_event_input_policy
 
 
 # This is the v6 package-local, deployment-safe equivalent of
@@ -132,7 +133,7 @@ class EncodingUnavailable(ValueError):
     """A state/forecast cannot be encoded; mask tau without judging physics."""
 
 def online(geo, poses, joints, dense, joint_valid, dense_valid, parts, goal,
-           event=None, *, goal_semantics=GOAL_SEMANTICS):
+           event=None, *, goal_semantics=GOAL_SEMANTICS, event_input_policy=None):
     """Only H4 observed/generated geometry and instruction inputs; no future labels."""
     anchor = np.linalg.inv(poses[-1]); local = joints@anchor[:3,:3].T+anchor[:3,3]
     skin = dense@anchor[:3,:3].T+anchor[:3,3]
@@ -158,9 +159,10 @@ def online(geo, poses, joints, dense, joint_valid, dense_valid, parts, goal,
         interaction_points=geo['surface'][None].astype(np.float32),interaction_normals=geo['normals'][None].astype(np.float32),
         interaction_query_valid=np.ones((1,len(geo['surface'])),bool),
         event_type=np.int64(0),event_delta_steps=np.float32(0),event_valid=np.bool_(False),event_hz=np.int64(30))
-    if event:
+    validate_event_input_policy(event_input_policy)
+    if event and event_input_policy is None:
         sample.update({k:np.asarray(v,dtype=sample[k].dtype) for k,v in event.items()})
-    return sample
+    return apply_event_input_policy(sample,event_input_policy)
 
 
 class OnlineV6Runtime:
@@ -186,6 +188,7 @@ class OnlineV6Runtime:
             torch.cuda.synchronize(self.device)
 
     def _trajectory(self, batch):
+        batch=apply_event_input_policy(batch,self.config.get('event_input_policy'))
         if not self.forecast_only:return self.model(batch)["trajectory"]
         # Exact hand path of forward(), omitting the unused independent C head.
         model=self.model
@@ -250,7 +253,7 @@ class OnlineV6Runtime:
             valid=np.zeros((2,21),bool);valid[0,ids]=True
             sample=online(geo,poses,joints,np.zeros((4,2,778,3),np.float32),valid,
                 np.zeros((2,778),bool),np.zeros((2,778),np.int64),goals[i],events[i],
-                goal_semantics=goal_semantics)
+                goal_semantics=goal_semantics,event_input_policy=self.config.get('event_input_policy'))
             xyz=np.r_[sample["xyz"],sample["start_hand"][valid]]
             grid=np.floor((xyz-origin)/size)
             if not np.isfinite(grid).all() or grid.min()<0 or grid.max()>65535:

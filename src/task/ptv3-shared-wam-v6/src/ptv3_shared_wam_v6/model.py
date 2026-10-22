@@ -50,6 +50,8 @@ class SharedWAMV6(nn.Module):
         if int(config.get("surface_points", 2048)) != 2048 or int(config.get("interaction_points", 2048)) != 2048 or int(config.get("hand_points", 21)) != 21:
             raise ValueError("v6 requires 2048 object surface/contact queries and joint21")
         self.config = config
+        from .events import validate_event_input_policy
+        validate_event_input_policy(config.get('event_input_policy'))
         point_width, width, head = config["point_width"], config["shared_width"], config["head_width"]
         self.explicit_hand = config.get("explicit_hand", True)
         self.position_scale = config["position_scale_m"]
@@ -123,6 +125,8 @@ class SharedWAMV6(nn.Module):
         return torch.where(valid[..., None], hand, 0.).reshape(len(hand), 42, -1), valid.flatten(1)
 
     def encode(self, batch):
+        from .events import apply_event_input_policy
+        batch=apply_event_input_policy(batch,self.config.get('event_input_policy'))
         hand, hand_valid = self.encode_hand(batch)
         geometry_inputs = {key: batch[key] for key in
             ("xyz", "features", "point_valid", "start_hand", "start_hand_valid",

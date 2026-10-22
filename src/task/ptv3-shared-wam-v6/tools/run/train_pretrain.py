@@ -122,8 +122,16 @@ def main():
         raise ValueError('capacity probe requires expanded-scope resume and3..16 updates')
     if config.get('event_dropout')!=recipe['event_dropout']:
         raise ValueError('config/dropout differs from admitted v6 recipe')
-    reader_options=dict(geometry_gt_object=config.get('geometry_object_source')=='gt_dense2048')
+    reader_options=dict(geometry_gt_object=config.get('geometry_object_source')=='gt_dense2048',
+                        event_input_policy=config.get('event_input_policy'))
+    curated_manifest=config.get('curated_manifest')
+    if curated_manifest:
+        reader_options['curated_manifest']=curated_manifest
     dataset=V6Windows(a.manifest,'train',**reader_options)
+    if curated_manifest:
+        # Index-only binding must not release endpoint training. This fails at
+        # the reader boundary before CUDA/optimizer initialization.
+        dataset[0]
     last=config['updates'] if a.steps is None else a.steps
     batch_size=config['batch_size'] if a.batch_size is None else a.batch_size
     if a.recovery_probe_updates is not None and (not a.resume or a.smoke or not 1<=a.recovery_probe_updates<=16):

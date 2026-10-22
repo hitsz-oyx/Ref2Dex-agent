@@ -6,6 +6,7 @@ import torch.nn.functional as F
 
 EVENT_ENCODING='next-contact-release-plan.frame30.v1'
 EVENT_TYPES={'NONE':0,'CONTACT':1,'RELEASE':2}
+UNKNOWN_EVENT_POLICY='v6.event-free.unknown-invalid.frame30.v1'
 
 
 def event_packet(kind,delta_steps,valid,*,hz=30):
@@ -16,6 +17,44 @@ def event_packet(kind,delta_steps,valid,*,hz=30):
         raise ValueError('valid planned event requires nonnegative relative frames')
     return dict(event_type=EVENT_TYPES[kind],event_delta_steps=float(delta_steps) if valid else 0.,
                 event_valid=bool(valid),event_hz=30)
+
+
+def validate_event_input_policy(policy):
+    if policy not in (None, UNKNOWN_EVENT_POLICY):
+        raise ValueError('unsupported event input policy: '+str(policy))
+    return policy
+
+
+def unknown_event_packet():
+    """Canonical unknown packet; type zero is NOT a valid known-NONE."""
+    return event_packet('NONE',0.,False)
+
+
+def apply_event_input_policy(batch, policy):
+    """One mask implementation for readers, full forward and forecast-only.
+
+    Copy only the four model event fields. Supervision, goal tensors, geometry,
+    and all historical checkpoints without this explicit policy are unchanged.
+    """
+    validate_event_input_policy(policy)
+    if policy is None:
+        return batch
+    import numpy as np
+    result=dict(batch)
+    template=batch.get('event_valid',np.bool_(False))
+    packet=unknown_event_packet()
+    if isinstance(template,torch.Tensor):
+        dtypes=dict(event_type=torch.int64,event_delta_steps=torch.float32,
+                    event_valid=torch.bool,event_hz=torch.int64)
+        for key,value in packet.items():
+            result[key]=torch.full(template.shape,value,dtype=dtypes[key],device=template.device)
+    else:
+        dtypes=dict(event_type=np.int64,event_delta_steps=np.float32,
+                    event_valid=np.bool_,event_hz=np.int64)
+        for key,value in packet.items():
+            array=np.full(np.shape(template),value,dtype=dtypes[key])
+            result[key]=array[()] if array.ndim==0 else array
+    return result
 
 
 def event_features(batch,horizon=24):
