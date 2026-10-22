@@ -1,8 +1,8 @@
 # τ curated TRAIN 首批（2026-10-23）
 
 这轮只做 CPU/IO 审计和 manifest 生成，没有转换新序列，也没有启动训练。最终产物是
-[6,000-window curated manifest](../../../../../outputs/ptv3-shared-wam-v6/tau-curated-20261023-r6/curated-manifest.json)
-和 [固定 TRAIN 锚定样本](../../../../../outputs/ptv3-shared-wam-v6/tau-curated-20261023-r6/train-anchor.json)。
+[6,000-window curated manifest](../../../../../outputs/ptv3-shared-wam-v6/tau-curated-20261023-r7/curated-manifest.json)
+和 [固定 TRAIN 锚定样本](../../../../../outputs/ptv3-shared-wam-v6/tau-curated-20261023-r7/train-anchor.json)。
 6,000 个窗口来自已有的 1,177 条本地序列；因此相对于当前本地 cache，**新增序列数为 0**。
 manifest 同时登记了完整配方中待转换的 6,000 条 sequence key。raw payload 在当前工作区
 可解析，但本轮没有启动转换；状态是 `READY_FOR_BATCH_CONVERSION`，所以不能把这 6,000

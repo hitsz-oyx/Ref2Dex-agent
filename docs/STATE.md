@@ -5076,3 +5076,8 @@ retraining is promised. Training stays HOLD until the `object_goal_valid`
 hard-code and train/inference goal-semantic alignment are repaired and
 verified. Afterwards the bounded choices are 24–48 h on the same subset or
 owner-approved disk reclamation followed by a declared expansion target.
+## 2026-10-23 τ 固定 TRAIN 面板与现有 checkpoint 基线
+
+v6 τ 度量脚手架已就绪，详见任务卡 [P-20261023-tau-fixed-panel-metric](../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261023-tau-fixed-panel-metric.md)。现有阶段化 scorer、执行器 panel、单轨迹 calibration 和 `staged-eval-panel-v1.json` 均不具备“checkpoint 无关的固定 TRAIN 预测质量”合同；新命令复用 `tau-curated-20261023-r2/train-anchor.json` 的512行固定锚点，不改变训练或 goal-contract HOLD。
+
+对 `outputs/ptv3-shared-wam-v6/flowmatching-overnight-20261022-r2/training/step011000.pt` 的 GPU7 基线为：全板 hand EPE **23.409973mm**，前8帧 **9.357826mm**，接触窗口 **19.834665mm**；approach/close/contact/hold 分别 **29.897741/21.873276/22.194105/19.982422mm**。完整 JSON 与一行摘要位于 `outputs/ptv3-shared-wam-v6/tau-fixed-panel-baseline-20261023-r1/`。后续只有全板、前8帧和接触窗口同向改善才判为 τ 真改进。

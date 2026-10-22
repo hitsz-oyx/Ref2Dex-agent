@@ -754,6 +754,7 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261022-single-tau-calibration](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261022-single-tau-calibration.md) | 单轨迹同τ通道可实现性校准（执行前注册） | 见原卡 | 见原卡 | probes/COMPLETED |
+| [P-20261023-tau-fixed-panel-metric](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261023-tau-fixed-panel-metric.md) | 固定 TRAIN τ 面板与 step011000 基线 | 512 anchors; overall/first8/contact-window baseline recorded | use all three subsets as the next-checkpoint gate | probes/COMPLETED |
 
 ## HF-spatial-action-fidelity
 
