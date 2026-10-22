@@ -94,7 +94,37 @@ The config remains
 | Gate item | Status | Command/evidence |
 |---|---|---|
 | Goal contract tests | **达成** | The targeted command above: `5 passed`; full v6 suite: `154 passed, 8 warnings`. The captured post-`collate()` assertions cover valid, missing, and non-finite goals. |
-| Scheduler-conditioned cache identities | **未达成** | `python3 - <<'PY' ... json.load(Path('outputs/ptv3-shared-wam-v6/tau-curated-20261023-r1/curated-manifest.json')) ... PY` reports the manifest's `goal_contract.current_training` is realized t+24 endpoint, `deployment_current` is scheduler waypoint, and `must_recompute_before_training` includes all goal deltas/points and cache identities. The r2/r3 manifests likewise retain `object_goal_valid_hard_code: not changed` and `training_allowed: false`. No scheduler-conditioned identity receipt exists. |
+| Scheduler-conditioned cache identities | **未达成** | The read-only manifest check below reports the current cache is still endpoint-conditioned and no scheduler-conditioned identity receipt exists. |
+
+```bash
+/home2/wyy/miniconda3/envs/graspenv/bin/python - <<'PY'
+import json
+from pathlib import Path
+root=Path('outputs/ptv3-shared-wam-v6')
+r1=json.loads((root/'tau-curated-20261023-r1/curated-manifest.json').read_text())
+print('r1.current_training=',r1['goal_contract']['current_training'])
+print('r1.deployment_current=',r1['goal_contract']['deployment_current'])
+print('r1.must_recompute_before_training=',r1['goal_contract']['must_recompute_before_training'])
+for name in ('r2','r3'):
+    p=json.loads((root/f'tau-curated-20261023-{name}/curated-manifest.json').read_text())
+    print(f'{name}.object_goal_valid_hard_code=',p['goal_contract']['object_goal_valid_hard_code'])
+    print(f'{name}.training_allowed=',p['goal_contract']['training_allowed'])
+print('scheduler_conditioned_cache_identities=NOT_PASS')
+PY
+```
+
+Output:
+
+```text
+r1.current_training= goal_object_delta = object pose at realized t+24 minus pose at t
+r1.deployment_current= scheduler spatial_path_waypoint with no endpoint-time guarantee
+r1.must_recompute_before_training= ['all goal_object_delta/goal_object_points derived at read time from the repaired scheduler-style condition', 'event/task condition sidecars and their cache identities', 'recipe manifest, train/dev index identities, TRAIN-only normalizer JSON', 'held-out evaluation panel inputs and baseline receipts']
+r2.object_goal_valid_hard_code= not changed
+r2.training_allowed= False
+r3.object_goal_valid_hard_code= not changed
+r3.training_allowed= False
+scheduler_conditioned_cache_identities=NOT_PASS
+```
 
 Because the second gate is still unmet, the status stays HOLD and τ training is not
 released by this repair alone. A future cache rebuild must derive scheduler-style
