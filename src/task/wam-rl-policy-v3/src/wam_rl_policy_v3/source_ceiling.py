@@ -14,7 +14,7 @@ from .tau_replay_contract import pd_targets
 from .interaction_state import InteractionConfig
 from .task_feedback import FeedbackObserver
 
-SOURCE_CEILING_CONTRACT = 'source.measured-motion.full-PD-intent.v8'
+SOURCE_CEILING_CONTRACT = 'source.measured-motion.contact-stop.v9'
 
 
 def object_anchored_source_target(target,reference_q,reference_palm,reference_object,
@@ -252,7 +252,7 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
             self.phase='close';self.close_pose=palm.copy();self.fingers=q[FINGER_ACTIVE].copy()
         regrasp_requested=False
         if self.phase=='close':
-            if self.closing_goal is None and contact_match:self.closing_goal=grasp.copy()
+            if self.closing_goal is None and contact_match:self.closing_goal=palm.copy()
             if self.closing_goal is not None:
                 if contact_match:self.closing_lost_since=None
                 elif force_valid:
@@ -311,10 +311,9 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
         if probing:
             if self.acquire_anchor is None:self.acquire_anchor=palm.copy()
             proposal=self.acquire_anchor.copy();proposal[:3,3]+=self.plane[0]*self.acquisition_distance_m
-            # Preserve the actual force-bearing pre-shape rather than following
-            # a later reference opening command while waiting for acquisition.
-            mapped_force=np.r_[magnitudes[:4],magnitudes[4],magnitudes[4]]
-            fingers=self.admission.fingers(self.finger_target+np.where(mapped_force<.25,.0015,np.where(mapped_force>4.,-.001,0.)))
+            # A contact candidate is not a completed grasp. Keep the planned,
+            # slew-limited closure until acquisition; premature hold updates
+            # freeze partially open fingers. Overpressure still unloads above.
         if unloading:
             proposal=palm.copy();proposal[:3,3]+=self.unload_direction*self.reaching_linear_rate_mps/30
         # Pre-limit the source too, not just replacement geometry candidates.

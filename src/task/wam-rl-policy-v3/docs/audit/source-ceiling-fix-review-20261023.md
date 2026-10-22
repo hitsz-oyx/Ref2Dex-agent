@@ -158,3 +158,9 @@ R6完整结果0/40（Wilson0–8.76%）、21780控制、1关节中止/2关节事
 SourceGraspReference新增live_object/live_palm入口：当前物体局部腕在前方9帧中找最近已录制状态，单调游标，不按tick前进；接近消费真实source PD前馈，闭合完成腕姿也取前驱PD目标。R7之前只保留了手指PD，丢失腕PD前馈（n40位置差中位67.037mm、p90 153.097mm、max358.156mm，角差中位0.1142rad）。这些差异不等价于力，不声称恢复后必成功。
 `tools/run/run_source_ceiling_worker.py`生产调用显式传live object/palm，R不消费；原评分/抓后伺服/native gate未改。复现沿本报告pytest/mutant命令，现预期30专项、26mutants；回退静态key、删腕PD、按tick推进分别必须被抓。两条语义红测试见R7/motion-red.log（2 failed/28 deselected）。命令、同40/24000/0updates预算及目标≥32/40见实验卡R8节。
 无法自证：motion PD前馈与降速后的接触动态是否协调、冻结抓姿是否保留足够闭合预载，仍须本版40物理结果，不能拿CPU输出一致替代。
+
+## R9：实测首次接触处停腕；候选探测不提前转持握
+
+R7在21个回合首次锁定时，目标离实测腕中位63.232mm/max178.322mm，仍继续挤推。`SourceCeilingConsumer.step`改成锁实测palm而非未来目标；红测试源R8/contact-stop-red.log实际输出推进.01m，修后0。失触恢复合同仍在。
+同模块probe分支删除“用持握微调覆盖尚未完成闭合”，保留source闭合目标及相邻.04rad上限、12N卸载；probe最多10mm/不是成功证书不变。红测试R8/probe-closure-red.log q=.4时旧命令.4，新.44；已抓住过早持握冻结。预期32专项/28mutants，现有命令可复核；物理n40门槛仍32，未达则不比WAM。
+R9仅在R8≥9完整失败后排队启动；仍不终止R7/R8原40、不改评分或物理gate。完整v3结果以R9/tests-all.log全量pass/failed为准。新逐物体死因仍由summary.json保存全部q/关节名/阶段/几何量，不挑最好例。

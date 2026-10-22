@@ -21,14 +21,14 @@ def prepare(out,predecessor=None):
     worker=(TASK/'tools/run/run_source_ceiling_worker.py').read_text().replace("ROOT=Path(__file__).resolve().parents[5];TASK=ROOT/'src/task/wam-rl-policy-v3'", "ROOT=Path(%r);TASK=Path(%r)"%(str(ROOT),str(launch/'src/task/wam-rl-policy-v3')))
     (out/'worker.py').write_text(worker)
     reg=json.loads((BASELINE/'registration.json').read_text())
-    reg.update(protocol='source.measured-motion.full-PD-intent.n40.v8',experiment_id='P-20261023-source-controller-ceiling',
+    reg.update(protocol='source.measured-motion.contact-stop.n40.v9',experiment_id='P-20261023-source-controller-ceiling',
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         arms=['A0'],subsets=['development_same_v11'],maximum_controls=24000,worker_wall_s=14400,queue_wall_s=14400,learning_updates=0,ppo_authorized=False,
         worker_source=str(out/'worker.py'),runtime_source=str(launch),baseline=str(BASELINE),
         target_successes=32,target_pregrasp_joint_abort_max=2,
-        source_clock='none: measured wrist arrival starts closure; measured valid contact/coupling drives acquisition',
+        source_clock='measured nearest forward-state cursor, window9; no wall-clock increment; cap at source grasp key',
         source_geometry='source PD approach path follows measured SE3 nearest forward state (window9, no tick advance); key wrist and fingers preserve predecessor PD command; R unused; not GT-tau/R',
-        closing_geometry='capture world grasp goal at first measured matched contact; no chasing; release capture after .12s measured contact loss/unload',
+        closing_geometry='capture measured world wrist at first measured matched contact; stop insertion while closing; no chasing; release capture after .12s measured contact loss/unload',
         approach_rate=dict(far_linear_mps=.75,far_angular_radps=2.4,near_linear_mps=.3,near_angular_radps=1.2,near_surface_m=.06),
         acquisition_probe=dict(maximum_m=.01,rate_mps=.06,trigger='existing measured force-valid grasp_candidate; does not certify acquisition or success'),
         predecessor=str(predecessor.resolve()) if predecessor else None,

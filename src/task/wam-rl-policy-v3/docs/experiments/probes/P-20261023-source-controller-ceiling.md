@@ -14,7 +14,7 @@ seeds: [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 11
 decision_changed_if_positive: qualify source-only controller on the same forty development initials before comparing WAM
 decision_changed_if_negative: retain all failures and repair measured approach or closure without relaxing physical gates
 status: RUNNING
-run_id: source-ceiling-20261023-r8
+run_id: source-ceiling-20261023-r9
 ---
 
 ## 结果解读表
@@ -122,4 +122,17 @@ export TMPDIR="$PWD/tmp"
 PY=/home2/wyy/miniconda3/envs/graspenv/bin/python
 $PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r8 --prepare --predecessor outputs/wam-rl-policy-v3/source-ceiling-20261023-r7
 $PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r8 --detached
+```
+
+## R9预注册：接触处停止插入，探测不打断闭合
+
+仅当R8至少9个完整失败、32/40已不可能时启动；R7/R8均完整跑完，不修改其快照/分母。R9同40/≤24000控制/0updates，前七个物理版本R3–R9累计上限168000控制；不比WAM，不放宽评分或gate。
+R7已有21个回合发生抓姿锁定，但锁的是未到达的目标，距实测腕中位63.232mm、最大178.322mm，接触后仍可继续推物。R9锁定首次匹配接触时的**实测腕**，闭合期间不再插入；持续0.12秒失触/卸载仍恢复接近。预期该红测试腕推进10mm/tick→0；不是把接触当成功。
+R8的接触候选探测又过早替换闭合目标：尚未耦合时用弱力持握微调冻结了半张开的手。R9保留原source闭合命令间1.2rad/s限速及12N卸载；探测只改最多10mm腕起动，不提前覆盖手指闭合。预期q=.4时命令.4→.44，而非停在.4附近；仍须真实运动耦合/抬升5cm/持续持握1s/原尺寸终点误差才成功。
+两条实际step红测试分别见R8/contact-stop-red.log、probe-closure-red.log；预期32专项/28mutants。物理成功目标仍32/40、预抓限位≤2，未知能否达到。
+```bash
+export TMPDIR="$PWD/tmp"
+PY=/home2/wyy/miniconda3/envs/graspenv/bin/python
+$PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r9 --prepare --predecessor outputs/wam-rl-policy-v3/source-ceiling-20261023-r8
+$PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r9 --detached
 ```

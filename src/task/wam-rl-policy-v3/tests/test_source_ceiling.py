@@ -309,10 +309,10 @@ def test_source_key_prefers_completed_coupled_lift_over_initial_touch():
 def test_closing_reference_does_not_chase_object_after_real_contact():
     c,args=one_contact_args(0)
     c.step(**args) # Capture the grasp geometry at the measured first contact.
-    args['now']=1/30;args['palm'][0,3]+=.04;args['q'][0]+=.04;args['hand'][:,0]+=.04
+    args['now']=1/30 # Hold the measured wrist while the object is perturbed.
     args['object_pose'][0,3]+=.05 # Object slips, but the same index still touches.
     command,_=c.step(**args)
-    assert abs(command[0])<1e-6, 'The wrist reached the captured grasp; do not chase the pushed object'
+    assert abs(command[0])<1e-6, 'The measured contact wrist stays fixed; do not chase the pushed object'
 
 
 def test_contact_loss_releases_captured_goal_and_returns_to_approach():
@@ -358,3 +358,22 @@ def test_source_key_wrist_preserves_predecessor_pd_preload_as_well_as_fingers():
     expected=palm.copy();expected[:3,3]+=target[:3]-ref['q'][8,0,:3]
     expected[:3,:3]=Rotation.from_euler('XYZ',target[3:6]).as_matrix()
     np.testing.assert_allclose(obj@intent.grasp_pose_object,expected,atol=1e-7)
+
+
+def test_first_measured_contact_stops_insertion_and_closes_fingers_at_measured_wrist():
+    c,args=one_contact_args(0)
+    command,info=c.step(**args)
+    np.testing.assert_allclose(command[:3]*c.scale[:3],np.zeros(3),atol=1e-7,
+        err_msg='First matched contact must stop insertion while the fingers close, not push another 4cm')
+    assert c.phase=='close' and not info['measured_contact'] # One contact is not a grasp.
+    assert np.any(pd_targets(command,args['q'],c.offset,c.scale)[FINGER_ACTIVE]>args['q'][FINGER_ACTIVE])
+
+
+def test_acquisition_probe_does_not_freeze_partly_completed_finger_closure():
+    c,args=approaching(force=.5)
+    args['feedback'].grasp_candidate=True
+    command,info=c.step(**args)
+    target=pd_targets(command,args['q'],c.offset,c.scale)[FINGER_ACTIVE]
+    np.testing.assert_allclose(target,np.full(6,.44),atol=1e-6,
+        err_msg='A candidate probe must retain the registered closure slew; tiny force-hold updates are premature')
+    assert info['source_ceiling']['acquisition_probe'] and not args['feedback'].grasp_established
