@@ -40,7 +40,7 @@ def score(run,output):
             poses[:,:3,:3]=Rotation.from_quat(obj[:,3:7]).as_matrix();poses[:,:3,3]=obj[:,:3]
             observer=FeedbackObserver(points);schedulers={'before':old.TaskScheduler(spec,points),'after':TaskScheduler(spec,points)}
             traces={key:[] for key in schedulers};terminal={key:None for key in schedulers};last_pointer={key:0 for key in schedulers};retractions={key:0 for key in schedulers}
-            lift_hold=[];feedback_rows=[];physical_abort=manifest['aborts'][i];abort_tick=None if physical_abort is None else physical_abort['tick']
+            lift_hold=[];terminal_physical=[];feedback_rows=[];physical_abort=manifest['aborts'][i];abort_tick=None if physical_abort is None else physical_abort['tick']
             for t in range(len(obj)):
                 now=float(capture['tick'][t,i])/30
                 contact=capture['contact_forces'][t,i];valid=bool(capture['contact_force_valid'][t,i]);hand=InspireAdapter.canonical_hand(capture['hand'][t,i])
@@ -48,6 +48,10 @@ def score(run,output):
                 safe=abort_tick is None or t<abort_tick
                 fb=observer.update(poses[t],hand,obj[t,7:13],now,contact_forces=contact,force_valid=valid,supported=supported,workspace_ok=safe)
                 held=bool(safe and obj[t,2]-obj[0,2]>=.05 and fb.grasp_established and not fb.grasp_lost and valid and not supported and (np.linalg.norm(contact,axis=-1)>=.1).sum()>=2)
+                terminal_valid=bool(safe and schedulers['after'].confirmed_path_complete and fb.stable and schedulers['after'].path._reached(poses[t],spec.object_path[-1]) and
+                    ((spec.terminal_mode.value=='HOLD' and fb.grasp_established and not fb.grasp_lost) or
+                     (spec.terminal_mode.value=='RELEASE' and fb.released and (supported or not spec.require_support))))
+                terminal_physical.append(terminal_valid)
                 lift_hold.append(held);feedback_rows.append(dict(tick=t,grasp=fb.grasp_established,contact=fb.contact_observed,released=fb.released,supported=supported,stable=fb.stable,held=held))
                 for key,scheduler in schedulers.items():
                     if terminal[key] is not None:continue
@@ -57,24 +61,28 @@ def score(run,output):
                     if d.terminated:terminal[key]=traces[key][-1]
             times=capture['tick'][:,i]/30;duration=longest_seconds(lift_hold,times)
             before=terminal['before'];after=terminal['after']
-            result=dict(sequence=name,terminal_mode=spec.terminal_mode.value,source_endpoint_frame=spec.source_length-1,observed_last_tick=int(capture['tick'][-1,i]),
-                endpoint_plus_one_second_observed=bool(capture['tick'][-1,i]>=spec.source_length-1+30),physical_or_control_abort=physical_abort,
+            tail_start=len(times)
+            while tail_start>0 and terminal_physical[tail_start-1]:tail_start-=1
+            final_tail_s=float(times[-1]-times[tail_start]) if tail_start<len(times) else 0.
+            final_success=bool(after and after['task_success'] and final_tail_s>=1.-1e-10)
+            result=dict(sequence=name,source_split=row['split'],terminal_mode=spec.terminal_mode.value,source_endpoint_frame=spec.source_length-1,observed_last_tick=int(capture['tick'][-1,i]),
+                endpoint_plus_one_second_observed=bool(capture['tick'][-1,i]>=spec.source_length-1+30),observed_suffix_controls=int(capture['tick'][-1,i])-(spec.source_length-1),physical_or_control_abort=physical_abort,
                 before_full_task_success=bool(before and before['task_success']),after_full_task_success=bool(after and after['task_success']),
-                after_terminal=after,observed_path_retractions=retractions,maximum_path_progress={key:max(r['progress'] for r in trace) for key,trace in traces.items()},
+                after_ever_success=bool(after and after['task_success']),after_final_success=final_success,final_terminal_elapsed_s=final_tail_s,after_terminal=after,observed_path_retractions=retractions,maximum_path_progress={key:max(r['progress'] for r in trace) for key,trace in traces.items()},
                 source_pd_active_controls=int(controls['active'][:,i].sum()),full_source_commands_executed=bool(controls['active'][:manifest['source_controls'][i],i].all()),
                 longest_lift5cm_force_coupled_unsupported_s=duration,narrow_lift_hold_success=bool(duration>=1.-1e-10),
                 independent_terminal_check='No GT-tau/WAM-tau executor success inherited from source-PD; full result is named TaskScheduler contract, narrow physical mask is separate.')
             results.append(result);details[name]=dict(feedback=feedback_rows,**traces)
     summary=dict(status='COMPLETED',scheduler_schema=SCHEDULER_SCHEMA,sample_unit='six fixed sequences; one production execution each, not held-out method evaluation',
         count=len(results),before_full_task_successes=sum(r['before_full_task_success'] for r in results),after_full_task_successes=sum(r['after_full_task_success'] for r in results),
-        narrow_lift_hold_successes=sum(r['narrow_lift_hold_success'] for r in results),full_source_executed=sum(r['full_source_commands_executed'] for r in results),
+        after_final_successes=sum(r['after_final_success'] for r in results),narrow_lift_hold_successes=sum(r['narrow_lift_hold_success'] for r in results),full_source_executed=sum(r['full_source_commands_executed'] for r in results),
         endpoint_plus_one_second_observed=sum(r['endpoint_plus_one_second_observed'] and r['physical_or_control_abort'] is None for r in results),
-        full_task_qualification_pass=all(r['after_full_task_success'] and r['physical_or_control_abort'] is None for r in results),
+        full_task_qualification_pass=all(r['after_final_success'] and r['physical_or_control_abort'] is None for r in results),
         source_pd_saturation_rejections=manifest['source_pd_saturation_rejections'],applied_saturation_controls=manifest['clipped_envcontrols'],maximum_pd_error=manifest['maximum_pd_error'],
         records=results,limitations=['Original force-derived planned intent remains unverified.','Synthetic narrow lift does not certify full RELEASE or exact8cm.','Old/new share the same actual trace; no dynamic counterfactual policy claim.','FeedbackObserver shared with production; not independent contact ground truth.'])
     output.mkdir(parents=True,exist_ok=True);(output/'scores.json').write_text(json.dumps(summary,indent=2)+'\n');(output/'task-traces.json').write_text(json.dumps(details)+'\n')
     descriptor=dict(status='PREPARED_ONLY_NO_TRAINING',run=str(run),states=str(run/'trajectory.npz'),actions=str(run/'controls.npz'),chains_separate=True,
-        sequence_order=manifest['sequence_order'],source_pd_complete_eligible=[r['sequence'] for r in results if r['physical_or_control_abort'] is None and r['full_source_commands_executed']],
+        sequence_order=manifest['sequence_order'],suggested_single_trajectory='s1_cylindersmall_pass_1',suggestion_scope='Prior fixed calibration trajectory, already seen. Read measured witness durations from scores.json; never inherit source-PD success into an executor chain.',source_pd_complete_eligible=[r['sequence'] for r in results if r['physical_or_control_abort'] is None and r['full_source_commands_executed']],
         tau_contract='native11 world displacement; tau[0]=first future at1/30s,8steps=8/30s; first3/last8 invalid; never use live future at deployment',
         calibration_budget='S2 owns scaffolding; at most2000updates or1800s, no training launched by this tool',task_contract='Must be specified by S2 and match qualification; source-PD success cannot be inherited by GT-tau->R')
     (output/'calibration-inputs.json').write_text(json.dumps(descriptor,indent=2)+'\n')

@@ -10,6 +10,7 @@ def main():
         ('legacy-raw-equality','tools/audit/repair_prefix_task_semantics.py',"if task.packet()!=raw.packet():raise ValueError('prefix changed complete declared task')","if task.packet()!=raw_packet:raise ValueError('wrong legacy equality')",'test_prefix_repair_cli.py'),
         ('contact-gap-undoes-observation','src/wam_rl_policy_v3/task_scheduler.py','self.path.settle_since=None;self.path.last_pose=None','self.path.pointer=self.confirmed_pointer;self.path.settle_since=None;self.path.last_pose=None','test_task_scheduler.py::test_one_frame_contact_gap_keeps_observed_geometry_without_certifying_grasp'),
         ('gap-supplies-crossing','src/wam_rl_policy_v3/task_scheduler.py','if not path_ready:self.path.last_pose=None','if False:self.path.last_pose=None','test_task_scheduler.py::test_contact_gap_does_not_create_an_unobserved_milestone_crossing'),
+        ('state-occupancy-is-not-duration','tools/audit/score_source_pd_positive_control.py','longest=max(longest,float(now-start))','longest=max(longest,float(now-start)+1/30)','test_source_pd.py::test_positive_control_duration_uses_seconds_not_thirty_state_occupancy'),
         ('continuous-target-not-unwrapped','src/wam_rl_policy_v3/source_pd.py','target[...,3:6]+=2*np.pi*np.round((q[...,3:6]-target[...,3:6])/(2*np.pi))','target[...,3:6]=target[...,3:6]','test_source_pd.py::test_source_pd_inverse_uses_nearest_equivalent_continuous_target'),
     ]
     results=[]

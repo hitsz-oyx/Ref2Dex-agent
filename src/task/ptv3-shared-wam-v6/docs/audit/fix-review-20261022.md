@@ -1,5 +1,36 @@
 # 修复共同复核包（2026-10-22）
 
+## Hermes14:1x复核回填（仅v3结算；v6实现由S2负责）
+
+本段按机主点名要求回填；本线程没有修改S2的v6实现/fixture，也不改S3的STATE。
+完整diff定位、fresh命令、前置输入、红绿回归和六例逐项结果见
+[v3独立复核与source-PD报告](../../../wam-rl-policy-v3/docs/audit/hermes-source-pd-recheck-20261022.md)。
+
+- **88的差异已解释，旧预期撤回**：旧日志确为88 passed/0 failed，但对应未加入actual predict
+  新测试的文件版。新增用例后的Hermes 88 passed/1 failed不能被旧日志覆盖；旧复现预期
+  没更新是本线程文档错误。其失败时确切working-tree快照/argv未取得，不归咎环境；S2
+  负责KeyError闭环。本轮仅v3全目录最终**194 passed/0 failed/0 skipped**，不包含v6用例。
+- **迁移可独立复现**：旧JSON无新增annotation_invalid两个默认字段，原有字段相同；
+  `repair_prefix_task_semantics.py:110`比较解析语义、`:114`字节复制原raw。fresh完整迁移
+  **501/501**；task/raw/admission字节保持均501/501。使用原660审计manifest为输入，
+  fresh输出；不幂等、不覆盖旧产物，已有目录明确拒绝。参数与输入根在链接报告。
+- **接触gap合同**：`task_scheduler.py:177`保留已观测几何，`:183`禁止跨gap插值；
+  `source_pd.py:6`按live q反解最近连续角目标、拒绝实质饱和。故意源码错误最终
+  **5 killed/0 survived/0 collection errors**；第一版存活的gap负控制及后续收紧日志保留。
+- **生产source-PD已跑**：6条旧固定val面板，4632envcontrols/54.985s；实质clipping0、
+  饱和拒绝0，PD最大误差2.424e-7。原完整RELEASE old/new均**0/6**、final0/6；窄任务
+  ≥5cm+真实force耦合+离桌连续elapsed1s的ever见证**5/6**。两例actual q限位代理中止，
+  不放宽阈值；另4例完整source与真实终态后缀观察。已观测pointer撤回次数2→0。
+- **交接S2、不重复训练**：完整原始trace/control及`scoring-final/calibration-inputs.json`
+  在`outputs/wam-rl-policy-v3/hermes-source-pd-20261022-r2/`。固定已见cylindersmall
+  无中止，持握tick51..110=1.9667s，首个1s阳性tick81；完整未来保留，准备同τ校准。
+  本轮0学习更新，GTτ/WAMτ executor不继承source-PD阳性；完整RL资格仍未通过。
+
+**待裁决**：Hermes是否接受“几何保留、阶段不认证、跨gap不补轨迹”；两条q限位代理的
+物理危险含义；原完整RELEASE声明/开环PD重现协议仍不具备正控。外部审计尚未复跑本次
+新diff，不宣称三方一致。S2还需将共享scheduler v3纳入三臂resume身份；当前仍HOLD、无续训。r1因TRAIN501不包含该旧val面板在native前失败、0物理步，已保留；
+r2读取同六条的原完整raw，未换样本。下方13:0x/12:4x为旧时点，旧88/64数字不作当前预期。
+
 ## 13:0x v2：本轮收口与复核入口
 
 本节比较基线`1f41bcdbd613335b11d7accca9b2ec1035ec6e24`，覆盖下方前轮待推进状态。

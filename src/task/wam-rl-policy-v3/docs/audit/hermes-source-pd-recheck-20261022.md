@@ -15,7 +15,7 @@
 - Native production reset，continuous腕角等价规范；inverse用live q及最近2π代表，真实目标
   必须可由12个主动action及原被动指耦合表达。实质超范围>1e-6明确拒绝，不以clip执行。
   记录边界舍入≤1e-6；生产原target和实际PD最大误差目标≤2e-5。预期饱和执行0。
-- 每例源参考结束后继续120个**真实**物理controls，保持最终记录PD目标；不是复制末状态、
+- 每例源参考结束后继续至少120个（共同batch时域，短序列更长）**真实**物理controls，保持最终记录PD目标；不是复制末状态、
   延长教师真值或追加原录制标签。参考最长652，总772×6=4632envcontrols，≤6000。
 - GPU只用空闲4/5/6一张；native Torch2.0.1+cu118，client graspenv；seed195沿用旧配对
   正控。wall≤600s、产物≤2GiB、磁盘余量≥20GiB；未重置任何他人作业，不做学习更新。
@@ -67,12 +67,12 @@ CUDA_VISIBLE_DEVICES='' PYTHONDONTWRITEBYTECODE=1 /home2/wyy/miniconda3/envs/gra
   --audit-manifest outputs/wam-rl-policy-v3/inspire-teacher-rollout-audit-20261020-r3/manifest.json \
   --output outputs/wam-rl-policy-v3/hermes-prefix-independent-review
 
-# 193 passed/0 failed是本轮运行数；后续新增测试应报告新总数，不能沿用。
+# 最终194 passed/0 failed/0 skipped；后续新增测试必须报告新总数。
 CUDA_VISIBLE_DEVICES='' PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 \
   /home2/wyy/miniconda3/envs/graspenv/bin/python -m pytest -q -p no:cacheprovider \
   --basetemp=tmp/hermes-v3-independent-review src/task/wam-rl-policy-v3/tests
 
-# 期望4/4被断言拒绝；必须用新输出目录。
+# 期望5/5被断言拒绝；必须用新输出目录。
 PYTHONDONTWRITEBYTECODE=1 /home2/wyy/miniconda3/envs/graspenv/bin/python \
   src/task/wam-rl-policy-v3/tools/audit/check_hermes_fix_mutants.py \
   --output outputs/wam-rl-policy-v3/hermes-mutants-independent-review
@@ -81,12 +81,86 @@ PYTHONDONTWRITEBYTECODE=1 /home2/wyy/miniconda3/envs/graspenv/bin/python \
 nvidia-smi
 PYTHONDONTWRITEBYTECODE=1 /home2/wyy/miniconda3/envs/graspenv/bin/python \
   src/task/wam-rl-policy-v3/tools/audit/replay_source_pd_positive_control.py \
-  --declarations outputs/wam-rl-policy-v3/hermes-prefix-fixed-20261022-r1/manifest.json \
-  --output outputs/wam-rl-policy-v3/hermes-source-pd-20261022-r1 --gpu 4
+  --declarations outputs/wam-rl-policy-v3/inspire-teacher-rollout-audit-20261020-r3/manifest.json \
+  --output outputs/wam-rl-policy-v3/hermes-source-pd-independent-review --gpu 4
 
 # 纯保存状态评分；不重复花费物理预算。source-PD三种链身份绝不互借成功。
 CUDA_VISIBLE_DEVICES='' PYTHONDONTWRITEBYTECODE=1 /home2/wyy/miniconda3/envs/graspenv/bin/python \
   src/task/wam-rl-policy-v3/tools/audit/score_source_pd_positive_control.py \
-  --run outputs/wam-rl-policy-v3/hermes-source-pd-20261022-r1 \
-  --output outputs/wam-rl-policy-v3/hermes-source-pd-20261022-r1/scoring
+  --run outputs/wam-rl-policy-v3/hermes-source-pd-independent-review \
+  --output outputs/wam-rl-policy-v3/hermes-source-pd-independent-review/scoring
 ```
+
+正控输入补充：固定旧6条面板全部为原`val`，不在迁移的TRAIN501中。r1因此在native启动前
+KeyError中断，0envcontrols；`failure.json`与client log保留。r2保留六条原面板，从原660
+manifest读取完整raw-task，绝不用其旧截断task.json。没有换选TRAIN或静默删病例。
+其中cylindersmall在前轮已微拟合，是已见样本；这批只能作已知序列诊断正控，不作未见DEV
+方法评估。原报告501指迁移cohort，不能套成此6例的采样身份。
+
+## 生产source-PD结果（r2，代码3c5f54b2，0学习更新）
+
+实际GPU4，54.985s，6×772=**4632envcontrols**；native正常退出0，GPU4/5/6均释放至6MiB。
+原660完整raw-task、源PD目标与canonical mesh只读；六条原val面板全部保留。动作实质超界
+拒绝0、实质clipping0，只有source边界舍入（最大2.384e-7），实际PD最大误差2.424e-7。
+q初态相对原录制按连续轴mod2π最大误差7.153e-7，dq0，hand1.788e-7；不是逐位初态相同。
+
+| sequence | 完整source controls/是否执行完 | 原完整RELEASE成功：v2→v3 | ≥5cm/force耦合/离桌最长elapsed | 物理/执行中止 |
+|---|---:|---:|---:|---|
+| s1_cylindersmall_pass_1 |166/是|0→0|1.9667s|无|
+| s2_cubesmall_pass_1 |232/是|0→0|3.0000s|无|
+| s2_cup_pass_1 |206/是|0→0|2.5333s|无|
+| s7_airplane_lift_Retake |652/是|0→0|3.9333s|无|
+| s7_cubemedium_pass_1 |193/否，106步中止|0→0|1.5667s（中止前）|q[16]=-0.109389 <lower0−0.1|
+| s9_cylindermedium_inspect_1 |165/否，36步中止|0→0|0s|q[16]=-0.120949 <lower0−0.1|
+
+全6分母不变：**窄任务ever阳性5/6；完整任务ever/final均0/6**，不宣布完整教师资格通过。
+4例无安全中止、执行了完整source与至少120个真实终态后缀；两例中止后的惯性状态不作
+source-PD成功证据。所有case都观测至772tick；短序列后缀最多607controls，是实际积分，
+不是末帧复制。5/6是固定已知面板的阳性见证比例，不是泛化成功率或完整任务成功率。
+
+同一保存trace比较v2/v3：已观测pointer撤回次数**2→0**；cubesmall确认进度最大0→0.260006，
+其余5例不变，full成功0→0。不能把这项工程修复说成成功率提升。旧完整raw intent未独立
+认证，源PD按绝对关节目标开环跟随也不保证逐帧复现原物体SE(3)；因此此6例仍不能给完整
+RELEASE评分/可执行性或GTτ→R发资格。物理限位是当前代理：两个负q有实际dq/PD反向偏差，
+但solver瞬时过冲与真实危险程度没有独立认证，阈值未因本次失败放宽。
+
+S2交接：`hermes-source-pd-20261022-r2/scoring-final/calibration-inputs.json`指向完整
+trajectory.npz与controls.npz。固定cylindersmall无安全中止、源参考166controls全执行；
+真实窄持握区间tick51..110（59/30=1.9667s），首个elapsed1s在tick81。可用完整保存未来，
+不会再因首个阳性即截断source导致尾8帧GT缺失。所有772个control的state/action均保留，
+建议仅按预注册窄任务/相同τ通道构造监督；**tau[t,0]是t+1，不是当前帧**；t≥3且t+8在
+保存状态范围内才valid。所有进入状态必须因果使用，部署不得读取实测未来。
+本线程训练0updates；前轮2000updates已耗尽，新校准由S2按授权≤2000updates/30min执行，
+不可混成未见DEV、不可借source-PD阳性宣布GTτ→R成功。
+
+## 最终复核与待裁决
+
+- 新增秒制时长负控制后，全v3目录最终 **194 passed /0 failed /0 skipped，17.55s**；
+  源码mutants最终 **5 killed /0 survived /0 collection errors**（mutants-final/summary.json）。
+- `scoring-final/scores.json`含完整任务ever/final；`task-traces.json`逐帧old/new/反馈；
+  `calibration-inputs.json`仅准备数据，不运行训练。旧scoring/保留首轮结果，最终复现建议用
+  新输出目录`scoring-review`，当前命令行为可重复重算，不追加物理预算。
+- 差异解释：已核88日志对应旧文件版，旧1f41bcdb/新8fe1a29f同一文档实际各列19个文件，
+  新版多了actual-v6-predict用例。Hermes称18文件的确切argv/working-tree快照本线程没有，
+  **无法自证其失败时使用哪份中间fixture**；不归咎环境、不撤销Hermes的失败。S2负责
+  KeyError闭环。旧命令88期望过期是本线程文档错误。
+- 待Hermes裁决：接触gap“几何保留/阶段未认证/无跨gap插值”合同是否接受；source-PD
+  5/6窄阳性足以交S2做单轨迹上限，但完整RELEASE0/6不能放行正式RL；两条q限位代理
+  的物理含义仍需独立复核。外部审计未复跑本次新diff，不宣称三方一致。
+
+本轮diff入口：`git diff 8fe1a29f HEAD -- src/task/wam-rl-policy-v3`；工程提交3c5f54b2。
+主要位置：`tools/audit/repair_prefix_task_semantics.py:110`（解析语义比较）与`:114`（原raw
+字节保持）；`src/wam_rl_policy_v3/task_scheduler.py:177`（不撤回几何）、`:183`（跨gap无
+插值）；`src/wam_rl_policy_v3/source_pd.py:6`（生产PD逆映射/超界拒绝）；
+`tools/audit/score_source_pd_positive_control.py:9`（真实elapsed秒计时）。
+
+动作边界补充：`action-boundary-audit.json`核到active source3230envcontrols；其余1402为
+中止后inactive中性控制的物理积分，全部计入4632总预算。source指令中有2个合法手指端点
+命令达到±1，不等同inverse clipping；Cartesian/腕角到边界0，最大abs0.964920。因此
+“clipping0”不能读成“所有源命令从未取端点”，实质超界指令始终拒绝。
+
+S2执行身份提醒（未改其范围）：共享TaskScheduler已升`preserve-observed-geometry.v3`；
+官方v3 PPO动态绑定该schema，但v6三臂resume identity尚只绑定其本地TASK_CONTRACT等，
+需要S2把scheduler_schema纳入身份/升版，避免旧奖励/截断训练恢复到新语义。当前P1 HOLD、
+无可放行物理资格，因此本轮没有利用该缺口启动/续训。评价性旧checkpoint可按新协议另起
+独立run，但不能称原训练已被事后修复。

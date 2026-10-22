@@ -26,3 +26,13 @@ def test_source_pd_refuses_saturation_and_nonrepresentable_coupled_fingers():
     with pytest.raises(ValueError,match='saturation'):source_pd_action(pd,q,np.zeros(18),scale)
     q,pd,scale,a=fixture();pd[0,7]+=.1
     with pytest.raises(ValueError,match='coupling'):source_pd_action(pd,q,np.zeros(18),scale)
+
+
+def test_positive_control_duration_uses_seconds_not_thirty_state_occupancy():
+    import importlib.util
+    from pathlib import Path
+    file=Path(__file__).resolve().parents[1]/'tools/audit/score_source_pd_positive_control.py'
+    loader=importlib.util.spec_from_file_location('source_pd_scoring',file);module=importlib.util.module_from_spec(loader);loader.loader.exec_module(module)
+    assert module.longest_seconds(np.ones(30,bool),np.arange(30)/30)<1.
+    assert module.longest_seconds(np.ones(31,bool),np.arange(31)/30)==1.
+    assert module.longest_seconds([True,True,False,True],[0.,.2,.4,.9])==.2
