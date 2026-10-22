@@ -109,6 +109,9 @@ def main():
             permuted=np.array(permuted)
             for j,name in enumerate(names[1:]):
                 v=permuted[:,j];stages[name]['label_permutation95_mm2']=np.nanpercentile(v,[2.5,97.5],axis=0).T.tolist() if np.isfinite(v).any() else None
+                if stages[name]['df']:
+                    observed=np.r_[stages[name]['raw_variance_mm2'],stages[name]['event_aligned_variance_mm2']]
+                    stages[name]['label_permutation_fraction_at_or_below_observed']=np.mean(v<=observed,axis=0).tolist()
             # Paired bootstrap over independent BASE groups, common draw for
             # raw/aligned and label stages. This is exploratory, not validation.
             if len(selected)>=8:
@@ -118,8 +121,17 @@ def main():
                     r=draws@rr;al=draws@aa;ok=r[:,-1]>0
                     stages[name]['raw95_mm2']=np.percentile(r[ok,:4]/r[ok,-1,None],[2.5,97.5],axis=0).T.tolist() if ok.any() else None
                     stages[name]['aligned95_mm2']=np.percentile(al[ok,:4]/al[ok,-1,None],[2.5,97.5],axis=0).T.tolist() if ok.any() else None
+                    if j:
+                        previous_raw=draws@np.array([np.r_[v[0],v[1]] for v in raw_group[j-1]])
+                        previous_al=draws@np.array([np.r_[v[0],v[1]] for v in al_group[j-1]])
+                        good=ok&(previous_raw[:,-1]>0)
+                        if good.any():
+                            rv=r[good,:4]/r[good,-1,None];pv=previous_raw[good,:4]/previous_raw[good,-1,None]
+                            av=al[good,:4]/al[good,-1,None];pa=previous_al[good,:4]/previous_al[good,-1,None]
+                            stages[name]['raw_drop95_vs_previous_percent']=np.percentile(100*(1-rv/np.maximum(pv,1e-12)),[2.5,97.5],axis=0).T.tolist()
+                            stages[name]['aligned_drop95_vs_previous_percent']=np.percentile(100*(1-av/np.maximum(pa,1e-12)),[2.5,97.5],axis=0).T.tolist()
             report[str(round(gate*1000))+('_time3' if timing else '')]=dict(groups=len(selected),windows=sum(map(len,selected)),
-                aligned_groups=align_groups,aligned_windows=align_windows,aligned_event_median_ticks=anchors,stages=stages)
+                group_indices=selected,aligned_groups=align_groups,aligned_windows=align_windows,aligned_event_median_ticks=anchors,stages=stages)
             print({k:v for k,v in report.items() if k==str(round(gate*1000))+('_time3' if timing else '')},flush=True)
     result=dict(status='COMPLETED',seed=a.seed,event_inside_horizon_only=a.event_only,bank_windows=len(samples),bank_captures=len(set(s['capture'] for s in samples)),
                 metric_order=groups.NAMES,groups=report,
