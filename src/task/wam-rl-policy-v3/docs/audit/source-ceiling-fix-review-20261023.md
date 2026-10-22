@@ -8,7 +8,7 @@
 | 提升但<32/40 | 修复不够，不能拿WAM解释数据量 | 按余下死因继续修source |
 | 不提升或实际限位仍多 | 当前方案未解决物理瓶颈 | 保留全部失败和gate，继续修；不训练v6 |
 
-当前状态：**原source14/40；R3–R8各完整0/40；未修好，不能称改善。** R9为0控制取消；R10在3/40完成时被manifest读取竞态技术中断，2494控制保留，不报成0/40。R11已有完整物理成功但≥19失败、32门槛不可达，仍跑满40；R12修闭合完成前过早probe，仍不比WAM。
+当前状态：**原source14/40；R3–R8各0/40；R11完整4/40，显著低于原基线（Fisher .01448）；未修好。** R10技术中断3/40；R12≥36失败仍跑满。R13恢复原source-PD路径，只加压力/余量guard，按同40冻结；仍不比WAM、不RL/不重训。
 ## 修复、可证伪预测与复现
 
 R3历史定位（以提交99875f23核对；均以`src/task/wam-rl-policy-v3/`为前缀）：
@@ -182,3 +182,9 @@ R10 supervisor.log明确JSONDecodeError发生于读前序manifest，随后两个
 R11初期失败p002/p005/p004在首次probe时closure raw余量.229/.269/.366rad；成功例约.04rad含投影。源码现先对closure做同inner admission再比命令差≤1e-6，完成后保持候选原force条件≥.25s（原observer历史窗），才允许≤10mm probe。真实耦合已成立仍按原反馈进入lift，不改评分。预期首次probe闭合指令余量→≤1e-6，等待→≥.25s；不能将此当实际q完成/力闭合证据。
 红测试R11/premature-probe-red.log明确候选第一拍就probe，1 failed/34 deselected；修后35控制+3queue定向通过、32控制mutants killed，新增抓住“半张开就probe”和“省掉运动历史等待”。旧probe正控制fixture显式声明闭合已稳定，不用不完整手形冒充已闭合。独立复现仍按本报告pytest/mutant与实验卡R12启动命令。
 同40/24k/0updates，source≥32仍门禁；前序R11全40保留。累计预算明确追加24k到≤189276，不隐瞒版本间成本。无法自证：命令稳定.25秒是否足够清除真实接触求解器抖动、是否因此增加握力超限，须本版完整40与q/dq/forces验证。
+
+## R13：停止改写source，保住已工作baseline再加最小guard
+
+R11全40仅4成功（Wilson3.958–23.052%，23080controls/1jointabort），不能拿局部阳性称修好，较原14/40退步；R12已≥36失败，继续原40。新SourcePDGuard保留原Geometry/MeasuredGraspConsumer消费原source PD意图，只加实测卸载与inner-target admission，不换key、不停腕/不probe/不做伪速度限制。健康安全输入、原后段命令均逐位对照；39控制+3queue专项通过，Guard独立4个注错新增，旧32个legacy mutants不冒称新Guard覆盖。
+worker恢复source记录action/refq→target→live q strict inverse→intent路径；卸载暂停source帧、held后段不消费参考。原R无τ后备显式按strict inverse拒绝统计selected/consumed，拒绝原因与reference_PD_target逐拍保存；canonical最终clipping、inner源proposal投影、实际q限位分别统计。source key为metadata-only，不再宣称其腕/手形被执行。仍不是GTτ/R上界。
+预期无危险/无需投影时命令改动=0，postservo改动=0；限位12/40→≤2，成功14/40→≥32，未知物理能否达到。复现按实验卡R13，本版40/24k/0updates；累计上限212356（明确追加24k），不比WAM。无法自证：原source暂停后是否仍能重入接触、inner投影是否削弱握力、后备R是否介入成功；必须原生40逐例报告，不隐藏。

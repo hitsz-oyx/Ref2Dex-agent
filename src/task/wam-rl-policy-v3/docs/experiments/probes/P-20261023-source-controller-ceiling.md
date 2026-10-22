@@ -14,7 +14,7 @@ seeds: [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 11
 decision_changed_if_positive: qualify source-only controller on the same forty development initials before comparing WAM
 decision_changed_if_negative: retain all failures and repair measured approach or closure without relaxing physical gates
 status: RUNNING
-run_id: source-ceiling-20261023-r12
+run_id: source-ceiling-20261023-r13
 ---
 
 ## 结果解读表
@@ -175,4 +175,18 @@ export TMPDIR="$PWD/tmp"
 PY=/home2/wyy/miniconda3/envs/graspenv/bin/python
 $PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r12 --prepare --predecessor outputs/wam-rl-policy-v3/source-ceiling-20261023-r11
 $PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r12 --detached
+```
+
+## R13运行前修订：恢复原source-PD，仅增加最小压力/余量防护
+
+R11完整4/40=10%（Wilson95 3.958–23.052%），23080控制，1jointabort/1关节事件；相对原14/40显著退步，Fisher=.0144757444。R12已有≥36失败、32门不可达，仍完成40。此前keypose/时钟/单点停腕/probe重写均未改善原source，不继续把重写后的链称原source-PD。
+R13采用单独SourcePDGuard，恢复原v11的source-action→18维PD target→strict source_pd_action(live q)→原GraspIntent/MeasuredGraspConsumer阶段/RelativePoseServo路径；不静态换keypose、不新增停腕、不新增probe、不把PD误差冒称速度。只有：①实测>12N/原名义±.05向外危险时退让/0.1秒脉冲并暂停参考；②候选/目标留原内余量；③目标准入与实际危险分开，原physical abort±.10和评分不动。安全源intent在无危险/不需投影时与原控制器命令逐位相同，postservo也逐位相同。
+source reference每个pregrasp控制前进1帧，卸载暂停，held后段不再耗掉参考；与初态同一世界native q，不声称object-anchored GTτ/R上界。原无τ R后备仅在strict source逆变换拒绝时选择，完整报告selected/实际pregrasp-consumed/拒绝原因；不能把有R辅助的成绩谎称纯source-PD。source-key提取只作旧元数据兼容，明确不执行；WAM不实例化。
+预期原健康source动作差异→0、postservo差异→0；原12/40限位→≤2，主目标14/40→≥32。这不是已达标；39控制+3queue专项通过，当前Guard独立4个mutants覆盖改写健康输入/忽略压力/改后段/漏内余量，旧32个legacy-controller mutants仍保留，不能互借测试结论。
+同40/24k/0updates/20秒，前序R12。累计已有R3–R8+R10+R11=164356控制，加R12≤24k和本版≤24k，新累计上限212356，明确追加本版，不隐瞒改进失败成本。若仍<32，继续按原source剩余死因修，不比WAM。
+```bash
+export TMPDIR="$PWD/tmp"
+PY=/home2/wyy/miniconda3/envs/graspenv/bin/python
+$PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r13 --prepare --predecessor outputs/wam-rl-policy-v3/source-ceiling-20261023-r12
+$PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r13 --detached
 ```

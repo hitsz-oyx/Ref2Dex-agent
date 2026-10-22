@@ -42,16 +42,16 @@ def prepare(out,predecessor=None):
     worker=(TASK/'tools/run/run_source_ceiling_worker.py').read_text().replace("ROOT=Path(__file__).resolve().parents[5];TASK=ROOT/'src/task/wam-rl-policy-v3'", "ROOT=Path(%r);TASK=Path(%r)"%(str(ROOT),str(launch/'src/task/wam-rl-policy-v3')))
     (out/'worker.py').write_text(worker)
     reg=json.loads((BASELINE/'registration.json').read_text())
-    reg.update(protocol='source.measured-motion.close-before-probe.n40.v12',experiment_id='P-20261023-source-controller-ceiling',
+    reg.update(protocol='source.native-PD.minimal-pressure-margin-guard.n40.v13',experiment_id='P-20261023-source-controller-ceiling',
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         arms=['A0'],subsets=['development_same_v11'],maximum_controls=24000,worker_wall_s=14400,queue_wall_s=14400,learning_updates=0,ppo_authorized=False,
         worker_source=str(out/'worker.py'),runtime_source=str(launch),baseline=str(BASELINE),
         target_successes=32,target_pregrasp_joint_abort_max=2,
-        source_clock='measured nearest forward-state cursor, window9; no wall-clock increment; cap at source grasp key',
-        source_geometry='source PD approach path follows measured SE3 nearest forward state (window9, no tick advance); key wrist and fingers preserve predecessor PD command; R unused; not GT-tau/R',
-        closing_geometry='capture measured world wrist at first measured matched contact; stop insertion while closing; no chasing; release capture after .12s measured contact loss/unload',
-        approach_rate=dict(far_linear_mps=.75,far_angular_radps=2.4,near_linear_mps=.3,near_angular_radps=1.2,near_surface_m=.06,reference='consecutive_commanded_pose_not_PD_tracking_offset'),
-        acquisition_probe=dict(maximum_m=.01,rate_mps=.06,trigger='existing measured force-valid grasp_candidate AND completed admitted closure command stable for existing .25s motion history; does not certify acquisition or success'),
+        source_clock='original native PD reference advances 1 frame per pregrasp control; pause during measured unload; freeze during held postservo; 30Hz',
+        source_geometry='restore original v11 native world-q PD intent; same initial state; inner target projection and measured pressure guard only; source_grasp key is metadata, not consumed',
+        closing_geometry='original production MeasuredGraspConsumer phase and source continuous wrist/finger PD commands; no new freezing or keypose replacement',
+        approach_rate=dict(reference='original source PD dynamics and canonical/native bounds; no invented Cartesian velocity equivalence; safety retreat .01m target offset'),
+        acquisition_probe=dict(enabled=False,reason='source trajectory supplies measured acquisition motion; preserve original positive baseline'),
         predecessor=str(predecessor.resolve()) if predecessor else None,
         control_geometry_delta='baseline plus optional measured_pressure hook; default controllers unchanged; source admission uses physical warning, not inner target margin',
         postgrasp='exact baseline RelativePoseServo and hold-force controller; no changes',

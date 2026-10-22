@@ -4,7 +4,7 @@ import numpy as np
 from pathlib import Path
 from unittest.mock import patch
 TASK=Path(__file__).resolve().parents[2];sys.path.insert(0,str(TASK/'src'))
-from wam_rl_policy_v3.source_ceiling import SourceCeilingConsumer,MarginAdmission,SourceReferenceClock,SourceGraspReference
+from wam_rl_policy_v3.source_ceiling import SourceCeilingConsumer,MarginAdmission,SourceReferenceClock,SourceGraspReference,SourcePDGuard
 from types import SimpleNamespace
 from wam_rl_policy_v3.grasp_geometry import JointAdmission
 import wam_rl_policy_v3.source_ceiling as controller_module
@@ -67,6 +67,16 @@ def main():
     def anchor_wrist_slew_to_measurement(self,**args):
         self.wrist_command=np.asarray(args['palm']).copy()
         return original(self,**args)
+    guard_step=SourcePDGuard.step;guard_init=SourcePDGuard.__init__
+    def change_safe_guard(self,**args):
+        command,info=guard_step(self,**args);command[0]+=.01
+        return command,info
+    def remove_guard_margin(self,*args,**kwargs):
+        guard_init(self,*args,**kwargs);self.inner_admission=self.outer_admission
+    def change_guard_postservo(self,**args):
+        command,info=guard_step(self,**args)
+        if self.phase in ('lift','hold'):command[0]+=.01
+        return command,info
     cases=[('ignore-measured-pressure',patch.object(SourceCeilingConsumer,'force_limit_n',float('inf')),tests.test_measured_pressure_unloads_at_actual_approach_close_step),
         ('unlimited-finger-target-jump',patch.object(SourceCeilingConsumer,'finger_rate_radps',100.),tests.test_approach_finger_target_does_not_jump_to_reference),
         ('omit-target-margin',patch.object(MarginAdmission,'__init__',JointAdmission.__init__),tests.test_nominally_legal_near_limit_target_is_rejected_before_candidate_ranking),
@@ -98,7 +108,11 @@ def main():
         ('use-target-margin-as-measured-collision',patch.object(MarginAdmission,'measured_pressure',target_margin_as_pressure),tests.test_inner_target_margin_is_not_a_measured_collision_or_replanning_gate),
         ('limit-PD-error-instead-of-command-velocity',patch.object(SourceCeilingConsumer,'step',anchor_wrist_slew_to_measurement),tests.test_wrist_command_slew_accumulates_pd_tracking_offset_while_measured_hand_lags),
         ('probe-with-partially-open-fingers',patch.object(SourceCeilingConsumer,'closure_ready_for_probe',lambda *args:True),tests.test_candidate_waits_for_completed_closure_and_motion_history_before_probe),
-        ('skip-motion-history-after-closure',patch.object(SourceCeilingConsumer,'probe_closure_dwell_s',0.),tests.test_candidate_waits_for_completed_closure_and_motion_history_before_probe)]
+        ('skip-motion-history-after-closure',patch.object(SourceCeilingConsumer,'probe_closure_dwell_s',0.),tests.test_candidate_waits_for_completed_closure_and_motion_history_before_probe),
+        ('rewrite-safe-source-PD-command',patch.object(SourcePDGuard,'step',change_safe_guard),tests.test_guard_preserves_original_safe_source_pregrasp_command),
+        ('ignore-source-guard-pressure',patch.object(SourcePDGuard,'force_limit_n',float('inf')),tests.test_guard_unloads_measured_pressure_without_changing_postservo),
+        ('change-source-guard-postservo',patch.object(SourcePDGuard,'step',change_guard_postservo),tests.test_guard_unloads_measured_pressure_without_changing_postservo),
+        ('remove-source-guard-target-margin',patch.object(SourcePDGuard,'__init__',remove_guard_margin),tests.test_guard_projects_source_targets_before_execution_and_uses_physical_warning)]
     result=[]
     for name,mutation,check in cases:
         check() # First prove the unmutated check passes.

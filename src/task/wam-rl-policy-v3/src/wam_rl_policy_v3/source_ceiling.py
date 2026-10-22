@@ -423,3 +423,79 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
         self.finger_target=applied[FINGER_ACTIVE].copy()
         self.wrist_command=executed_pose.copy()
         return command,info
+
+
+class SourcePDGuard(GeometryGraspConsumer):
+    """Minimal guard around the original source-PD intent/phase/servo chain.
+
+    No keypose replacement, wrist-freezing, artificial PD-error rate clamp or
+    acquisition probe. The source trajectory supplies the acquisition motion.
+    """
+    force_limit_n=12.
+    contract='source.native-PD.minimal-pressure-margin-guard.v13'
+
+    def __init__(self,*args,joint_limits,**kwargs):
+        super().__init__(*args,joint_limits=joint_limits,**kwargs)
+        self.outer_admission=self.admission
+        self.inner_admission=MarginAdmission(joint_limits,self.offset,self.scale)
+        self.unload_until=-np.inf;self.unload_direction=None
+        self.unload_fingers=None;self.last_target=None
+
+    def step(self,**args):
+        pre=self.phase in ('approach','close')
+        self.admission=self.inner_admission if pre else self.outer_admission
+        q=np.asarray(args['q']);dq=np.asarray(args['dq']);palm=np.asarray(args['palm'])
+        now=float(args['now']);intent=args['intent'];valid=bool(args['feedback'].force_valid)
+        force=np.asarray(args['forces']);magnitudes=np.linalg.norm(force,axis=-1) if valid else np.zeros(5)
+        projected=q+dq/30;outer=self.outer_admission
+        lower=outer.mask&(projected<outer.lower-.05)&(dq<-.2)
+        upper=outer.mask&(projected>outer.upper+.05)&(dq>.2)
+        loaded=magnitudes>self.force_limit_n
+        trigger=bool(pre and (loaded.any() or (lower|upper).any()))
+        if trigger:
+            self.unload_until=now+.1
+            direction=force[loaded].sum(0) if loaded.any() else palm[:3,3]-args['object_pose'][:3,3]
+            normal=self.plane[0];direction=direction-normal*min(float(direction@normal),0.)
+            if np.linalg.norm(direction)<1e-8:direction=normal.copy()
+            self.unload_direction=direction/np.linalg.norm(direction)
+            fingers=np.asarray(intent.preshape_q).copy();finger_load=np.r_[loaded[:4],loaded[4],loaded[4]]
+            fingers=np.where(finger_load,np.minimum(fingers,q[FINGER_ACTIVE]-.04),fingers)
+            for i,joint in enumerate(FINGER_ACTIVE):
+                group=[(joint,1.)]+[(dst,ratio) for dst,src,ratio in COUPLINGS if src==joint]
+                if any(lower[j] for j,_ in group):fingers[i]=max(q[j]/ratio+.04 for j,ratio in group)
+                if any(upper[j] for j,_ in group):fingers[i]=min(q[j]/ratio-.04 for j,ratio in group)
+            self.unload_fingers=self.admission.fingers(fingers)
+        unloading=bool(pre and now<self.unload_until)
+        changed=intent;retreat=None
+        if pre:
+            changed=replace(intent,preshape_q=self.admission.fingers(intent.preshape_q),
+                            closure_q=self.admission.fingers(intent.closure_q))
+            if unloading:
+                retreat=palm.copy();retreat[:3,3]+=self.unload_direction*.01
+                local=np.linalg.inv(args['object_pose'])@retreat
+                changed=replace(changed,approach_pose_object=local,grasp_pose_object=local,
+                    preshape_q=self.unload_fingers.copy(),closure_q=self.unload_fingers.copy(),approach_joint_angles=q[3:6].copy())
+        command,info=super().step(**dict(args,intent=changed))
+        if unloading:
+            if self.phase in ('lift','hold'):
+                self.phase='close';self.servo.reset();self.servo_active=False
+                info.update(phase='close',lift_interlocked_for_unloading=True)
+            command[:3]=(retreat[:3,3]-palm[:3,3]-self.offset[:3])/self.scale[:3]
+            command[3:6]=-self.offset[3:6]/self.scale[3:6]
+            command[6:]=2*(self.unload_fingers-self.offset[FINGER_ACTIVE])/self.scale[FINGER_ACTIVE]-1
+            command=self.admission.bound_action(command,q)
+        target=pd_targets(command,q,self.offset,self.scale)
+        mount=Rotation.from_euler('XYZ',q[3:6]).as_matrix().T@palm[:3,:3]
+        executed=palm.copy();executed[:3,3]+=target[:3]-q[:3]
+        executed[:3,:3]=Rotation.from_euler('XYZ',target[3:6]).as_matrix()@mount
+        projection=bool(pre and (np.abs(self.inner_admission.fingers(intent.preshape_q)-intent.preshape_q)>1e-7).any())
+        info.update(wrist_target=executed.tolist(),executed_finger_target=target[FINGER_ACTIVE].tolist())
+        info['source_ceiling']=dict(contract=self.contract,active=pre,force_valid=valid,
+            force_norm_n=magnitudes.tolist(),force_limit_n=self.force_limit_n,
+            unloading=unloading,source_paused=unloading,loaded_fingers=np.flatnonzero(loaded).tolist(),
+            coasting_joint_indices=np.flatnonzero(lower|upper).tolist(),margin_target_projection=projection,
+            inner_target_admitted=self.admission.check(command,q)[0],
+            preserves_source_PD_intent=True,uses_keypose_replacement=False,uses_acquisition_probe=False,
+            wrist_tracking_offset_m=float(np.linalg.norm(executed[:3,3]-palm[:3,3])),
+            finger_tracking_error_rad=float(np.max(np.abs(target[FINGER_ACTIVE]-q[FINGER_ACTIVE]))))
+        return command,info

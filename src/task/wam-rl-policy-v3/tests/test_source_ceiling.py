@@ -239,8 +239,8 @@ def test_free_approach_is_fast_and_near_object_command_is_slow():
     np.testing.assert_allclose(results,[.025,.01],atol=1e-6,rtol=0)
 
 
-def one_contact_args(force_slot):
-    c,args=approaching();c.phase='approach';args['near_fingers']=1;args['fingertip_gap_m']=0.
+def one_contact_args(force_slot,cls=SourceCeilingConsumer):
+    c,args=approaching(cls=cls);c.phase='approach';args['near_fingers']=1;args['fingertip_gap_m']=0.
     args['intent'].approach_pose_object[0,3]+=.04;args['intent'].grasp_pose_object[0,3]+=.04
     args['hand'][4]=args['object_pose'][:3,3]+c.points[0] # Native index fingertip.
     args['hand'][8]+=np.array([.1,0,0]);args['hand'][10]-=np.array([.1,0,0])
@@ -409,3 +409,46 @@ def test_candidate_waits_for_completed_closure_and_motion_history_before_probe()
         if i<16:assert not info['source_ceiling']['acquisition_probe'], 'Partial finger closure must finish before the motion-coupling probe'
     assert probes and probes[0]>=.55, 'Clear the .25s motion history after commanded closure before probing'
     assert c.phase=='close' and not args['feedback'].grasp_established
+
+
+def test_one_touch_does_not_freeze_wrist_before_observed_multi_finger_contact():
+    from wam_rl_policy_v3.source_ceiling import SourcePDGuard
+    c,args=one_contact_args(0,cls=SourcePDGuard)
+    command,info=c.step(**args)
+    assert c.phase in ('approach','close') and not args['feedback'].contact_observed
+    assert getattr(c,'closing_goal',None) is None, 'One nearby force sensor is not the production multi-finger contact condition'
+    assert command[0]>0, 'Keep the admitted approach while closing until measured multi-finger contact; do not stop short'
+    assert not info['source_ceiling'].get('acquisition_probe',False)
+
+
+def test_guard_preserves_original_safe_source_pregrasp_command():
+    from wam_rl_policy_v3.source_ceiling import SourcePDGuard
+    from wam_rl_policy_v3.grasp_geometry import GeometryGraspConsumer
+    a,args=approaching(SourcePDGuard);b,_=approaching(GeometryGraspConsumer)
+    args['intent'].approach_pose_object[0,3]+=.05
+    x,info=a.step(**args);y,_=b.step(**args)
+    np.testing.assert_array_equal(x,y)
+    assert info['source_ceiling']['preserves_source_PD_intent']
+
+
+def test_guard_unloads_measured_pressure_without_changing_postservo():
+    from wam_rl_policy_v3.source_ceiling import SourcePDGuard
+    from wam_rl_policy_v3.grasp_geometry import GeometryGraspConsumer
+    c,args=approaching(SourcePDGuard,force=30.);command,info=c.step(**args)
+    assert command[0]<0 and info['source_ceiling']['source_paused']
+    assert np.all(pd_targets(command,args['q'],c.offset,c.scale)[FINGER_ACTIVE]<args['q'][FINGER_ACTIVE])
+    a,args=approaching(SourcePDGuard);b,_=approaching(GeometryGraspConsumer)
+    for value in (a,b):value.phase='lift';value.contact_since=-1.
+    args['feedback'].grasp_established=True;args['feedback'].contact_observed=True
+    x,_=a.step(**args);y,_=b.step(**args);np.testing.assert_array_equal(x,y)
+
+
+def test_guard_projects_source_targets_before_execution_and_uses_physical_warning():
+    from wam_rl_policy_v3.source_ceiling import SourcePDGuard
+    c,args=approaching(SourcePDGuard)
+    args['intent'].preshape_q[:]=.01;args['intent'].closure_q[:]=.01
+    args['q'][6]=.01;args['dq'][6]=-.3
+    command,info=c.step(**args)
+    assert info['source_ceiling']['margin_target_projection']
+    assert not info['source_ceiling']['unloading'] and not info['reachability']['filter_active']
+    assert np.min(pd_targets(command,args['q'],c.offset,c.scale)[FINGER_ACTIVE])>=.04-1e-6

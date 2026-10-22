@@ -93,7 +93,7 @@ def main():
     from wam_rl_policy_v3.pose_consumer import pose7,reduce_to_wrist_plan,grasp_intent_from_retargeter
     from wam_rl_policy_v3.grasp_repair import clean_tau_future,support_plane
     from wam_rl_policy_v3.grasp_geometry import GraspGeometry
-    from wam_rl_policy_v3.source_ceiling import SourceCeilingConsumer as GeometryGraspConsumer,SourceGraspReference
+    from wam_rl_policy_v3.source_ceiling import SourcePDGuard as GeometryGraspConsumer,SourceGraspReference
     from wam_rl_policy_v3.source_pd import source_pd_action
     from wam_rl_policy_v3.intent_residual import IntentResidualPolicy,residual_observation,apply_intent_residual,ppo_update,RESIDUAL_CONTRACT
     from wam_rl_policy_v3.evaluation_sources import freeze_template,template_intent,gt_future
@@ -168,7 +168,7 @@ def main():
                     pose=pose7(np.asarray(state['objects'])[0]);target=grasp_lift_task(pose);geometry=GraspGeometry.from_points(points);context=TaskController(target,points,scheduler_config=TaskSchedulerConfig(episode_timeout_s=30.),path_config=SchedulerConfig(stall_timeout_s=60.))
                     consumer=GeometryGraspConsumer(np.asarray(state['q'])[0],pose7(np.asarray(state['palm_pose'])[0]),offset,scale,plane=support_plane(np.asarray(state['table_pose'])[0],bounds),palm_vertices=palm_surface.vertices[::32],table_geometry=(pose7(np.asarray(state['table_pose'])[0]),bounds),object_points=points,joint_limits=limits);stages=StagedProgress(pose[2,3],geometry=geometry);rewarder=None;rollout=dict(observations=[],latents=[],old_logp=[],rewards=[],values=[]);reward_parts=[];history=[];hands=[];decision=None;source_cursor=0
                     source_grasp=SourceGraspReference(reference,points,offset,scale,plane=consumer.plane)
-                    wam_calls=actor_calls=covered=final_clipped=adapter_clipped=source_failures=0;ever_primary=False;physical_abort=None;lastsafe=None;errors_m=[];drop_after_hold=False
+                    wam_calls=actor_calls=covered=final_clipped=adapter_clipped=source_failures=source_R_consumed=source_frame=0;ever_primary=False;physical_abort=None;lastsafe=None;errors_m=[];drop_after_hold=False
                     for t in range(reg['horizon_controls']+1):
                         report['active_episode']['tick']=t
                         if t%60==0:
@@ -214,7 +214,18 @@ def main():
                         if safe['abort'] or t==reg['horizon_controls']:break
                         with torch.inference_mode():adapter=model.actor(torch.tensor(observation[None],device='cuda')).cpu().numpy()
                         actor_calls+=1;adapter_clipped+=int((np.abs(adapter)>1+1e-6).any())
-                        intent=source_grasp.intent(target.object_path[-1],live_object=pose,live_palm=palm)
+                        source_pre=consumer.phase in ('approach','close')
+                        ref_t=min(source_frame,len(reference['action'])-1)
+                        source_action=reference['action'][ref_t]
+                        if source_action.shape==(18,):source_action=source_action[list(ACTIVE)]
+                        source_target=pd_targets(source_action,reference['q'][ref_t,0],offset,scale)
+                        rejection=None
+                        try:control_adapter=source_pd_action(source_target,np.asarray(state['q'])[0],offset,scale)[0]
+                        except ValueError as error:
+                            # Preserve the original v11 explicit no-tau R fallback,
+                            # count every selection; never claim pure source use.
+                            source_failures+=1;rejection=str(error);control_adapter=np.clip(adapter[0],-1,1)
+                        intent=grasp_intent_from_retargeter(np.asarray(state['q'])[0],palm,pose,target.object_path[-1],control_adapter,offset,scale,plan=None,tau_valid=False)
                         if residual is not None:
                             residual_input=residual_observation(observation,intent)
                             with torch.no_grad():
@@ -226,7 +237,14 @@ def main():
                                 rollout['observations'].append(residual_input);rollout['latents'].append(latent[0].cpu().numpy());rollout['old_logp'].append(float(logp[0]));rollout['values'].append(float(value[0]))
                         evidence=context.observer.last_evidence
                         raw,info=consumer.step(hand=np.asarray(state['hand'])[0],q=np.asarray(state['q'])[0],dq=np.asarray(state['dq'])[0],palm=palm,object_pose=pose,object_velocity=obj[7:13],forces=forces,feedback=feedback,near_fingers=evidence['near_fingers'],fingertip_gap_m=evidence['fingertip_gap_m'],intent=intent,now=t/30)
-                        info['source_reference']=source_grasp.manifest()
+                        if rejection is not None and info['phase'] in ('approach','close'):source_R_consumed+=1
+                        info['source_reference']=dict(source_grasp.manifest(),kind='source_native_PD_guard',
+                            source_action_mode='original_recorded_PD_target_with_measured_guard_pause',
+                            source_grasp_key_is_metadata_only=True,motion_cursor=ref_t,source_reference_frame=ref_t,
+                            reference_PD_target=source_target.tolist(),source_admission_rejection=rejection,
+                            R_fallback_selected=rejection is not None,consumes_R=rejection is not None,
+                            wrist_reference_frame='original_native_world_q; same registered initial state')
+                        if source_pre and not info['source_ceiling']['unloading']:source_frame=min(source_frame+1,len(reference['action'])-1)
                         action=np.clip(raw[None],-1,1).astype(np.float32);final_clipped+=int((np.abs(raw-action[0])>1e-6).any());full=expand_action(action)
                         predicted=pd_targets(action,np.asarray(state['q']),offset,scale);before=list(state['episodes']);tick=np.asarray(state['tick']).copy()
                         send(native.connection,dict(op='step',action=full.tolist(),episodes=before,return_pd=True));reply=receive(native.connection);report['environment_controls']+=1;nextstate=unpack_state(reply['state']);actual=np.asarray(reply['pd_targets'])
@@ -240,7 +258,7 @@ def main():
                         stage_achieved=stage['achieved'],stage_final=stage['current'],longest_hold_s=stages.longest_hold_s,release_applicable=False,drop_after_hold=drop_after_hold,
                         final_goal_error_m=goal_error,goal_within15mm=bool(not safe['abort'] and t==reg['horizon_controls'] and goal_error<=.015),goal_error_quantiles_m=np.quantile(errors_m,[0,.5,.9,1]).tolist(),
                         physical_abort=physical_abort,physical_safety_final=lastsafe,wam_calls=wam_calls,actor_calls=actor_calls,encoder_covered_controls=covered,final_clipped_controls=final_clipped,adapter_clipped_controls=adapter_clipped,initial_errors=initial_errors,seconds_observed=t/30)
-                    row.update(control_counts(control_info,actions));row['source_admission_failures']=source_failures;row['source_pd_inverse_applicable']=False;row['source_R_consumed_controls']=0;row['source_reference']=source_grasp.manifest();row['unloading_controls']=sum(bool(i.get('source_ceiling',{}).get('unloading')) for i in control_info);row['geometry']=geometry.manifest();row['goal_within_geometry']=bool(t==reg['horizon_controls'] and not safe['abort'] and geometry.arrived(goal_error))
+                    row.update(control_counts(control_info,actions));row['source_admission_failures']=source_failures;row['source_pd_inverse_applicable']=True;row['source_R_consumed_controls']=source_R_consumed;row['source_R_fallback_selected_controls']=source_failures;row['source_reference']=control_info[-1]['source_reference'];row['source_proposal_margin_projection_controls']=sum(bool(i.get('source_ceiling',{}).get('margin_target_projection')) for i in control_info);row['unloading_controls']=sum(bool(i.get('source_ceiling',{}).get('unloading')) for i in control_info);row['geometry']=geometry.manifest();row['goal_within_geometry']=bool(t==reg['horizon_controls'] and not safe['abort'] and geometry.arrived(goal_error))
                     if a.ppo:
                         bootstrap=0.
                         if not safe['abort'] and not row['final_success']:
