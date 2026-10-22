@@ -18,6 +18,8 @@
 - R5 source 证据与 live success 明确分离：39/40 有 source object-contact 帧，raw/object
   帧总计 4724/4466（p006=71/69），但 manifest 的 `source_contact_is_live_success` 固定为
   false；运行时 25/40 曾 measured contact、13/40 曾 lift/hold、21/40 阶段 contact。
+  按现有 summarizer，R5 死因为 `stage_contact_not_certified` 14、`contact_without_lift` 19、
+  `physical_table_penetration` 6、`lift_without_continuous_hold` 1。
 
 决策：不启动 R6 全 40。先在 3–5 个已有失败例上做一个最小接口修复（使引用几何/入门判据
 自洽，同时保留 live contact/coupling 认证），再小样本回放；结果通过后才重新决定全批。

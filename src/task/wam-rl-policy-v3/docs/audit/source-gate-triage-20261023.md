@@ -11,6 +11,7 @@
 R4 最后一个控制时刻的 40 例中，31 例仍为 `approach`、9 例已经进入 `close/lift`。在仍为 approach 的 31 例里，20 例的重建腕目标已满足位置+旋转静态门，但指尖接近门不满足；另 11 例腕目标本身仍未满足静态门。这解释了“接近但不进入 close”与“进入 close 但不认证 contact”两个层次。R4 的 5 个 `contact_without_lift` 属于后者之后的 live coupling/lift 失败，不是限位主因。
 
 R5 的 `raw_force_contact_frames`/`object_contact_frames` 是 source 录制证据，不是 live success；`source_contact_is_live_success` 在生产 `SourceGraspReference.manifest()` 中明确固定为 false。R5 40 例中 39 例有 source object-contact 帧、25 例运行时曾有 measured contact、13 例曾进入 lift/hold、21 例阶段曾达到 contact；因此 71/69 帧与 live success=false 并不矛盾，缺的是运行时 `FeedbackObserver` 的运动耦合持续条件及后续 lift/goal 条件。
+R5 按现有 summarizer 的死亡口径为：contact_without_lift×19, lift_without_continuous_hold×1, physical_table_penetration×6, stage_contact_not_certified×14；这同样指向 contact/lift 认证链，而不是限位清零后的主因。
 
 ## 表 1：引用 approach→grasp 物体坐标几何
 
