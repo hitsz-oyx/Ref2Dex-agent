@@ -108,14 +108,14 @@ successes/256，另报lift5cm30/256、每物体分母、平均return、失败原
 物理GPU2/3为本线程用户授权资源；每次新队列启动先`nvidia-smi`确认空闲。0/1仅在
 root明确确认空闲后选用；4/5/6 flow长训与7禁止使用。不停止现有进程，不push，不碰凭据。
 每GPU同一时刻一个独立seed/arm，9个作业排队；arm顺序随seed轮转。
-每run上限4h或512updates，任一先到保存停止。任一训练未达相同预算，则只能比较共同
+每run上限6h或512updates，任一先到保存停止。任一训练未达相同预算，则只能比较共同
 已完成交互预算，不能将不等预算终点当公平固定步数结果。最多512updates的入口硬界，
 首批不自动扩展；输出≤8GiB，磁盘可用低于20GiB停止。每run保留0/128/256/384/512及终点
 checkpoint，全部9run约3GiB模型，禁止视频和全量tau缓存。
 
 C模型推理按64个环境分块（容量实测后采用），避免256env一次PTv3 dense2048推理OOM。新吞吐须实测；
 历史约36s/12288全局交互不能外推v6 dense2048。训练开始后记录nvidia-smi显存/利用率、
-每update collection/learning时间、首个稳定阶段ETA。若ETA超过4h，保存已完成曲线与共同
+每update collection/learning时间、首个稳定阶段ETA。若ETA超过6h，保存已完成曲线与共同
 预算，不静默缩小成功率分母/种子数。GPU被占则保留checkpoint，不杀外来进程。
 
 环境：policy/WAM `/home2/wyy/miniconda3/envs/graspenv/bin/python`，Torch2.4.1+cu121；
@@ -192,3 +192,24 @@ learning约0.16s，模型CUDA峰值204/204/716MiB。以当前C吞吐512轮约5.8
 完整24帧手τ路径保留；root独立做full/only数值parity。P1 identity绑定batch64/forecast_only，
 这不是压缩τ/P2消融。新容量run_id=`samples-efficiency-capacity64-20261022-r1`，C256env2updates，
 统一新dense2048；通过前不启动科学长批。
+
+### 启动预算与冻结修订
+
+root授权将所有臂的run wall上限统一6h，训练交互目标仍512updates/1,048,576，
+评估每个独立host也受6h硬界。capacity64 C2562updates已COMPLETED，40optimizer steps、
+4096交互、source/PD/logprob/episode/同步误差0，第2轮26.921+0.162s，模型peak1714.87MiB。
+root独立parity：同一encoder激活下healthy/FM hand decoder maxdiff均0；独立encoder重算
+漂移0.0381mm/0.000536mm，不能宣称端到端bitwise一致。
+
+按256env容量估计：A约0.80h/run、B约1.24h/run、C约3.85h/run，9训练jobs约17.7 GPU-hours；
+双GPU训练约9–12h（任务离散/吞吐变化会延长）。评估另算：C每256共同初态panel约34min，
+15个C panels约8.5 GPU-hours；A/B评估较快但也需计物理调用。总预计约13–17h wall，
+这是容量外推，实际ETA以正式curve/resources更新，不能写成已运行完成时间。
+
+启动时复制完整依赖代码到output/runtime-code，记录snapshot.json的commit/文件清单；
+policy/native/后续seed均从snapshot读取实现，data/checkpoint/cache仍读原项目的固定路径。
+root之后修改main不会改变排队seed的实现。官方PPO源也来自snapshot。
+优先调度9个训练作业，空闲lane才处理已完成checkpoint评估，防止静态切片把三个C全部压同卡。
+每run写interaction-costs.json，native.steps×envs为实际交互，包含STOP前采集但未更新的rollout；
+checkpoint/manifest另记实际环境步，不能把只计已完成update的步数冒充全部成本。
+最终自动汇总JSON、learning-curves.png/svg；缺点/缺seed标INCOMPLETE，不填0。

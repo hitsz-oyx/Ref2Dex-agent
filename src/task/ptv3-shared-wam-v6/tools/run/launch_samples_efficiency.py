@@ -1,12 +1,15 @@
 """Bounded matched A/B/C queue. Run only on GPUs explicitly assigned by owner."""
 import argparse
 import concurrent.futures
+import itertools
 import json
 import os
 from pathlib import Path
 import signal
+import shutil
 import subprocess
 import time
+import queue
 
 ROOT = Path(__file__).resolve().parents[5]
 TASK = ROOT / 'src/task/ptv3-shared-wam-v6'
@@ -31,7 +34,7 @@ def main():
     p.add_argument('--arms', nargs='+', choices=['A', 'B', 'C'], default=['A', 'B', 'C'])
     p.add_argument('--updates', type=int, default=512)
     p.add_argument('--envs', type=int, default=256)
-    p.add_argument('--seconds-per-run', type=int, default=14400)
+    p.add_argument('--seconds-per-run', type=int, default=21600)
     p.add_argument('--checkpoint', type=Path, default=ROOT/'outputs/ptv3-shared-wam-v6/local-expanded-ddp-20261021-r1/training/step004371.pt')
     p.add_argument('--stats', type=Path, default=ROOT/'outputs/ptv3-shared-wam-v6/local-expanded-recipe-20261021-r1/stats.json')
     p.add_argument('--geometry-cache',type=Path,required=True,help='Certified dense2048 cache for v6; native initialization retains original cache')
@@ -44,13 +47,38 @@ def main():
         raise ValueError('fresh task-local output required')
     if not a.gpus or len(set(a.gpus)) != len(a.gpus) or set(a.gpus)-{0, 1, 2, 3}:
         raise ValueError('only owner-authorized GPUs 0–3; defaults 2/3')
-    if not 1 <= a.updates <= 512 or not 2 <= a.envs <= 512 or not 30 <= a.seconds_per_run <= 14400:
+    if not 1 <= a.updates <= 512 or not 2 <= a.envs <= 512 or not 30 <= a.seconds_per_run <= 21600:
         raise ValueError('bounded updates/envs required')
     for gpu in a.gpus:
         text = subprocess.check_output(['nvidia-smi','-i',str(gpu),'--query-gpu=index,memory.used,utilization.gpu','--format=csv,noheader,nounits'],text=True)
         if int(text.strip().split(',')[1]) > 64:
             raise RuntimeError('GPU no longer idle: '+text)
     out.mkdir(parents=True)
+    frozen=out/'runtime-code'
+    names=('ptv3-shared-wam-v6','ptv3-shared-wam-v5','ptv3-shared-wam-v4','ptv3-shared-wam-v3',
+        'ptv3-shared-wam-v2','ptv3-shared-wam','wam-rl-policy-v3','trajectory-policy',
+        '3d-data-preparation','video-data-preparation','shadow-finetune','goal-point-wam',
+        'cm-pointflow-effect-pretrain','consequence-evaluator','CmResidual')
+    sources=[Path('src/task')/name/'src' for name in names]
+    sources += [Path('src/task/ptv3-shared-wam-v6/tools'),Path('src/task/CmResidual/tools'),
+        Path('third_party/DExplore/dexplore'),Path('third_party/UniDexGrasp2-official-ppo'),Path('third_party/PointWorld/ptv3')]
+    copied=[]
+    for relative in sources:
+        source=ROOT/relative
+        if not source.exists():continue
+        for path in source.rglob('*'):
+            if not path.is_file() or path.is_symlink() or any(part in {'.git','__pycache__','.pytest_cache'} for part in path.parts):continue
+            if path.suffix not in {'.py','.yaml','.yml','.json','.cpp','.cu','.h','.hpp','.so'}:continue
+            destination=frozen/path.relative_to(ROOT);destination.parent.mkdir(parents=True,exist_ok=True)
+            shutil.copy2(path,destination);copied.append(str(path.relative_to(ROOT)))
+    # This historical import helper binds code to REF2DEX_RUN_ROOT. In the
+    # snapshot only, keep code local while that variable still names real data.
+    helper=frozen/'src/task/wam-rl-policy-v3/src/wam_rl_policy_v3/wam_v4_runtime.py'
+    text=helper.read_text();start=text.index('TASK_ROOT = ');end=text.index('\n',start)
+    helper.write_text(text[:start]+'TASK_ROOT = Path(__file__).resolve().parents[2]'+text[end:])
+    frozen_task=frozen/'src/task/ptv3-shared-wam-v6'
+    write(frozen/'snapshot.json',dict(files=copied,patches=['wam_v4_runtime TASK_ROOT uses snapshot siblings'],
+        git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()))
     private = ROOT/'tmp'/out.name
     private.mkdir(parents=True,exist_ok=True)
     objects = out/'objects.json'
@@ -61,13 +89,14 @@ def main():
         controls_per_seed_arm=a.updates*a.envs*8,seconds_per_run=a.seconds_per_run,
         eval_seed=a.eval_seed,bc=str(BC),checkpoint=str(a.checkpoint),stats=str(a.stats),geometry_cache=str(a.geometry_cache.resolve()),jobs=[])
     write(out/'manifest.json',manifest)
-    environment=dict(os.environ,REF2DEX_RUN_ROOT=str(ROOT),PYTHONDONTWRITEBYTECODE='1',
+    environment=dict(os.environ,REF2DEX_RUN_ROOT=str(ROOT),REF2DEX_SAMPLE_CODE_ROOT=str(frozen),
+        REF2DEX_V6_V5_CODE_ROOT=str(frozen),REF2DEX_V5_BASE_CODE_ROOT=str(frozen),PYTHONDONTWRITEBYTECODE='1',
         OMP_NUM_THREADS='2',OPENBLAS_NUM_THREADS='2',TMPDIR=str(private))
 
     def pair(folder, arm, seed, gpu, *, resume=None, evaluation=False):
         folder.mkdir()
         sock=private/(folder.name+'.sock')
-        policy=[MODEL,'-u',str(TASK/'tools/run/train_samples_efficiency.py'),'--bc',str(BC),
+        policy=[MODEL,'-u',str(frozen_task/'tools/run/train_samples_efficiency.py'),'--bc',str(BC),
             '--audit-manifest',str(ADMISSION),'--geometry-cache',str(a.geometry_cache.resolve()),'--output',str(folder/'policy'),
             '--socket',str(sock),'--gpu',str(gpu),'--seed',str(seed),'--updates',str(a.updates),
             '--seconds',str(a.seconds_per_run),'--arm',arm,'--checkpoint',str(a.checkpoint),'--stats',str(a.stats)]
@@ -85,7 +114,7 @@ def main():
             while not sock.exists():
                 if server.poll() is not None or time.monotonic()-started>300:raise RuntimeError('policy did not listen')
                 time.sleep(1)
-            native=[PHYSICS,'-u',str(TASK/'tools/run/samples_efficiency_physics.py'),'--cache',str(CACHE),
+            native=[PHYSICS,'-u',str(frozen_task/'tools/run/samples_efficiency_physics.py'),'--cache',str(CACHE),
                 '--output',str(folder/'native'),'--socket',str(sock),'--server-pid',str(server.pid),
                 '--envs',str(a.envs),'--gpu',str(gpu),'--seed',str(seed),'--seconds',str(a.seconds_per_run),
                 '--object-manifest',str(objects),'--admission-manifest',str(ADMISSION),
@@ -118,38 +147,62 @@ def main():
                 try:child.wait(timeout=15)
                 except subprocess.TimeoutExpired:os.killpg(child.pid,signal.SIGKILL);child.wait()
             for stream in streams:stream.close()
+            policy_manifest=folder/'policy/manifest.json';native_manifest=folder/'native/manifest.json'
+            if policy_manifest.exists() and native_manifest.exists():
+                policy_state=json.loads(policy_manifest.read_text());native_state=json.loads(native_manifest.read_text())
+                write(folder/'interaction-costs.json',dict(evaluation=evaluation,
+                    native_control_calls=native_state.get('steps',0),envs=a.envs,
+                    actual_physical_transitions=native_state.get('steps',0)*a.envs,
+                    policy_recorded_actual_transitions=policy_state.get('actual_environment_steps'),
+                    completed_update_transitions=policy_state.get('environment_steps'),
+                    completed_iterations=policy_state.get('iteration'),
+                    note='Partial stop can spend a collected rollout before its optimizer update; physical transitions are authoritative'))
             row.update(elapsed_s=time.monotonic()-started,exit_codes=[c.returncode for c in children]);write(folder/'process.json',row)
         return folder/'policy'
-
-    def lane(gpu, jobs):
-        results=[]
-        for seed,arm in jobs:
-            if (out/'STOP').exists():break
-            folder=out/('%s-seed%d'%(arm,seed))
-            policy=pair(folder,arm,seed,gpu)
-            evaluations=[]
-            for iteration in ([] if a.engineering_smoke else [0]+list(range(128,a.updates+1,128))):
-                checkpoint=policy/('official-iteration-%d.pt'%iteration)
-                if not checkpoint.exists():raise RuntimeError('missing fixed evaluation checkpoint '+str(checkpoint))
-                evaluation=out/('%s-seed%d-eval%d'%(arm,seed,iteration))
-                pair(evaluation,arm,a.eval_seed,gpu,resume=checkpoint,evaluation=True)
-                evaluations.append(str(evaluation/'policy/evaluation.json'))
-            results.append(dict(arm=arm,seed=seed,policy=str(policy),evaluations=evaluations))
-        return results
 
     # Rotate arm order across seeds to limit confounding by machine time/order.
     jobs=[]
     for index,seed in enumerate(a.seeds):
         order=a.arms[index%len(a.arms):]+a.arms[:index%len(a.arms)]
         jobs.extend((seed,arm) for arm in order)
+    work=queue.PriorityQueue();counter=itertools.count();errors=[]
+    for seed,arm in jobs:work.put((0,next(counter),'train',seed,arm,None,None))
+    def lane(gpu):
+        while True:
+            priority,index,kind,seed,arm,checkpoint,iteration=work.get()
+            try:
+                if kind=='stop':return
+                if (out/'STOP').exists():continue
+                if kind=='train':
+                    folder=out/('%s-seed%d'%(arm,seed));policy=pair(folder,arm,seed,gpu)
+                    manifest['jobs'].append(dict(arm=arm,seed=seed,kind=kind,policy=str(policy)))
+                    for point in ([] if a.engineering_smoke else [0]+list(range(128,a.updates+1,128))):
+                        checkpoint=policy/('official-iteration-%d.pt'%point)
+                        if not checkpoint.exists():raise RuntimeError('missing evaluation checkpoint '+str(checkpoint))
+                        work.put((1,next(counter),'evaluate',seed,arm,checkpoint,point))
+                else:
+                    folder=out/('%s-seed%d-eval%d'%(arm,seed,iteration))
+                    policy=pair(folder,arm,a.eval_seed,gpu,resume=checkpoint,evaluation=True)
+                    manifest['jobs'].append(dict(arm=arm,seed=seed,kind=kind,iteration=iteration,evaluation=str(policy/'evaluation.json')))
+            except BaseException as error:
+                errors.append(repr(error));(out/'STOP').touch()
+            finally:work.task_done()
     try:
         with concurrent.futures.ThreadPoolExecutor(max_workers=len(a.gpus)) as pool:
-            futures=[pool.submit(lane,gpu,jobs[index::len(a.gpus)]) for index,gpu in enumerate(a.gpus)]
-            for future in futures:manifest['jobs'].extend(future.result())
+            futures=[pool.submit(lane,gpu) for gpu in a.gpus]
+            work.join()
+            for gpu in a.gpus:work.put((2,next(counter),'stop',None,None,None,None))
+            for future in futures:future.result()
+        if errors:raise RuntimeError('owned queue failures: '+repr(errors))
         manifest['status']='STOPPED' if (out/'STOP').exists() else 'COMPLETED'
     except BaseException as error:
         (out/'STOP').touch();manifest.update(status='FAILED',error=repr(error));raise
-    finally:write(out/'manifest.json',manifest)
+    finally:
+        write(out/'manifest.json',manifest)
+        if not a.engineering_smoke:
+            command=[MODEL,str(frozen_task/'tools/audit/summarize_samples_efficiency.py'),str(out)]
+            result=subprocess.run(command,cwd=ROOT,env=environment,stdout=(out/'summary.log').open('w'),stderr=subprocess.STDOUT)
+            manifest['summary_exit_code']=result.returncode;write(out/'manifest.json',manifest)
 
 
 if __name__=='__main__':main()

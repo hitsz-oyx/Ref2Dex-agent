@@ -16,7 +16,8 @@ import time
 
 TASK=Path(__file__).resolve().parents[3]/'wam-rl-policy-v3'
 ROOT=Path(os.environ.get('REF2DEX_RUN_ROOT',TASK.parents[2])).resolve()
-NATIVE=ROOT/'third_party/DExplore/dexplore'
+CODE_ROOT=Path(os.environ.get('REF2DEX_SAMPLE_CODE_ROOT',TASK.parents[2])).resolve()
+NATIVE=CODE_ROOT/'third_party/DExplore/dexplore'
 
 
 def physical248(task):
@@ -59,8 +60,8 @@ def main():
     os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu),TMPDIR=str(scratch),OMP_NUM_THREADS='2',OPENBLAS_NUM_THREADS='2',
         TORCH_EXTENSIONS_DIR=str(ROOT/'tmp/consequence-official-generator/torch201-extensions'),PYTHONDONTWRITEBYTECODE='1')
     resource.setrlimit(resource.RLIMIT_CORE,(0,0))
-    sys.path[:0]=['/home2/wyy/isaac-gym/isaacgym/python',str(NATIVE),str(ROOT),str(TASK/'src'),
-        str(ROOT/'src/task/consequence-evaluator/src'),str(ROOT/'src/task/CmResidual/tools'),str(ROOT/'src/task/trajectory-policy/src')]
+    sys.path[:0]=['/home2/wyy/isaac-gym/isaacgym/python',str(NATIVE),str(CODE_ROOT),str(TASK/'src'),
+        str(CODE_ROOT/'src/task/consequence-evaluator/src'),str(CODE_ROOT/'src/task/CmResidual/tools'),str(CODE_ROOT/'src/task/trajectory-policy/src')]
     sys.path.append('/home2/wyy/.local/lib/python3.8/site-packages')
     if Path(sys.prefix).resolve()!=Path('/home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train').resolve():raise ValueError('pinned native interpreter required')
     from isaacgym import gymtorch, gymapi

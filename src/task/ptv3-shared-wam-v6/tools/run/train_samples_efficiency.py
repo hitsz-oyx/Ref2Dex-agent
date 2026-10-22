@@ -3,7 +3,8 @@ import argparse,importlib.util,json,os,socket,sys,time,subprocess,shutil
 from pathlib import Path
 from types import SimpleNamespace
 TASK=Path(__file__).resolve().parents[2];ROOT=Path(os.environ.get('REF2DEX_RUN_ROOT',TASK.parents[2])).resolve()
-sys.path[:0]=[str(TASK/'src'),str(ROOT/'src/task/wam-rl-policy-v3/src'),str(ROOT/'src/task/trajectory-policy/src')]
+CODE_ROOT=Path(os.environ.get('REF2DEX_SAMPLE_CODE_ROOT',TASK.parents[2])).resolve()
+sys.path[:0]=[str(TASK/'src'),str(CODE_ROOT/'src/task/wam-rl-policy-v3/src'),str(CODE_ROOT/'src/task/trajectory-policy/src')]
 
 def write(path,data):
  part=path.with_suffix(path.suffix+'.part');part.write_text(json.dumps(data,indent=2)+'\n');part.replace(path)
@@ -12,12 +13,12 @@ def main():
  p=argparse.ArgumentParser(description=__doc__)
  for arg in ['bc','audit-manifest','geometry-cache','output','socket']:p.add_argument('--'+arg,type=Path,required=True)
  p.add_argument('--gpu',type=int,required=True);p.add_argument('--rank',type=int,default=0);p.add_argument('--world-size',type=int,default=1);p.add_argument('--rendezvous')
- p.add_argument('--wam-batch',type=int,default=256);p.add_argument('--shared-tf32',action='store_true');p.add_argument('--updates',type=int,default=10000);p.add_argument('--seconds',type=int,default=172800);p.add_argument('--seed',type=int,default=246);p.add_argument('--reset-probe',action='store_true');p.add_argument('--resume',type=Path)
+ p.add_argument('--wam-batch',type=int,default=256);p.add_argument('--shared-tf32',action='store_true');p.add_argument('--updates',type=int,default=512);p.add_argument('--seconds',type=int,default=21600);p.add_argument('--seed',type=int,default=191);p.add_argument('--reset-probe',action='store_true');p.add_argument('--resume',type=Path)
  p.add_argument('--arm',choices=['A','B','C'],required=True);p.add_argument('--checkpoint',type=Path);p.add_argument('--stats',type=Path);p.add_argument('--evaluate-only',action='store_true')
  p.add_argument('--migrate-physics-backend',action='store_true',help='Explicit new experiment identity: allow only the physical backend to differ from --resume')
  a=p.parse_args();a.output=a.output.resolve();a.socket=a.socket.resolve()
  if a.migrate_physics_backend and not a.resume:p.error('--migrate-physics-backend requires --resume')
- if a.output.exists() or ROOT/'outputs/ptv3-shared-wam-v6' not in a.output.parents or ROOT/'tmp' not in a.socket.parents or not 1<=a.updates<=512 or not 30<=a.seconds<=14400:raise ValueError('fresh bounded PPO paths/budget required')
+ if a.output.exists() or ROOT/'outputs/ptv3-shared-wam-v6' not in a.output.parents or ROOT/'tmp' not in a.socket.parents or not 1<=a.updates<=512 or not 30<=a.seconds<=21600:raise ValueError('fresh bounded PPO paths/budget required')
  a.output.mkdir(parents=True);a.socket.parent.mkdir(parents=True,exist_ok=True)
  os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu),OMP_NUM_THREADS='2',OPENBLAS_NUM_THREADS='2',REF2DEX_DEEP_OPT='all',TMPDIR=str(a.socket.parent),PYTHONDONTWRITEBYTECODE='1',NCCL_P2P_DISABLE='1')
  import numpy as np,torch,yaml
@@ -49,7 +50,7 @@ def main():
   runtime=SimpleNamespace(device=torch.device('cuda:0'))
   forecast=OnlineV6Runtime(a.checkpoint,a.stats,a.geometry_cache.resolve(),device='cuda:0',seed=a.seed,inference_batch=64,forecast_only=True) if a.arm=='C' else None
   env=SampleEfficiencyEnv(connection,hello,a.audit_manifest.resolve(),runtime,model,reset_probe=a.reset_probe,batch=a.wam_batch,shared_tf32=a.shared_tf32,arm=a.arm,forecast=forecast,geometry_cache=a.geometry_cache.resolve())
-  official=prepare_official(ROOT,a.output,masked_resets=False,correct_distribution_kl=True);sys.path.insert(0,str(official))
+  official=prepare_official(CODE_ROOT,a.output,masked_resets=False,correct_distribution_kl=True);sys.path.insert(0,str(official))
   spec=importlib.util.spec_from_file_location('measured_official_process',official/'utils/process_sarl.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
   cfg=yaml.safe_load((official/'cfg/ppo/config.yaml').read_text());cfg['seed']=a.seed;cfg['policy'].update(backbone_type='pn',freeze_backbone=False,obs_dim=846)
   from wam_rl_policy_v3.distribution_kl import OPTIMIZATION_CONTRACT
@@ -68,7 +69,7 @@ def main():
   identity=dict(source=str(a.audit_manifest.resolve()),bc=str(a.bc.resolve()),wam=forecast_identity,geometry=str(a.geometry_cache.resolve()),world_size=a.world_size,envs=env.num_envs,physics_backend=hello['audit'].get('physics_backend','gpu'),wam_batch=a.wam_batch,shared_tf32=a.shared_tf32,
    arm=a.arm,observation_dim=846,history_contract='causal-H4-relative-world-positions-5cm-quaternion-current-sign.v1',
    workspace=dict(voxel_origin_m=[-2.,-2.,-2.],voxel_m=.005,max_grid=65535),task_contract='explicit-start-plus8cm-HOLD1s-timeout20s.v1',inference_batch=64,forecast_only=True)
-  completed=0
+  completed=0;base_environment_steps=0
   if a.resume:
    saved=torch.load(a.resume,map_location='cuda',weights_only=False)
    if saved.get('arm')!=a.arm:raise ValueError('cannot resume across experimental arms')
@@ -76,11 +77,12 @@ def main():
    from wam_rl_policy_v3.resume_identity import validate_resume_identity
    migration=validate_resume_identity(saved['identity'],identity,migrate_physics=a.migrate_physics_backend)
    ppo.actor_critic.load_state_dict(saved['model']);ppo.optimizer.load_state_dict(saved['optimizer']);ppo.step_size=saved['step_size'];completed=saved['iteration']
+   base_environment_steps=saved.get('environment_steps',completed*env.num_envs*a.world_size*8)
    state.update(resume_from=str(a.resume.resolve()),resume_iteration=completed,physics_migration=migration)
   if a.world_size>1:
    for value in ppo.actor_critic.state_dict().values():dist.broadcast(value,src=0)
   torch.manual_seed(a.seed+a.rank)
-  state.update(status='RUNNING',physics_backend=identity['physics_backend'],envs_per_rank=env.num_envs,total_envs=env.num_envs*a.world_size,global_rollout=env.num_envs*a.world_size*8,config=cfg,wam=forecast_identity,geometry=str(a.geometry_cache.resolve()),cad_frozen=True,wam_batch=a.wam_batch,shared_tf32=a.shared_tf32,native_object_names=hello['audit']['source_object_names'])
+  state.update(status='RUNNING',identity=identity,physics_backend=identity['physics_backend'],envs_per_rank=env.num_envs,total_envs=env.num_envs*a.world_size,global_rollout=env.num_envs*a.world_size*8,config=cfg,wam=forecast_identity,geometry=str(a.geometry_cache.resolve()),cad_frozen=True,wam_batch=a.wam_batch,shared_tf32=a.shared_tf32,native_object_names=hello['audit']['source_object_names'])
   write(a.output/'manifest.json',state)
   def save(_=None):
    if a.rank:return
@@ -89,7 +91,7 @@ def main():
    # checkpoints survive those calls. Explicit stop/final saves have no argument.
    if _ is not None and iteration not in {0,128,256,384,512}:return
    if dest.exists():return
-   part=dest.with_suffix('.pt.part');torch.save(dict(schema='ref2dex.inspire-measured-official-ppo.v1',arm=a.arm,model=ppo.actor_critic.state_dict(),optimizer=ppo.optimizer.state_dict(),step_size=ppo.step_size,iteration=iteration,config=cfg,
+   part=dest.with_suffix('.pt.part');torch.save(dict(schema='ref2dex.inspire-measured-official-ppo.v1',arm=a.arm,model=ppo.actor_critic.state_dict(),optimizer=ppo.optimizer.state_dict(),step_size=ppo.step_size,iteration=iteration,environment_steps=base_environment_steps+env.steps*env.num_envs*a.world_size,config=cfg,
     identity=identity,shape=model.shape.state_dict(),bc_step=packet['step'],resume='model/optimizer with fresh episodes',source_checkpoint=state.get('resume_from'),physics_migration=state.get('physics_migration')),part);part.replace(dest)
    # Five fixed-panel checkpoints plus at most one partial-stop checkpoint.
   original_update=ppo.update;original_step=ppo.optimizer.step
@@ -139,7 +141,7 @@ def main():
      if i not in first and row['episode_id']==initial_episodes[i]:first[i]=row
     if len(first)==env.num_envs:break
    rows=[first.get(i,dict(sequence=env.native['sequences'][i],task_success=False,ever_lift5cm30=False,failure_reason='evaluation_censored')) for i in range(env.num_envs)]
-   write(a.output/'evaluation.json',dict(arm=a.arm,seed=a.seed,iteration=completed,environment_steps=completed*env.num_envs*8,n=env.num_envs,task_successes=sum(int(r['task_success']) for r in rows),lift5cm30=sum(int(r['ever_lift5cm30']) for r in rows),rows=rows,forecast_times=env.forecast_times,policy_batch_seconds=policy_times))
+   write(a.output/'evaluation.json',dict(arm=a.arm,seed=a.seed,iteration=completed,environment_steps=base_environment_steps,n=env.num_envs,task_successes=sum(int(r['task_success']) for r in rows),lift5cm30=sum(int(r['ever_lift5cm30']) for r in rows),rows=rows,forecast_times=env.forecast_times,policy_batch_seconds=policy_times))
   else:
    save();ppo.run(a.updates,cfg['learn']['log_interval']);save()
   if a.reset_probe and (not any(0 in x['ids'] for x in env.reset_audits) or not any(1 in x['ids'] for x in env.reset_audits)):raise ValueError('partial reset fixture did not exercise both envs')
@@ -151,7 +153,7 @@ def main():
    try:send(connection,dict(op='close'));receive(connection)
    except Exception:pass
    connection.close()
-  if env:state.update(reset_audits=env.reset_audits,source_mismatches=env.source_mismatches)
+  if env:state.update(reset_audits=env.reset_audits,source_mismatches=env.source_mismatches,actual_environment_steps=base_environment_steps+env.steps*env.num_envs*a.world_size,native_action_steps=env.steps,code_root=str(CODE_ROOT))
   write(a.output/'manifest.json',state);listener.close();a.socket.unlink(missing_ok=True)
   if a.world_size>1:dist.destroy_process_group()
 
