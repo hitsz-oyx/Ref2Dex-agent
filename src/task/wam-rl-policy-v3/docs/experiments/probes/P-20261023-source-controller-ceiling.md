@@ -14,7 +14,7 @@ seeds: [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 11
 decision_changed_if_positive: qualify source-only controller on the same forty development initials before comparing WAM
 decision_changed_if_negative: retain all failures and repair measured approach or closure without relaxing physical gates
 status: RUNNING
-run_id: source-ceiling-20261023-r13
+run_id: source-ceiling-20261023-r14
 ---
 
 ## 结果解读表
@@ -190,3 +190,19 @@ PY=/home2/wyy/miniconda3/envs/graspenv/bin/python
 $PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r13 --prepare --predecessor outputs/wam-rl-policy-v3/source-ceiling-20261023-r12
 $PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r13 --detached
 ```
+
+## R14运行前修订：指令带宽/跟踪偏移准入，与参考推进配套
+
+R12完整2/40，23795控制/1jointabort；R13完整12/40=30%（Wilson18.075–45.430%），14279控制/19jointabort/20关节事件；相对原14/40 Fisher=.81165，不能称提升。R13恢复原输入后表现回升，但预接触冲击仍不受控。19个限位回合中，末次PD目标变化的中位数为位置317.064mm、native腕关节范数0.1991rad、主动指关节最大0.1398rad；最大为761.977mm/2.7867rad/0.5647rad（其中紧急卸载也可能造成目标回撤，不能全归为源指令跳变）。
+R14只在pregrasp正常控制加：相邻PD指令主动手指≤1.2rad/s、native腕joint范数≤2.4rad/s、位置远/近≤.75/.30m/s；与实测q的PD跟踪偏移远处≤75mm/0.15rad，近处位置≤既有geometry.wrist_gap，角偏移按该尺寸与手跨度限定。**跟踪偏移是柔顺/压力代理，不冒称实际速度或接触力保证**；卸载优先可例外，实际native gate不改。后段命令仍原样。
+参考不能照墙钟跑：手指带宽未达/卸载/最终投影例外时暂停；根目标受限且没有原生产多指contact_observed也暂停；已实测多指接触允许reference继续给后续手形，避免因不可达接触PD预载死锁。held阶段冻结source参考。三种pending/clock注错在CPU队列测试覆盖，未伪造task事件或成功。
+预期正常指令最大跳变降到≤25/10mm、.08rad腕joint、.04rad手指；阻挡PD偏移受上界；source帧在受限无接触时每拍1→0，而非继续越过接触参考。目标关节中止19/40→≤2，成功12/40（原14/40）→≥32，未知是否达到。健康对照fixture明确是**同时通过带宽/余量**的输入，仍逐位同原，不能泛称原14回合完全不变。
+同40/24k/0updates/20秒，前序R13。所有已完成/中断合计202430控制，本版后≤226430（明确追加24k）；不比WAM，不RL、不重训。复现红见R13/bandwidth-red.log。
+```bash
+export TMPDIR="$PWD/tmp"
+PY=/home2/wyy/miniconda3/envs/graspenv/bin/python
+$PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r14 --prepare --predecessor outputs/wam-rl-policy-v3/source-ceiling-20261023-r13
+$PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r14 --detached
+```
+
+R14最后启动检查还抓住“未执行的handover closure也阻塞reference”：执行preshape未受限时不得因未来hold initializer更大而冻结cursor；handover本身仍≤.04rad初始化，不让持握开始瞬间跳到完整closure。正常带宽不足、柔顺/native投影优先、紧急卸载三种口径分别记，不拿0canonical clipping冒充无干预。软件完整计数见R14/tests-ready-all.log；当前production Guard的8项直接step回归、11个故意错误与旧legacy模式检查分开，不用legacy PASS替Guard物理正确性背书。

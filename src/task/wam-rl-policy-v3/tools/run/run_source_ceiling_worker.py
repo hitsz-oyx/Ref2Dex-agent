@@ -22,6 +22,12 @@ def control_counts(infos,actions):
         goal_servo_saturated_controls=int(sum(i['phase'] in ('lift','hold') and np.abs(ac[:3]).max()>=.024999 for i,ac in zip(infos,actions))))
 
 
+def advance_source_reference(cursor,length,pregrasp,guard,contact_observed):
+    blocked=guard['unloading'] or guard.get('finger_bandwidth_limited',False) or guard.get('bandwidth_projection_override',False)
+    blocked|=guard.get('root_bandwidth_or_compliance_limited',False) and not contact_observed
+    return min(cursor+1,length-1) if pregrasp and not blocked else cursor
+
+
 class NativeEpisode:
     def __init__(self,frozen,folder,private,gpu,sequence,seed):
         self.folder=folder;self.private=private;private.mkdir(parents=True,exist_ok=False)
@@ -244,7 +250,9 @@ def main():
                             reference_PD_target=source_target.tolist(),source_admission_rejection=rejection,
                             R_fallback_selected=rejection is not None,consumes_R=rejection is not None,
                             wrist_reference_frame='original_native_world_q; same registered initial state')
-                        if source_pre and not info['source_ceiling']['unloading']:source_frame=min(source_frame+1,len(reference['action'])-1)
+                        next_source_frame=advance_source_reference(source_frame,len(reference['action']),source_pre,info['source_ceiling'],feedback.contact_observed)
+                        info['source_reference']['advanced']=next_source_frame!=source_frame
+                        source_frame=next_source_frame
                         action=np.clip(raw[None],-1,1).astype(np.float32);final_clipped+=int((np.abs(raw-action[0])>1e-6).any());full=expand_action(action)
                         predicted=pd_targets(action,np.asarray(state['q']),offset,scale);before=list(state['episodes']);tick=np.asarray(state['tick']).copy()
                         send(native.connection,dict(op='step',action=full.tolist(),episodes=before,return_pd=True));reply=receive(native.connection);report['environment_controls']+=1;nextstate=unpack_state(reply['state']);actual=np.asarray(reply['pd_targets'])

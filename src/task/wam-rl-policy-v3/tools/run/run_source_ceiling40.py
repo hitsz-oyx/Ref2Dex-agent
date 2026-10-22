@@ -42,15 +42,15 @@ def prepare(out,predecessor=None):
     worker=(TASK/'tools/run/run_source_ceiling_worker.py').read_text().replace("ROOT=Path(__file__).resolve().parents[5];TASK=ROOT/'src/task/wam-rl-policy-v3'", "ROOT=Path(%r);TASK=Path(%r)"%(str(ROOT),str(launch/'src/task/wam-rl-policy-v3')))
     (out/'worker.py').write_text(worker)
     reg=json.loads((BASELINE/'registration.json').read_text())
-    reg.update(protocol='source.native-PD.minimal-pressure-margin-guard.n40.v13',experiment_id='P-20261023-source-controller-ceiling',
+    reg.update(protocol='source.native-PD.bandwidth-compliance-guard.n40.v14',experiment_id='P-20261023-source-controller-ceiling',
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         arms=['A0'],subsets=['development_same_v11'],maximum_controls=24000,worker_wall_s=14400,queue_wall_s=14400,learning_updates=0,ppo_authorized=False,
         worker_source=str(out/'worker.py'),runtime_source=str(launch),baseline=str(BASELINE),
         target_successes=32,target_pregrasp_joint_abort_max=2,
-        source_clock='original native PD reference advances 1 frame per pregrasp control; pause during measured unload; freeze during held postservo; 30Hz',
-        source_geometry='restore original v11 native world-q PD intent; same initial state; inner target projection and measured pressure guard only; source_grasp key is metadata, not consumed',
+        source_clock='command-paced native PD reference; pause on unload/finger bandwidth; root tracking-bound pause unless measured multi-finger contact; freeze while held; all physics 30Hz',
+        source_geometry='restore original v11 native world-q PD intent; same initial state; inner target projection, measured pressure and admitted motor bandwidth/compliance; source_grasp key is metadata, not consumed',
         closing_geometry='original production MeasuredGraspConsumer phase and source continuous wrist/finger PD commands; no new freezing or keypose replacement',
-        approach_rate=dict(reference='original source PD dynamics and canonical/native bounds; no invented Cartesian velocity equivalence; safety retreat .01m target offset'),
+        approach_rate=dict(finger_driver_radps=1.2,native_wrist_joint_norm_radps=2.4,far_position_command_mps=.75,near_position_command_mps=.3,far_PD_tracking_offset_m=.075,near_PD_tracking_offset='existing geometry.wrist_gap_m; force/compliance bound, not velocity',emergency_retreats_can_override=True),
         acquisition_probe=dict(enabled=False,reason='source trajectory supplies measured acquisition motion; preserve original positive baseline'),
         predecessor=str(predecessor.resolve()) if predecessor else None,
         control_geometry_delta='baseline plus optional measured_pressure hook; default controllers unchanged; source admission uses physical warning, not inner target margin',

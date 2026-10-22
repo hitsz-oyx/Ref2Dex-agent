@@ -444,3 +444,5 @@ R8完整0/40/23387控制/0jointabort；R10在3/40完成时被前序manifest写�
 R11已有真实完整成功但≥19失败，仍完整40；R12预注册同40/24k/0updates：closure内余量投影后的命令完成且候选保持原.25s历史窗后才probe，不把指令完成当实测抓稳，不改评分。累计预算明确加本版24k至≤189276，source未达32前不比WAM/不RL/不重训。
 
 R11完整4/40（Wilson3.958–23.052%）/23080控制/1jointabort，较原14/40显著退步（Fisher.01448）；R12≥36失败仍跑满。R13恢复原source-PD意图/阶段/后段，只加SourcePDGuard实测压力与目标余量，健康/后段命令逐位同原；不再keypose/停腕/probe改写。source R无τ后备只在strict逆变换拒绝时选择且逐拍报告。新同40/24k/0updates，累计上限212356，未过32门不比WAM/不RL/不重训。
+
+R12完整2/40/23795控制/1jointabort；R13完整12/40（Wilson18.075–45.430%）/14279控制/19jointabort，未优于原14（Fisher.81165）。R14 fresh同40/24k/0updates，给正常source PD加带宽/几何tracking偏移准入，并暂停未执行完的reference；卸载例外显式记录，原评分/后段/actual gate不改。累计202430+新≤24k=≤226430；未过32前不比WAM/不RL/不重训。

@@ -425,7 +425,8 @@ def test_guard_preserves_original_safe_source_pregrasp_command():
     from wam_rl_policy_v3.source_ceiling import SourcePDGuard
     from wam_rl_policy_v3.grasp_geometry import GeometryGraspConsumer
     a,args=approaching(SourcePDGuard);b,_=approaching(GeometryGraspConsumer)
-    args['intent'].approach_pose_object[0,3]+=.05
+    args['intent'].approach_pose_object[0,3]+=.005
+    args['intent'].preshape_q[:]=.42;args['intent'].closure_q[:]=.42
     x,info=a.step(**args);y,_=b.step(**args)
     np.testing.assert_array_equal(x,y)
     assert info['source_ceiling']['preserves_source_PD_intent']
@@ -452,3 +453,53 @@ def test_guard_projects_source_targets_before_execution_and_uses_physical_warnin
     assert info['source_ceiling']['margin_target_projection']
     assert not info['source_ceiling']['unloading'] and not info['reachability']['filter_active']
     assert np.min(pd_targets(command,args['q'],c.offset,c.scale)[FINGER_ACTIVE])>=.04-1e-6
+
+
+def test_guard_bounds_command_bandwidth_and_blocked_tracking_preload():
+    from wam_rl_policy_v3.source_ceiling import SourcePDGuard
+    c,args=approaching(SourcePDGuard);args['fingertip_gap_m']=1.;args['near_fingers']=0
+    args['intent'].approach_pose_object[0,3]+=.4;args['intent'].grasp_pose_object[0,3]+=.4
+    previous=args['q'].copy();first=None
+    for i in range(15):
+        args['now']=i/30;command,info=c.step(**args);target=pd_targets(command,args['q'],c.offset,c.scale)
+        assert np.linalg.norm(target[:3]-previous[:3])<=.025+1e-6
+        assert np.max(np.abs(target[FINGER_ACTIVE]-previous[FINGER_ACTIVE]))<=.04+1e-6
+        assert np.linalg.norm(target[:3]-args['q'][:3])<=.075+1e-6, 'Blocked preload is a force/compliance bound, not a velocity claim'
+        previous=target
+        if i==0:first=target[:3].copy()
+    assert target[0]>first[0]+.025, 'Slew targets relative to prior command, not permanently to the measured wrist'
+
+
+def test_guard_bounds_native_wrist_joint_command_rate_and_tracking_offset():
+    from scipy.spatial.transform import Rotation
+    from wam_rl_policy_v3.source_ceiling import SourcePDGuard
+    c,args=approaching(SourcePDGuard);args['fingertip_gap_m']=1.;args['near_fingers']=0
+    args['intent'].approach_pose_object[:3,:3]=Rotation.from_euler('z',.5).as_matrix()
+    previous=args['q'][3:6].copy()
+    for i in range(12):
+        args['now']=i/30;command,_=c.step(**args);target=pd_targets(command,args['q'],c.offset,c.scale)[3:6]
+        assert np.linalg.norm(target-previous)<=.08+1e-6
+        assert np.linalg.norm(target-args['q'][3:6])<=.15+1e-6
+        previous=target
+    assert np.linalg.norm(target)>.14
+
+
+def test_guard_unused_handover_closure_cannot_block_executed_preshape_clock():
+    from wam_rl_policy_v3.source_ceiling import SourcePDGuard
+    c,args=approaching(SourcePDGuard)
+    args['intent'].preshape_q[:]=.42;args['intent'].closure_q[:]=1.
+    _,info=c.step(**args)
+    assert not info['source_ceiling']['finger_bandwidth_limited'], 'Reference pacing must depend on the executed preshape, not an unused future hold initializer'
+
+
+def test_guard_handover_limits_actual_finger_target_without_blocking_preshape():
+    from wam_rl_policy_v3.source_ceiling import SourcePDGuard
+    c,args=approaching(SourcePDGuard,force=.5);c.contact_since=-1.
+    args['feedback'].grasp_established=True;args['feedback'].contact_observed=True
+    args['intent'].preshape_q[:]=.42;args['intent'].closure_q[:]=1.
+    command,info=c.step(**args)
+    assert c.phase in ('lift','hold')
+    target=pd_targets(command,args['q'],c.offset,c.scale)[FINGER_ACTIVE]
+    assert np.max(np.abs(target-args['q'][FINGER_ACTIVE]))<=.04+1e-6
+    assert not info['source_ceiling']['finger_bandwidth_limited']
+    assert info['source_ceiling']['closure_handover_limited'] and not info['source_ceiling']['preserves_source_PD_intent']

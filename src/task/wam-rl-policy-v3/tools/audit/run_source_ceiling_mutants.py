@@ -77,6 +77,15 @@ def main():
         command,info=guard_step(self,**args)
         if self.phase in ('lift','hold'):command[0]+=.01
         return command,info
+    def freeze_on_unused_closure(self,**args):
+        command,info=guard_step(self,**args)
+        info['source_ceiling']['finger_bandwidth_limited']|=info['source_ceiling'].get('closure_handover_limited',False)
+        return command,info
+    def jump_guard_handover(self,**args):
+        command,info=guard_step(self,**args)
+        if self.phase in ('lift','hold'):
+            command[6:]=2*(args['intent'].closure_q-self.offset[[6,8,10,12,14,15]])/self.scale[[6,8,10,12,14,15]]-1
+        return command,info
     cases=[('ignore-measured-pressure',patch.object(SourceCeilingConsumer,'force_limit_n',float('inf')),tests.test_measured_pressure_unloads_at_actual_approach_close_step),
         ('unlimited-finger-target-jump',patch.object(SourceCeilingConsumer,'finger_rate_radps',100.),tests.test_approach_finger_target_does_not_jump_to_reference),
         ('omit-target-margin',patch.object(MarginAdmission,'__init__',JointAdmission.__init__),tests.test_nominally_legal_near_limit_target_is_rejected_before_candidate_ranking),
@@ -112,7 +121,14 @@ def main():
         ('rewrite-safe-source-PD-command',patch.object(SourcePDGuard,'step',change_safe_guard),tests.test_guard_preserves_original_safe_source_pregrasp_command),
         ('ignore-source-guard-pressure',patch.object(SourcePDGuard,'force_limit_n',float('inf')),tests.test_guard_unloads_measured_pressure_without_changing_postservo),
         ('change-source-guard-postservo',patch.object(SourcePDGuard,'step',change_guard_postservo),tests.test_guard_unloads_measured_pressure_without_changing_postservo),
-        ('remove-source-guard-target-margin',patch.object(SourcePDGuard,'__init__',remove_guard_margin),tests.test_guard_projects_source_targets_before_execution_and_uses_physical_warning)]
+        ('remove-source-guard-target-margin',patch.object(SourcePDGuard,'__init__',remove_guard_margin),tests.test_guard_projects_source_targets_before_execution_and_uses_physical_warning),
+        ('omit-root-command-and-compliance-bounds',patch.object(SourcePDGuard,'limit_wrist_target',lambda self,target,*args:target),tests.test_guard_bounds_command_bandwidth_and_blocked_tracking_preload),
+        ('omit-blocked-root-preload-bound',patch.object(SourcePDGuard,'far_tracking_offset_m',float('inf')),tests.test_guard_bounds_command_bandwidth_and_blocked_tracking_preload),
+        ('omit-native-finger-command-bandwidth',patch.object(SourcePDGuard,'finger_rate_radps',100.),tests.test_guard_bounds_command_bandwidth_and_blocked_tracking_preload),
+        ('omit-native-wrist-joint-command-rate',patch.object(SourcePDGuard,'wrist_joint_rate_radps',100.),tests.test_guard_bounds_native_wrist_joint_command_rate_and_tracking_offset),
+        ('omit-native-wrist-joint-tracking-bound',patch.object(SourcePDGuard,'far_angular_offset_rad',float('inf')),tests.test_guard_bounds_native_wrist_joint_command_rate_and_tracking_offset),
+        ('freeze-clock-on-unused-handover-target',patch.object(SourcePDGuard,'step',freeze_on_unused_closure),tests.test_guard_unused_handover_closure_cannot_block_executed_preshape_clock),
+        ('jump-source-guard-handover-to-full-closure',patch.object(SourcePDGuard,'step',jump_guard_handover),tests.test_guard_handover_limits_actual_finger_target_without_blocking_preshape)]
     result=[]
     for name,mutation,check in cases:
         check() # First prove the unmutated check passes.

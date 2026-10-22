@@ -432,14 +432,38 @@ class SourcePDGuard(GeometryGraspConsumer):
     acquisition probe. The source trajectory supplies the acquisition motion.
     """
     force_limit_n=12.
-    contract='source.native-PD.minimal-pressure-margin-guard.v13'
+    contract='source.native-PD.bandwidth-compliance-guard.v14'
+    finger_rate_radps=1.2
+    wrist_joint_rate_radps=2.4
+    far_rate_mps=.75
+    near_rate_mps=.30
+    far_tracking_offset_m=.075
+    far_angular_offset_rad=.15
 
     def __init__(self,*args,joint_limits,**kwargs):
         super().__init__(*args,joint_limits=joint_limits,**kwargs)
         self.outer_admission=self.admission
         self.inner_admission=MarginAdmission(joint_limits,self.offset,self.scale)
         self.unload_until=-np.inf;self.unload_direction=None
-        self.unload_fingers=None;self.last_target=None
+        self.unload_fingers=None
+        self.last_pd_target=np.asarray(args[0] if args else kwargs['q']).copy()
+
+    def limit_wrist_target(self,target,q,near,hand):
+        result=target.copy();previous=self.last_pd_target
+        delta=result[:3]-previous[:3];rate=self.near_rate_mps if near else self.far_rate_mps
+        delta*=min(1.,rate/30/max(np.linalg.norm(delta),1e-12))
+        result[:3]=previous[:3]+delta
+        offset=result[:3]-q[:3]
+        bound=self.geometry.wrist_gap_m if near else self.far_tracking_offset_m
+        offset*=min(1.,bound/max(np.linalg.norm(offset),1e-12));result[:3]=q[:3]+offset
+        turn=result[3:6]-previous[3:6];turn-=2*np.pi*np.round(turn/(2*np.pi))
+        turn*=min(1.,self.wrist_joint_rate_radps/30/max(np.linalg.norm(turn),1e-12))
+        result[3:6]=previous[3:6]+turn
+        offset=result[3:6]-q[3:6];offset-=2*np.pi*np.round(offset/(2*np.pi))
+        tips=np.asarray(hand)[TIPS];span=float(np.linalg.norm(tips[:,None]-tips[None],axis=-1).max())
+        angular_bound=min(self.far_angular_offset_rad,self.geometry.wrist_gap_m/max(span,self.geometry.diameter_m)) if near else self.far_angular_offset_rad
+        offset*=min(1.,angular_bound/max(np.linalg.norm(offset),1e-12));result[3:6]=q[3:6]+offset
+        return result
 
     def step(self,**args):
         pre=self.phase in ('approach','close')
@@ -466,16 +490,32 @@ class SourcePDGuard(GeometryGraspConsumer):
                 if any(upper[j] for j,_ in group):fingers[i]=min(q[j]/ratio-.04 for j,ratio in group)
             self.unload_fingers=self.admission.fingers(fingers)
         unloading=bool(pre and now<self.unload_until)
-        changed=intent;retreat=None
+        changed=intent;retreat=None;finger_limited=root_limited=handover_limited=False;rate_projection_override=False
         if pre:
-            changed=replace(intent,preshape_q=self.admission.fingers(intent.preshape_q),
-                            closure_q=self.admission.fingers(intent.closure_q))
+            preshape=self.admission.fingers(intent.preshape_q);closure=self.admission.fingers(intent.closure_q)
+            if not unloading:
+                previous=self.last_pd_target[FINGER_ACTIVE]
+                limited_preshape=previous+np.clip(preshape-previous,-self.finger_rate_radps/30,self.finger_rate_radps/30)
+                limited_closure=previous+np.clip(closure-previous,-self.finger_rate_radps/30,self.finger_rate_radps/30)
+                finger_limited=bool((np.abs(limited_preshape-preshape)>1e-6).any())
+                handover_limited=bool((np.abs(limited_closure-closure)>1e-6).any())
+                preshape=self.admission.fingers(limited_preshape);closure=self.admission.fingers(limited_closure)
+            changed=replace(intent,preshape_q=preshape,closure_q=closure)
             if unloading:
                 retreat=palm.copy();retreat[:3,3]+=self.unload_direction*.01
                 local=np.linalg.inv(args['object_pose'])@retreat
                 changed=replace(changed,approach_pose_object=local,grasp_pose_object=local,
                     preshape_q=self.unload_fingers.copy(),closure_q=self.unload_fingers.copy(),approach_joint_angles=q[3:6].copy())
         command,info=super().step(**dict(args,intent=changed))
+        if pre and not unloading and self.phase in ('approach','close'):
+            desired=pd_targets(command,q,self.offset,self.scale)
+            near=bool(args['fingertip_gap_m']<=InteractionConfig().approach_distance_m or args['feedback'].contact_observed)
+            limited=self.limit_wrist_target(desired,q,near,args['hand'])
+            root_limited=bool((np.abs(limited[:6]-desired[:6])>1e-6).any())
+            raw=command.copy();raw[:6]=(limited[:6]-q[:6]-self.offset[:6])/self.scale[:6]
+            command=self.admission.bound_action(raw,q)
+            actual=pd_targets(command,q,self.offset,self.scale)
+            rate_projection_override=bool((np.abs(actual[:6]-limited[:6])>1e-6).any())
         if unloading:
             if self.phase in ('lift','hold'):
                 self.phase='close';self.servo.reset();self.servo_active=False
@@ -488,6 +528,14 @@ class SourcePDGuard(GeometryGraspConsumer):
         mount=Rotation.from_euler('XYZ',q[3:6]).as_matrix().T@palm[:3,:3]
         executed=palm.copy();executed[:3,3]+=target[:3]-q[:3]
         executed[:3,:3]=Rotation.from_euler('XYZ',target[3:6]).as_matrix()@mount
+        if pre and not unloading and self.phase in ('approach','close'):
+            near=bool(args['fingertip_gap_m']<=InteractionConfig().approach_distance_m or args['feedback'].contact_observed)
+            rate=self.near_rate_mps if near else self.far_rate_mps
+            # Geometry/compliance/native projection has safety priority. Expose
+            # any resulting exception rather than silently claiming a hard cap.
+            rate_projection_override|=bool(np.linalg.norm(target[:3]-self.last_pd_target[:3])>rate/30+1e-6 or
+                np.linalg.norm(target[3:6]-self.last_pd_target[3:6])>self.wrist_joint_rate_radps/30+1e-6 or
+                np.max(np.abs(target[FINGER_ACTIVE]-self.last_pd_target[FINGER_ACTIVE]))>self.finger_rate_radps/30+1e-6)
         projection=bool(pre and (np.abs(self.inner_admission.fingers(intent.preshape_q)-intent.preshape_q)>1e-7).any())
         info.update(wrist_target=executed.tolist(),executed_finger_target=target[FINGER_ACTIVE].tolist())
         info['source_ceiling']=dict(contract=self.contract,active=pre,force_valid=valid,
@@ -495,7 +543,14 @@ class SourcePDGuard(GeometryGraspConsumer):
             unloading=unloading,source_paused=unloading,loaded_fingers=np.flatnonzero(loaded).tolist(),
             coasting_joint_indices=np.flatnonzero(lower|upper).tolist(),margin_target_projection=projection,
             inner_target_admitted=self.admission.check(command,q)[0],
-            preserves_source_PD_intent=True,uses_keypose_replacement=False,uses_acquisition_probe=False,
+            preserves_source_PD_intent=not (unloading or projection or finger_limited or root_limited or (handover_limited and self.phase in ('lift','hold'))),uses_keypose_replacement=False,uses_acquisition_probe=False,
+            finger_bandwidth_limited=finger_limited,closure_handover_limited=handover_limited,root_bandwidth_or_compliance_limited=root_limited,
+            bandwidth_projection_override=rate_projection_override,emergency_bandwidth_override=unloading,
+            command_step_position_m=float(np.linalg.norm(target[:3]-self.last_pd_target[:3])),
+            command_step_wrist_joint_rad=float(np.linalg.norm(target[3:6]-self.last_pd_target[3:6])),
+            command_step_finger_rad=float(np.max(np.abs(target[FINGER_ACTIVE]-self.last_pd_target[FINGER_ACTIVE]))),
+            compliance_scope='PD target tracking offset; not measured velocity or a contact-force guarantee', 
             wrist_tracking_offset_m=float(np.linalg.norm(executed[:3,3]-palm[:3,3])),
             finger_tracking_error_rad=float(np.max(np.abs(target[FINGER_ACTIVE]-q[FINGER_ACTIVE]))))
+        self.last_pd_target=target.copy()
         return command,info
