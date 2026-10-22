@@ -32,13 +32,6 @@ allocations:
     initialization_seed: 196
     reuse_reason: exact first20 existing coverage40 jobs, checkpoint-only paired reset intervention; no fresh sample or validation claim
 
-  P-20261023-tau-checkpoint-execution-ab:
-    seed_pool: probe
-    native_seeds: {ranges: [[100, 119]]}
-    inference_seeds: {ranges: [[180, 199]]}
-    initialization_seed: 196
-    reuse_reason: first20 frozen v11 resets, paired checkpoint-only deployment comparison; no new sampling or validation claim
-
   P-20261023-bc-ppo-usefulness:
     seed_pool: probe
     native_seeds: [294, 295, 296, 297, 298, 299]
