@@ -9,7 +9,7 @@
 | 全链失败或source准入失败 | 正控/执行/任务资格未解决，不能归因WAM无效或任务不可能 | 保留逐例误差、关节和接触记录；不追加本轮训练 | 外部审计；尚无两方独立复跑一致性 |
 | BC训练误差下降但DEV或物理不改善 | 当前标签/小预算只提供离线或可运行性证据 | 不扩预算，不恢复三臂RL；DAgger后置 | Hermes的BC重定位及有条件PPO |
 
-v10已完整收齐并通过原始轨迹复核；新几何覆盖36回合与raw复核已完成；BC已完成，PPO前后两初态试跑按预注册预算执行。
+v10已完整收齐并通过原始轨迹复核；新几何覆盖36回合与raw复核已完成；BC/PPO与前后两初态试跑已全部完成并复核；本执行流停止追加训练。
 所有结论只限合成+8cm位置HOLD，不做完整RELEASE资格。
 
 ## v10 全量结果与决定
@@ -112,7 +112,7 @@ v10 summary、80对初态、A2全80raw消融和三个worker raw重评分，再�
 此项仍不一致，后续正式覆盖须另冻结n40协议，不能用本轮36回合顶替。
 
 实现预检：原始参考腕/掌间距117.565869/0.109218mm；新两指几何下原参考hold2.000s。
-最新完整回归265 passed/0 failed；9/9独立源码故障注入被拒绝，均非collection错误。
+最终交付回归270 passed/0 failed（v3全tests与v6 test_staged_progress，19.43s）；9/9独立源码故障注入被拒绝，均非collection错误。
 这些只证明指定合同反例被检测，不把测试PASS当新控制器或几何teacher的物理资格。
 
 Hermes提供本轮修复与条件启动要求；外部审计提供扩覆盖、接口/任务区分要求。独立执行流
@@ -131,3 +131,30 @@ A1独有duck成功说明source不是普遍上界。不能把这组单seed面板�
 决定其负载很短，不为追求利用率扩大训练。train MSE **.422871→.0910735**，但DEV
 **.386376→.460369**（更差），不晋升为泛化恢复器，不隐去负结果或改选早期checkpoint。
 两回合PPO仅完成原注册的有界技术pilot，不以此扩预算；DAgger仍后置。
+
+## 残差pilot最终结果与停止决定
+
+BC的DEV MSE变差，未建立漂移恢复泛化；确定性before **0/2**、after **0/2**。
+PPO随机训练0/2，**826controls、2次optimizer updates**；三阶段合计2669/3600controls，
+BC400updates另列。所有回合都没有接近/接触/抬升/持握事件阳性；不把这个小预算负结果
+升级为v6或RL方法否决。after关节中止1→0也不是抓取收益，当前不追加训练。
+
+三阶段2/2初态一致、raw6/6一致、PPO reward全部五分项重放2/2一致，policy logprob/GAE/
+残差界审计PASS。更新后真实Gaussian KL .611887/.165042>target .03，说明仅停止后续epoch
+不能保证首次更新的硬KL界；作为本配方限制保留，不隐藏或临时改参补跑。
+额外policy重放因允许GPU均被注册作业占用而显式CPU执行，原因/环境写入审计。
+
+[残差卡](experiments/probes/P-20261022-drift-intent-residual.md)有BC/PPO确切复跑命令、
+参数与输出路径。结果在`outputs/wam-rl-policy-v3/drift-intent-residual-20261022-r1/summary-final.json`，
+邻有before-train-after-initial-parity.json、三个raw重评分与ppo-policy-audit.json。
+
+独立并发流程的[正式n40覆盖](experiments/probes/P-20261022-grasp-coverage40.md)已接续GPU4/5/6，
+仍在运行，未并入本报告已完成的36回合/学习pilot，也不提前填其成功率。关于覆盖数量的分歧
+通过独立protocol分流处理；三方物理独立复跑的一致性、几何/力代理充分性仍未裁决。
+三处修改已实现且在新物理run实际消费，但新控制器没有整体资格，不据此覆盖v10的旧15mm结果。
+不重训v6、不做完整RELEASE资格，三臂RL仍HOLD；DAgger后置。
+
+最终门禁：`VERIFY_BASE=2b1da246 python3 tools/verify.py --changed`为PASS，日志
+`outputs/wam-rl-policy-v3/grasp-v11-preflight-20261022-r1/handoff-final-verify.log`。
+完整测试日志为同目录`delivery-tests.log`；269/265是较早测例集合，保留各自历史日志，
+不以旧passed数覆盖并发新增测例或失败。最终270全通过；所有输出仅在项目内。

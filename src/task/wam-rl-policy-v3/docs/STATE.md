@@ -5,16 +5,20 @@
 | seen A1 35/40 vs同R零τ A2 0/40 | 原15mm协议局部目标通过，Fisher2.27289e-17 | 保留R/WAM和消费修复 | Hermes冻结n40门 |
 | 原未见A1 3/40 vs0/40，限位0但桌面穿透17 | 未见资格未通过，不能只以限位减少报通过 | 新几何合同/覆盖诊断，三臂HOLD | 外部审计跨初态要求 |
 | 160raw一致、80初态/80干净A2均PASS | 有效局部证据，非独立物体泛化 | 不重训v6；旧15mm结果不重标 | 本线程复核；两方尚无独立复跑 |
+| BC DEV上升、残差PPO前后0/2 | 未建立恢复泛化或物理收益，首步KL超target | 不扩训、DAgger后置 | Hermes的BC/残差方向，本线程有限pilot |
 
 [交付报告与一条命令重复](grasp-handoff-results-20261022.md)；
 [实验卡](experiments/probes/P-20261022-grasp-interface-repair.md)。实际82347controls含881中断，
-有效160回合81466，0updates。新几何/SE3/原生目标准入已实现；36回合扩覆盖正在执行，
-只承担工程Decision，不冒充覆盖每子集n40；并发对此门槛仍有分歧。BC转漂移状态意图恢复，
-随后仅有条件小预算残差pilot；不恢复三臂、不做完整RELEASE资格。
+有效160回合81466，0updates。新几何/SE3/原生目标准入已实现；36/36扩覆盖与raw复核完成，
+A1/A2/A0总2/12、0/12、4/12，三条source-only严格见证；不冒充每子集n40资格。
+BC漂移恢复400updates：train .422871→.0910735，DEV .386376→.460369，过拟合。
+有界残差PPO826controls/2updates，确定性before/after均0/2，三阶段2669controls、raw6/6及
+reward分项重放2/2一致；更新后KL .611887/.165042未达硬KL资格。不扩训，不恢复三臂，
+不重训v6、不做完整RELEASE资格，DAgger后置。详见[残差卡](experiments/probes/P-20261022-drift-intent-residual.md)。
 
 正式接口未见扩覆盖已另注册[每链n40卡](experiments/probes/P-20261022-grasp-coverage40.md)：
 20个排除旧接口暴露的对象×2不同序列，A1 WAM/同R零τ A2/source-PD接近A0各40；
-120回合≤72000controls、0updates，算法快照冻结于0e8c8214。GPU5/6已启动，GPU4等待前序小预算检查释放；
+120回合≤72000controls、0updates，算法快照冻结于0e8c8214。前序小预算检查已完成，GPU4/5/6由此独立批次接续；
 监督PID3631768，确切命令/预算/中断记录在`outputs/wam-rl-policy-v3/grasp-v11-coverage40-20261022-r1/`。
 尺寸评分是新协议，旧15mm结果不回改；A0不作GTτ→R上界，n12工程检查不并入本分母。
 

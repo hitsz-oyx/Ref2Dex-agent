@@ -154,7 +154,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261022-drift-intent-residual](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261022-drift-intent-residual.md) | 漂移恢复 BC 与有界意图残差 PPO | BC400 updates, train MSE.422871→.0910735 but DEV.386376→.460369; no recovery-generalization evidence. Physical before/after pilot pending. | continue BC on bounded recovery intent, then only a registered residual PPO feasibility pilot; three-arm RL HOLD. | probes/RUNNING |
+| [P-20261022-drift-intent-residual](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261022-drift-intent-residual.md) | 漂移恢复 BC 与有界意图残差 PPO | BC400 updates, train MSE.422871→.0910735 but DEV.386376→.460369; no recovery-generalization evidence. Deterministic before/after both0/2; st | BC overfit and no physical efficacy demonstrated; stop this fixed pilot without expanding training, keep three-arm RL HOLD and DAgger deferr | probes/COMPLETED |
 
 ## HF-egodex-shared-track-admission
 
