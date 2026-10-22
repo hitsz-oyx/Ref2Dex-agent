@@ -191,6 +191,7 @@ def prepare(a):
         key=(r['panel'],r['capture'])
         if all(abs(r['tick']-t)>=28 for t in cores[key]):
             r['nonoverlap_core']=True;cores[key].append(r['tick'])
+        elif r['panel']=='train_prefix':r['evaluate']=False
     # Distribution of planner errors on TRAIN only. Draw a whole paired SE(3)
     # residual in the oracle endpoint frame, preserving translation/rotation
     # correlation. Applying this to legal Planner-G stays within scheduler bounds.
@@ -354,6 +355,7 @@ def evaluate(a):
     rows=[r for r in load(out/'panels.json')['rows'] if r['evaluate']]
     # Sequence-contiguous shards avoid repeatedly mmap-loading the same recording.
     seqs=sorted(set(r['seq_id'] for r in rows));owned=set(seqs[a.shard::a.shards]);rows=[r for r in rows if r['seq_id'] in owned]
+    rows.sort(key=lambda r:({'heldout_sequence':0,'train_prefix':1,'heldout_prefix_local_recipe':2}[r['panel']],r['seq_id'],r['tick']))
     if a.limit:rows=rows[:a.limit]
     errors=np.load(out/'planner-error-distribution.npz');errors={k:errors[k] for k in errors.files}
     dataset=V6Windows(MANIFEST,'train',geometry_gt_object=True);stats=load(MANIFEST.parent/'stats.json')
@@ -365,10 +367,14 @@ def evaluate(a):
         check(out,started,a.max_seconds);saved=torch.load(path,map_location='cpu',weights_only=False)
         config=dict(saved['config'],strict_fp32=True,amp=False,tf32=False,fp32_attention_backend='efficient')
         model=SharedWAMV6(stats,config).cuda().eval().requires_grad_(False);model.load_state_dict(saved['model'],strict=True);del saved;gc.collect()
-        folder=out/('worker%d'%a.shard)/label;folder.mkdir(parents=True,exist_ok=True)
+        folder=out/(('smoke-worker' if a.limit else 'worker')+str(a.shard))/label;folder.mkdir(parents=True,exist_ok=True)
         for first in range(0,len(rows),a.batch_size):
             check(out,started,a.max_seconds);target=folder/('%06d.npz'%first)
-            if target.exists():continue
+            if target.exists():
+                with np.load(target) as cached:
+                    expected=np.array([[r['seq_id'],r['slot'],r['tick']] for r in rows[first:first+a.batch_size]])
+                    if not np.array_equal(cached['ids'],expected):raise RuntimeError('resume batch/sample identity mismatch')
+                continue
             if torch.cuda.mem_get_info()[0]<2*2**30:raise RuntimeError('GPU headroom below2GiB; preserve shards and yield')
             selected=rows[first:first+a.batch_size];batch={k:v.cuda() for k,v in collate([old.window(dataset,r) for r in selected]).items()}
             values=[];draws=[]
@@ -392,7 +398,7 @@ def evaluate(a):
                 goal_conditions=3,flow_K=a.k,geometry_prefix8=not a.no_geometry))
             if first%(a.batch_size*16)==0:print(json.dumps(load(out/('progress-worker%d.json'%a.shard))),flush=True)
         del model;gc.collect();torch.cuda.empty_cache()
-    dump(out/('complete-worker%d.json'%a.shard),dict(status='COMPLETED',elapsed_s=time.monotonic()-started,windows=len(rows)))
+    dump(out/(('complete-smoke-worker' if a.limit else 'complete-worker')+str(a.shard)+'.json'),dict(status='COMPLETED',elapsed_s=time.monotonic()-started,windows=len(rows)))
 
 
 def main():
