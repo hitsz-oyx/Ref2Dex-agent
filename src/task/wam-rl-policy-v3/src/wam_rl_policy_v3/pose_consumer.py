@@ -224,10 +224,11 @@ class MeasuredGraspConsumer:
             self.fingers=np.clip(np.maximum(intent.closure_q,q[FINGER_ACTIVE]),.06,FINGER_UPPER)
         if self.phase in ('lift','hold') and (not contact or feedback.grasp_lost):
             self.phase='close';self.close_pose=palm.copy()
-        if self.phase == 'close' and self.contact_since is not None and now-self.contact_since >= .12-1e-10:
-            self.phase='lift'
+        if self.phase == 'close' and self.contact_since is not None and now-self.contact_since >= .12-1e-10 and feedback.grasp_established:
+            self.phase='lift';self.close_pose=palm.copy()
+            self.fingers=np.clip(np.maximum(intent.closure_q,q[FINGER_ACTIVE]),.06,FINGER_UPPER)
             if self.contact_time is None:self.contact_time=float(now)
-        if self.phase == 'approach':
+        if self.phase in ('approach','close'):
             desired_fingers=intent.preshape_q
         else:
             force=np.linalg.norm(forces,axis=-1)
@@ -236,10 +237,10 @@ class MeasuredGraspConsumer:
                 self.fingers+=np.where(finger_force<.25,.0015,np.where(finger_force>4.,-.001,0.))
             self.fingers=np.clip(self.fingers,.06,FINGER_UPPER)
             desired_fingers=self.fingers
-        reaching = self.phase=='approach' or (self.phase=='close' and not contact)
+        reaching = self.phase in ('approach','close')
         if reaching:
             # Closing begins at measured proximity; it must not freeze the wrist
-            # before force contact. The same live R may still correct the grasp.
+            # before measured force-bearing grasp. Live R preserves the complete preshape.
             target=object_pose @ intent.approach_pose_object
             if self.phase=='close':self.close_pose=palm.copy()
             delta=target[:3,3]-palm[:3,3]

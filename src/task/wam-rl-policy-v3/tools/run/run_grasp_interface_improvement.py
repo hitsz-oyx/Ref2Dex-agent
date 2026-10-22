@@ -126,7 +126,7 @@ def main():
                     dv=bool(state['dof_force_valid'][0]);cv=bool(state['contact_force_valid'][0]);measured=np.r_[np.clip(current,-5,5),np.asarray(state['dof_force'])[0] if dv else np.zeros(18),forces.reshape(-1) if cv else np.zeros(15),dv,cv].astype(np.float32)
                     robot=np.r_[measured[:345],shape,measured[345:]];tau=np.zeros((8,11,3),np.float32);valid=False;available=bool(len(history)==4 and encoder_domain_available(points,hand,pose))
                     future=None;plan=None;forecast_valid=False
-                    if available and (chain=='a-original-wam' or consumer.phase=='approach' or (consumer.phase=='close' and consumer.contact_since is None)):
+                    if available and (chain=='a-original-wam' or consumer.phase in ('approach','close')):
                         with torch.random.fork_rng(devices=[0]):prediction=wam.predict(np.asarray(history)[None],np.asarray(hands)[None],decision.local_goal_pose[None],[decision.next_event.wam_condition()],['dexplore/cylindersmall'])[0][:,WAM_TO_NATIVE]
                         forecast_count+=1;future=np.asarray(state['hand'])[0][None]+prediction;forecast_valid=True
                         tau=prediction[:8];valid=True

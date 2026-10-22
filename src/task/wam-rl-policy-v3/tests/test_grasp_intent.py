@@ -14,7 +14,7 @@ def setup():
     intent=grasp_intent_from_retargeter(q,palm,np.eye(4),goal,np.linspace(-.03,.03,12),offset,scale,tau_valid=True)
     c=MeasuredGraspConsumer(q,palm,offset,scale)
     args=dict(q=q,dq=np.zeros(18),palm=palm,object_pose=np.eye(4),object_velocity=np.zeros(6),forces=np.zeros((5,3)),
-        feedback=SimpleNamespace(force_valid=True,contact_observed=False,grasp_lost=False),near_fingers=0,fingertip_gap_m=1.,intent=intent)
+        feedback=SimpleNamespace(force_valid=True,contact_observed=False,grasp_lost=False,grasp_established=False),near_fingers=0,fingertip_gap_m=1.,intent=intent)
     return c,args,scale,offset
 
 
@@ -39,7 +39,7 @@ def test_measured_position_closes_but_invalid_force_never_starts_lift():
 
 
 def test_measured_contact_dwell_starts_object_goal_servo_and_object_error_changes_sign():
-    c,args,_,_=setup();args['near_fingers']=2;args['feedback'].contact_observed=True
+    c,args,_,_=setup();args['near_fingers']=2;args['feedback'].contact_observed=True;args['feedback'].grasp_established=True
     args['forces'][:2,0]=1
     for t in np.arange(5)/30:command,info=c.step(**args,now=t)
     assert info['phase']=='lift' and command[2]>0
@@ -75,11 +75,26 @@ def test_live_same_tick_wrist_mount_is_used_instead_of_reset_mount():
     np.testing.assert_allclose(command,raw,atol=1e-6)
 
 
-def test_closing_keeps_reaching_until_measured_force_contact_then_holds_pose():
+def test_closing_keeps_reaching_until_measured_force_bearing_grasp_then_servos_goal():
     c,args,_,_=setup();args['near_fingers']=2
     args['intent'].approach_pose_object[0,3]=.02
     command,info=c.step(**args,now=0)
     assert info['phase']=='close' and command[0]>.01
     args['feedback'].contact_observed=True
     command,info=c.step(**args,now=1/30)
-    assert info['phase']=='close' and abs(command[0])<1e-8
+    assert info['phase']=='close' and command[0]>.01
+    args['feedback'].grasp_established=True
+    for t in np.arange(2,6)/30:command,info=c.step(**args,now=t)
+    assert info['phase']=='lift' and abs(command[0])<1e-8
+
+
+def test_close_preserves_live_finger_preshape_until_measured_grasp_is_established():
+    c,args,scale,offset=setup();args['near_fingers']=2
+    args['feedback'].grasp_established=False
+    args['intent'].preshape_q[0]=.9
+    command,info=c.step(**args,now=0)
+    assert info['phase']=='close'
+    assert abs(pd_targets(command,args['q'],offset,scale)[6]-.9)<1e-6
+    args['intent'].preshape_q[0]=.7
+    command,_=c.step(**args,now=1/30)
+    assert abs(pd_targets(command,args['q'],offset,scale)[6]-.7)<1e-6

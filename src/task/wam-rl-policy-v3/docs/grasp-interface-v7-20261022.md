@@ -52,7 +52,7 @@ run_id=`grasp-interface-v7-20261022-r1`；GPU5模型/GPU6物理，仅两卡实�
 CUDA_VISIBLE_DEVICES='' PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 \
 /home2/wyy/miniconda3/envs/graspenv/bin/python -m pytest -q -p no:cacheprovider \
  --basetemp=tmp/grasp-interface-v7-repro-tests src/task/wam-rl-policy-v3/tests/test_grasp_intent.py
-# 期望8 passed/0 failed；覆盖无实测位置/无有效force等相反输入，不以预测phase代替传感器。
+# 期望9 passed/0 failed；覆盖无实测位置/无有效force等相反输入，不以预测phase代替传感器。
 
 nvidia-smi
 PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 TMPDIR=$PWD/tmp \
@@ -89,3 +89,25 @@ r1于412controls中断：完成原A0（93controls、持握.3s、限位中止）�
 PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 TMPDIR=$PWD/tmp /home2/wyy/miniconda3/envs/graspenv/bin/python -u  src/task/wam-rl-policy-v3/tools/run/run_grasp_interface_improvement.py  --carry-run outputs/wam-rl-policy-v3/grasp-interface-v7-20261022-r1  --output outputs/wam-rl-policy-v3/grasp-interface-v7-resume-review --native-gpu 6 --model-gpu 5
 # fresh输出，原A0只读软链接；全部已花预算计入。修正版本身亦可用上节不带carry的命令复现。
 ```
+
+
+## r3：保留完整手指信息直至实测持握，再交给物体目标闭环
+
+r2中断时总账**1728controls/238.020s**，包含r1的412；A0..A3均完整（持握
+[.300,.900,1,1]），第一版修补B0..B3均0，另有中断轨迹，全部保留。不把这些不同版本B
+合并进最终接口成绩。r2是本线程SIGINT自有client停止，native退出回执/partial trace保留。
+
+新增回归直接揭示：close阶段仍覆盖了持续更新的`preshape_q`。旧实现对新回归为
+**1 failed/8 passed**；改后**9 passed/0 failed**。最终行为为：实测位置开始close，但
+抓姿与手指预形继续由真实WAM+原R逐tick更新，**直到实测force接触持续≥.12s且现有
+observer确认为grasp_established**，才捕获当时腕姿/闭合目标并切换物体目标servo。
+这避免在指尖刚接近时冻结手腕，也避免在尚未持握时丢掉手指条件。相位依据测量而不是
+“close过了多久”，没有另造持握成功评分。
+
+r3冻结此版本，携带**未改A0..A3**，只补A4及最终B0..B4。全部旧版本B和partial明确
+单列，不能按结果选择性隐藏。总预算仍3000controls/1800s（余1272controls），耗尽即
+保存并报告真实n，不增补。所有有效baseline均保持同一输入/权重/执行分支；不同物理
+进程隐藏接触状态不能自证相同，只认证可见9字段初态相同。
+
+复现续接命令同上，把carry换成`grasp-interface-v7-20261022-r2`、输出改为fresh路径；
+无carry命令直接运行最终修正版的2×5。预注册的≥4/5目标不变，实际成绩须看后续结果。
