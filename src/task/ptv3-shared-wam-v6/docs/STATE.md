@@ -1,3 +1,14 @@
+## 2026-10-23 τ r9 causal scheduler replay remains BLOCKED
+
+6,000 curated 窗口、1,067 sequence/slot 组完成实际输入字段盘点：缺部署前已知任务意图
+或其因果生成输入，可重放 0/6,000。同观测前缀的两种合法独立指令给出相差 14mm 的
+scheduler 条件，不能从录制状态唯一恢复意图；另有 84 个窗口状态 mask 前缀含缺口。
+helper 已修复 live/reference pose 混用与整段 joints 前视读取；tail 截断/NaN/guard 与
+边界回归合计 10 passed。真实 6,000 条等价与语义差异仍未验收；无训练、无 checkpoint、
+config 不变，门槛(2) BLOCKED、(3) NOT_RUN。最小合同改动和结果解读表见
+[因果重放报告](audit/scheduler-causal-replay-20261023.md)，代码 `5939b405`，
+receipt v2 位于 `outputs/ptv3-shared-wam-v6/tau-curated-20261023-r9/`。
+
 ## 2026-10-23 v6 online goal contract repaired; cache identity gate remains HOLD
 
 真实部署路径 `online_runtime.py` 已接入 `GOAL_SEMANTICS="spatial_path_waypoint"`。

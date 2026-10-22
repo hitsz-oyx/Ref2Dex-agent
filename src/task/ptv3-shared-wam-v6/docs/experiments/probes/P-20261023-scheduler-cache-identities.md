@@ -1,5 +1,23 @@
 # P-20261023-scheduler-cache-identities
 
+## r9 当前结论：因果任务意图不可从录制状态唯一恢复
+
+结果解读表、逐字段合同和复现命令见
+[r9 因果重放报告](../../audit/scheduler-causal-replay-20261023.md)。实际代码
+`5939b405e823f5574a518e68e6fda0136b26706a`，run_id=`tau-curated-20261023-r9`。
+已枚举 1,067 个 sequence/slot 组、6,000 个窗口；当前合同缺事前已知任务意图或其因果
+生成输入，可重放 0/6,000，receipt v2=`BLOCKED_CAUSAL_TASK_INTENT_UNAVAILABLE`。
+同一观测前缀对应不同合法独立指令时，真实调度器条件相差 14mm；不能通过调用调度器
+消除其输入中缺失的任务意图。另有 84 个窗口起点至 t 的状态 mask 前缀存在缺口。
+
+修复 helper 的 live/reference pose 混用与整段 joints 前视读取；固定独立指令下 tail
+截断、NaN、禁止未来索引 guard 测试通过。合计 10 passed；真实录制条件等价性与差异
+仍不可验收，未训练、未写 checkpoint、未改 config。r9 输出逻辑 4,601,799 bytes。
+这不要求预先存好 scheduler waypoint；最小缺口是部署前可用的任务意图来源与 reset/手
+绑定。下面保留 r8 的历史协议与结果，r9 已替代其“下一步等待物化路径”的表述。
+
+## r8 历史结果与实现
+
 | 可能结果 | 含义 | 会改变哪个决定 |
 |---|---|---|
 | 训练条件可由调度器路径重算、identity 唯一、等价性测试通过 | 门槛 (2) 达成 | 与 goal 契约一并放行唯一封顶训练，仍需冒烟门 | 
@@ -53,7 +71,7 @@ future endpoint。
 
 ## 实现与证据
 
-新增 [scheduler_cache_identity.py](../../src/ptv3_shared_wam_v6/scheduler_cache_identity.py)
+新增 [scheduler_cache_identity.py](../../../src/ptv3_shared_wam_v6/scheduler_cache_identity.py)
 提供：
 
 - canonical float32 32×3 condition hash（dtype、shape、bytes）；
@@ -65,7 +83,7 @@ future endpoint。
 该 helper 只接受显式 `scheduler_reference_poses` 字段；缺失时直接报错，绝不回退到
 观测 `object_poses`。
 
-新增 [verify_scheduler_cache_identities.py](../../tools/run/verify_scheduler_cache_identities.py)
+新增 [verify_scheduler_cache_identities.py](../../../tools/run/verify_scheduler_cache_identities.py)
 生成机器可读 receipt。当前 receipt：
 
 `outputs/ptv3-shared-wam-v6/tau-curated-20261023-r8/scheduler-cache-identity-receipt.json`
@@ -86,7 +104,7 @@ receipt 的关键计数为：
 receipt 的 `excluded_windows`，统一原因是
 `scheduler_reference_path_absent; observed object_poses are labels`。
 
-新增测试 [test_scheduler_cache_identity.py](../../tests/test_scheduler_cache_identity.py)：
+新增测试 [test_scheduler_cache_identity.py](../../../tests/test_scheduler_cache_identity.py)：
 
 - 相同 local `sample_id` 在不同 `source_id` 下 identity 不碰撞；
 - 训练 replay helper 产出的 scheduler delta 与 v6 `online_runtime._goal_from_pose`
