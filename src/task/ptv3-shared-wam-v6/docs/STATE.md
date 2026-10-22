@@ -1,3 +1,33 @@
+## 2026-10-22 并行执行线程：GT-τ 执行资格未通过；三臂首批准备完成
+
+本线程独立推进机器人闭环，不重复另线程的可辨识性/goal契约诊断。
+固定已适配τ的Scheduled686 step50000，同16个机器人DEV初态（相对其TRAIN名称/源路径
+交集0），原动作回放抓取抬升持握15/16=93.75%，标准机器人GT-τ0/16，健康4371预测0/16，
+固定FM8500预测1/16。标准GT与预测均前3控制zero/invalid；额外live-centered GT也0/16，
+但其旧startup不同，单列oracle。五臂初态7数组逐项exact；每臂native300步，PD误差/episode错配0。
+平均最长连续持握分别2.090/0.0542/0.0438/0.0625s（原动作/标准GT/健康/FM）。完整原路径任务
+均0/14未删失，另2例截断；不要当16例全任务失败。自然失持恢复原动作0/2、FM0/1，其余无
+机会记UNKNOWN；强制扰动与mesh穿透未测。首FM整批越界失败已保留，修复逐环境边界后完成；
+末FM完整300步workspace2/16均在各自准入前缀后，主指标0/16。
+
+结论：当前执行桥连可执行机器人GT-τ都不能稳定执行，资格门未过，不能断言τ解码质量是
+主瓶颈。范围仅这个v4-τ训练的执行器/v6适配桥，未训练的新direct executor仍不能伪报完成；
+WAM祖先终身未见也无法认证。数字/失败类型/配对CI/精确命令见
+`src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261022-wam-v6-executor-qualification.md`，
+产物`outputs/ptv3-shared-wam-v6/executor-qualification-20261022-r1/summary.json`。
+
+P1已先写设计，单Inspire、cubemedium/cylindermedium/mug，统一真实CAD2048、相同BC、奖励、
+显式position-only抬升8cm/HOLD1s与共同H4；A无τ、B几何优化参考、C健康4371预测。
+3独立seed191/192/193，每臂每seed目标1,048,576在线控制；共9,437,184，eval共同seed194，
+14字段初态exact校验。B是受限几何优化候选，未达到完整碰撞约束IK强基线，不能据C>B宣称
+打败所有几何重定向。256环境真实工程容量A/B/C均2更新40optimizer/4096交互，错配/PD/
+logprob0；C batch64保留24帧、跳独立未用C头后实测26.921s/更新，改统一6h/run硬界。
+科学首批尚待启动，工程smoke不是学习曲线或成功率证据。P2仅公平训练设计，0运行。
+
+本线程GPU2/3完成P0；原诊断后来使用0/2继而0/3，未干预。P1将用实测空闲1/2；
+GPU4/5/6长训、7、凭据、GitHub push均未触碰。仅本地提交。整库verify受6张既有旧卡
+schema缺字段阻断；本线程3卡schema/seed检查PASS。
+
 ## 2026-10-22 大规模 goal 契约诊断进行中
 
 本轮仅用既有健康4371与FM8500，未启动训练/扩容/加数据。全DEV3356、TRAIN5241/1064序列、

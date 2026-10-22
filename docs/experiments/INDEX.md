@@ -917,6 +917,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261021-wam-v6-geometry-consistency](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261021-wam-v6-geometry-consistency.md) | Predicted hand/object contact geometry consistency | 见原卡 | distinguish a geometry-derivative singularity, attention numerical | probes/COMPLETED |
 
+## HF-v6-goal-contract-identifiability
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261022-wam-v6-goal-chain-audit](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261022-wam-v6-goal-chain-audit.md) | Goal contract intervention and scaled existing-weight diagnostics | 见原卡 | does the learned prior improve executable task success versus the | probes/RUNNING |
+
 ## HF-v6-gt-object-contact
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
@@ -940,6 +946,12 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261021-wam-v6-local-subset](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261021-wam-v6-local-subset.md) | Local GRAB-dominant WAM-v6 adaptation | 见原卡 | 见原卡 | probes/STOPPED |
+
+## HF-v6-runtime-trajectory-compression
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261022-wam-v6-compressed-tau](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261022-wam-v6-compressed-tau.md) | 压缩计划与完整 24 帧 τ：公平训练对照设计 | 见原卡 | 见原卡 | probes/PLANNED |
 
 ## HF-v6-training-precision
 
@@ -1010,6 +1022,18 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261016-wam-task-readout](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261016-wam-task-readout.md) | WAM任务读出：空间交互先验能否帮助实际回报学习 | 新空间读出未超过mean；确认短期终点与task goal条件差异，oracle同条件下WAM优于几何插值，线上效用仍UNCLEAR。 | 优先学习可实现短期目标并检验WAM交互先验的动作实现；不扩大BC或照搬当前forecast做PPO reward。 | probes/UNCLEAR |
+
+## HF-wam-v6-executor-qualification
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261022-wam-v6-executor-qualification](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261022-wam-v6-executor-qualification.md) | Fixed executor on unseen robot sequences | 见原卡 | 见原卡 | probes/UNPROMISING |
+
+## HF-wam-v6-sample-efficiency
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261022-wam-v6-samples-efficiency-3arm](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261022-wam-v6-samples-efficiency-3arm.md) | 三臂抓取—抬升样本效率 Decision Probe | 见原卡 | 见原卡 | probes/PLANNED |
 
 ## HF-weak-temporal-value
 
