@@ -79,6 +79,8 @@ def main():
             asset=assets[name]
             if not asset['watertight']:skipped.append(dict(model=label,row=row,reason='nonwatertight CAD'));continue
             sample=audit.window(dataset,row);batch={k:v.cuda() for k,v in collate([sample]).items()}
+            if not batch['start_hand_valid'].all() or not batch['trajectory_valid'][:,[7,23]].all():
+                skipped.append(dict(model=label,row=row,reason='incomplete hands'));continue
             with torch.inference_mode():
                 pred=model(batch);attachment=skin_attachment(batch['start_hand'],batch['dense_hand'],batch['start_hand_valid'],batch['dense_hand_valid'])
                 skin=skin_future(batch['start_hand'][:,None]+pred['trajectory'],attachment)[0]
@@ -91,12 +93,19 @@ def main():
                 ids=torch.linspace(0,777,32,device='cuda').long()
                 for tick in (8,24):
                     k=tick-1;pred_map=torch.linalg.pinv(x)@(p32+pred['scene'][0,0,k]);gt_map=torch.linalg.pinv(sx)@batch['geometry_object_future_gt'][0,0,k]
+                    proposed=p32+pred['scene'][0,0,k]
+                    u,_,vh=torch.linalg.svd((p32-p32.mean(0)).T@(proposed-proposed.mean(0)))
+                    correction=torch.eye(3,device='cuda');correction[2,2]=torch.det(u@vh).sign()
+                    rigid=(p32-p32.mean(0))@(u@correction@vh)+proposed.mean(0)
+                    rigid_error=float((rigid-proposed).norm(dim=-1).mean()*1000)
+                    distance_error=float((torch.cdist(proposed,proposed)-torch.cdist(p32,p32)).abs().triu(1).sum()/496*1000)
                     for anchor,mapping,h in [('GT_object',gt_map,skin[k]),('pred_object',pred_map,skin[k]),('GT_hand_GT_object',gt_map,gt_skin[k])]:
                         triangles=canonical@mapping[:3]+mapping[3]
                         points=h[:,ids].flatten(0,1)
                         values=mesh_metrics(points,triangles)
                         records.append(dict(model=label,row=row,tick=tick,anchor=anchor,asset=asset['path'],faces=len(canonical),
-                            CAD_query_distance_mean_mm=float(check.mean()),**values))
+                            CAD_query_distance_mean_mm=float(check.mean()),rigid_fit_error_mm=rigid_error,
+                            pairwise_object_distance_error_mm=distance_error,**values))
             print(json.dumps(dict(stage='mesh',model=label,done=number+1,total=len(rows))),flush=True)
         del model;gc.collect();torch.cuda.empty_cache()
     for model in ('healthy4371','flow8500'):
@@ -108,6 +117,8 @@ def main():
                     inside_over1mm_fraction=penetrations/n if n else None,
                     mean_penetration_over_all_vertices_mm=sum(r['penetration_sum_mm'] for r in subset)/n if n else None,
                     mean_depth_when_penetrating_mm=sum(r['penetration_sum_mm'] for r in subset)/penetrations if penetrations else None,
+                    rigid_fit_error_mm=float(np.mean([r['rigid_fit_error_mm'] for r in subset])) if subset else None,
+                    pairwise_object_distance_error_mm=float(np.mean([r['pairwise_object_distance_error_mm'] for r in subset])) if subset else None,
                     ray_disagreements=sum(r['ray_disagreements'] for r in subset))
     audit.write(a.output/'mesh-penetration.json',dict(status='COMPLETED',cube_control=cube,seed=178,command=sys.argv,
         git_commit=__import__('subprocess').check_output(['git','rev-parse','HEAD'],text=True).strip(),physical_gpu=0,
