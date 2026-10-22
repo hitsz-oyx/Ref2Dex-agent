@@ -246,3 +246,7 @@ B-seed191迭代5、100optimizer steps、10240训练交互。source/behavior logp
 目标仍9job各1,048,576训练交互、3训练seed、45共同初态评估panels。
 目前完成科学训练runs=0/9、完成评估panels=0/45，阈值/AUC/固定预算成功率均待定。
 不能用上面的工程数据或训练计数给出样本效率收益。
+
+交接时独立读取正式progress：A-seed191=31 updates/63488交互，collection8.19s+learning0.15s，当前剩余ETA1.11h；B-seed191=16 updates/32768交互，collection16.37s+learning0.16s，当前剩余ETA2.28h。
+训练episode计数不等同独立共同初态评估，本轮尚无完成的科学评估panel或样本效率结论。
+独立supervisor将继续有界运行并自动生成最终JSON/PNG/SVG，不需要本对话持续轮询。
