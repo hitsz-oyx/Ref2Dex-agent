@@ -115,6 +115,7 @@ def main():
                     relative_correction.append(float(np.linalg.norm(expected-(hand[t+np.arange(1,9)]-hand[t]),axis=-1).mean()))
                 gt_error=max(gt_error,float(np.abs(expected-d['tau'][t]).max()))
         safety=next((r for r in rows if any(v not in ('lift_below5cm','grasp_not_established','grasp_lost','force_invalid','fewer_than_two_force_contacts','table_supported') for v in r['failed_predicates'])),None)
+        if (safety is not None)!=(online['physical_safety_abort'] is not None):raise ValueError('independent safety verdict mismatch')
         if (ever,final)!=(online['ever_success'],online['final_success']) or abs(longest-online['longest_hold_elapsed_s'])>1e-9:
             raise ValueError('independent physical verdict mismatch')
         if clip_count!=online['clipped_controls'] or pd_error>2e-5 or gt_error>1e-6 or max(clips_error,expanded_error,packed_error)>0 or not valid_ok or not episodes_ok:
@@ -126,6 +127,21 @@ def main():
             hold_intervals=[dict(first_tick=lo,last_tick=hi-1,elapsed_s=(hi-lo-1)/30) for lo,hi in spans],
             first_safety_state=safety,pd_error=pd_error,gt_reconstruction_max_error=gt_error,
             gt_valid_state_ticks=gt_valid_ticks,mean_gt_correction_m=float(np.mean(relative_correction)) if relative_correction else None))
+    historical=[]
+    current=load(args.run/'block0-a-original-wam/trajectory.npz')
+    for relative in ('single-tau-repeat-20261022-r1/block0-baseline-wam',
+                     'pose-consumer-improvement-20261022-r2/block0-a-original-wam'):
+        path=Path(m['asset_root'])/'outputs/wam-rl-policy-v3'/relative/'trajectory.npz'
+        if not path.exists():
+            historical.append(dict(path=str(path),available=False));continue
+        previous=load(path);differences={}
+        for key in ('observation','raw_action','action','q','hand','objects','tau','contact_forces'):
+            n=min(len(current[key]),len(previous[key]))
+            delta=np.abs(current[key][:n]-previous[key][:n]).reshape(n,-1).max(axis=1)
+            hits=np.flatnonzero(delta>1e-6)
+            differences[key]=dict(first_tick_above_1e_minus_6=int(hits[0]) if len(hits) else None,
+                                  max_abs_delta_first_four_ticks=delta[:4].tolist())
+        historical.append(dict(path=str(path),available=True,differences=differences))
     chains={}
     for name in ('a-original-wam','c-live-gt'):
         r=sorted([r for r in records if r['chain']==name],key=lambda r:r['block'])
@@ -140,7 +156,7 @@ def main():
         environment=m['environment'],protocol=m['protocol'],elapsed_s=m['elapsed_s'],environment_controls=m['environment_controls'],
         learning_updates=m['learning_updates'],maximum_actual_pd_error=m['maximum_pd_reconstruction_error'],
         maximum_initial_error=max(v for r in records for v in r['old_reference_initial_max_errors'].values()),
-        counterexamples=challenge(hand,objects),chains=chains,records=records)
+        counterexamples=challenge(hand,objects),historical_first_episode_comparison=historical,chains=chains,records=records)
     with args.output.open('x') as stream:json.dump(result,stream,indent=2);stream.write('\n')
     print(json.dumps({k:v for k,v in result.items() if k!='records'},indent=2))
 
