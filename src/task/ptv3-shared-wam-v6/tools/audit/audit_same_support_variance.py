@@ -11,6 +11,11 @@ from audit_event_aligned_variance import partitions,pooled,warp_trajectory,condi
 from audit_identifiability import read,write
 
 
+def percent_drop(reference,current):
+    ratio=np.divide(current,reference,out=np.full_like(np.asarray(current,dtype=float),np.nan),where=np.asarray(reference)>1e-12)
+    return 100*(1-ratio)
+
+
 def main():
     p=argparse.ArgumentParser();p.add_argument('--output',type=Path,required=True);a=p.parse_args();out=a.output
     source=read(out/'event-only-aligned-variance.json');samples=read(out/'bank.json')['samples']
@@ -41,11 +46,11 @@ def main():
                 if c[5]!=r[5]:raise AssertionError('kept N differs')
                 result=dict(windows=int(c[5]),reference_df=int(r[4]),refined_df=int(c[4]))
                 if c[4] and r[4]:
-                    cv=c[:4]/c[4];rv=r[:4]/r[4];result.update(previous_variance_mm2=rv.tolist(),refined_variance_mm2=cv.tolist(),drop_percent=(100*(1-cv/np.maximum(rv,1e-12))).tolist())
+                    cv=c[:4]/c[4];rv=r[:4]/r[4];result.update(previous_variance_mm2=rv.tolist(),refined_variance_mm2=cv.tolist(),drop_percent=percent_drop(rv,cv).tolist())
                     bs=draws@cc;br=draws@rr;ok=(bs[:,4]>0)&(br[:,4]>0)
                     if len(groups)>=8 and ok.any():
-                        drop=100*(1-(bs[ok,:4]/bs[ok,4,None])/(br[ok,:4]/br[ok,4,None]).clip(1e-12))
-                        result['drop95']=np.percentile(drop,[2.5,97.5],axis=0).T.tolist()
+                        drop=percent_drop(br[ok,:4]/br[ok,4,None],bs[ok,:4]/bs[ok,4,None])
+                        result['drop95']=np.nanpercentile(drop,[2.5,97.5],axis=0).T.tolist()
                 record[alignment]=result
             record['previous_same_kept_windows_distances']=condition_distances([p for pp in previous for p in pp],z)
             record['refined_distances']=condition_distances([p for pp in current for p in pp],z);stages[name]=record
