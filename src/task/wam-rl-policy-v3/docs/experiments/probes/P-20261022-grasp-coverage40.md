@@ -28,7 +28,7 @@ run_id: grasp-v11-coverage40-20261022-r1
 | 三链均失败或A0命令准入失败 | 没有可执行正见证，尚不能归因WAM或任务不可能 | 保留全部失败，修物理接近/动作合同 |
 | A1仍有关节/桌面中止 | 静态候选准入不足以保证动态安全 | 修接触下的压力与速度控制；不放宽gate |
 
-Result: registered 40 distinct initials /20 unexposed objects x3 arms=120 episodes; supervisor PID3603938 QUEUED behind existing GPU456 work, 0 updates.
+Result: registered 40 distinct initials /20 unexposed objects x3 arms=120 episodes; resource queue starts GPU5/6 after preceding COVERAGE, GPU4 after preceding residual check, 0 updates.
 Decision: n12 engineering coverage remains separate; use n40 per chain and retain every physical failure.
 
 分类Decision：区分“接口只适合旧圆柱初态”与“新几何/SE3合同可扩到新初态”，决定继续修接近还是可保留接口。
@@ -45,7 +45,10 @@ Decision: n12 engineering coverage remains separate; use n40 per chain and retai
 每初态native seed=100+i，推理seed=180+i，初始化seed196，三链共用九字段初态；Latin rotation平衡顺序。
 每次fresh物理进程、env1、30Hz×600controls=20s，不成功即停。
 最多72000环境控制，0训练更新，PPO未授权；每worker≤14400s，等卡≤10800s，磁盘余量≥20GiB。
-只用4/5/6，先等已有handoff结束且卡≤64MiB，冲突不杀进程、不偷卡、不换seed。
+只用4/5/6；已有handoff的COVERAGE结束后后续仅用4，故5/6在各自≤64MiB时先启动，4等handoff退出。
+冲突不杀进程、不偷卡、不换seed。此资源排队修订发生在本卡任何仿真开始前，
+原QUEUED记录完整保留`queue-before-resource-amendment.json/log`，总排队截止仍沿用最初时间；
+科学协议、源快照、初态/种子/臂顺序与预算不变。新supervisor/PID/确切worker命令见`supervisor.json`。
 
 新协议主指标：完整20s末、实测接触耦合/离桌≥5cm/连续hold≥1s、
 XYZ目标误差≤物体最小凸包宽度的0.10且无物理中止。旋转目标仅在任务显式指定时评估；

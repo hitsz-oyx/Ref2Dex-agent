@@ -16,6 +16,11 @@ def main():
     path=out/'supervisor.json'
     if path.exists():raise ValueError('supervisor already exists; inspect, do not duplicate')
     receipt=dict(status='QUEUED',pid=os.getpid(),start=time.time(),queue_limit_s=10800,maximum_controls=72000,learning_updates=0,commands=[],pids=[])
+    previous=out/'queue-before-resource-amendment.json'
+    if previous.exists():
+        old=json.loads(previous.read_text())
+        if old['status']!='QUEUED' or old['pids'] or old['commands']:raise ValueError('only a never-started queue may be replaced')
+        receipt.update(start=old['start'],queue_amendment_time=time.time(),previous_queue=str(previous),resource_amendment='release GPU5/6 after prior COVERAGE; GPU4 remains reserved until prior handoff exits; science unchanged')
     def save():
         temporary=path.with_suffix('.new');temporary.write_text(json.dumps(receipt,indent=2)+'\n');temporary.replace(path)
     def execute(command,log):
@@ -23,22 +28,28 @@ def main():
         with log.open('x') as handle:subprocess.run(command,cwd=ROOT,stdout=handle,stderr=subprocess.STDOUT,check=True)
     save();children=[];handles=[]
     try:
-        while True:
+        pending={g:i for i,g in enumerate((4,5,6))};started_at={}
+        # The existing, inspected handoff uses only GPU4 after its COVERAGE
+        # stage. Release 5/6 individually without changing scientific jobs.
+        later_stages={'BC','BC_EVAL','PPO','PPO_EVAL','DONE'}
+        while pending:
             gpu=subprocess.check_output(['nvidia-smi','--query-gpu=index,memory.used,utilization.gpu','--format=csv,noheader,nounits'],text=True)
             handoff=ROOT/'outputs/wam-rl-policy-v3/drift-intent-residual-20261022-r1/manifest.json'
             prior=json.loads(handoff.read_text()) if handoff.exists() else {}
             receipt.update(gpu_latest=gpu,prior_handoff_status=prior.get('status'),prior_handoff_stage=prior.get('stage'),last_check=time.time());save()
-            idle=all(int(row.split(',')[1])<=64 for row in gpu.splitlines() if int(row.split(',')[0]) in (4,5,6))
-            if idle and prior.get('status') not in ('STARTING','RUNNING','QUEUED'):break
-            if time.time()-receipt['start']>receipt['queue_limit_s']:raise TimeoutError('queue budget exhausted; no processes stopped')
-            time.sleep(45)
-        receipt.update(status='RUNNING',simulation_start=time.time(),gpu_before=gpu);save()
-        for i,g in enumerate((4,5,6)):
-            command=[sys.executable,'-u',reg['worker_source'],'--registration',str(out/'registration.json'),'--worker',str(i),'--gpu',str(g),'--output',str(out/('g%d'%g))]
-            log=(out/('g%d.log'%g)).open('x');handles.append(log);child=subprocess.Popen(command,cwd=ROOT,stdin=subprocess.DEVNULL,stdout=log,stderr=subprocess.STDOUT,start_new_session=True,close_fds=True);children.append(child)
-            receipt['commands'].append(command);receipt['pids'].append(child.pid);save()
+            memory={int(row.split(',')[0]):int(row.split(',')[1]) for row in gpu.splitlines()}
+            for g,i in list(pending.items()):
+                released=prior.get('status') not in ('STARTING','RUNNING','QUEUED') or (g in (5,6) and prior.get('stage') in later_stages)
+                if memory.get(g,999999)>64 or not released:continue
+                command=[sys.executable,'-u',reg['worker_source'],'--registration',str(out/'registration.json'),'--worker',str(i),'--gpu',str(g),'--output',str(out/('g%d'%g))]
+                log=(out/('g%d.log'%g)).open('x');handles.append(log);child=subprocess.Popen(command,cwd=ROOT,stdin=subprocess.DEVNULL,stdout=log,stderr=subprocess.STDOUT,start_new_session=True,close_fds=True);children.append(child);started_at[child.pid]=time.time()
+                receipt.update(status='RUNNING',simulation_start=receipt.get('simulation_start',time.time()),gpu_before=gpu)
+                receipt['commands'].append(command);receipt['pids'].append(child.pid);pending.pop(g);receipt['pending_gpus']=list(pending);save()
+            if any(c.poll() not in (None,0) for c in children):raise RuntimeError('started worker failed; preserve traces, no resampling')
+            if pending and time.time()-receipt['start']>receipt['queue_limit_s']:raise TimeoutError('queue budget exhausted')
+            if pending:time.sleep(45)
         while any(c.poll() is None for c in children):
-            if time.time()-receipt['simulation_start']>reg['worker_wall_s']+300:
+            if any(c.poll() is None and time.time()-started_at[c.pid]>reg['worker_wall_s']+300 for c in children):
                 # Only directly owned children; never touch another session.
                 for child in children:
                     if child.poll() is None:child.terminate()
@@ -55,6 +66,11 @@ def main():
         for g in (4,5,6):execute([sys.executable,str(TOOLS/'rescore_large_grasp.py'),'--worker',str(out/('g%d'%g)),'--output',str(out/('g%d-rescore.json'%g)),'--verify-mutant'],out/('g%d-rescore.log'%g))
         receipt.update(status='COMPLETED',elapsed_s=time.time()-receipt['start']);save()
     except Exception as error:
+        for child in children:
+            if child.poll() is None:child.terminate()
+        for child in children:
+            try:child.wait(timeout=20)
+            except subprocess.TimeoutExpired:child.kill();child.wait()
         receipt.update(status='FAILED',error=repr(error),elapsed_s=time.time()-receipt['start']);save();raise
     finally:
         for handle in handles:handle.close()
