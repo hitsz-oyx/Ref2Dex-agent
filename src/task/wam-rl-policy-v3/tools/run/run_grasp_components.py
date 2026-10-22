@@ -41,42 +41,49 @@ def summarize(out):
     result=dict(groups=groups,comparisons=comparisons,new_controls=sum(r['controls'] for r in allrows if r['arm'] not in ('A1','A2')),learning_updates=0,reused_A1_A2=str(old/'summary-final.json'),rows=allrows)
     write(out/'summary-final.json',result);print(json.dumps(groups,indent=2))
 
+def idle_gpus(csv):
+    return {int(line.split(',')[0]) for line in csv.splitlines() if int(line.split(',')[0]) in (4,5,6) and int(line.split(',')[1])<=64}
+
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);p.add_argument('--detached',action='store_true');p.add_argument('--queue-wall-s',type=int,default=14400);a=p.parse_args();out=a.output.resolve()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);p.add_argument('--detached',action='store_true');p.add_argument('--resume-empty-queue',action='store_true');p.add_argument('--queue-wall-s',type=int,default=14400);a=p.parse_args();out=a.output.resolve()
     if ROOT/'outputs/wam-rl-policy-v3' not in out.parents:raise ValueError('task-local output required')
     if a.detached:
         command=[sys.executable,'-u',str(Path(__file__).resolve()),'--output',str(out),'--queue-wall-s',str(a.queue_wall_s)]
-        with (out.parent/(out.name+'-supervisor.log')).open('x') as f:child=subprocess.Popen(command,cwd=ROOT,stdin=subprocess.DEVNULL,stdout=f,stderr=subprocess.STDOUT,start_new_session=True,close_fds=True)
+        if a.resume_empty_queue:command+=['--resume-empty-queue']
+        with (out.parent/(out.name+('-supervisor-resume.log' if a.resume_empty_queue else '-supervisor.log'))).open('x') as f:child=subprocess.Popen(command,cwd=ROOT,stdin=subprocess.DEVNULL,stdout=f,stderr=subprocess.STDOUT,start_new_session=True,close_fds=True)
         print(json.dumps(dict(pid=child.pid,command=command)));return
     out.mkdir(parents=True,exist_ok=True)
-    if (out/'supervisor.json').exists():raise ValueError('refuse overwrite or duplicate launch')
-    register(out);frozen=out/'launch-code';frozen.mkdir()
-    for rel in ['src/task/wam-rl-policy-v3/src/wam_rl_policy_v3/pose_consumer.py','src/task/wam-rl-policy-v3/src/wam_rl_policy_v3/intent_components.py','src/task/wam-rl-policy-v3/tools/run/run_grasp_component_worker.py']:
-        target=frozen/rel;target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(ROOT/rel,target)
-    # Worker ROOT resolution must remain repository-based; execute a frozen copy at same depth under launch-code, with explicit root env.
+    if a.resume_empty_queue:
+        receipt=json.loads((out/'supervisor.json').read_text())
+        if receipt['status']!='QUEUE_STOPPED_BEFORE_WORKERS' or receipt['commands'] or any((out/stage).exists() for stage in ('mechanism','comparators')):raise ValueError('only an explicitly stopped, never-launched queue may resume')
+        frozen=out/'launch-code';receipt['queue_runner_commit']=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+    else:
+        if (out/'supervisor.json').exists():raise ValueError('refuse overwrite or duplicate launch')
+        register(out);frozen=out/'launch-code';frozen.mkdir()
+        for rel in ['src/task/wam-rl-policy-v3/src/wam_rl_policy_v3/pose_consumer.py','src/task/wam-rl-policy-v3/src/wam_rl_policy_v3/intent_components.py','src/task/wam-rl-policy-v3/tools/run/run_grasp_component_worker.py']:
+            target=frozen/rel;target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(ROOT/rel,target)
+        receipt=dict(status='QUEUED',git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),python=sys.executable,queued_at=time.time(),queue_wall_s=a.queue_wall_s,maximum_new_controls=192000,learning_updates=0,commands=[])
     worker=frozen/'src/task/wam-rl-policy-v3/tools/run/run_grasp_component_worker.py'
-    receipt=dict(status='QUEUED',git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),python=sys.executable,queued_at=time.time(),queue_wall_s=a.queue_wall_s,maximum_new_controls=192000,learning_updates=0,commands=[]);write(out/'supervisor.json',receipt)
+    receipt.update(status='QUEUED',supervisor_pid=os.getpid());write(out/'supervisor.json',receipt)
     runtime=ROOT/'outputs/wam-rl-policy-v3/grasp-v10-stat40-20261022-r1/g4-resume2/runtime-code'
     for stage in ('mechanism','comparators'):
-        receipt.update(status='QUEUED',stage=stage);write(out/'supervisor.json',receipt);queue_start=time.time()
-        while True:
+        queue_start=receipt['queued_at'] if stage=='mechanism' else time.time();children={};logs=[];starts={};pending={4,5,6};(out/stage).mkdir()
+        while pending or any(c.poll() is None for c in children.values()):
             gpu=subprocess.check_output(['nvidia-smi','-i','4,5,6','--query-gpu=index,memory.used,utilization.gpu','--format=csv,noheader,nounits'],text=True)
-            if all(int(line.split(',')[1])<=64 for line in gpu.splitlines()):break
-            if time.time()-queue_start>a.queue_wall_s:receipt.update(status='QUEUE_EXPIRED',gpu=gpu);write(out/'supervisor.json',receipt);return
-            time.sleep(30)
-        children=[];logs=[];(out/stage).mkdir();start=time.time()
-        for i,g in enumerate((4,5,6)):
-            command=[sys.executable,'-u',str(worker),'--registration',str(out/(stage+'-registration.json')),'--worker',str(i),'--gpu',str(g),'--output',str(out/stage/f'g{g}'),'--runtime-source',str(runtime)]
-            log=(out/stage/f'g{g}.log').open('x');logs.append(log);env=dict(os.environ,REF2DEX_COMPONENT_ROOT=str(ROOT),REF2DEX_COMPONENT_CODE=str(frozen));child=subprocess.Popen(command,cwd=ROOT,env=env,stdin=subprocess.DEVNULL,stdout=log,stderr=subprocess.STDOUT,start_new_session=True,close_fds=True);children.append(child);receipt['commands'].append(command)
-        receipt.update(status='RUNNING',stage=stage,pids=[c.pid for c in children],gpu_before=gpu);write(out/'supervisor.json',receipt)
-        while any(c.poll() is None for c in children):
-            if time.time()-start>14700:
-                for c in children:
+            if pending and time.time()-queue_start>a.queue_wall_s:
+                receipt.update(status='QUEUE_EXPIRED',pending_gpus=sorted(pending));write(out/'supervisor.json',receipt)
+                for c in children.values():
                     if c.poll() is None:c.terminate()
-                break
+                return
+            for g in sorted(pending & idle_gpus(gpu)):
+                i=(4,5,6).index(g);command=[sys.executable,'-u',str(worker),'--registration',str(out/(stage+'-registration.json')),'--worker',str(i),'--gpu',str(g),'--output',str(out/stage/f'g{g}'),'--runtime-source',str(runtime)]
+                log=(out/stage/f'g{g}.log').open('x');logs.append(log);env=dict(os.environ,REF2DEX_COMPONENT_ROOT=str(ROOT),REF2DEX_COMPONENT_CODE=str(frozen));children[g]=subprocess.Popen(command,cwd=ROOT,env=env,stdin=subprocess.DEVNULL,stdout=log,stderr=subprocess.STDOUT,start_new_session=True,close_fds=True);starts[g]=time.time();pending.remove(g);receipt['commands'].append(command)
+            for g,c in children.items():
+                if c.poll() is None and time.time()-starts[g]>14700:c.terminate()
+            receipt.update(status='RUNNING' if children else 'QUEUED',stage=stage,pids=[c.pid for c in children.values()],pending_gpus=sorted(pending),gpu_latest=gpu);write(out/'supervisor.json',receipt)
             time.sleep(30)
         for log in logs:log.close()
-        if any(c.poll()!=0 for c in children):receipt.update(status='FAILED',returncodes=[c.poll() for c in children]);write(out/'supervisor.json',receipt);return
+        if any(c.poll()!=0 for c in children.values()):receipt.update(status='FAILED',returncodes={g:c.poll() for g,c in children.items()});write(out/'supervisor.json',receipt);return
         for g in (4,5,6):
             command=[sys.executable,str(TOOLS/'rescore_large_grasp.py'),'--worker',str(out/stage/f'g{g}'),'--output',str(out/stage/f'g{g}-rescore.json')];subprocess.run(command,cwd=ROOT,check=True)
     summarize(out);receipt.update(status='COMPLETED',finished_at=time.time());write(out/'supervisor.json',receipt)

@@ -110,7 +110,7 @@ python3 src/task/wam-rl-policy-v3/tools/run/run_grasp_components.py --output out
 
 ## 实现预检与排队
 
-预注册提交 `fad72d0a4c3c527a77fb13991569e90dcc6a719c` 已推送并核对远端。supervisor PID3701886 已以独立进程排队；不会抢占正在跑的覆盖n40。34项针对干预/阶段/消费/伺服的测试和全量278项相关测试通过（20.09s），日志 `preflight-tests.log`。17例审计重复运行逐字一致。
+预注册提交 `fad72d0a4c3c527a77fb13991569e90dcc6a719c` 已推送并核对远端。原supervisor PID3701886 以独立进程排队；零worker/零物理步时停止，改为逐卡等待接管，旧收据保留在 `supervisor-original-queue.json`。当前PID见 `supervisor.json`，不会抢占覆盖n40。34项针对干预/阶段/消费/伺服的测试和全量278项相关测试通过（20.09s），日志 `preflight-tests.log`。17例审计重复运行逐字一致。
 
 首次共同有效预测时，seen40对的非τ观测误差为0，R的腕部与手指动作都改变；归一化动作差范数中位数约0.03014/0.05841。它们单位不同，不能据此判定哪个贡献大；这只是干净输入效应检查，不是成分成功机制。40对是同一seen初态重复seed，不能看作40种物体覆盖。复现：
 
@@ -138,3 +138,13 @@ python3 src/task/wam-rl-policy-v3/tools/audit/replay_v13_legacy_consumer.py --ru
 ```
 
 WRIST包括R的腕增量与τ关键抓姿（也供几何恢复作hint）；预测接触index会选择关键姿态，而非直接推进相位。因此“没有预测时钟切阶段”不等于预测contact_index对抓姿无影响。A3的几何τ也使用源示范的局部手形，不是只看物体表面就凭空生成完整手型。
+
+## 排队操作调整（零实验步时）
+
+最初supervisor等待三卡全空闲；覆盖n40三卡结束时间不同，改为每张卡≤64MiB才各自启动分配好的worker。第2阶段仍等待全部机制worker和原始重评分结束才启动。旧排队已确认零worker/零物理步，旧PID3701886已退出；冻结的 `launch-code/` 和两份registration不变，预算不重新领取。GPU准入测试通过，禁止0–3/7。接管确切命令：
+
+```sh
+python3 src/task/wam-rl-policy-v3/tools/run/run_grasp_components.py --output outputs/wam-rl-policy-v3/grasp-v13-mechanism-20261022-r1 --queue-wall-s 14400 --resume-empty-queue --detached
+```
+
+Hermes新重复仍使用前述普通命令与全新输出目录；`--resume-empty-queue`只接受已明确标记停止、从未启动worker的队列，不能恢复有实验结果的运行。
