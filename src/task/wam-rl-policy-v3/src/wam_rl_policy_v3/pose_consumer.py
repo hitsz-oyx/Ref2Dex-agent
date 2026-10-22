@@ -219,6 +219,9 @@ class MeasuredGraspConsumer:
         candidate = object_pose @ intent.grasp_pose_object
         position_ready = bool(near_fingers >= 2 or
             (np.linalg.norm(candidate[:3,3]-palm[:3,3]) <= (self.geometry.wrist_gap_m if hasattr(self,"geometry") else .025) and fingertip_gap_m <= (self.geometry.tip_gap_m if hasattr(self,"geometry") else .04)))
+        # Experimental timing-only intervention; absent on deployed consumers.
+        if hasattr(self, 'predicted_close_at'):
+            position_ready = bool(now >= self.predicted_close_at)
         if self.phase == 'approach' and position_ready:
             self.phase='close'; self.close_pose=palm.copy()
             self.fingers=np.clip(np.maximum(intent.closure_q,q[FINGER_ACTIVE]),.06,FINGER_UPPER)
