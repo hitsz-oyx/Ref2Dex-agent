@@ -1,7 +1,7 @@
-"""Object-relative precontact wrist plans and a measured-state grasp controller.
+"""Grasp intent with wrist pose, finger targets and a measured object goal.
 
-No predicted fingertip position is tracked by the controller. Future hand points
-are reduced to rigid wrist poses, a contact time, and an explicit approach mode.
+The v7 controller keeps the frozen R interpretation through measured grasp
+acquisition. Historical WristPlan/PoseConsumer remain for v6 reproduction.
 """
 from dataclasses import dataclass
 import numpy as np

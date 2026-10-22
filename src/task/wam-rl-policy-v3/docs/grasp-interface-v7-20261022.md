@@ -1,113 +1,126 @@
-# v7：抓姿、预形/闭合与物体目标的测量闭环接口
+# v7：三项抓取意图接口，最终窄任务5/5
 
-本轮替代v6“两字段”的新控制原型，不把历史接口当已解决；只实现和验证，不做额外归因实验。
-原R作为**冻结的τ→机器人意图适配器**保留：读真实live WAM及当前q/dq，输出的腕PD目标转
-成物体坐标下的关键腕位姿，手指PD目标完整保留为预形/闭合目标。控制器收到的是
-`GraspIntent`，不是按参考帧号重放的手点。接近阶段保留原R已具备的approach能力，而不是
-把“未来0.8秒末端”误当成完整抓姿后缓慢逼近。WAM几何给另一候选抓姿，两关键腕姿即可。
+主指标：历史原R+WAM **2/5 → 最终接口5/5**；本轮未改原R同期baseline **3/5**。
+这是同一已见cylindersmall初态上的工程Probe，**不是泛化、统计显著性或RL样本效率证明**。
+只改消费和执行相位，不为归因再加GT链，不训练R/v6；完整任务资格和三臂RL仍HOLD。
 
-接口保留三项：
+## 最终实现
 
-1. `approach_pose_object/grasp_pose_object`：短期可执行腕姿与接触候选抓姿，均物体坐标。
-2. `preshape_q/closure_q`：原R对真实WAM的6主动指关节预形，及有界闭合目标；不再丢手指
-   信息或只调用无τ先验。低层仍用原18关节耦合，未更改机械结构。
-3. `postgrasp_object_pose`：来自同一task的真实物体目标（初态上方8cm），不是按时间给腕
-   高度加10cm的脚本。位置任务保持测得抓取朝向；SE3接口保留目标旋转。
+保留原R作为**冻结的live WAM→机器人意图适配器**。R读原真实8步τ与实测状态，其腕PD目标
+转换为物体坐标关键腕姿，6主动指关节目标完整保留；额外WAM24步几何给一个候选抓姿。
+低层只收`GraspIntent`：
 
-三个行为阶段均由测量推进：接近由实测两指近表面（现有observer near_fingers）或实测
-腕距候选姿≤25mm且指尖gap≤40mm触发闭合；闭合读现有FeedbackObserver的
-`force_valid/contact_observed`，接触持续实测elapsed≥.12s才抬升；抬升/保持每tick根据
-**实测物体位姿误差/速度**给腕闭环目标，误差≤15mm才标行为hold。失去实测接触回close。
-时间仅作实测contact dwell，不以预计接触时刻/参考tick/固定抬升时长推进phase。
+1. `approach_pose_object/grasp_pose_object`：短期可执行腕姿与候选抓姿，两关键位姿即可。
+   附带同一SE3目标的Euler IK分支，避免连续腕关节切换等价解；不增加任务信息。
+2. `preshape_q/closure_q`：原R对真实τ的手指预形，以及有界闭合目标；**close阶段继续保留
+   live预形/抓姿，不能刚靠近物体就冻结手腕和手指**。
+3. `postgrasp_object_pose`：同一task给定的物体目标（初态上方8cm）。这不是按经过时间
+   给腕加10cm的动作脚本，也不是GT实际未来。
 
-S2c graded stage信号仍只读记录，不作为contact传感器；复用原FeedbackObserver的测量
-contact，不重写S2c dense reward或正式任务评分。物理成功仍是同5cm/force耦合/离桌连续
-elapsed1s窄指标，**不把新行为hold或S2c分数当成功**。原物理安全gate不变。
+阶段由测量推进：
 
-## 冻结的效果验证预算（运行前）
+- **approach→close**：现有observer实测near_fingers≥2，或实测腕距候选姿≤25mm且指尖
+  gap≤40mm，开始闭合；预计contact帧或经过时间不能触发该切换。
+- **close→lift**：继续用真实live WAM+原R修正腕姿和手指预形，直到现有FeedbackObserver
+  报有效force contact持续实测elapsed≥.12s且`grasp_established`。此时捕获**当时**腕姿与
+  闭合目标，再交接给物体目标servo。没有用graded stage分数冒充接触传感器。
+- **lift/hold**：每tick读实测物体位姿/速度及q/dq，用物体目标误差给腕PD修正，手指由
+  测量force有界调整；失去实测接触回close。物体目标误差≤15mm才标行为hold。位置任务
+  保持测得抓取朝向；SE3接口保留目标旋转。没有固定抬升时长或参考帧时钟。
 
-Decision：只判断这次接口能否改善原R+WAM；若≥4/5且优于同期a则保留继续开发，否则不晋升。
-最便宜比较为原a与新b各5次，共10次，不额外增加GT归因链。沿用登记的单轨迹probe
-`P-20261022-single-tau-calibration`，seed195/196、同已见cylindersmall初态、同R/WAM11000、
-同native1env/30Hz、每回合最多300控制步（10s），**最多3000环境controls/1800s**。
-成功/原安全中止即停；顺序AB/BA/AB/BA/AB。运行前冻结实现与参数，单批完成，不追加重复，
-不训练v6或R。两链9可见初态对旧run要求≤1e-6。历史2/5只作主指标起点，另报同期a，
-不把不同run相减当统计效应；五次同轨迹重置不是五独立任务/训练种子。
+S2c stage/dense reward实现未修改，其stage只读记录；控制相位直接复用原FeedbackObserver
+测量contact/持握信号。成功仍由原**≥5cm、force耦合、离桌连续elapsed1s**窄witness判定，
+不把新行为hold或S2c分数当成功。原物理安全gate、动作范围、voxel网格均未放宽。
 
-每链必须报告n、全5次最长持握、ever/final、clip、限位、phase触发、物体目标误差。
-目标b≥4/5是**效果期望而非预先声称成功**。不加新审计条目，不补历史卡，正式三臂仍HOLD。
-run_id=`grasp-interface-v7-20261022-r1`；GPU5模型/GPU6物理，仅两卡实测空闲时用。
+## 冻结协议与最终全量结果
 
-## diff、验收数字和复现
+Decision目标：b≥4/5且优于同期a才保留此接口继续开发；否则不晋升。不再验证“是不是唯一
+原因”。最便宜比较为a/b各5次；同已见轨迹、同R/WAM11000、native195/model196、30Hz/env1、
+每回合最多300controls/10s，成功或原物理gate触发即停。原注册AB/BA/AB/BA/AB；工程中断后
+携带未改baseline，故实际分布跨进程（见下），不宣称隐藏physics状态完全一致。
 
-- `src/wam_rl_policy_v3/pose_consumer.py`新增`GraspIntent/grasp_intent_from_retargeter`：
-  τ解释的腕与指目标都保留；单测正反输入保证改变预形会改变执行目标，approach PD往返误差≤1e-6。
-- 同文件`MeasuredGraspConsumer`：实测位置→闭合，实测有效接触dwell→lift，物体目标误差
-  驱动lift/hold；期望只有时间或预测mode变化不能推进phase，物体从目标下方换到上方时
-  腕z动作由正变负，force invalid不能触发抬升。
-- `tools/run/run_grasp_interface_improvement.py`：同初态两链各5，模型/物理源码冻结；期望
-  COMPLETED/10回合/≤3000controls，b主指标历史2/5→至少4/5。
+总上限**3000环境controls/1800执行wall秒，包含失败尝试**；0学习更新，不追加归因链。
+沿用已登记`P-20261022-single-tau-calibration` probe seed195/196，run各有独立身份。
+最终接口代码`5e187dc040d6e1cf1ecadb15a922e4e129eddd58`，run=`grasp-interface-v7-20261022-r3`。
+
+| 链（n=5，block0→4） | 最长持握elapsed秒全分布 | ever / final | controls | 最终输出clip | 关节安全中止 |
+|---|---|---|---:|---:|---:|
+| 未改原R+WAM a | [.300,.900,1,1,1] |3/5；3/5|701|0|1/5|
+| 最终三项接口 b | [1,1,1,1,1] |5/5；5/5|530|0|0/5|
+
+**效果目标≥4/5已达到**；最终b的5次全部按实测持握交接到物体servo，交接时刻
+[2.5333,2.3667,2.3667,2.6333,2.9000]s。累计行为approach/close/lift/hold controls为
+240/144/145/1。1s成功即停，因此持握数是协议删失下界，不是持握极限。
+
+9个可见初态字段对旧共同初态最大误差**0**；最终新执行actualPD合同最大误差
+**2.0926e-7**，含所有工程尝试的最大误差**2.9460e-7**。最终输出clip不代表原R内部raw
+未超界（adapter沿用原R有界输出，未另存上游raw统计），不据此宣称全链零饱和。
+
+**post-grasp目标已入闭环，但精确到位未全部验收**：b停止时物体目标误差为
+[121.145,46.130,12.794,80.332,80.246]mm，仅1/5≤15mm；实际行为hold也仅1例触发。
+其余在lift servo过程中已满足原1s持握而停止。物理持握5/5不能替代精确8cm到位或完整
+RELEASE；这轮不追加运行去补更长时域、终态、泛化或GT executor资格。
+
+## 工程失败与全部预算（没有删掉旧版本负结果）
+
+| run | 当前版本新增controls | 完整旧B结果 | 中断 |
+|---|---:|---|---|
+| r1 `bd671f3a` |412|0/1、最长0s、300controls|腕姿/IK检查拒绝，partial19controls；A0已完成93controls |
+| r2 `e2b22351` |1316|0/4、最长全0、748controls|本线程SIGINT自有client，partial66controls；新增A1..A3完成502controls |
+| r3 `5e187dc0` |636|最终B5/5、530controls|正常退出0；新增A4为106controls |
+
+全部 **2364/3000 controls**，其中最终对比1231、旧版B和partial共1133；总执行wall
+**330.888/1800s**（50.323+187.697+92.867，不含改代码的人时）。旧版本5个完整B结果
+均为0、两个partial共85步，全部保留；不并入最终版本分母，也不隐藏其预算。
+
+实现修复有可重现的红绿回归：reset mount与过早冻结腕姿两项先2 failed/6 passed→8 passed；
+close覆盖live预形另先1 failed/8 passed→9 passed。最终5B均使用同一冻结修正版；基线A0..A3
+复用未改分支的完整结果，A4在r3。所有相同权重/初态/评分身份保留，但跨进程隐藏接触warm-start
+不能自证相同，故只报告局部工程改善，不能升级论文级优越性。GPU5/6均释放至2MiB。
+
+## diff、复现命令、期望数值
+
+所有路径相对`src/task/wam-rl-policy-v3/`：
+
+- `src/wam_rl_policy_v3/pose_consumer.py:159`：三项`GraspIntent`；`:172`：冻结R的腕/指目标
+  转换。期望approach PD往返误差≤1e-6，修改预形会改变执行的指关节目标。
+- 同文件`:194`、`:204`：测量相位和物体目标servo。期望预测mode/纯时间不能推进phase，
+  无有效force不能抬升，close保留live预形；物体从目标下方换到上方，z动作正→负。
+- `tools/run/run_grasp_interface_improvement.py`：真实native两链各5，支持显式carry全部
+  预算/未改baseline；期望COMPLETED、n各5，效果目标b≥4/5。本次实测5/5。
+- `tests/test_grasp_intent.py`：9项语义回归，含故意错误输入及已实际跑红的失败案例。
+  最终全v3 **220 passed /0 failed /0 skipped，17.69s**；不把测试PASS当物理效果证明。
 
 ```bash
+git diff 2851060a 5e187dc0 -- src/task/wam-rl-policy-v3/src/wam_rl_policy_v3/pose_consumer.py \
+ src/task/wam-rl-policy-v3/tests/test_grasp_intent.py \
+ src/task/wam-rl-policy-v3/tools/run/run_grasp_interface_improvement.py
+
 CUDA_VISIBLE_DEVICES='' PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 \
 /home2/wyy/miniconda3/envs/graspenv/bin/python -m pytest -q -p no:cacheprovider \
  --basetemp=tmp/grasp-interface-v7-repro-tests src/task/wam-rl-policy-v3/tests/test_grasp_intent.py
-# 期望9 passed/0 failed；覆盖无实测位置/无有效force等相反输入，不以预测phase代替传感器。
+# 期望9 passed/0 failed，覆盖真实状态/目标语义，不能以导入成功代替。
+
+# 只打印既有结果与完整预算，无新仿真；期望a=3/5,b=5/5，总2364，target_met=true。
+PYTHONDONTWRITEBYTECODE=1 /home2/wyy/miniconda3/envs/graspenv/bin/python \
+ src/task/wam-rl-policy-v3/tools/run/summarize_grasp_interface.py \
+ --run outputs/wam-rl-policy-v3/grasp-interface-v7-20261022-r3
 
 nvidia-smi
+# 如需独立物理复现，仅GPU5/6仍空闲时运行；fresh输出、不带carry即完整新2×5。
 PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 TMPDIR=$PWD/tmp \
 /home2/wyy/miniconda3/envs/graspenv/bin/python -u \
  src/task/wam-rl-policy-v3/tools/run/run_grasp_interface_improvement.py \
  --output outputs/wam-rl-policy-v3/grasp-interface-v7-independent-review --native-gpu 6 --model-gpu 5
+# 完成期望n各5/≤3000controls；≥4/5是效果目标，跨GPU physics不保证逐位复现5/5。
 ```
 
-输出必须fresh；依赖原R/base checkpoint、WAM11000、stats/geometry以及原始录制/物体资产。
-client graspenv Python3.8.20/Torch2.4.1+cu121，native dexplore_v120_train Torch2.0.1+cu118。
-不覆盖任何checkpoint或原输出，GPU0–3/7不动，GPU4留空。
+输出必须fresh；依赖已有R、WAM11000、stats/geometry和源轨迹/物体资产。client为graspenv
+Python3.8.20/Torch2.4.1+cu121，native为dexplore_v120_train Torch2.0.1+cu118。
+本轮只用物理GPU5/6；GPU0–3/7不动。carry命令增加`--carry-run <旧run>`，严格保留总账；
+r3实际carry r2，r2 carry r1，manifest链可核对。最终权威输出为r3的`summary-final.json`，
+逐回合`trajectory.npz/consumer.json/stages.json`和冻结runtime-code均保留；r1/r2原样保留。
+测试、红绿日志、执行日志在`outputs/wam-rl-policy-v3/grasp-interface-v7-20261022-preflight/`。
 
-腕SE3附带原R求解的Euler IK分支（同一目标的关节代表），避免连续腕关节在等价姿态解之间
-跳变；每tick前向校验分支确实到达该SE3。它不增加任务信息，也不是参考时钟轨迹。
-
-
-## 工程中断后的修复与预算续接（r2启动前）
-
-r1于412controls中断：完成原A0（93controls、持握.3s、限位中止）和第一版B0
-（300controls、持握0、close252步未取得有效contact），再执行B1的19个control后，
-腕姿IK一致性检查拒绝。所有原始轨迹保留，退出回执可查；不把未完成B1算成功/失败率。
-
-修复两项，不放宽物理gate：腕姿适配器和执行器统一使用**同tick q/palm**来算mount；
-接近位置触发闭合后，在有效force contact前继续用live抓姿修正腕目标，不能提早冻结。
-首次有效contact才锁定close pose，实测force dwell完成后才交物体目标servo。
-回归先**2 failed/6 passed**，分别重现错用reset mount、闭合过早冻结；修复后**8 passed/0 failed**。
-
-修正版固定为r2；保留未改A0作为同期baseline的一项，补其余4A和修正版5B。第一版B0
-不并入修正版分母，仍作为具名工程结果0/1列出，partial19也保留；这是版本变化而非按
-成败挑样本。r2 ledger先扣**412controls和r1全wall**，原总上限仍3000controls/1800s，
-不倒改旧预算。若剩余预算不足完成各5次，必须报告真实n/中断点，不补跑、不改成功率。
-
-```bash
-PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 TMPDIR=$PWD/tmp /home2/wyy/miniconda3/envs/graspenv/bin/python -u  src/task/wam-rl-policy-v3/tools/run/run_grasp_interface_improvement.py  --carry-run outputs/wam-rl-policy-v3/grasp-interface-v7-20261022-r1  --output outputs/wam-rl-policy-v3/grasp-interface-v7-resume-review --native-gpu 6 --model-gpu 5
-# fresh输出，原A0只读软链接；全部已花预算计入。修正版本身亦可用上节不带carry的命令复现。
-```
-
-
-## r3：保留完整手指信息直至实测持握，再交给物体目标闭环
-
-r2中断时总账**1728controls/238.020s**，包含r1的412；A0..A3均完整（持握
-[.300,.900,1,1]），第一版修补B0..B3均0，另有中断轨迹，全部保留。不把这些不同版本B
-合并进最终接口成绩。r2是本线程SIGINT自有client停止，native退出回执/partial trace保留。
-
-新增回归直接揭示：close阶段仍覆盖了持续更新的`preshape_q`。旧实现对新回归为
-**1 failed/8 passed**；改后**9 passed/0 failed**。最终行为为：实测位置开始close，但
-抓姿与手指预形继续由真实WAM+原R逐tick更新，**直到实测force接触持续≥.12s且现有
-observer确认为grasp_established**，才捕获当时腕姿/闭合目标并切换物体目标servo。
-这避免在指尖刚接近时冻结手腕，也避免在尚未持握时丢掉手指条件。相位依据测量而不是
-“close过了多久”，没有另造持握成功评分。
-
-r3冻结此版本，携带**未改A0..A3**，只补A4及最终B0..B4。全部旧版本B和partial明确
-单列，不能按结果选择性隐藏。总预算仍3000controls/1800s（余1272controls），耗尽即
-保存并报告真实n，不增补。所有有效baseline均保持同一输入/权重/执行分支；不同物理
-进程隐藏接触状态不能自证相同，只认证可见9字段初态相同。
-
-复现续接命令同上，把carry换成`grasp-interface-v7-20261022-r2`、输出改为fresh路径；
-无carry命令直接运行最终修正版的2×5。预注册的≥4/5目标不变，实际成绩须看后续结果。
+仓库门禁`python3 tools/verify.py --changed`实测 **VERIFY PASS**，日志preflight/verify.log。
+自有client/native均退出（r3 native_returncode0），不使用剩余636步追加实验。

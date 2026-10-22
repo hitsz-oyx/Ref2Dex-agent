@@ -1,3 +1,15 @@
+# 2026-10-22 v7：三项意图+测量相位，窄任务5/5
+
+[最终接口、diff与复现](grasp-interface-v7-20261022.md)：保留腕抓姿、手指预形/闭合目标、
+物体post-grasp目标；原R仍是冻结live WAM→机器人意图适配器。实测位置开始close，
+保留live腕/手指解释直到实测force dwell+grasp_established，再交接实测物体目标servo。
+最终同初态b持握[1,1,1,1,1]s、ever/final5/5；历史原R+WAM2/5，本轮未改baseline3/5。
+新b关节安全中止0/5，实测交接5/5；9初态字段误差0。目标≥4/5达到，保留此接口继续开发。
+工程旧版0/1、0/4及partial全部保留，累计2364/3000controls、330.888执行秒、0updates；
+没有额外归因链/重训。220 passed/0 failed/0 skipped。GPU5/6均已释放。
+这是已见单初态的1秒窄任务见证，非统计优势/泛化或完整RELEASE；物体精确目标≤15mm
+仅1/5，成功即停截断了后续servo；不能传递成完整任务或GT executor资格。三臂RL继续HOLD。
+
 # 2026-10-22 v6指令：位姿消费原型未达效果目标，保留原R
 
 [本轮实现、固定预算和结果](pose-consumption-improvement-20261022.md)：实现object-local
