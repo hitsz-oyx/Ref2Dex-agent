@@ -81,7 +81,9 @@ curated TRAIN 恰为 6,000 个 admitted windows，覆盖 1,064 条已有序列�
 | ↑ | 不变 | 瓶颈更可能在优化/条件/标签，下一步查 reader 条件与标签 |
 | 不变（近重复占多数） | 任意 | 1,177 条已有 cache 已被重复采样主导，先改采样/去重 |
 
-goal 契约（包括 `object_goal_valid` 硬编码以及训练/推理 goal 语义）仍未在本轮修复，
-manifest 状态为 `training_allowed=false`；因此不启动长训。待 v6 契约修复并通过合同测试后，
-才能用固定锚定样本、同一评估接口和新的环境 receipt 比较 checkpoint。v2 manifest 已由
-`curated_sampling.py` 兼容读取，但 sampler 只接受这一审计状态，不会把它当作可训练 recipe。
+v6 goal 契约已在本日另一提交中修复并通过 targeted/full contract tests：`object_goal_valid`
+不再硬编码，训练与推理统一为 `spatial_path_waypoint`。但 scheduler-conditioned cache
+identities 尚未重建，因此本 manifest 仍为 `training_allowed=false`，本轮不启动长训；待
+cache identity gate 通过后，才能用固定锚定样本、同一修正评估接口和新的环境 receipt 比较
+checkpoint。v2 manifest 已由 `curated_sampling.py` 兼容读取，但 sampler 只接受这一审计状态，
+不会把它当作可训练 recipe。

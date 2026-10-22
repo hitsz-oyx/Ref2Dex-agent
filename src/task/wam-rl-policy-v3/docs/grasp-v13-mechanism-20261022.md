@@ -213,3 +213,13 @@ python3 src/task/wam-rl-policy-v3/tools/run/run_grasp_components.py --comparator
 ```
 
 上面prepare已执行，重复需全新输出目录。Hermes全新完整重复仍只需普通runner命令，自动使用最终GT来源，不必携带旧A3。A3每未来帧物体局部映射，A4在当前匹配源帧锚定完整真实源未来；两者区别不能再被抹掉。
+
+## 输入来源与“unseen”命名边界（结果解释中的保留分歧）
+
+冻结R的训练manifest指向 `inspire-scheduled686-cache-20261020-r4`；其completion明确τ来自冻结WAM-v4 step80000的预测。训练脚本 `train_measured_scheduled_bc.py` 直接使用缓存τ/valid，未资格化任意机器人未来轨迹输入；当前A1则使用冻结v6 step11000。故A3/A4在同R下低、A1高，可以说明本组合更能消费WAM式条件，但**不能仅此推出WAM包含几何/完整源GT没有的物理信息**。输入分布/解码兼容性是仍未排除的竞争解释；这是对Hermes结果表“信息独有性”外推的保留意见，不改表中预注册的算法结果或成功阈值。
+
+旧8条“unseen”序列在R缓存中均为TRAIN（前缀命令数13–129），窄面板 `s1_cylindersmall_pass_1` 为DEV103。称谓只是旧接口开发/修复暴露，绝非R或WAM的物体训练未见证明；它们还已反复用于诊断。本轮40个seen重复seed仍只覆盖一个窄初态。详情 `r3/R-training-provenance.json`（r3即上述最终对照目录）。
+
+来源原件：[缓存实验记录](experiments/probes/P-20261020-inspire-scheduled686-cache.md)、[R训练记录](experiments/probes/P-20261020-inspire-scheduled686-bc.md)，以及输出manifest/layout。源示范完整未来也不等于当前干预/新目标下的真实未来；本轮没有把它升级为最优策略上界。
+
+外部另份[首次异常审计](audit/executor-first-anomaly-audit-20261023.md)明确分析v9 unseen40限位与另一个source面板，不能把其40/40终止限位套到本轮v10的17例桌面代理中止，也不能跨不相同的初态作配对比较。它关于“合法PD目标不证明动态安全”和“先资格化接近/接触”的限制保留；是否将本轮源替换差异解释成WAM独有信息，尚无三方一致结论。
