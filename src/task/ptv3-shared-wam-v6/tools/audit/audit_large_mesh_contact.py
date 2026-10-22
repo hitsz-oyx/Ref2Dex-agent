@@ -133,12 +133,17 @@ def measure(a):
                             distances=asset['sdf'](np.ascontiguousarray(local.reshape(-1,3),np.float32),n_threads=2).reshape(len(hz),2,64)
                             inside=distances>0;lower=np.maximum(distances,0)*validmaps[:,-1,None,None]*1000;upper=np.maximum(distances,0)*validmaps[:,0,None,None]*1000
                             known=np.broadcast_to(valid,(len(hz),2,64))&nonsingular[:,None,None]
+                            outside_lower=np.maximum(-distances,0)*validmaps[:,-1,None,None]*1000
+                            outside_upper=np.maximum(-distances,0)*validmaps[:,0,None,None]*1000
+                            signed_lower=np.where(inside,-upper,outside_lower);signed_upper=np.where(inside,-lower,outside_upper)
+                            min_lower=np.where(known,signed_lower,np.inf).min((1,2));min_upper=np.where(known,signed_upper,np.inf).min((1,2));valid_draw=known.any((1,2))
                             counts=dict(vertices=int(known.sum()),inside=int((inside&known).sum()),
                                 certified_inside_over1mm=int(((lower>1)&known).sum()),possible_inside_over1mm=int(((upper>1)&known).sum()),
                                 depth_lower_sum_mm=float(np.where(known,lower,0).sum()),depth_upper_sum_mm=float(np.where(known,upper,0).sum()),
+                                min_signed_clearance_lower_sum_mm=float(np.where(valid_draw,min_lower,0).sum()),min_signed_clearance_upper_sum_mm=float(np.where(valid_draw,min_upper,0).sum()),valid_draws=int(valid_draw.sum()),
                                 singular_draws=int((~nonsingular).sum()))
                             sk=(label,goal,anchor)
-                            if sk not in summary:summary[sk]=dict(windows=0,captures=set(),vertices=0,inside=0,certified_inside_over1mm=0,possible_inside_over1mm=0,depth_lower_sum_mm=0.,depth_upper_sum_mm=0.,singular_draws=0)
+                            if sk not in summary:summary[sk]=dict(windows=0,captures=set(),vertices=0,inside=0,certified_inside_over1mm=0,possible_inside_over1mm=0,depth_lower_sum_mm=0.,depth_upper_sum_mm=0.,singular_draws=0,min_signed_clearance_lower_sum_mm=0.,min_signed_clearance_upper_sum_mm=0.,valid_draws=0)
                             summary[sk]['windows']+=1;summary[sk]['captures'].add(r['capture'])
                             for k,v in counts.items():summary[sk][k]+=v
                             anchor_metrics[anchor]=counts
@@ -148,6 +153,8 @@ def measure(a):
     for key,v in summary.items():
         v['captures']=len(v['captures']);v['inside_fraction']=v['inside']/max(v['vertices'],1)
         v['mean_depth_lower_mm']=v['depth_lower_sum_mm']/max(v['vertices'],1);v['mean_depth_upper_mm']=v['depth_upper_sum_mm']/max(v['vertices'],1)
+        v['mean_min_signed_clearance_lower_mm']=v['min_signed_clearance_lower_sum_mm']/max(v['valid_draws'],1)
+        v['mean_min_signed_clearance_upper_mm']=v['min_signed_clearance_upper_sum_mm']/max(v['valid_draws'],1)
         result['/'.join(key)]=v
     drift={}
     for k,values in common.items():
