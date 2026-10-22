@@ -120,3 +120,99 @@ or executor-success qualification.
 
 `git_commit` for the scored implementation is
 `f30e8d7ba803d1d1b64270636dd807bf1461a5fb`.
+
+## B0 补做：固定面板上的非学习基线（2026-10-23）
+
+| 可能结果 | 含义 | 会改变哪个决定 |
+|---|---|---|
+| B1 全面板 > B0a，且 contact_window 与 first_8_frames 的 win rate 明显 > 0.5 | WAM 在两个关键子集确有可用信号 | 唯一一次封顶训练优先买有效覆盖（curated coverage），预算值得花 |
+| 全面板均值 > B0a，但 contact_window / first_8_frames 的 win rate ≈ 0.5 或 < 0.5 | 只在好走的相位占优，接触区没有可用信号 | 不把预算全押扩覆盖；先改条件/语义（goal、scheduler-conditioned），并写进 8 点报告 |
+| B1 ≤ B0a（任一子集） | 现有 τ 模型在该面板上不如“不动” | 立刻升级为阻塞项，不开训 |
+| B0b（常速）已明显优于 B1 | 目标里“运动”成分占主导，模型欠拟合动力学 | 指向模型/优化问题，而不是数据规模 |
+| 无法在不改默认口径的前提下补齐 | 打分器结构不支持对比 | 只报结构问题，不改口径，转人工 |
+
+### 协议、查重与复现
+
+查重覆盖 `tools/`、`outputs/` 和本 Task 实验卡中的 `hold`、`zero-motion`、
+`persistence`、`const-velocity`、`trivial`、`naive`。没有发现与本 512 行、固定
+TRAIN 锚点、v6 H4/K24 预测质量口径等价的既有打分。已有的
+`tools/audit/evaluate_staged_progress.py`、`tools/audit/prepare_executor_panel.py`、
+`tools/run/evaluate_executor.py` 和 `tools/audit/run_single_tau_calibration.py` 分别是
+executor stage、测量 rollout 选择、闭环 executor、单轨迹 calibration；它们没有本面板的
+checkpoint-independent offline hand EPE 合同，故不复用其数值。
+
+新增入口
+[`score_tau_panel_trivial_baselines.py`](../../../tools/run/score_tau_panel_trivial_baselines.py)
+直接导入 [`evaluate_tau_fixed_panel.py`](../../../tools/run/evaluate_tau_fixed_panel.py) 的
+`Accumulator`、panel 校验、固定索引和 SHA 函数。B1、B0a、B0b 在同一批次使用同一
+`trajectory_target`、`trajectory_valid & start_hand_valid`、phase label、前 8 帧掩码、
+contact confidence `>0.25` 和聚合实现。B0a 是零位移（未来位置保持历史最后帧）；B0b 是
+最后两帧差分的 1…24 帧线性外推。两者都是位移合同下的 analytic predictor，没有 Flow
+Matching 积分。
+
+复现命令（仓库根目录；GPU4 为空闲卡）为：
+
+```bash
+python3 src/task/ptv3-shared-wam-v6/tools/run/score_tau_panel_trivial_baselines.py \
+  --checkpoint outputs/ptv3-shared-wam-v6/flowmatching-overnight-20261022-r2/training/step011000.pt \
+  --baseline-json outputs/ptv3-shared-wam-v6/tau-fixed-panel-baseline-20261023-r1/baseline.json \
+  --output outputs/ptv3-shared-wam-v6/tau-fixed-panel-b0-20261023-r2 \
+  --batch-size 8 --gpu 4 --max-seconds 900
+```
+
+结果 receipt 是
+[`baseline-b0.json`](../../../../../../outputs/ptv3-shared-wam-v6/tau-fixed-panel-b0-20261023-r2/baseline-b0.json)。
+原有 [`baseline.json`](../../../../../../outputs/ptv3-shared-wam-v6/tau-fixed-panel-baseline-20261023-r1/baseline.json)
+只追加 `baselines`、`inference_budget`、`paired_frame_analysis`、边缘差和 receipt 引用；
+原 B1 顶层数值未改动，并已在 `baselines.B1` 原样保留。
+补做实现运行于 `main` 的 git commit `de22c0ba6007841e7f6ed56b23803d3852dd1373`。
+
+### 边缘度量
+
+| subset | B1 mean mm | B0a mean mm | B0b mean mm | B1−B0a mm |
+|---|---:|---:|---:|---:|
+| full panel | 23.409973 | 143.425247 | 162.054779 | -120.015274 |
+| first 8 frames | 9.357826 | 52.334846 | 35.036430 | -42.977020 |
+| contact window | 19.834665 | 78.880424 | 116.079155 | -59.045759 |
+
+按 phase 的 B1/B0a mean（mm）为：approach `29.897742/318.441132`、close
+`21.873276/81.554558`、contact `22.194106/75.537521`、hold
+`19.982422/102.124969`、unknown `22.469606/128.100525`。B0b 只有 first-8
+优于 B0a（35.036430 vs 52.334846 mm）；在全面板和 contact window 它分别为
+162.054779 和 116.079155 mm，均不如 B1。
+
+### 逐帧配对（B1−B0a，负值表示 B1 胜）
+
+帧误差是在同一 sample-frame 的同一 valid hand 点集合上取均值；严格小于才记为
+win，tie 单独报告。中位数 CI 是 2,000 次 deterministic bootstrap 的 percentile
+95% CI。
+
+| subset | valid frames | win rate | paired median mm | bootstrap 95% CI mm |
+|---|---:|---:|---:|---:|
+| full panel | 12,216 | 0.920105 | -42.213406 | [-43.877944, -40.660145] |
+| first 8 frames | 4,091 | 0.917868 | -17.135708 | [-18.337874, -15.854436] |
+| contact window | 7,416 | 0.909385 | -31.158743 | [-32.657995, -29.597768] |
+
+按 phase 的 win rate / paired median / 95% CI 为：approach
+`0.928175/-214.396160/[-232.056117,-193.484809]`、close
+`0.989683/-51.274138/[-53.081296,-50.049997]`、contact
+`0.881746/-21.236401/[-22.786819,-19.428128]`、hold
+`0.894841/-29.834136/[-34.098859,-26.425013]`、unknown
+`0.903558/-24.584451/[-26.237650,-22.170077]`。
+
+两种口径在本面板上结论一致：关键子集边缘均值和逐帧 win rate 都支持 B1。边缘均值
+差的绝对值大于逐帧中位差，说明少量大误差帧拉宽了均值；最明显的是 approach，B0a
+均值为 `318.441132` mm 而 B1 为 `29.897742` mm，且该相位逐帧均值差为
+`-288.543375` mm、中位差为 `-214.396160` mm。contact-window 仍保持 `0.909385`
+win rate 和 `-59.045759` mm 边缘差，因此不是“只靠好走相位占优、接触区无信号”。
+
+### 预算与决定
+
+receipt 明确记录推理预算不等：B1 `flow_steps=4`；B0a/B0b `flow_steps=0`，只做
+解析预测。运行使用 torch `2.4.1+cu121`、GPU4、64 批，约 `21.7 s`，通过 deterministic
+repeat check；没有训练、optimizer update、checkpoint 或 physics replay。
+
+结果落入第一行：B1 在全面板、first-8、contact-window 都优于 B0a，且关键子集 win
+rate 明显高于 0.5；B0b 也没有超过 B1。因此本 τ 面板支持把下一次封顶训练的优先购买
+放在有效 curated coverage，而不是把当前问题归因于“模型只会不动”或先开一个长训练。
+这仍是固定 TRAIN 预测质量证据，不升级为 validation、泛化或 executor claim。

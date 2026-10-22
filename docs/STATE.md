@@ -5081,3 +5081,12 @@ owner-approved disk reclamation followed by a declared expansion target.
 v6 τ 度量脚手架已就绪，详见任务卡 [P-20261023-tau-fixed-panel-metric](../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261023-tau-fixed-panel-metric.md)。现有阶段化 scorer、执行器 panel、单轨迹 calibration 和 `staged-eval-panel-v1.json` 均不具备“checkpoint 无关的固定 TRAIN 预测质量”合同；新命令复用 `tau-curated-20261023-r2/train-anchor.json` 的512行固定锚点，不改变训练或 goal-contract HOLD。
 
 对 `outputs/ptv3-shared-wam-v6/flowmatching-overnight-20261022-r2/training/step011000.pt` 的 GPU7 基线为：全板 hand EPE **23.409973mm**，前8帧 **9.357826mm**，接触窗口 **19.834665mm**；approach/close/contact/hold 分别 **29.897741/21.873276/22.194105/19.982422mm**。完整 JSON 与一行摘要位于 `outputs/ptv3-shared-wam-v6/tau-fixed-panel-baseline-20261023-r1/`。后续只有全板、前8帧和接触窗口同向改善才判为 τ 真改进。
+
+## 2026-10-23 τ 固定面板 B0 非学习基线补做
+
+在同一 `94d9287b...8ebc37`、512 行、H4/K24、valid 掩码和 contact `>0.25` 口径下补齐了 B0a 状态保持与 B0b 常速外推。新增 receipt 为
+`outputs/ptv3-shared-wam-v6/tau-fixed-panel-b0-20261023-r2/baseline-b0.json`，并在原 `tau-fixed-panel-baseline-20261023-r1/baseline.json` 追加 `baselines.B1/B0a/B0b`、推理预算和配对分析字段，原 B1 数值保持不变。
+
+结果：B1/B0a 全板 `23.409973/143.425247` mm，first-8 `9.357826/52.334846` mm，contact-window `19.834665/78.880424` mm；B0b 全板 `162.054779` mm、first-8 `35.036430` mm、contact-window `116.079155` mm。B1 对 B0a 的逐帧 win rate 为全板 `0.920105`、first-8 `0.917868`、contact-window `0.909385`；配对中位差 bootstrap 95% CI 分别为 `[-43.877944,-40.660145]`、`[-18.337874,-15.854436]`、`[-32.657995,-29.597768]` mm。五个 phase 的 win rate 均为 `0.881746–0.989683`。边缘均值与逐帧结论一致，均值绝对差较大主要由 approach 的长尾误差（B0a `318.441132` vs B1 `29.897742` mm）拉动。
+
+该结果落入“B1 全面板及两个关键子集均优于 B0a”的决策行：τ 面板显示可用预测信号，下一次封顶训练优先考虑有效 curated coverage；不把当前差距归因于常速动力学欠拟合。预算不等，B1 `flow_steps=4`，B0a/B0b `flow_steps=0`；本轮仅推理、无训练或 checkpoint 写入。
