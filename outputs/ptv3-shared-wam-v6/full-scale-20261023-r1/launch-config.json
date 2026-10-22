@@ -1,0 +1,26 @@
+{
+  "experiment_id": "VAL-20261023-wam-full-scale",
+  "run_id": "full-scale-20261023-r1",
+  "base_checkpoint": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/ptv3-shared-wam-v6/flowmatching-overnight-20261022-r2/training/step011000.pt",
+  "base_config": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/ptv3-shared-wam-v6/flowmatching-overnight-20261022-r2/training/config.json",
+  "data_audit": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/ptv3-shared-wam-v6/full-scale-20261023-r1/data-audit.json",
+  "target_updates": 40000,
+  "minimum_updates": 20000,
+  "per_rank_batch_size": 96,
+  "world_size": 4,
+  "effective_global_batch": 384,
+  "physical_gpus": [4, 5, 6, 7],
+  "seed": 170,
+  "validation_seed": 171,
+  "flow_eval_seed": 172,
+  "loss_contract": "step011000 config unchanged (strict fp32, GT dense2048 geometry/contact, residual CFM flow)",
+  "checkpoint_interval": 500,
+  "checkpoint_keep_recent": 2,
+  "repro_command_when_full_recipe_is_local": "CUDA_VISIBLE_DEVICES=4,5,6,7 /home2/wyy/miniconda3/envs/graspenv/bin/python src/task/ptv3-shared-wam-v6/tools/run/launch_pretrain.py --config outputs/ptv3-shared-wam-v6/full-scale-20261023-r1/config-b96-w4.json --manifest <full-v6-recipe>/manifest.json --stats <full-v6-recipe>/stats.json --output outputs/ptv3-shared-wam-v6/full-scale-20261023-r1/training --workers 8 --seed 170 --git-commit <commit> --resume outputs/ptv3-shared-wam-v6/flowmatching-overnight-20261022-r2/training/step011000.pt --gpus 4,5,6,7",
+  "status": "BLOCKED_BEFORE_LAUNCH",
+  "blockers": [
+    "GPU4/5/6 are occupied by another owner's wam-rl-policy-v3 process; no process was touched.",
+    "The v6 parent references 39,526 sequences but only 1,177 overlay sequences are local; 38,349 are pending on an unmounted /mnt/ugreen_nas path.",
+    "The five named processed-data roots use legacy formats and are not a drop-in v6 V5Windows recipe."
+  ]
+}

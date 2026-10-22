@@ -1,0 +1,574 @@
+{
+  "direct_root_use_by_flowmatching_r2": {
+    "ObjectInteractionCmv2": false,
+    "cm_decoder_v2": false,
+    "coupled_geometric_cache_v1_20260912": false,
+    "dexplore_grab": false,
+    "stage4": false
+  },
+  "full_v6_recipe_reason": "The frozen parent references 39,526 jobs but only 1,177 overlay sequences are local; 38,349 remain pending and their /mnt/ugreen_nas payload paths are not mounted.",
+  "full_v6_recipe_status": "UNAVAILABLE_LOCALLY",
+  "processed_data_roots": {
+    "ObjectInteractionCmv2": {
+      "bytes": 161370893342,
+      "inventory": {
+        "test": {
+          "frames": 37226,
+          "objects": 100,
+          "sequences": 133
+        },
+        "train": {
+          "frames": 323389,
+          "objects": 236,
+          "sequences": 1068
+        },
+        "val": {
+          "frames": 40001,
+          "objects": 96,
+          "sequences": 134
+        }
+      }
+    },
+    "cm_decoder_v2": {
+      "bytes": 37453753346,
+      "inventory": {
+        "test": {
+          "frames": 15563,
+          "objects": 32,
+          "sequences": 63
+        },
+        "train": {
+          "frames": 65008,
+          "objects": 50,
+          "sequences": 255
+        },
+        "val": {
+          "frames": 7927,
+          "objects": 25,
+          "sequences": 30
+        }
+      }
+    },
+    "coupled_geometric_cache_v1_20260912": {
+      "bytes": 47217071403,
+      "inventory": {
+        "by_split": {
+          "test": {
+            "frames": 0,
+            "grab": 0,
+            "inspire_f1": 0
+          },
+          "train": {
+            "frames": 65008,
+            "grab": 0,
+            "inspire_f1": 255
+          },
+          "val": {
+            "frames": 7927,
+            "grab": 0,
+            "inspire_f1": 30
+          }
+        },
+        "frames": 72935,
+        "sequences": 285
+      }
+    },
+    "dexplore_grab": {
+      "bytes": 17775263931,
+      "inventory": {
+        "frames": 406264,
+        "objects": 51,
+        "sequences": 1335
+      }
+    },
+    "stage4": {
+      "bytes": 81066641443,
+      "inventory": {
+        "frames": 400616,
+        "objects": 51,
+        "sequences": 1335
+      }
+    }
+  },
+  "run": {
+    "approx_train_epochs_at_last_progress": 15.788880378072927,
+    "configured_updates": 30000,
+    "dev_windows": 3356,
+    "dev_windows_by_source": {
+      "0": 96,
+      "1": 2944,
+      "10": 76,
+      "2": 96,
+      "4": 30,
+      "5": 21,
+      "6": 86,
+      "9": 7
+    },
+    "frozen_parent_plan_by_source": {
+      "0": {
+        "planned_sequences": 568,
+        "planned_windows": 2694722
+      },
+      "1": {
+        "planned_sequences": 1132,
+        "planned_windows": 225215
+      },
+      "10": {
+        "planned_sequences": 1251,
+        "planned_windows": 67324
+      },
+      "2": {
+        "planned_sequences": 301,
+        "planned_windows": 351309
+      },
+      "4": {
+        "planned_sequences": 33055,
+        "planned_windows": 328731
+      },
+      "5": {
+        "planned_sequences": 2308,
+        "planned_windows": 38185
+      },
+      "6": {
+        "planned_sequences": 287,
+        "planned_windows": 51870
+      },
+      "8": {
+        "planned_sequences": 100,
+        "planned_windows": 351
+      },
+      "9": {
+        "planned_sequences": 524,
+        "planned_windows": 6492
+      }
+    },
+    "global_batch": 288,
+    "last_progress_step": 11380,
+    "last_saved_checkpoint_step": 11000,
+    "manifest": {
+      "batch_size": 96,
+      "capacity_probe_updates": null,
+      "checkpoint_preservation": {
+        "all": false,
+        "budget_gib": 32
+      },
+      "config": {
+        "acceleration_scale_mps2": 5.0,
+        "amp": false,
+        "artifact_budget_bytes": 8589934592,
+        "batch_size": 96,
+        "checkpoint_contact": true,
+        "checkpoint_interaction": true,
+        "checkpoint_interval": 500,
+        "checkpoint_keep_recent": 2,
+        "checkpoint_milestone_interval": 0,
+        "clip_grad": 1.0,
+        "contact_chunk_size": 256,
+        "contact_metric_threshold": 0.25,
+        "event_conditioning": true,
+        "event_dropout": 0.15,
+        "event_encoding": "next-contact-release-plan.frame30.v1",
+        "execution_campaign": "v6.user-overnight-fm-20261022",
+        "explicit_hand": true,
+        "flow_checkpoint": true,
+        "flow_encoding": "v6.joint-hand42-object32.residual-cfm.linear-euler.v1",
+        "flow_eval_seed": 172,
+        "flow_layers": 2,
+        "flow_lr": 0.0001,
+        "flow_matching": true,
+        "flow_matching_weight": 1.0,
+        "flow_noise_std": 0.1,
+        "flow_steps": 4,
+        "flow_width": 256,
+        "fp32_attention_backend": "efficient",
+        "fps": 30,
+        "geometry_clearance_tolerance_m": 0.002,
+        "geometry_clearance_weight": 0.25,
+        "geometry_consistency": true,
+        "geometry_contact_falloff_m": 0.01,
+        "geometry_contact_radius_m": 0.003,
+        "geometry_contact_smoothing_m": 0.001,
+        "geometry_encoding": "v6.gt-object2048.pred-skin.contact-probability.v1",
+        "geometry_lr": 1e-05,
+        "geometry_object_source": "gt_dense2048",
+        "geometry_proxy_max_gt_gap_m": 0.05,
+        "geometry_queries": 2048,
+        "geometry_query_chunk": 64,
+        "geometry_scale_m": 0.01,
+        "geometry_ticks": [
+          1,
+          4,
+          8,
+          12,
+          16,
+          20,
+          24
+        ],
+        "geometry_warmup_updates": 100,
+        "geometry_weight": 0.05,
+        "goal_encoding": "current-point-horizon-delta.v1",
+        "hand_in_ptv3": true,
+        "hand_points": 21,
+        "hand_surface_points": 778,
+        "hand_weight": 1.0,
+        "head_heads": 8,
+        "head_width": 256,
+        "history": 4,
+        "horizon": 24,
+        "horizon_normalization": true,
+        "interaction_dim": 17,
+        "interaction_edge_width": 64,
+        "interaction_encoding": "object-centric-surface-contact16-local-id.v5",
+        "interaction_horizon": 24,
+        "interaction_points": 2048,
+        "interaction_weight": 1.0,
+        "local_subset_scope": "v6.local-expanded-ddp.v1",
+        "log_interval": 20,
+        "max_seconds": 43200,
+        "monitor_activation_rms": true,
+        "motion_floor": 0.1,
+        "motion_tau_m": 0.002,
+        "object_points": 32,
+        "patch_size": 128,
+        "point_width": 128,
+        "position_scale_m": 0.05,
+        "ptv3": {
+          "dec_channels": [
+            128,
+            64,
+            96,
+            128
+          ],
+          "dec_depths": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "dec_heads": [
+            8,
+            4,
+            6,
+            8
+          ],
+          "drop_path": 0.1,
+          "enc_channels": [
+            32,
+            64,
+            96,
+            128,
+            256
+          ],
+          "enc_depths": [
+            2,
+            2,
+            2,
+            4,
+            2
+          ],
+          "enc_heads": [
+            4,
+            4,
+            6,
+            8,
+            16
+          ]
+        },
+        "save_first_step": true,
+        "scene_tokens": 256,
+        "scene_weight": 1.0,
+        "schema": "ref2dex.ptv3-shared-wam.v6",
+        "seed": 170,
+        "shared_heads": 12,
+        "shared_layers": 12,
+        "shared_lr": 1e-05,
+        "shared_width": 768,
+        "strict_fp32": true,
+        "surface_points": 2048,
+        "task_conditioning": "shared-scene-hand-goal.v1",
+        "tf32": false,
+        "updates": 30000,
+        "validation_before_training": true,
+        "validation_initial_step": 20,
+        "validation_interval": 500,
+        "validation_microbatch_size": 4,
+        "validation_probe_step": 128,
+        "validation_samples": 32,
+        "validation_seed": 171,
+        "velocity_scale_mps": 0.5,
+        "voxel_m": 0.005,
+        "voxel_origin_m": [
+          -2.0,
+          -2.0,
+          -2.0
+        ],
+        "warmup_updates": 50,
+        "weight_decay": 0.01
+      },
+      "continuation_updates": null,
+      "cuda": "12.1",
+      "data_identity": "3d0cb55b728dc86ad31f06252e5c96f23acde4003b43b349caf6f82f8fcbb666",
+      "device": "cuda:0",
+      "engineering_smoke": false,
+      "event_recipe": {
+        "engineering_subset": true,
+        "event_dropout": 0.15,
+        "event_encoding": "next-contact-release-plan.frame30.v1",
+        "event_manifest": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/ptv3-shared-wam-v6/local-expanded-recipe-20261021-r1/events.json",
+        "event_manifest_identity": "83bfa2511dfd6f5e45c71f712868a3fdddc4e95fedb700182104fec401558370",
+        "git_commit": "afc7fa47",
+        "index_identities": {
+          "dev": "1d12902c51e81aa5bff6b42f937d5bd3a3c952561af859f12e062794f690281a",
+          "train": "327303594b0bd837ee39b8a6afc1b9118bf8bd2d705e14c0589fd90e2214a384"
+        },
+        "initialization_checkpoint": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/ptv3-shared-wam-v6/reboot-preparation-20261020-r1/checkpoints/step023758.pt",
+        "limitation": "Existing teacher-forced tau/contact objective; no new coupling loss; not a free-rollout cure or robot success claim.",
+        "local_subset_scope": "v6.local-expanded-ddp.v1",
+        "parent_manifest": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/ptv3-shared-wam-v6/local-expanded-recipe-20261021-r1/parent/manifest.json",
+        "parent_manifest_identity": "cb1c5e065202ac59bf5d695e2dcb8fc673105e470774e184794de67db0293892",
+        "previous_recipe": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/ptv3-shared-wam-v6/local-subset-recipe-20261021-r1/manifest.json",
+        "previous_recipe_identity": "30ed9f3592c46257ccd160aabceb399f46f2567a192d172d6715c61cd9823ba7",
+        "primary_source": 1,
+        "schema": "ref2dex.wam-v6-event-recipe.v1",
+        "scope": "user-requested expanded GRAB TRAIN, three-GPU scale-up; DEV and normalizers unchanged",
+        "source_ids": [
+          0,
+          1,
+          2,
+          4,
+          5,
+          6,
+          8,
+          9,
+          10
+        ],
+        "stats": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/ptv3-shared-wam-v6/local-expanded-recipe-20261021-r1/stats.json",
+        "stats_identity": "e4ce1187ea9b2ffd3a9a55630fa6504e2698cf3daface95fde76d69cd9842503",
+        "status": "FROZEN",
+        "strata_identities": {
+          "dev": "495c5e7b3c90c6698fde021346b20a64364dd3b9661854f18a9d49f9839c8877",
+          "train": "2e59d32d3ee76b49b2b4334ea88fc12995ce2b92053e54132252c79a8001b31c"
+        },
+        "training_allowed": true,
+        "windows": {
+          "dev": 3356,
+          "train": 207579
+        }
+      },
+      "execution_contract": {
+        "effective_global_batch": 288,
+        "effective_local_batch": 96,
+        "schema": "ref2dex.wam-v5-effective-batch.v1",
+        "world_size": 3
+      },
+      "git_commit": "0917f47ebb74173a1f43b10f3e3a21c5689ae0b6",
+      "initialization_binding": {
+        "checkpoint": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/ptv3-shared-wam-v6/local-expanded-ddp-20261021-r1/training/step004371.pt",
+        "kind": "weights-only-flow-expansion",
+        "new_parameters": [
+          "flow_future.input.weight",
+          "flow_future.input.bias",
+          "flow_future.context.weight",
+          "flow_future.context.bias",
+          "flow_future.horizon.weight",
+          "flow_future.time.0.weight",
+          "flow_future.time.0.bias",
+          "flow_future.time.2.weight",
+          "flow_future.time.2.bias",
+          "flow_future.layers.0.self_attn.in_proj_weight",
+          "flow_future.layers.0.self_attn.in_proj_bias",
+          "flow_future.layers.0.self_attn.out_proj.weight",
+          "flow_future.layers.0.self_attn.out_proj.bias",
+          "flow_future.layers.0.multihead_attn.in_proj_weight",
+          "flow_future.layers.0.multihead_attn.in_proj_bias",
+          "flow_future.layers.0.multihead_attn.out_proj.weight",
+          "flow_future.layers.0.multihead_attn.out_proj.bias",
+          "flow_future.layers.0.linear1.weight",
+          "flow_future.layers.0.linear1.bias",
+          "flow_future.layers.0.linear2.weight",
+          "flow_future.layers.0.linear2.bias",
+          "flow_future.layers.0.norm1.weight",
+          "flow_future.layers.0.norm1.bias",
+          "flow_future.layers.0.norm2.weight",
+          "flow_future.layers.0.norm2.bias",
+          "flow_future.layers.0.norm3.weight",
+          "flow_future.layers.0.norm3.bias",
+          "flow_future.layers.1.self_attn.in_proj_weight",
+          "flow_future.layers.1.self_attn.in_proj_bias",
+          "flow_future.layers.1.self_attn.out_proj.weight",
+          "flow_future.layers.1.self_attn.out_proj.bias",
+          "flow_future.layers.1.multihead_attn.in_proj_weight",
+          "flow_future.layers.1.multihead_attn.in_proj_bias",
+          "flow_future.layers.1.multihead_attn.out_proj.weight",
+          "flow_future.layers.1.multihead_attn.out_proj.bias",
+          "flow_future.layers.1.linear1.weight",
+          "flow_future.layers.1.linear1.bias",
+          "flow_future.layers.1.linear2.weight",
+          "flow_future.layers.1.linear2.bias",
+          "flow_future.layers.1.norm1.weight",
+          "flow_future.layers.1.norm1.bias",
+          "flow_future.layers.1.norm2.weight",
+          "flow_future.layers.1.norm2.bias",
+          "flow_future.layers.1.norm3.weight",
+          "flow_future.layers.1.norm3.bias",
+          "flow_future.norm.weight",
+          "flow_future.norm.bias",
+          "flow_future.output.weight",
+          "flow_future.output.bias"
+        ],
+        "normalization": "exact inherited checkpoint buffers",
+        "optimizer_restored": false,
+        "rng_restored": false,
+        "source_data_identity": "3d0cb55b728dc86ad31f06252e5c96f23acde4003b43b349caf6f82f8fcbb666",
+        "source_step": 4371,
+        "training_step_reset": true
+      },
+      "input_semantics": "v5.observed-joint21-surface778-object2048.h4.v1.next-planned-contact-release.frame30.v1",
+      "label_semantics": "v5.joint21-delta.surface-vertex-proximity16.r3mm-falloff10mm.v1",
+      "loader": {
+        "context": "spawn",
+        "timeout_s": 120,
+        "workers": 8
+      },
+      "max_seconds": 43200,
+      "migration_binding": null,
+      "min_free_gib": 20,
+      "objective_semantics": "v6.residual-cfm.joint-trajectory.gt-object-contact-probability.v1",
+      "precision_runtime": {
+        "attention_backend": "efficient",
+        "attention_dtype": "torch.float32",
+        "cudnn_tf32": false,
+        "dense_attention": 17,
+        "matmul_tf32": false,
+        "serialized_attention": 16,
+        "spconv_tf32": false,
+        "strict_fp32": true
+      },
+      "python": "3.8.20 (default, Oct  3 2024, 15:24:27) \n[GCC 11.2.0]",
+      "recovery_probe": false,
+      "resume_binding": {
+        "checkpoint": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/ptv3-shared-wam-v6/flowmatching-overnight-20261022-r2/flow-trial/step000128.pt",
+        "contract": {
+          "effective_global_batch": 288,
+          "effective_local_batch": 96,
+          "schema": "ref2dex.wam-v5-effective-batch.v1",
+          "world_size": 3
+        },
+        "kind": "bound-effective-batch",
+        "legacy_manifest": null,
+        "optimizer_restore": {
+          "fused_or_capturable_steps_moved": 0
+        }
+      },
+      "run_id": "training",
+      "schema": "ref2dex.ptv3-shared-wam.v6",
+      "source_ids": [
+        0,
+        1,
+        2,
+        4,
+        5,
+        6,
+        8,
+        9,
+        10
+      ],
+      "steps": 30000,
+      "topology_transition": null,
+      "torch": "2.4.1+cu121",
+      "trajectory_selection_protocol": "v5.tau-short-root-relative-contact.macro-mm.v1",
+      "work_version": "ref2dex.ptv3-shared-wam.v6",
+      "world_size": 3
+    },
+    "overlay_by_source": {
+      "0": {
+        "dev_windows": 96,
+        "frames": 2311,
+        "objects": 8,
+        "sequences": 6,
+        "train_windows": 96
+      },
+      "1": {
+        "dev_windows": 2944,
+        "frames": 343900,
+        "objects": 45,
+        "sequences": 1132,
+        "train_windows": 207179
+      },
+      "10": {
+        "dev_windows": 76,
+        "frames": 3594,
+        "objects": 4,
+        "sequences": 6,
+        "train_windows": 78
+      },
+      "2": {
+        "dev_windows": 96,
+        "frames": 3600,
+        "objects": 12,
+        "sequences": 6,
+        "train_windows": 96
+      },
+      "4": {
+        "dev_windows": 30,
+        "frames": 600,
+        "objects": 2,
+        "sequences": 6,
+        "train_windows": 30
+      },
+      "5": {
+        "dev_windows": 21,
+        "frames": 451,
+        "objects": 8,
+        "sequences": 6,
+        "train_windows": 18
+      },
+      "6": {
+        "dev_windows": 86,
+        "frames": 5772,
+        "objects": 23,
+        "sequences": 6,
+        "train_windows": 66
+      },
+      "8": {
+        "dev_windows": 0,
+        "frames": 212,
+        "objects": 6,
+        "sequences": 3,
+        "train_windows": 12
+      },
+      "9": {
+        "dev_windows": 7,
+        "frames": 231,
+        "objects": 4,
+        "sequences": 6,
+        "train_windows": 4
+      }
+    },
+    "source_draws_at_last_progress": {
+      "0": 1496,
+      "1": 3234396,
+      "10": 1195,
+      "2": 1477,
+      "4": 474,
+      "5": 279,
+      "6": 1010,
+      "8": 192,
+      "9": 57
+    },
+    "train_windows": 207579,
+    "train_windows_by_source": {
+      "0": 96,
+      "1": 207179,
+      "10": 78,
+      "2": 96,
+      "4": 30,
+      "5": 18,
+      "6": 66,
+      "8": 12,
+      "9": 4
+    }
+  },
+  "schema": "ref2dex.wam-v6.full-scale-data-audit.v1",
+  "status": "COMPLETED"
+}
