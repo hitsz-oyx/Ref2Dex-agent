@@ -37,7 +37,9 @@ def main():
         matches=compare_initials(reference,initial);checks.append(dict(path=str(initial),matches=matches))
         if matches:groups[(row['arm'],seed)].append(row)
     runs=[dict(arm=arm,seed=seed,**metrics(points)) for (arm,seed),points in sorted(groups.items())]
-    result=dict(status='VALID' if checks and all(row['matches'] for row in checks) else 'INCOMPLETE_OR_UNPAIRED',
+    valid=checks and all(row['matches'] for row in checks)
+    complete=valid and len(runs)==9 and all(row['complete_budget'] for row in runs)
+    result=dict(status='COMPLETE' if complete else 'INCOMPLETE' if valid else 'UNPAIRED_OR_NO_RESULTS',
         common_initial_state_checks=checks,runs=runs,missing_results='Unfinished seed/arm/checkpoint is missing, never a zero success rate')
     (root/'sample-efficiency-summary.json').write_text(json.dumps(result,indent=2)+'\n')
     print(json.dumps(result,indent=2))

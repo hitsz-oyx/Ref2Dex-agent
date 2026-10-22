@@ -17,7 +17,7 @@ def main():
  p.add_argument('--migrate-physics-backend',action='store_true',help='Explicit new experiment identity: allow only the physical backend to differ from --resume')
  a=p.parse_args();a.output=a.output.resolve();a.socket=a.socket.resolve()
  if a.migrate_physics_backend and not a.resume:p.error('--migrate-physics-backend requires --resume')
- if a.output.exists() or ROOT/'outputs/ptv3-shared-wam-v6' not in a.output.parents or ROOT/'tmp' not in a.socket.parents or not 1<=a.updates<=2048 or not 30<=a.seconds<=172800:raise ValueError('fresh bounded PPO paths/budget required')
+ if a.output.exists() or ROOT/'outputs/ptv3-shared-wam-v6' not in a.output.parents or ROOT/'tmp' not in a.socket.parents or not 1<=a.updates<=512 or not 30<=a.seconds<=14400:raise ValueError('fresh bounded PPO paths/budget required')
  a.output.mkdir(parents=True);a.socket.parent.mkdir(parents=True,exist_ok=True)
  os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu),OMP_NUM_THREADS='2',OPENBLAS_NUM_THREADS='2',REF2DEX_DEEP_OPT='all',TMPDIR=str(a.socket.parent),PYTHONDONTWRITEBYTECODE='1',NCCL_P2P_DISABLE='1')
  import numpy as np,torch,yaml
@@ -30,7 +30,6 @@ def main():
  from wam_rl_policy_v3.official_bridge import prepare_official
  from wam_rl_policy_v3.ppo import reduce
  from wam_rl_policy_v3.scheduled_ppo_loop import parameter_sync_error
- from wam_rl_policy_v3.checkpoint_retention import prune_checkpoints
  torch.set_num_threads(2);torch.cuda.set_device(0);torch.manual_seed(a.seed)
  if a.world_size>1:dist.init_process_group('nccl',init_method=a.rendezvous,rank=a.rank,world_size=a.world_size)
  packet=torch.load(a.bc.resolve(),map_location='cpu',weights_only=False)
@@ -40,7 +39,7 @@ def main():
  listener=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);listener.settimeout(300);listener.bind(str(a.socket));listener.listen(1)
  commit=os.environ.get('REF2DEX_CODE_COMMIT') or subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
  state=dict(status='WAITING_NATIVE',experiment_id='P-20261022-wam-v6-samples-efficiency-3arm',arm=a.arm,run_id=a.output.parent.name,git_commit=commit,python=sys.executable,torch=torch.__version__,gpu=a.gpu,rank=a.rank,world_size=a.world_size,bc=str(a.bc.resolve()),bc_step=packet['step'],source_manifest=str(a.audit_manifest.resolve()),optimizer_steps=0,iteration=0,
-  ppo_engine='pinned UniDexGrasp2 official; actual-KL/global advantage/gradient adapters reused from Shadow',observation_dim=846,cad_encoder='frozen BC encoder, part of checkpoint',reset_contract='step in source episode; terminal reward then eager indexed reset before next sampling',reset_probe=a.reset_probe)
+  ppo_engine='pinned UniDexGrasp2 official; actual-KL/global advantage/gradient adapters reused from Shadow',observation_dim=846,work_version='samples-efficiency-v1',cad_encoder='frozen BC encoder, part of checkpoint',reset_contract='step in source episode; terminal reward then eager indexed reset before next sampling',reset_probe=a.reset_probe)
  write(a.output/'manifest.json',state);print('READY',flush=True);connection=None;env=None;ppo=None;started=time.monotonic()
  try:
   connection,_=listener.accept();connection.settimeout(600);hello=receive(connection);state['native_peer_pid']=peer_pid(connection)
@@ -65,7 +64,10 @@ def main():
    else:target[key].copy_(value)
   actor.load_state_dict(target,strict=True);ppo.actor_critic.actor=actor
   ppo.optimizer=torch.optim.Adam(ppo.actor_critic.parameters(),lr=cfg['learn']['optim_stepsize'])
-  identity=dict(source=str(a.audit_manifest.resolve()),bc=str(a.bc.resolve()),wam=packet['config']['wam'],geometry=str(a.geometry_cache.resolve()),world_size=a.world_size,envs=env.num_envs,physics_backend=hello['audit'].get('physics_backend','gpu'),wam_batch=a.wam_batch,shared_tf32=a.shared_tf32)
+  forecast_identity=str(a.checkpoint.resolve()) if a.arm=='C' else 'geometry-proximal-v1' if a.arm=='B' else 'no-tau-v1'
+  identity=dict(source=str(a.audit_manifest.resolve()),bc=str(a.bc.resolve()),wam=forecast_identity,geometry=str(a.geometry_cache.resolve()),world_size=a.world_size,envs=env.num_envs,physics_backend=hello['audit'].get('physics_backend','gpu'),wam_batch=a.wam_batch,shared_tf32=a.shared_tf32,
+   arm=a.arm,observation_dim=846,history_contract='causal-H4-relative-world-positions-5cm-quaternion-current-sign.v1',
+   workspace=dict(voxel_origin_m=[-2.,-2.,-2.],voxel_m=.005,max_grid=65535),task_contract='explicit-start-plus8cm-HOLD1s-timeout20s.v1')
   completed=0
   if a.resume:
    saved=torch.load(a.resume,map_location='cuda',weights_only=False)
@@ -78,15 +80,18 @@ def main():
   if a.world_size>1:
    for value in ppo.actor_critic.state_dict().values():dist.broadcast(value,src=0)
   torch.manual_seed(a.seed+a.rank)
-  state.update(status='RUNNING',physics_backend=identity['physics_backend'],envs_per_rank=env.num_envs,total_envs=env.num_envs*a.world_size,global_rollout=env.num_envs*a.world_size*8,config=cfg,wam=packet['config']['wam'],geometry=str(a.geometry_cache.resolve()),cad_frozen=True,wam_batch=a.wam_batch,shared_tf32=a.shared_tf32,native_object_names=hello['audit']['source_object_names'])
+  state.update(status='RUNNING',physics_backend=identity['physics_backend'],envs_per_rank=env.num_envs,total_envs=env.num_envs*a.world_size,global_rollout=env.num_envs*a.world_size*8,config=cfg,wam=forecast_identity,geometry=str(a.geometry_cache.resolve()),cad_frozen=True,wam_batch=a.wam_batch,shared_tf32=a.shared_tf32,native_object_names=hello['audit']['source_object_names'])
   write(a.output/'manifest.json',state)
   def save(_=None):
    if a.rank:return
    iteration=state['iteration'];dest=a.output/('official-iteration-%d.pt'%iteration)
+   # Upstream calls save on its own log schedule; only the registered panel
+   # checkpoints survive those calls. Explicit stop/final saves have no argument.
+   if _ is not None and iteration not in {0,128,256,384,512}:return
    if dest.exists():return
    part=dest.with_suffix('.pt.part');torch.save(dict(schema='ref2dex.inspire-measured-official-ppo.v1',arm=a.arm,model=ppo.actor_critic.state_dict(),optimizer=ppo.optimizer.state_dict(),step_size=ppo.step_size,iteration=iteration,config=cfg,
     identity=identity,shape=model.shape.state_dict(),bc_step=packet['step'],resume='model/optimizer with fresh episodes',source_checkpoint=state.get('resume_from'),physics_migration=state.get('physics_migration')),part);part.replace(dest)
-   # At most 18 checkpoints in the declared <=2048-update budget.
+   # Five fixed-panel checkpoints plus at most one partial-stop checkpoint.
   original_update=ppo.update;original_step=ppo.optimizer.step
   def step(*args,**kwargs):
    result=original_step(*args,**kwargs);state['optimizer_steps']+=1;return result
@@ -121,15 +126,17 @@ def main():
    if not a.resume:raise ValueError('evaluation requires frozen policy checkpoint')
    observation=env.reset()
    np.savez_compressed(a.output/'initial-state.npz',q=env.native['q'],dq=env.native['dq'],objects=env.native['objects'],hand=env.native['hand'],sequences=np.array(env.native['sequences']))
-   first={};initial_episodes=list(env.native['episodes'])
+   policy_times=[];first={};initial_episodes=list(env.native['episodes'])
    for control in range(600):
+    torch.cuda.synchronize();policy_started=time.perf_counter()
     with torch.no_grad():action=actor(observation).clamp(-1,1)
+    torch.cuda.synchronize();policy_times.append(time.perf_counter()-policy_started)
     observation,_,done,info=env.step(action)
     for i,row in info['episode_results'].items():
      if i not in first and row['episode_id']==initial_episodes[i]:first[i]=row
     if len(first)==env.num_envs:break
    rows=[first.get(i,dict(sequence=env.native['sequences'][i],task_success=False,ever_lift5cm30=False,failure_reason='evaluation_censored')) for i in range(env.num_envs)]
-   write(a.output/'evaluation.json',dict(arm=a.arm,seed=a.seed,iteration=completed,environment_steps=completed*env.num_envs*8,n=env.num_envs,task_successes=sum(int(r['task_success']) for r in rows),lift5cm30=sum(int(r['ever_lift5cm30']) for r in rows),rows=rows,forecast_times=env.forecast_times))
+   write(a.output/'evaluation.json',dict(arm=a.arm,seed=a.seed,iteration=completed,environment_steps=completed*env.num_envs*8,n=env.num_envs,task_successes=sum(int(r['task_success']) for r in rows),lift5cm30=sum(int(r['ever_lift5cm30']) for r in rows),rows=rows,forecast_times=env.forecast_times,policy_batch_seconds=policy_times))
   else:
    save();ppo.run(a.updates,cfg['learn']['log_interval']);save()
   if a.reset_probe and (not any(0 in x['ids'] for x in env.reset_audits) or not any(1 in x['ids'] for x in env.reset_audits)):raise ValueError('partial reset fixture did not exercise both envs')

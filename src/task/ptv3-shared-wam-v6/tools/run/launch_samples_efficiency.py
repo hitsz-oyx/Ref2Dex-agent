@@ -44,7 +44,7 @@ def main():
         raise ValueError('fresh task-local output required')
     if not a.gpus or len(set(a.gpus)) != len(a.gpus) or set(a.gpus)-{0, 1, 2, 3}:
         raise ValueError('only owner-authorized GPUs 0–3; defaults 2/3')
-    if not 1 <= a.updates <= 2048 or not 2 <= a.envs <= 512:
+    if not 1 <= a.updates <= 512 or not 2 <= a.envs <= 512 or not 30 <= a.seconds_per_run <= 14400:
         raise ValueError('bounded updates/envs required')
     for gpu in a.gpus:
         text = subprocess.check_output(['nvidia-smi','-i',str(gpu),'--query-gpu=index,memory.used,utilization.gpu','--format=csv,noheader,nounits'],text=True)

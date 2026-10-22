@@ -104,7 +104,7 @@ successes/256，另报lift5cm30/256、每物体分母、平均return、失败原
 root明确确认空闲后选用；4/5/6 flow长训与7禁止使用。不停止现有进程，不push，不碰凭据。
 每GPU同一时刻一个独立seed/arm，9个作业排队；arm顺序随seed轮转。
 每run上限4h或512updates，任一先到保存停止。任一训练未达相同预算，则只能比较共同
-已完成交互预算，不能将不等预算终点当公平固定步数结果。最多2048updates的入口硬界，
+已完成交互预算，不能将不等预算终点当公平固定步数结果。最多512updates的入口硬界，
 首批不自动扩展；输出≤8GiB，磁盘可用低于20GiB停止。每run保留0/128/256/384/512及终点
 checkpoint，全部9run约3GiB模型，禁止视频和全量tau缓存。
 
@@ -153,3 +153,15 @@ C预训练成本不能写0：它继承远端九源checkpoint与本地适配4371�
 GPU1启动前实测6MiB/0%；3env、每臂2updates、seed191，强制异步reset只是接线检查，
 不进入学习效果结果。P0当前机器人GT0/16、原动作回放15/16的口头状态由root提供；
 P1不得据此将任何臂的失败归因为生成器。
+
+### 工程smoke已完成
+
+`5bfee65c`工程实现、`samples-efficiency-engineering-20261022-r1`：A/B/C各3env、
+2 PPO updates、40 optimizer steps、48训练交互，三臂native与policy全部COMPLETED。
+source/episode动作错配、PD误差、logprob重放误差、参数同步误差均0；异步reset0/1均通过。
+第2轮collection为A0.338s、B0.389s、C1.183s，learning0.142/0.141/0.161s；
+模型CUDA峰值192/192/576MiB。不是256env吞吐估计或学习效果。
+可核数字：`outputs/ptv3-shared-wam-v6/samples-efficiency-engineering-20261022-r1/engineering-summary.json`。
+GPU1退出后6MiB/0%，没有动其他作业。后续首批实现收紧保存：只保留0/128/256/384/512
+及至多一个partialstop，不受官方PPO自己的log-save schedule影响；actualforecast identity记录健康4371
+（A为no-tau，B为geometry）而不是BC亲本历史v4路径，arm/846/H4/workspace/task合同严格绑定。
