@@ -25,6 +25,12 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261022-grasp-interface-stat40:
+    seed_pool: probe
+    native_seeds: {ranges: [[100, 179]]}
+    inference_seeds: {ranges: [[180, 259]]}
+    initializer_seed: 196
+    reuse_reason: user v9 fixed-panel 40 paired episode seeds per subset; conditional trials, not 40 objects or independent training seeds; no validation pool consumed
   P-20261022-single-tau-calibration:
     seed_pool: probe
     native_repeated_reset_seed: 195
