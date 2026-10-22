@@ -76,7 +76,7 @@ def measure(a):
     import pysdf
     import trimesh
     torch.set_num_threads(2);out=a.output;rows=load(out/'panels.json')['rows'];lookup={tuple(r[k] for k in ('seq_id','slot','tick')):r for r in rows}
-    data=V6Windows(MANIFEST,'train');cache={};summary={};skipped=Counter();records=[];gt_calibration={};common=defaultdict(list)
+    started=time.monotonic();data=V6Windows(MANIFEST,'train');cache={};summary={};skipped=Counter();records=[];gt_calibration={};common=defaultdict(list);covered=defaultdict(set)
     cube=trimesh.creation.box(extents=(1.,1.,1.));sdf=pysdf.SDF(np.asarray(cube.vertices,np.float32),np.asarray(cube.faces,np.uint32))
     control=sdf(np.array([[0,0,0],[1,0,0],[.4,.4,.4]],np.float32),n_threads=2)
     if not np.allclose(control,[.5,-.5,.1],atol=1e-6):raise AssertionError('signed mesh cube control failed')
@@ -84,9 +84,13 @@ def measure(a):
     for folder in sorted((out/'mesh-endpoints').glob('worker[0-9]')):
         for modeldir in sorted(folder.iterdir()):
             for path in sorted(modeldir.glob('*.npz')):
+                check(out,started,3600)
                 with np.load(path) as z:ids=z['ids'];endpoints=z['endpoints']
                 for identity,ep in zip(ids,endpoints):
                     key=tuple(map(int,identity));r=lookup[key];label=modeldir.name
+                    if key in covered[label]:raise AssertionError('duplicate mesh endpoint identity')
+                    covered[label].add(key)
+                    if len(covered[label])%128==0:dump(out/'mesh-measure-progress.json',dict(status='RUNNING',model=label,windows_started=len(covered[label]),expected=3356,elapsed_s=time.monotonic()-started))
                     s=old.window(data,r)
                     hv=s['trajectory_valid'][7]&s['start_hand_valid']
                     if hv.any():
@@ -149,6 +153,8 @@ def measure(a):
                             anchor_metrics[anchor]=counts
                         record['goals'][goal]=anchor_metrics
                     records.append(record)
+    expected={k for k,r in lookup.items() if r['panel']=='heldout_sequence' and r['evaluate']}
+    if not covered or any(v!=expected for v in covered.values()):raise RuntimeError('incomplete endpoint coverage; do not label completed mesh result')
     result={}
     for key,v in summary.items():
         v['captures']=len(v['captures']);v['inside_fraction']=v['inside']/max(v['vertices'],1)
