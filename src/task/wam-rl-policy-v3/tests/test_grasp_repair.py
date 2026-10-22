@@ -81,3 +81,15 @@ def test_same_state_ablation_keeps_every_non_tau_observation_byte_and_valid_mask
     assert observed[0][-1:].tobytes()==observed[1][-1:].tobytes()
     assert np.abs(observed[1][421:-1]).max()==0
     assert np.abs(observed[0][421:-1]).max()>.04
+
+
+def test_actual_worker_saturation_counter_is_a_serializable_integer():
+    import importlib.util,json
+    from pathlib import Path
+    p=Path(__file__).resolve().parents[1]/'tools/run/run_grasp_repair_worker.py'
+    spec=importlib.util.spec_from_file_location('repair_worker_counter',p);module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    info=[dict(phase='hold',reachability=None)]
+    result=module.control_counts(info,np.array([[.025,0,0]],np.float32))
+    assert result['goal_servo_saturated_controls']==1
+    assert all(type(v) is int for v in result.values())
+    assert json.loads(json.dumps(result))==result

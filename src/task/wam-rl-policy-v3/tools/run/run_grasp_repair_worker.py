@@ -7,6 +7,13 @@ sys.path.insert(0,str(TASK/'tools/audit'))
 from repeat_frozen_tau_chains import freeze,write
 
 
+def control_counts(infos,actions):
+    """JSON-native integers even when NumPy comparisons enter Python sum."""
+    return dict(reach_filter_controls=int(sum(bool(i['reachability'] and i['reachability']['filter_active']) for i in infos)),
+        recovery_controls=int(sum(bool(i['reachability'] and 'recovery_candidate' in i['reachability']) for i in infos)),
+        goal_servo_saturated_controls=int(sum(i['phase'] in ('lift','hold') and np.abs(ac[:3]).max()>=.024999 for i,ac in zip(infos,actions))))
+
+
 class NativeEpisode:
     def __init__(self,frozen,folder,private,gpu,sequence,seed):
         self.folder=folder;self.private=private;private.mkdir(parents=True,exist_ok=False)
@@ -195,9 +202,8 @@ def main():
                         final_success=terminal_success(stage,goal_error,t,reg['horizon_controls'],safe['abort']),ever_success=ever_primary,final_hold=bool(t==reg['horizon_controls'] and stage['current']['hold'] and not safe['abort']),
                         stage_achieved=stage['achieved'],stage_final=stage['current'],longest_hold_s=stages.longest_hold_s,release_applicable=False,drop_after_hold=drop_after_hold,
                         final_goal_error_m=goal_error,goal_within15mm=bool(not safe['abort'] and t==reg['horizon_controls'] and goal_error<=.015),goal_error_quantiles_m=np.quantile(errors_m,[0,.5,.9,1]).tolist(),
-                        reach_filter_controls=sum(bool(i['reachability'] and i['reachability']['filter_active']) for i in control_info),recovery_controls=sum(bool(i['reachability'] and 'recovery_candidate' in i['reachability']) for i in control_info),goal_servo_saturated_controls=sum(i['phase'] in ('lift','hold') and np.abs(ac[:3]).max()>=.024999 for i,ac in zip(control_info,actions)),
                         physical_abort=physical_abort,physical_safety_final=lastsafe,wam_calls=wam_calls,actor_calls=actor_calls,encoder_covered_controls=covered,final_clipped_controls=final_clipped,adapter_clipped_controls=adapter_clipped,initial_errors=initial_errors,seconds_observed=t/30)
-                    native.finish(send,receive);write(folder/'result.json',row);report['runs'].append(row);report.update(status='RUNNING',elapsed_s=time.monotonic()-started+report['carried_elapsed_s']);write(out/'manifest.json',report);print(json.dumps(row),flush=True)
+                    row.update(control_counts(control_info,actions));native.finish(send,receive);write(folder/'result.json',row);report['runs'].append(row);report.update(status='RUNNING',elapsed_s=time.monotonic()-started+report['carried_elapsed_s']);write(out/'manifest.json',report);print(json.dumps(row),flush=True)
                 except BaseException:
                     save_trace(folder,trace,observations,actions,raw_actions,adapter_actions,pds,taus,valids);write(folder/'partial-stages.json',stage_info);raise
                 finally:
