@@ -123,8 +123,18 @@ A4实现预检：9条源序列均有有效双指实测接触，接触帧30/41/40
 
 安全门细分另新增2项边界测试通过：桌板下投影重入与桌面内跨阈值分开，不能以大步下落自动判作重入。17例初始桌面间隙−4.8至+2.8mm且都在投影内，均不在初态就触发−20mm中止。
 
-轨迹审计图（最终JSON导出，不是新实验）：[PNG](../../../../outputs/wam-rl-policy-v3/grasp-v13-mechanism-20261022-r1/abort17-figure.png) / [PDF](../../../../outputs/wam-rl-policy-v3/grasp-v13-mechanism-20261022-r1/abort17-figure.pdf)。空心点为首次低于−20mm，实心点为安全门中止；投影重入可能明显滞后，p077约3.27s已落下，11.70s才因投影重入中止。方形为close，圆形为approach。
+轨迹审计图（最终JSON导出，不是新实验）：[PNG](../../../../outputs/wam-rl-policy-v3/grasp-v13-mechanism-20261022-r1/abort17-figure.png) / [PDF](../../../../outputs/wam-rl-policy-v3/grasp-v13-mechanism-20261022-r1/abort17-figure.pdf)。空心点为首次低于−20mm，实心点为安全门中止；投影重入可能明显滞后，p077约3.27s已落下，10.83s才因投影重入中止。方形为close，圆形为approach。
 
 ```sh
 python3 src/task/wam-rl-policy-v3/tools/audit/plot_v13_aborts.py --audit outputs/wam-rl-policy-v3/grasp-v13-mechanism-20261022-r1/abort17-final.json --output-prefix outputs/wam-rl-policy-v3/grasp-v13-mechanism-20261022-r1/abort17-figure
 ```
+
+## 冻结接口回放检查
+
+`replay_v13_legacy_consumer.py` 在CPU用保存的R输出与真实状态重放5条固定旧轨迹：p000-A1/A2、p003-A1、p015-A1、p077-A1，共1688步。v13可选时机钩子未启用时，命令最大误差0、阶段差0；结果 `legacy-replay.json`。没有神经网络CPU推理、没有新增物理步。它支持复用A1/A2对照，但不验证TIME分支的物理成功。
+
+```sh
+python3 src/task/wam-rl-policy-v3/tools/audit/replay_v13_legacy_consumer.py --run outputs/wam-rl-policy-v3/grasp-v10-stat40-20261022-r1 --output outputs/wam-rl-policy-v3/grasp-v13-mechanism-20261022-r1/legacy-replay-repeat.json
+```
+
+WRIST包括R的腕增量与τ关键抓姿（也供几何恢复作hint）；预测接触index会选择关键姿态，而非直接推进相位。因此“没有预测时钟切阶段”不等于预测contact_index对抓姿无影响。A3的几何τ也使用源示范的局部手形，不是只看物体表面就凭空生成完整手型。
