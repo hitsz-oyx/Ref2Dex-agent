@@ -12,6 +12,107 @@ from ptv3_shared_wam_v5.contracts import SPARSE11_IN_21
 from .executor_bridge import full21_to_sparse11
 
 
+# This is the v6 package-local, deployment-safe equivalent of
+# ``wam_rl_policy_v3.wam_v4_runtime._prepare_goal_inputs``.  The v6 package
+# cannot import the v4 training Task at runtime, so the equivalence is tested
+# explicitly in ``tests/test_v6_goal_contract.py``.  Keep this helper's
+# sanitization and mask rules identical to the v4 contract.
+GOAL_SEMANTICS = "spatial_path_waypoint"
+GOAL_CONTRACT = (
+    "WAM-v6 goal contract: both training and inference consume the scheduler's "
+    "same-ID spatial_path_waypoint in the current-object frame over 24 steps at "
+    "30 Hz. An observed future t+24 endpoint is a label, not an accepted "
+    "conditioning semantic. Goal availability is per flow query."
+)
+
+
+def _prepare_goal_inputs(flow, centers, rotations, *, goal_delta=None,
+                         goal_world=None, goal_semantics=GOAL_SEMANTICS):
+    """Sanitize waypoint deltas and return a truthful per-query mask.
+
+    Missing or non-finite goal values are zero padded and marked unavailable;
+    finite flow queries remain independently maskable. Shape and semantic
+    errors are hard contract errors because they cannot be interpreted as a
+    missing query.
+    """
+    if goal_semantics != GOAL_SEMANTICS:
+        raise ValueError(
+            "goal semantics must be spatial_path_waypoint for both training and inference"
+        )
+    flow = np.asarray(flow, dtype=np.float64)
+    centers = np.asarray(centers, dtype=np.float64)
+    rotations = np.asarray(rotations, dtype=np.float64)
+    if (flow.ndim != 3 or flow.shape[1:] != (32, 3)
+            or centers.shape != (len(flow), 3)
+            or rotations.shape != (len(flow), 3, 3)):
+        raise ValueError("goal geometry requires Bx32x3 flow, Bx3 centers and Bx3x3 rotations")
+    if goal_delta is not None and goal_world is not None:
+        raise ValueError("provide exactly one of goal_delta or goal_world")
+    flow_valid = np.isfinite(flow).all(axis=-1)
+    if goal_delta is None and goal_world is None:
+        return np.zeros_like(flow, dtype=np.float32), np.zeros_like(flow_valid, dtype=bool)
+    if goal_delta is not None:
+        raw = np.asarray(goal_delta, dtype=np.float64)
+        if raw.shape != flow.shape:
+            raise ValueError("goal_delta must be Bx32x3 and finite where available")
+        valid = np.isfinite(raw).all(axis=-1) & flow_valid
+        sanitized = np.where(valid[..., None], raw, 0.)
+        return sanitized.astype(np.float32), valid.astype(bool)
+    raw = np.asarray(goal_world, dtype=np.float64)
+    if raw.shape != (len(flow), 3):
+        raise ValueError("goal_world must be Bx3 and finite where available")
+    row_valid = np.isfinite(raw).all(axis=-1)
+    safe_world = np.where(row_valid[:, None], raw, centers)
+    delta = np.einsum("bi,bij->bj", safe_world - centers, rotations)
+    valid = row_valid[:, None] & flow_valid
+    sanitized = np.broadcast_to(delta[:, None, :], flow.shape).copy()
+    sanitized[~valid] = 0.
+    return sanitized.astype(np.float32), valid.astype(bool)
+
+
+def _goal_from_pose(flow, anchor, goal, *, goal_semantics=GOAL_SEMANTICS):
+    """Convert one scheduler waypoint pose to sanitized query deltas."""
+    flow = np.asarray(flow, dtype=np.float64)
+    anchor = np.asarray(anchor, dtype=np.float64)
+    if flow.shape != (32, 3):
+        raise ValueError("v6 geometry query must be 32x3")
+    centers = np.zeros((1, 3), dtype=np.float64)
+    rotations = np.broadcast_to(np.eye(3, dtype=np.float64), (1, 3, 3)).copy()
+    if goal is None:
+        return _prepare_goal_inputs(
+            flow[None], centers, rotations, goal_semantics=goal_semantics)
+    raw_goal = np.asarray(goal, dtype=np.float64)
+    if raw_goal.shape != (4, 4):
+        raise ValueError("scheduler waypoint goal must be a 4x4 pose or None")
+    # Validate the complete pose before multiplying.  A non-finite value in
+    # the homogeneous row is still a non-finite goal, even though the SE(3)
+    # conversion below only consumes the leading 3x4 block.
+    if not np.isfinite(raw_goal).all():
+        invalid = np.full((1,) + flow.shape, np.nan, dtype=np.float64)
+        return _prepare_goal_inputs(
+            flow[None], centers, rotations, goal_delta=invalid,
+            goal_semantics=goal_semantics)
+    relative = anchor @ raw_goal
+    endpoint = flow @ relative[:3, :3].T + relative[:3, 3]
+    return _prepare_goal_inputs(
+        flow[None], centers, rotations,
+        goal_delta=(endpoint - flow)[None], goal_semantics=goal_semantics)
+
+
+def _assert_goal_batch_contract(batch):
+    """Assert the exact goal tensors handed to ``SharedWAMV6``."""
+    delta = batch["goal_object_delta"]
+    valid = batch["object_goal_valid"]
+    if valid.dtype is not torch.bool:
+        raise AssertionError("object_goal_valid must be bool at the model boundary")
+    if delta.shape[:-1] != valid.shape or delta.shape[-1] != 3:
+        raise AssertionError("goal tensors have incompatible batch/query shapes")
+    if not torch.isfinite(delta).all():
+        raise AssertionError("nonfinite goal_object_delta reached the model")
+    if torch.any((~valid) & delta.ne(0).any(dim=-1)):
+        raise AssertionError("invalid goal queries must be zero padded at the model boundary")
+
+
 def voxel_config(config):
     """Require checkpoint voxel coordinates; never guess training-time defaults."""
     missing = [key for key in ('voxel_origin_m', 'voxel_m') if key not in config]
@@ -30,7 +131,8 @@ def voxel_config(config):
 class EncodingUnavailable(ValueError):
     """A state/forecast cannot be encoded; mask tau without judging physics."""
 
-def online(geo, poses, joints, dense, joint_valid, dense_valid, parts, goal, event=None):
+def online(geo, poses, joints, dense, joint_valid, dense_valid, parts, goal,
+           event=None, *, goal_semantics=GOAL_SEMANTICS):
     """Only H4 observed/generated geometry and instruction inputs; no future labels."""
     anchor = np.linalg.inv(poses[-1]); local = joints@anchor[:3,:3].T+anchor[:3,3]
     skin = dense@anchor[:3,:3].T+anchor[:3,3]
@@ -38,15 +140,21 @@ def online(geo, poses, joints, dense, joint_valid, dense_valid, parts, goal, eve
     features = np.zeros((len(geo['surface']),18),np.float32)
     features[:,:3]=geo['normals'];features[:,3:12]=history(cloud);features[:,12]=1
     features[:,13]=np.linalg.norm(features[:,9:12],axis=-1)<.002
-    flow=geo['query'];relative=anchor@goal;endpoint=flow@relative[:3,:3].T+relative[:3,3]
+    flow = np.asarray(geo['query'], dtype=np.float64)
+    goal_delta, goal_valid = _goal_from_pose(
+        flow, anchor, goal, goal_semantics=goal_semantics)
+    goal_delta, goal_valid = goal_delta[0], goal_valid[0]
+    safe_flow = np.where(np.isfinite(flow), flow, 0.).astype(np.float32)
+    goal_points = np.where(goal_valid[:, None], safe_flow + goal_delta, 0.)
     sample=dict(xyz=geo['surface'].astype(np.float32),features=features,point_valid=np.ones(len(cloud[0]),bool),
         start_hand=np.where(joint_valid[...,None],local[-1],0).astype(np.float32),
         start_hand_history=np.where(joint_valid[...,None],history(local),0).astype(np.float32),start_hand_valid=joint_valid,
         dense_hand=np.where(dense_valid[...,None],skin[-1],0).astype(np.float32),
         dense_history=np.where(dense_valid[...,None],history(skin),0).astype(np.float32),dense_hand_valid=dense_valid,
-        dense_hand_part=parts.astype(np.int64),scene_points=flow[None].astype(np.float32),object_valid=np.ones(1,bool),
-        start_object_points=flow.astype(np.float32),goal_object_points=endpoint.astype(np.float32),
-        goal_object_delta=(endpoint-flow).astype(np.float32),object_goal_valid=np.ones(32,bool),
+        dense_hand_part=parts.astype(np.int64),scene_points=safe_flow[None],object_valid=np.ones(1,bool),
+        start_object_points=safe_flow,
+        goal_object_points=goal_points.astype(np.float32),goal_object_delta=goal_delta.astype(np.float32),
+        object_goal_valid=goal_valid,
         interaction_points=geo['surface'][None].astype(np.float32),interaction_normals=geo['normals'][None].astype(np.float32),
         interaction_query_valid=np.ones((1,len(geo['surface'])),bool),
         event_type=np.int64(0),event_delta_steps=np.float32(0),event_valid=np.bool_(False),event_hz=np.int64(30))
@@ -104,14 +212,34 @@ class OnlineV6Runtime:
         grid=np.floor((local[:,-1]-origin)/size)
         return np.isfinite(grid).all((1,2)) & (grid>=0).all((1,2)) & (grid<=65535).all((1,2))
 
-    def predict(self, objects, hands, goals, events, object_codes):
+    def predict(self, objects, hands, goals, events, object_codes, *,
+                goal_semantics=GOAL_SEMANTICS):
         from scipy.spatial.transform import Rotation
         origin, size = voxel_config(self.config)
-        objects=np.asarray(objects);hands=np.asarray(hands);goals=np.asarray(goals)
+        objects=np.asarray(objects);hands=np.asarray(hands)
+        if isinstance(goals, np.ndarray):
+            goals=np.asarray(goals)
         if objects.shape[1:]!=(4,7) or hands.shape!=(len(objects),4,11,3):
             raise ValueError("measured Bx4 objects/hand11 required")
-        if not len(objects) or goals.shape != (len(objects),4,4) or len(events) != len(objects) or len(object_codes) != len(objects):
+        if goal_semantics != GOAL_SEMANTICS:
+            raise ValueError(
+                "goal semantics must be spatial_path_waypoint for both training and inference"
+            )
+        if not len(objects) or len(events) != len(objects) or len(object_codes) != len(objects):
             raise ValueError('one goal/event/object code per nonempty H4 batch required')
+        if goals is None:
+            goals = [None] * len(objects)
+        elif isinstance(goals, np.ndarray) and goals.shape == (len(objects), 4, 4):
+            goals = [goals[i] for i in range(len(objects))]
+        elif isinstance(goals, np.ndarray) and len(objects) == 1 and goals.shape == (4, 4):
+            goals = [goals]
+        else:
+            try:
+                goals = list(goals)
+            except TypeError as error:
+                raise ValueError('goals must be one scheduler waypoint pose per H4 batch item or None') from error
+            if len(goals) != len(objects):
+                raise ValueError('one goal/event/object code per nonempty H4 batch required')
         ids=np.asarray(SPARSE11_IN_21);samples=[];rotations=[]
         for i,code in enumerate(object_codes):
             geo=self.geometries[code if "@" in code else code+"@1"]
@@ -121,7 +249,8 @@ class OnlineV6Runtime:
             joints=np.zeros((4,2,21,3),np.float32);joints[:,0,ids]=hands[i]
             valid=np.zeros((2,21),bool);valid[0,ids]=True
             sample=online(geo,poses,joints,np.zeros((4,2,778,3),np.float32),valid,
-                np.zeros((2,778),bool),np.zeros((2,778),np.int64),goals[i],events[i])
+                np.zeros((2,778),bool),np.zeros((2,778),np.int64),goals[i],events[i],
+                goal_semantics=goal_semantics)
             xyz=np.r_[sample["xyz"],sample["start_hand"][valid]]
             grid=np.floor((xyz-origin)/size)
             if not np.isfinite(grid).all() or grid.min()<0 or grid.max()>65535:
@@ -132,6 +261,7 @@ class OnlineV6Runtime:
         chunks=[]
         for offset in range(0,len(samples),self.inference_batch):
             batch={k:v.to(self.device) for k,v in collate(samples[offset:offset+self.inference_batch]).items()}
+            _assert_goal_batch_contract(batch)
             with torch.inference_mode(),torch.autocast("cuda",enabled=False):
                 chunks.append(full21_to_sparse11(self._trajectory(batch))[:,:,0].float().cpu().numpy())
         prediction=np.concatenate(chunks)

@@ -1,3 +1,30 @@
+## 2026-10-23 v6 online goal contract repaired; cache identity gate remains HOLD
+
+真实部署路径 `online_runtime.py` 已接入 `GOAL_SEMANTICS="spatial_path_waypoint"`。
+`online()` 和 `OnlineV6Runtime.predict()` 对缺失/非有限 goal 均逐 flow query 设置
+`object_goal_valid=False` 并零填充；`predict()` 在 `collate()` 后、真正送入
+`SharedWAMV6` 前断言 bool mask、有限 `goal_object_delta` 和 invalid query 零填充。
+显式传入 t+24 endpoint 等其他语义会抛出 ValueError。v6 包不跨 Task 导入 v4，
+本地 helper 与 v4 `_prepare_goal_inputs` 由 targeted test 逐位等价验证，语义来源
+记录在 [goal contract repair](audit/v6-goal-contract-20261023.md)。
+
+验证命令与结果：
+
+```text
+PYTHONPATH=src/task/ptv3-shared-wam-v6/src:src/task/ptv3-shared-wam-v5/src:src/task/wam-rl-policy-v3/src /home2/wyy/miniconda3/envs/graspenv/bin/python -m pytest -q src/task/ptv3-shared-wam-v6/tests/test_v6_goal_contract.py
+6 passed in 2.24s
+PYTHONPATH=src/task/ptv3-shared-wam-v6/src:src/task/ptv3-shared-wam-v5/src:src/task/wam-rl-policy-v3/src /home2/wyy/miniconda3/envs/graspenv/bin/python -m pytest -q src/task/ptv3-shared-wam-v6/tests
+153 passed, 1 skipped, 7 warnings in 18.48s
+```
+
+门槛逐项：goal contract tests **达成**；scheduler-conditioned cache identities
+**未达成**。现有 `outputs/ptv3-shared-wam-v6/tau-curated-20261023-r1/` manifest
+仍声明 training goal 是 realized t+24 endpoint，并列出必须在训练前重算的 scheduler
+goal、sidecar/cache identities；r2/r3 仍有 `object_goal_valid_hard_code: not changed`
+和 `training_allowed: false`。因此 `configs/tau_curated_data_only_v1.json` 保持
+`status=HOLD_UNTIL_GOAL_CONTRACT_REPAIR`，本轮不放行 τ 训练；40 面板成功率/τ
+预测没有在本轮重跑，结果解释表见上述合同报告开头。
+
 ## 2026-10-22 S2c：阶段化诊断与有界 dense reward 已接入
 
 [交付/公式/复现/反例](audit/s2c-staged-criteria-dense-reward-20261022.md)。仅修改v6，
