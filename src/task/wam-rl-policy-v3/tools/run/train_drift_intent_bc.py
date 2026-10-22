@@ -63,14 +63,18 @@ def main():
     def metrics():
         with torch.no_grad():prediction=policy(x)[0].tanh();loss=(prediction-y).square().mean(-1)
         return dict(train_mse=float(loss[~dev].mean()),dev_mse=float(loss[dev].mean()),maximum_normalized_residual=float(prediction.abs().max()))
-    initial=metrics();train=torch.flatnonzero(~dev);start=time.monotonic();curves=[]
+    initial=metrics();train=torch.flatnonzero(~dev);start=time.monotonic();curves=[];gpu_samples=[]
     for update in range(400):
         if time.monotonic()-start>300:break
         ids=train[torch.randint(len(train),(min(128,len(train)),),device='cuda')];mean,_=policy(x[ids]);loss=(mean.tanh()-y[ids]).square().mean();optimizer.zero_grad();loss.backward();optimizer.step()
-        if update%50==0:curves.append(dict(update=update,**metrics()))
+        if update%50==0:
+            eta=(time.monotonic()-start)/(update+1)*(399-update)
+            curves.append(dict(update=update,eta_s=eta,**metrics()))
+            print(json.dumps(curves[-1]),flush=True)
+        if update in (0,200,399):gpu_samples.append(dict(update=update,reading=subprocess.check_output(['nvidia-smi','-i',str(a.gpu),'--query-gpu=index,memory.used,utilization.gpu','--format=csv,noheader'],text=True)))
     torch.cuda.synchronize();final=metrics();torch.save(dict(model=policy.state_dict(),contract=RESIDUAL_CONTRACT,seed=292,dataset=str(dataset)),out/'bc.pt')
     result=dict(status='COMPLETED',git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),dataset=str(dataset),seed=292,updates=update+1,wall_s=time.monotonic()-start,initial=initial,final=final,curve=curves,
-        gpu=a.gpu,python=sys.executable,torch=torch.__version__,cuda=torch.version.cuda,gpu_memory_peak_bytes=torch.cuda.max_memory_allocated(),scope='offline intent recovery fit; held-out sequences, no physical efficacy claim; frozen WAM/R unchanged; DAgger deferred')
+        gpu=a.gpu,gpu_samples=gpu_samples,python=sys.executable,torch=torch.__version__,cuda=torch.version.cuda,gpu_memory_peak_bytes=torch.cuda.max_memory_allocated(),scope='offline intent recovery fit; held-out sequences, no physical efficacy claim; frozen WAM/R unchanged; DAgger deferred')
     (out/'manifest.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result,indent=2))
 
 if __name__=='__main__':main()

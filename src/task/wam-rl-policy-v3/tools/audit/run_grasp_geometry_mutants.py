@@ -7,9 +7,10 @@ ROOT=Path(__file__).resolve().parents[5];TASK=ROOT/'src/task/wam-rl-policy-v3'
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);a=p.parse_args();out=a.output.resolve();out.mkdir(parents=True,exist_ok=False)
     mutations=[
+        ('stale-grasp-offset','grasp_geometry.py','desired=effective@measured_relative','desired=effective@self.grasp_relative','test_relative_servo_still_corrects_measured_object_slip_after_wrist_arrived'),
         ('fixed15mm','grasp_geometry.py','tol=.10*width','tol=.015','test_geometry_thresholds_scale_and_are_rigid_transform_invariant'),
         ('all-five-tip-mean','grasp_geometry.py','float(np.partition(gaps,1)[1])','float(gaps.mean())','test_two_finger_measurement_ignores_three_distant_nonparticipating_fingers'),
-        ('drop-grasp-lever-arm','grasp_geometry.py','desired=effective@self.grasp_relative','desired=effective.copy()','test_relative_transform_includes_rotational_lever_arm_and_norm_rate_limits'),
+        ('drop-grasp-lever-arm','grasp_geometry.py','desired=effective@measured_relative','desired=effective.copy()','test_relative_transform_includes_rotational_lever_arm_and_norm_rate_limits'),
         ('ignore-orientation','grasp_geometry.py','angular=.5*rotvec','angular=0.*rotvec','test_postgrasp_pose_command_contains_object_orientation_error'),
         ('unlimited-translation-norm','grasp_geometry.py','delta*=min(1.,self.linear_rate*dt/max(np.linalg.norm(delta),1e-12))','delta*=1.','test_relative_transform_includes_rotational_lever_arm_and_norm_rate_limits'),
         ('ignore-passive-limit','grasp_geometry.py',"self.offset=np.asarray(offset);self.scale=np.asarray(scale)","self.offset=np.asarray(offset);self.scale=np.asarray(scale);self.mask[7]=False",'test_passive_joint_limit_rejects_candidate_before_ranking'),

@@ -105,3 +105,12 @@ def test_actual_residual_ppo_uses_time_limit_bootstrap_and_has_bounded_epochs():
     assert abs(result['target_return_mean']-expected)<1e-5
     assert 1<=result['optimizer_updates']<=4
     assert all(np.isfinite(e['loss']) for e in result['epochs'])
+
+
+def test_relative_servo_still_corrects_measured_object_slip_after_wrist_arrived():
+    from wam_rl_policy_v3.grasp_geometry import RelativePoseServo
+    servo=RelativePoseServo();goal=np.eye(4);obj=np.eye(4);palm=np.eye(4);palm[0,3]=.1
+    servo.step(goal,obj,palm,np.zeros(18),np.zeros(18),np.eye(3),0.,True)
+    obj[0,3]=.02
+    target,_,_=servo.step(goal,obj,palm,np.zeros(18),np.zeros(18),np.eye(3),1/30,True)
+    assert target[0,3]<palm[0,3]-.001, 'Measured object drift must remain in feedback after the captured wrist goal is reached'

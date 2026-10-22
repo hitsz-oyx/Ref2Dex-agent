@@ -144,7 +144,7 @@ def main():
                 if time.monotonic()-started+report['carried_elapsed_s']>reg['worker_wall_s'] or shutil.disk_usage(ROOT).free<20*2**30:raise TimeoutError('fixed worker wall/storage budget')
                 label=job['id']+'-'+arm
                 if any(r['id']==label for r in report['runs']):continue
-                folder=out/label;folder.mkdir();native=None;trace=[];observations=[];actions=[];raw_actions=[];adapter_actions=[];pds=[];taus=[];valids=[];stage_info=[];control_info=[];forecast_hands=[]
+                folder=out/label;folder.mkdir();episode_started=time.monotonic();native=None;trace=[];observations=[];actions=[];raw_actions=[];adapter_actions=[];pds=[];taus=[];valids=[];stage_info=[];control_info=[];forecast_hands=[]
                 report['active_episode']=dict(id=label,sequence=name,subset=job['subset'],tick=0);write(out/'manifest.json',report)
                 try:
                     torch.manual_seed(job['model_seed']);np.random.seed(job['model_seed'])
@@ -161,7 +161,9 @@ def main():
                     wam_calls=actor_calls=covered=final_clipped=adapter_clipped=source_failures=0;ever_primary=False;physical_abort=None;lastsafe=None;errors_m=[];drop_after_hold=False
                     for t in range(reg['horizon_controls']+1):
                         report['active_episode']['tick']=t
-                        if t%60==0:write(out/'manifest.json',report)
+                        if t%60==0:
+                            if t==60:report['gpu_monitor']=dict(id=label,tick=t,reading=subprocess.check_output(['nvidia-smi','-i',str(a.gpu),'--query-gpu=index,memory.used,utilization.gpu','--format=csv,noheader'],text=True),episode_eta_s=(time.monotonic()-episode_started)/t*(reg['horizon_controls']-t))
+                            write(out/'manifest.json',report)
                         if time.monotonic()-started+report['carried_elapsed_s']>reg['worker_wall_s']:raise TimeoutError('registered wall budget')
                         obj=np.asarray(state['objects'])[0];pose=pose7(obj);palm=pose7(np.asarray(state['palm_pose'])[0]);hand=np.asarray(state['hand'])[0,NATIVE_TO_WAM];forces=np.asarray(state['contact_forces'])[0]
                         safe=physical_safety(state,0,points,bounds,limits);lastsafe=safe;physical_abort=safe['reason'] if safe['abort'] else None
@@ -245,7 +247,7 @@ def main():
                             terminal_intent=grasp_intent_from_retargeter(np.asarray(state['q'])[0],palm,pose,target.object_path[-1],np.clip(adapter[0],-1,1),offset,scale,plan=plan,tau_valid=valid)
                             with torch.no_grad():_,terminal_value=residual(torch.tensor(residual_observation(observation,terminal_intent)[None],device='cuda'))
                             bootstrap=float(terminal_value[0])
-                        update=ppo_update(residual,optimizer,bootstrap=bootstrap,**rollout);row['ppo_update']=update;report['learning_updates']+=update['optimizer_updates']
+                        update_started=time.monotonic();update=ppo_update(residual,optimizer,bootstrap=bootstrap,**rollout);update['wall_s']=time.monotonic()-update_started;update['cuda_peak_bytes']=torch.cuda.max_memory_allocated();row['ppo_update']=update;report['learning_updates']+=update['optimizer_updates']
                         torch.save(dict(model=residual.state_dict(),optimizer=optimizer.state_dict(),contract=RESIDUAL_CONTRACT),out/('residual-'+label+'.pt'))
                         np.savez_compressed(folder/'ppo-rollout.npz',**{k:np.asarray(v) for k,v in rollout.items()});write(folder/'reward-parts.json',reward_parts)
                     native.finish(send,receive);write(folder/'result.json',row);report['runs'].append(row);report.update(status='RUNNING',elapsed_s=time.monotonic()-started+report['carried_elapsed_s']);write(out/'manifest.json',report);print(json.dumps(row),flush=True)

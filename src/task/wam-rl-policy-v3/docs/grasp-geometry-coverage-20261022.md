@@ -35,8 +35,8 @@
 1. `grasp_geometry.py:GraspGeometry`、`pose_consumer.py:MeasuredGraspConsumer.step` 与
    `ptv3_shared_wam_v6/staged_progress.py`：到位、接近与阶段评分共用尺寸合同；旧调用默认值不变。
    尺度×2则位置门×2；刚体变换后尺寸不变；只有一指接近不能通过两指 gap。
-2. `grasp_geometry.py:RelativePoseServo`：持握交接时捕获 `T_object^-1 T_wrist`，
-   目标腕姿 `T_object_goal T_object_wrist`，同时含旋转杠杆臂与姿态误差。position-only 保持
+2. `grasp_geometry.py:RelativePoseServo`：持握交接时捕获抓取朝向，并每tick由**当前实测** `T_object^-1 T_wrist`
+   刷新目标腕姿 `T_object_goal T_object_wrist`（捕获的初始抓姿只作滑移诊断，避免腕已到旧目标后忽略物体滑移），同时含旋转杠杆臂与姿态误差。position-only 保持
    捕获时物体朝向；SE3 任务追踪显式朝向。平移/旋转增量范数≤`.75m/s÷30` / `2.4rad/s÷30`。
    这些限制约束**命令增量**，不把它们冒充实测物理速度保证。失握重置积分/相对抓姿。
 3. `grasp_geometry.py:grasp_candidates/JointAdmission`：物体 PCA 轴、正交轴排列/正负方向与

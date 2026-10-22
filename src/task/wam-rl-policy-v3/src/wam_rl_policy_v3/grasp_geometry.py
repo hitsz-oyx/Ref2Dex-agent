@@ -143,8 +143,9 @@ class RelativePoseServo:
             self.grasp_relative=np.linalg.inv(obj)@palm;self.object_rotation=obj[:3,:3].copy()
         effective=np.asarray(goal).copy()
         if position_only:effective[:3,:3]=self.object_rotation
-        desired=effective@self.grasp_relative
-        # Desired wrist is formed from the measured grasp transform, including
+        measured_relative=np.linalg.inv(obj)@palm
+        desired=effective@measured_relative
+        # Desired wrist is refreshed from the measured object-relative transform, including
         # the lever-arm translation when the object goal rotates.
         dt=1/30 if self.previous_time is None else now-self.previous_time
         if dt<=0 or dt>1/30+1e-8:raise ValueError('continuous pose-servo clock required')
@@ -155,7 +156,7 @@ class RelativePoseServo:
         target=palm.copy();target[:3,3]+=delta;target[:3,:3]=Rotation.from_rotvec(angular).as_matrix()@palm[:3,:3]
         angles=closest_wrist_angles(target[:3,:3],q[3:6],mount)
         self.previous_time=now
-        return target,angles,dict(grasp_relative=self.grasp_relative.tolist(),desired_wrist=desired.tolist(),linear_step_m=float(np.linalg.norm(delta)),angular_step_rad=float(np.linalg.norm(angular)),linear_rate_limit_mps=self.linear_rate,angular_rate_limit_radps=self.angular_rate,
+        return target,angles,dict(grasp_relative=self.grasp_relative.tolist(),measured_grasp_relative=measured_relative.tolist(),relative_slip_m=float(np.linalg.norm(measured_relative[:3,3]-self.grasp_relative[:3,3])),desired_wrist=desired.tolist(),linear_step_m=float(np.linalg.norm(delta)),angular_step_rad=float(np.linalg.norm(angular)),linear_rate_limit_mps=self.linear_rate,angular_rate_limit_radps=self.angular_rate,
             object_angle_error_rad=float(np.linalg.norm(Rotation.from_matrix(effective[:3,:3]@obj[:3,:3].T).as_rotvec())))
 
 
