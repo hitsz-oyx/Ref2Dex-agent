@@ -97,7 +97,9 @@ A0的source表达被拒43controls、涉及3回合，回退同R并完整保留；
 独立核到：40/40组三链九字段初态一致；40/40 A2保留同R、τ全零、24帧未来内容被移除；
 120/120 raw逐帧重评分一致，三个worker的标签翻转负控制均被拒绝；details限速/原生目标准入检查PASS。
 全批实际PD重建最大误差**3.54983e-7**，不把PD目标一致冒充真实关节状态无接触偏差。
-当前完整v3测试**269 passed /0 failed /0 skipped，20.36s**，日志`unit-tests.log`；
+最终完整v3测试**269 passed /0 failed /0 skipped，19.76s**，日志`unit-tests-projecttmp.log`；
+最终命令显式设置项目TMPDIR与`--basetemp`。早期pytest命令漏设临时目录、默认指向/tmp，
+这是本线程执行疏漏，已补正复跑；原20.36s日志`unit-tests.log`保留。只影响测试临时路径，仿真产物与checkpoint路径不变。
 此前257项日志对应较早源码，后续并行会话增加测试，不能把不同清单报成同一测试总数。
 注册器错误注入killed2/2；快照故意漏source_pd被拒绝；限速检查能抓住40mm/.10rad故意越界。
 软件PASS没有推翻A1物理限位14/40这一失败。
@@ -153,7 +155,7 @@ $PY $TOOLS/run_grasp_coverage40.py --run outputs/wam-rl-policy-v3/grasp-v11-cove
 # 原产物只读统计复核：
 $PY $TOOLS/summarize_coverage40_details.py --run outputs/wam-rl-policy-v3/grasp-v11-coverage40-20261022-r1 --output outputs/wam-rl-policy-v3/grasp-v11-coverage40-20261022-r1/details-hermes.json
 # 期望PASS；A1/A2/A0=3/0/14，controls=15196/20898/16745，native target/rate violation均0。
-$PY -m pytest -q src/task/wam-rl-policy-v3/tests
+TMPDIR="$PWD/tmp" $PY -m pytest -q -p no:cacheprovider --basetemp=tmp/grasp-coverage40-review src/task/wam-rl-policy-v3/tests
 # 当前完整清单269passed/0failed；清单继续变动时须报实际全量。
 ```
 

@@ -85,7 +85,7 @@ $PY src/task/wam-rl-policy-v3/tools/audit/classify_measured_grasp_deaths.py --ma
 | 快照依赖修复 | `tools/audit/freeze_grasp_geometry.py:8`、`tests/test_geometry_runtime_snapshot.py:1` | 干净隔离包可导入source_pd；故意删除依赖必须拒绝，不fallback到工作区包 |
 
 复现用上方[三处修复报告](grasp-geometry-coverage-20261022.md)的geometry测试/真实参考命令；
-独立快照回归：`/home2/wyy/miniconda3/envs/graspenv/bin/python -m pytest -q src/task/wam-rl-policy-v3/tests/test_geometry_runtime_snapshot.py`，
+独立快照回归：`TMPDIR="$PWD/tmp" /home2/wyy/miniconda3/envs/graspenv/bin/python -m pytest -q --basetemp=tmp/grasp-snapshot-review src/task/wam-rl-policy-v3/tests/test_geometry_runtime_snapshot.py`，
 期望1passed/0failed。软件检查通过不证明物理修复幅度，正式数值由120回合冻结覆盖给出。
 原生目标准入、相位和真实关节中止分别统计，不用final_clipped_controls=0替代“无饱和”。
 旧v10 seen A1实际R上游裁剪2/23562、最终归一化裁剪0、PI限幅235次；

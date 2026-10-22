@@ -80,7 +80,7 @@ v6当前物体坐标系、goal_valid全True已独立核实；剩余是训练t+24
 ```sh
 PY=/home2/wyy/miniconda3/envs/graspenv/bin/python
 TOOLS=src/task/wam-rl-policy-v3/tools/run
-$PY -m pytest -q src/task/wam-rl-policy-v3/tests/test_coverage40_registration.py src/task/wam-rl-policy-v3/tests/test_geometry_runtime_snapshot.py
+TMPDIR="$PWD/tmp" $PY -m pytest -q --basetemp=tmp/grasp-coverage40-contract-review src/task/wam-rl-policy-v3/tests/test_coverage40_registration.py src/task/wam-rl-policy-v3/tests/test_geometry_runtime_snapshot.py
 # 期望3 passed / 0 failed；scale .5不能冒充1，缺source_pd的快照被拒绝。
 $PY $TOOLS/prepare_grasp_coverage40.py --output outputs/wam-rl-policy-v3/grasp-v11-coverage40-hermes-repeat1
 # 期望REGISTERED 40 distinct initials /20 unexposed objects x3 arms=120 episodes; <=72000 controls; 0 updates
@@ -101,5 +101,6 @@ $PY $TOOLS/run_grasp_coverage40.py --run outputs/wam-rl-policy-v3/grasp-v11-cove
 
 已做注册器故意错误注入：允许scale不匹配、漏掉暴露对象筛选，**killed2/2**；
 `outputs/wam-rl-policy-v3/grasp-v10-stat40-20261022-r1/coverage40-registration-mutants.json`。
-当前完整v3回归**257passed/0failed/0skipped，19.43s**；注册+快照定向**3passed/0failed**。
+注册时完整v3回归**257passed/0failed/0skipped，19.43s**；注册+快照定向**3passed/0failed**。
+最终main完整清单为**269passed/0failed/0skipped，19.76s**，项目tmp复跑日志见完成报告；没有把不同清单当同一测试数。
 这些只核软件合同，不作为三处修复在物理环境有效的证据。
