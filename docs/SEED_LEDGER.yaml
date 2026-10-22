@@ -674,3 +674,9 @@ allocations:
     fixed_DEV_panel_seed: 171
     flow_evaluation_seed: 172
     reuse_reason: matched inherited initialization and DEV panel; fixed sample-conditioned flow noise, not independent replication
+
+  P-20261022-wam-v6-identifiability-audit:
+    seed_pool: probe
+    panel_and_bank_seed: 178
+    capture_bootstrap_permutation_seed: 180
+    reuse_reason: fixed descriptive GRAB bank and checkpoint-paired panels; no model fit or independent validation
