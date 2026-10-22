@@ -38,6 +38,19 @@ from ptv3_shared_wam_v5.selection import trajectory_score,bootstrap_trajectory,T
 from ptv3_shared_wam_v4.objectives import normalized_components
 
 
+def configure_training_ipc():
+    # The launcher supplies a short runtime root, separate from artifacts.
+    root=Path(os.environ.get('REF2DEX_RUN_ROOT',str(TASK)))
+    ipc=root/'tmp'/('v6i-'+str(os.getpid()))
+    address=os.path.relpath(str(ipc),os.getcwd())
+    if len(os.fsencode(address+'/listener-12345678'))>=108:
+        raise ValueError('AF_UNIX loader path too long; supply a short REF2DEX_RUN_ROOT')
+    ipc.mkdir(parents=True,exist_ok=True,mode=0o700)
+    os.environ['TMPDIR']=address;tempfile.tempdir=address
+    multiprocessing.current_process()._config['tempdir']=address
+    return ipc
+
+
 def write(path,value):
     tmp=path.with_suffix('.json.part');tmp.write_text(json.dumps(value,indent=2,allow_nan=False)+'\n');tmp.replace(path)
     path.chmod(0o664)
@@ -240,8 +253,7 @@ def main():
                 num_workers=a.workers,pin_memory=device.startswith('cuda'),
                 generator=torch.Generator().manual_seed(seed*1009+rank))
     if a.workers:
-        from ptv3_shared_wam_v6.loader_ipc import configure_loader_ipc
-        configure_loader_ipc()
+        configure_training_ipc()
     kwargs.update(loader_options(a.workers,a.loader_timeout,a.loader_context))
     loader=DataLoader(**kwargs)
     dev_options={k:v for k,v in reader_options.items() if k!='curated_manifest'}
