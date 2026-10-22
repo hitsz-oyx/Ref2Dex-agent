@@ -52,7 +52,7 @@ run_id=`grasp-interface-v7-20261022-r1`；GPU5模型/GPU6物理，仅两卡实�
 CUDA_VISIBLE_DEVICES='' PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 \
 /home2/wyy/miniconda3/envs/graspenv/bin/python -m pytest -q -p no:cacheprovider \
  --basetemp=tmp/grasp-interface-v7-repro-tests src/task/wam-rl-policy-v3/tests/test_grasp_intent.py
-# 期望6 passed/0 failed；覆盖无实测位置/无有效force等相反输入，不以预测phase代替传感器。
+# 期望8 passed/0 failed；覆盖无实测位置/无有效force等相反输入，不以预测phase代替传感器。
 
 nvidia-smi
 PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 TMPDIR=$PWD/tmp \
@@ -67,3 +67,25 @@ client graspenv Python3.8.20/Torch2.4.1+cu121，native dexplore_v120_train Torch
 
 腕SE3附带原R求解的Euler IK分支（同一目标的关节代表），避免连续腕关节在等价姿态解之间
 跳变；每tick前向校验分支确实到达该SE3。它不增加任务信息，也不是参考时钟轨迹。
+
+
+## 工程中断后的修复与预算续接（r2启动前）
+
+r1于412controls中断：完成原A0（93controls、持握.3s、限位中止）和第一版B0
+（300controls、持握0、close252步未取得有效contact），再执行B1的19个control后，
+腕姿IK一致性检查拒绝。所有原始轨迹保留，退出回执可查；不把未完成B1算成功/失败率。
+
+修复两项，不放宽物理gate：腕姿适配器和执行器统一使用**同tick q/palm**来算mount；
+接近位置触发闭合后，在有效force contact前继续用live抓姿修正腕目标，不能提早冻结。
+首次有效contact才锁定close pose，实测force dwell完成后才交物体目标servo。
+回归先**2 failed/6 passed**，分别重现错用reset mount、闭合过早冻结；修复后**8 passed/0 failed**。
+
+修正版固定为r2；保留未改A0作为同期baseline的一项，补其余4A和修正版5B。第一版B0
+不并入修正版分母，仍作为具名工程结果0/1列出，partial19也保留；这是版本变化而非按
+成败挑样本。r2 ledger先扣**412controls和r1全wall**，原总上限仍3000controls/1800s，
+不倒改旧预算。若剩余预算不足完成各5次，必须报告真实n/中断点，不补跑、不改成功率。
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 TMPDIR=$PWD/tmp /home2/wyy/miniconda3/envs/graspenv/bin/python -u  src/task/wam-rl-policy-v3/tools/run/run_grasp_interface_improvement.py  --carry-run outputs/wam-rl-policy-v3/grasp-interface-v7-20261022-r1  --output outputs/wam-rl-policy-v3/grasp-interface-v7-resume-review --native-gpu 6 --model-gpu 5
+# fresh输出，原A0只读软链接；全部已花预算计入。修正版本身亦可用上节不带carry的命令复现。
+```

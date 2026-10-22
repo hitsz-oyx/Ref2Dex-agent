@@ -11,6 +11,7 @@ def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True)
     p.add_argument('--original-run',type=Path,default=ROOT/'outputs/ptv3-shared-wam-v6/single-tau-calibration-20261022-r1')
     p.add_argument('--native-gpu',type=int,choices=[4,5,6],default=6);p.add_argument('--model-gpu',type=int,choices=[4,5,6],default=5)
+    p.add_argument('--carry-run',type=Path,help='Retain completed unchanged baseline, all earlier budget, and failed-prototype evidence')
     a=p.parse_args();out=a.output.resolve();oldrun=a.original_run.resolve()
     if out.exists() or ROOT/'outputs/wam-rl-policy-v3' not in out.parents or a.native_gpu==a.model_gpu:raise ValueError('fresh task-local output and distinct allowed GPUs required')
     gpu=subprocess.check_output(['nvidia-smi','--query-gpu=index,memory.used,utilization.gpu','--format=csv,noheader,nounits'],text=True)
@@ -60,6 +61,22 @@ def main():
         native_gpu=a.native_gpu,model_gpu=a.model_gpu,gpu_before=gpu,native_seed=195,model_seed=196,envs=1,repeats_per_chain=5,order=order,
         maximum_environment_controls=3000,maximum_wall_s=1800,target_pose_wam_successes=4,decision_rule='main: historical2/5 to new b/5; target b>=4/5; paired current a reported, no attribution chain',learning_updates=0,environment_controls=0,runs=[],maximum_pd_reconstruction_error=0.,task_contract=LiftHoldWitness.contract,
         initial_tolerance=1e-6,unit='same seen trajectory/initial state, balanced repeated resets; not independent tasks or training seeds')
+    report['current_environment_controls']=0;report['carried_elapsed_s']=0.
+    if a.carry_run:
+        previous=json.loads((a.carry_run/'manifest.json').read_text())
+        if previous['protocol']!=report['protocol'] or previous['base_checkpoint']!=report['base_checkpoint'] or previous['wam_step']!=report['wam_step']:
+            raise ValueError('carry must be the same base policy/task inputs')
+        report['environment_controls']=previous['environment_controls']
+        report['carried_budget_controls']=previous['environment_controls']
+        report['carried_elapsed_s']=previous.get('elapsed_s',0.)
+        report['engineering_attempts_source']=str(a.carry_run.resolve())
+        report['excluded_changed_prototype_records']=[r for r in previous['runs'] if r['chain']!='a-original-wam']
+        report['partial_engineering_episode']=previous.get('partial_episode_saved')
+        for row in previous['runs']:
+            if row['chain']=='a-original-wam':
+                copied=dict(row,carried_unchanged_baseline=True,source_run=str(a.carry_run.resolve()))
+                report['runs'].append(copied)
+                (out/row['label']).symlink_to(a.carry_run.resolve()/row['label'],target_is_directory=True)
     write(out/'manifest.json',report)
     fixed=private/'motions.json';write(fixed,dict(sequences=[name]));sock=private/'rpc.sock';server=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);server.settimeout(2);server.bind(str(sock));server.listen(1)
     cmd=['/home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train/bin/python','-u',str(frozen/'src/task/wam-rl-policy-v3/tools/run/inspire_physics_host.py'),
@@ -78,6 +95,7 @@ def main():
         hello=receive(connection);report['native_initial_audit']=hello['audit'];offset=np.asarray(hello['audit']['controller']['offset'],np.float32);scale=np.asarray(hello['audit']['controller']['scale'],np.float32)
         for block,chains in enumerate(order):
             for chain in chains:
+                if any(r['block']==block and r['chain']==chain for r in report['runs']):continue
                 episode_saved=False;report['active_episode']=dict(block=block,chain=chain,tick=0)
                 send(connection,dict(op='reset',ids=[0]));state=unpack_state(receive(connection)['state'])
                 initial={k:np.asarray(state[k]).copy() for k in reference_initial}
@@ -93,7 +111,7 @@ def main():
                 cursor=0;control_info=[];stage_info=[];forecast_valids=[];full_forecasts=[];forecast_count=0
                 for t in range(301):
                     report['active_episode']['tick']=t
-                    if time.monotonic()-started>1800 or report['environment_controls']>3000 or shutil.disk_usage(ROOT).free<20*2**30:raise TimeoutError('registered wall/control/storage budget')
+                    if time.monotonic()-started+report['carried_elapsed_s']>1800 or report['environment_controls']>3000 or shutil.disk_usage(ROOT).free<20*2**30:raise TimeoutError('registered wall/control/storage budget')
                     obj=np.asarray(state['objects'])[0];pose=np.eye(4);pose[:3,:3]=Rotation.from_quat(obj[3:7]).as_matrix();pose[:3,3]=obj[:3]
                     hand=np.asarray(state['hand'])[0,NATIVE_TO_WAM];forces=np.asarray(state['contact_forces'])[0]
                     safe=physical_safety(state,0,points,bounds,hello['audit']['physical_joint_limits']);safety_reason=safe['reason'] if safe['abort'] else None
@@ -108,7 +126,7 @@ def main():
                     dv=bool(state['dof_force_valid'][0]);cv=bool(state['contact_force_valid'][0]);measured=np.r_[np.clip(current,-5,5),np.asarray(state['dof_force'])[0] if dv else np.zeros(18),forces.reshape(-1) if cv else np.zeros(15),dv,cv].astype(np.float32)
                     robot=np.r_[measured[:345],shape,measured[345:]];tau=np.zeros((8,11,3),np.float32);valid=False;available=bool(len(history)==4 and encoder_domain_available(points,hand,pose))
                     future=None;plan=None;forecast_valid=False
-                    if available and (chain=='a-original-wam' or consumer.phase=='approach'):
+                    if available and (chain=='a-original-wam' or consumer.phase=='approach' or (consumer.phase=='close' and consumer.contact_since is None)):
                         with torch.random.fork_rng(devices=[0]):prediction=wam.predict(np.asarray(history)[None],np.asarray(hands)[None],decision.local_goal_pose[None],[decision.next_event.wam_condition()],['dexplore/cylindersmall'])[0][:,WAM_TO_NATIVE]
                         forecast_count+=1;future=np.asarray(state['hand'])[0][None]+prediction;forecast_valid=True
                         tau=prediction[:8];valid=True
@@ -129,8 +147,9 @@ def main():
                     else:info=dict(phase='original-r',plan_mode=None)
                     control_info.append(info)
                     action=np.clip(raw_action,-1,1).astype(np.float32);clipped+=int((np.abs(raw_action-action)>1e-6).any());full=expand_action(action)
+                    if report['environment_controls']>=3000:raise TimeoutError('total budget exhausted, including earlier failed attempts')
                     before=list(state['episodes']);tick=np.asarray(state['tick']).copy();predicted_pd=pd_targets(action,np.asarray(state['q']),offset,scale)
-                    send(connection,dict(op='step',action=full.tolist(),episodes=before,return_pd=True));reply=receive(connection);report['environment_controls']+=1;next_state=unpack_state(reply['state']);actual_pd=np.asarray(reply['pd_targets'])
+                    send(connection,dict(op='step',action=full.tolist(),episodes=before,return_pd=True));reply=receive(connection);report['environment_controls']+=1;report['current_environment_controls']+=1;next_state=unpack_state(reply['state']);actual_pd=np.asarray(reply['pd_targets'])
                     error=float(np.abs(predicted_pd-actual_pd).max());report['maximum_pd_reconstruction_error']=max(report['maximum_pd_reconstruction_error'],error)
                     if error>2e-5:raise ValueError('actual PD differs from independently reconstructed target')
                     if next_state['episodes']!=before or not np.array_equal(np.asarray(next_state['tick']),tick+1):raise ValueError('action episode/tick mismatch')
@@ -142,13 +161,13 @@ def main():
                 episode_saved=True;report['runs'].append(record);report['status']='RUNNING';write(folder/'result.json',record);write(out/'manifest.json',report);print(json.dumps(record),flush=True)
         send(connection,dict(op='close'));receive(connection);child.wait(timeout=20)
         if child.returncode:raise RuntimeError('native exit '+str(child.returncode))
-        report.update(status='COMPLETED',elapsed_s=time.monotonic()-started,wam_seconds=wam.seconds,native_returncode=child.returncode);write(out/'manifest.json',report)
+        report.update(status='COMPLETED',elapsed_s=time.monotonic()-started+report['carried_elapsed_s'],current_elapsed_s=time.monotonic()-started,wam_seconds=wam.seconds,native_returncode=child.returncode);write(out/'manifest.json',report)
     except BaseException as error:
         if 'episode_saved' in locals() and not episode_saved and 'trace' in locals() and trace:
             partial=out/'partial-episode';partial.mkdir(exist_ok=True)
             np.savez_compressed(partial/'trajectory.npz',**{k:np.stack([row[k] for row in trace]) for k in trace[0]},observation=np.asarray(observations),action=np.asarray(actions),raw_action=np.asarray(raw_actions),pd_targets_actual=np.asarray(actual_targets),tau=np.asarray(taus),tau_valid=np.asarray(valids))
             report['partial_episode_saved']=str(partial)
-        report.update(status='FAILED',error=repr(error),elapsed_s=time.monotonic()-started);write(out/'manifest.json',report);raise
+        report.update(status='FAILED',error=repr(error),elapsed_s=time.monotonic()-started+report['carried_elapsed_s']);write(out/'manifest.json',report);raise
     finally:
         if connection:connection.close()
         server.close();log.close()

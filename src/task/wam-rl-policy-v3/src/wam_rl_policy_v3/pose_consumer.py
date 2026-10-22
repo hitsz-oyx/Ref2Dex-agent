@@ -208,10 +208,13 @@ class MeasuredGraspConsumer:
         if self.last_time is not None and now-self.last_time > 1/30+1e-8:
             self.contact_since = None
         self.last_time = float(now)
+        self.mount=Rotation.from_euler('XYZ',q[3:6]).as_matrix().T @ palm[:3,:3]
         # Reuse the production observer; graded S2c stage scores are not sensors.
         contact = bool(feedback.force_valid and feedback.contact_observed)
         if contact:
-            if self.contact_since is None:self.contact_since=float(now)
+            if self.contact_since is None:
+                self.contact_since=float(now)
+                if self.close_pose is not None:self.close_pose=palm.copy()
         else:self.contact_since=None
         candidate = object_pose @ intent.grasp_pose_object
         position_ready = bool(near_fingers >= 2 or
@@ -225,21 +228,26 @@ class MeasuredGraspConsumer:
             self.phase='lift'
             if self.contact_time is None:self.contact_time=float(now)
         if self.phase == 'approach':
-            target=object_pose @ intent.approach_pose_object
             desired_fingers=intent.preshape_q
-            delta=target[:3,3]-palm[:3,3]
-            angles=closest_wrist_angles(target[:3,:3],q[3:6],self.mount) if intent.approach_joint_angles is None else np.asarray(intent.approach_joint_angles)
-            if not np.allclose(Rotation.from_euler('XYZ',angles).as_matrix()@self.mount,target[:3,:3],atol=1e-6,rtol=0):
-                raise ValueError('wrist IK branch disagrees with pose target')
         else:
-            target=self.close_pose.copy()
-            # Force feedback changes closure targets, never the task score.
             force=np.linalg.norm(forces,axis=-1)
             finger_force=np.r_[force[:4],force[4],force[4]]
             if feedback.force_valid:
                 self.fingers+=np.where(finger_force<.25,.0015,np.where(finger_force>4.,-.001,0.))
             self.fingers=np.clip(self.fingers,.06,FINGER_UPPER)
             desired_fingers=self.fingers
+        reaching = self.phase=='approach' or (self.phase=='close' and not contact)
+        if reaching:
+            # Closing begins at measured proximity; it must not freeze the wrist
+            # before force contact. The same live R may still correct the grasp.
+            target=object_pose @ intent.approach_pose_object
+            if self.phase=='close':self.close_pose=palm.copy()
+            delta=target[:3,3]-palm[:3,3]
+            angles=closest_wrist_angles(target[:3,:3],q[3:6],self.mount) if intent.approach_joint_angles is None else np.asarray(intent.approach_joint_angles)
+            if not np.allclose(Rotation.from_euler('XYZ',angles).as_matrix()@self.mount,target[:3,:3],atol=1e-6,rtol=0):
+                raise ValueError('wrist IK branch disagrees with pose target')
+        else:
+            target=self.close_pose.copy()
             if self.phase in ('lift','hold'):
                 error=intent.postgrasp_object_pose[:3,3]-object_pose[:3,3]
                 correction=np.clip(.40*error-.010*np.asarray(object_velocity)[:3]-.005*dq[:3],-.0035,.0035)

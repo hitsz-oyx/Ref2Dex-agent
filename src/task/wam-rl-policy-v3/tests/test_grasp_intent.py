@@ -64,3 +64,22 @@ def test_wrist_ik_branch_cannot_disagree_with_pose_and_wide_action_keeps_origina
     np.testing.assert_allclose(command,raw,atol=1e-6)
     args['intent'].approach_joint_angles[0]+=.2
     with pytest.raises(ValueError,match='IK branch'):c.step(**args,now=1/30)
+
+
+def test_live_same_tick_wrist_mount_is_used_instead_of_reset_mount():
+    c,args,scale,offset=setup()
+    args['palm'][:3,:3]=Rotation.from_rotvec([2e-4,0,0]).as_matrix()@args['palm'][:3,:3]
+    raw=np.linspace(-.03,.03,12)
+    args['intent']=grasp_intent_from_retargeter(args['q'],args['palm'],args['object_pose'],np.eye(4),raw,offset,scale)
+    command,_=c.step(**args,now=0)
+    np.testing.assert_allclose(command,raw,atol=1e-6)
+
+
+def test_closing_keeps_reaching_until_measured_force_contact_then_holds_pose():
+    c,args,_,_=setup();args['near_fingers']=2
+    args['intent'].approach_pose_object[0,3]=.02
+    command,info=c.step(**args,now=0)
+    assert info['phase']=='close' and command[0]>.01
+    args['feedback'].contact_observed=True
+    command,info=c.step(**args,now=1/30)
+    assert info['phase']=='close' and abs(command[0])<1e-8
