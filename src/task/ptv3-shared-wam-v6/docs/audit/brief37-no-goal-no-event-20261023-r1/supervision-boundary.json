@@ -1,0 +1,349 @@
+{
+  "optimizer_created": false,
+  "optimizer_updates": 0,
+  "network_forward_executed": false,
+  "actual_model_class": "SharedWAMV6",
+  "capture": "SharedWAMV6.forward_pre_hook",
+  "tensors": {
+    "goal_object_delta": {
+      "dtype": "torch.float32",
+      "shape": [
+        8,
+        32,
+        3
+      ],
+      "nonzero": 0,
+      "first_values": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "goal_object_points": {
+      "dtype": "torch.float32",
+      "shape": [
+        8,
+        32,
+        3
+      ],
+      "nonzero": 0,
+      "first_values": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "object_goal_valid": {
+      "dtype": "torch.bool",
+      "shape": [
+        8,
+        32
+      ],
+      "nonzero": 0,
+      "first_values": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    "trajectory_valid": {
+      "dtype": "torch.bool",
+      "shape": [
+        8,
+        24,
+        2,
+        21
+      ],
+      "nonzero": 6048,
+      "first_values": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    "start_hand_valid": {
+      "dtype": "torch.bool",
+      "shape": [
+        8,
+        2,
+        21
+      ],
+      "nonzero": 252,
+      "first_values": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    "scene_valid": {
+      "dtype": "torch.bool",
+      "shape": [
+        8,
+        1,
+        24,
+        32
+      ],
+      "nonzero": 6144,
+      "first_values": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ]
+    },
+    "object_valid": {
+      "dtype": "torch.bool",
+      "shape": [
+        8,
+        1
+      ],
+      "nonzero": 8,
+      "first_values": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ]
+    },
+    "interaction_valid": {
+      "dtype": "torch.bool",
+      "shape": [
+        8,
+        1,
+        24,
+        2048
+      ],
+      "nonzero": 393216,
+      "first_values": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ]
+    },
+    "interaction_query_valid": {
+      "dtype": "torch.bool",
+      "shape": [
+        8,
+        1,
+        2048
+      ],
+      "nonzero": 16384,
+      "first_values": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ]
+    },
+    "dense_hand_valid": {
+      "dtype": "torch.bool",
+      "shape": [
+        8,
+        2,
+        778
+      ],
+      "nonzero": 9336,
+      "first_values": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    "event_type": {
+      "dtype": "torch.int64",
+      "shape": [
+        8
+      ],
+      "nonzero": 0,
+      "first_values": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "event_delta_steps": {
+      "dtype": "torch.float32",
+      "shape": [
+        8
+      ],
+      "nonzero": 0,
+      "first_values": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "event_valid": {
+      "dtype": "torch.bool",
+      "shape": [
+        8
+      ],
+      "nonzero": 0,
+      "first_values": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    "event_hz": {
+      "dtype": "torch.int64",
+      "shape": [
+        8
+      ],
+      "nonzero": 8,
+      "first_values": [
+        30,
+        30,
+        30,
+        30,
+        30,
+        30,
+        30,
+        30
+      ]
+    },
+    "sample_id": {
+      "dtype": "torch.int64",
+      "shape": [
+        8,
+        3
+      ],
+      "nonzero": 16,
+      "first_values": [
+        1162,
+        0,
+        27,
+        1162,
+        0,
+        19,
+        515,
+        0
+      ]
+    },
+    "source_id": {
+      "dtype": "torch.int64",
+      "shape": [
+        8
+      ],
+      "nonzero": 7,
+      "first_values": [
+        8,
+        8,
+        1,
+        8,
+        0,
+        4,
+        6,
+        1
+      ]
+    }
+  },
+  "unchanged_fields_bits": {
+    "xyz": true,
+    "features": true,
+    "point_valid": true,
+    "start_hand": true,
+    "start_hand_history": true,
+    "start_hand_valid": true,
+    "trajectory_target": true,
+    "trajectory_valid": true,
+    "dense_hand": true,
+    "dense_history": true,
+    "dense_hand_valid": true,
+    "dense_hand_part": true,
+    "scene_points": true,
+    "scene_target": true,
+    "scene_valid": true,
+    "object_valid": true,
+    "start_object_points": true,
+    "interaction_points": true,
+    "interaction_normals": true,
+    "interaction_query_valid": true,
+    "contact_target": true,
+    "part_target": true,
+    "interaction_valid": true,
+    "source_id": true,
+    "sample_id": true,
+    "geometry_object_future_gt": true,
+    "event_type": true,
+    "event_delta_steps": true,
+    "event_valid": true,
+    "event_hz": true,
+    "event_raw_invalid": true,
+    "event_condition_dropout": true
+  },
+  "target_sha256": {
+    "trajectory_target": "580c35cd946d8367d412565837e1c936826f48e47c07a0303e83a13c1f980ef7",
+    "scene_target": "0ca1d0666c82eb633d97f6d09664ce396e4bf367a11ad2faba84ae5ee3053cec",
+    "contact_target": "794304c7365dd0d3584f337f720175999d0a6d41912f5cadda4d9af19d0dba67",
+    "part_target": "5b46788488629271dc51167e52e1a0b4461bd66a43ceaa5e5a0d8f6cbbae2222",
+    "geometry_object_future_gt": "9aff6bbad700e6aaaab81a4ffaa5d365ef3cad7e566a166d2cd8946bbaf92f86"
+  },
+  "model_mask_denominators": {
+    "hand": 6048,
+    "scene": 6144,
+    "contact": 393216
+  }
+}

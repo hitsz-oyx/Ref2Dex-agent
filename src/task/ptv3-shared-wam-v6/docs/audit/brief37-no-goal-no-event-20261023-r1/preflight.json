@@ -1,0 +1,138 @@
+{
+  "at": "2026-10-22T21:59:23.738668+00:00",
+  "gpus": [
+    {
+      "index": 0,
+      "uuid": "GPU-6132dc13-97d7-4ffa-41aa-778f0b48e606",
+      "used_bytes": 16379805696,
+      "total_bytes": 25769803776,
+      "free_bytes": 9051308032,
+      "utilization_percent": 91,
+      "has_process": true
+    },
+    {
+      "index": 1,
+      "uuid": "GPU-33a9c1c9-cccb-61c2-afeb-4ec98be09963",
+      "used_bytes": 16459497472,
+      "total_bytes": 25769803776,
+      "free_bytes": 8971616256,
+      "utilization_percent": 93,
+      "has_process": true
+    },
+    {
+      "index": 2,
+      "uuid": "GPU-38984681-4d43-0b6d-20b2-96b4fd20f010",
+      "used_bytes": 16325279744,
+      "total_bytes": 25769803776,
+      "free_bytes": 9105833984,
+      "utilization_percent": 91,
+      "has_process": true
+    },
+    {
+      "index": 3,
+      "uuid": "GPU-136e8f52-698e-904b-0bda-35b8382a45d8",
+      "used_bytes": 16293822464,
+      "total_bytes": 25769803776,
+      "free_bytes": 9138339840,
+      "utilization_percent": 78,
+      "has_process": true
+    },
+    {
+      "index": 4,
+      "uuid": "GPU-0606f00a-d9d0-3a00-5b49-c9e747b77307",
+      "used_bytes": 2097152,
+      "total_bytes": 25769803776,
+      "free_bytes": 25430065152,
+      "utilization_percent": 0,
+      "has_process": false
+    },
+    {
+      "index": 5,
+      "uuid": "GPU-34fc272e-0657-e8f0-d8b4-e5f27c4a8d5e",
+      "used_bytes": 2097152,
+      "total_bytes": 25769803776,
+      "free_bytes": 25430065152,
+      "utilization_percent": 0,
+      "has_process": false
+    },
+    {
+      "index": 6,
+      "uuid": "GPU-9442e3c0-2f76-67d9-c326-d86b42440622",
+      "used_bytes": 2097152,
+      "total_bytes": 25769803776,
+      "free_bytes": 25430065152,
+      "utilization_percent": 0,
+      "has_process": false
+    },
+    {
+      "index": 7,
+      "uuid": "GPU-b409b7db-7602-cc5d-095a-26983ff0609a",
+      "used_bytes": 5133828096,
+      "total_bytes": 25769803776,
+      "free_bytes": 20297285632,
+      "utilization_percent": 21,
+      "has_process": true
+    }
+  ],
+  "compute_processes_csv": "GPU-6132dc13-97d7-4ffa-41aa-778f0b48e606, 2730517, 15606\nGPU-33a9c1c9-cccb-61c2-afeb-4ec98be09963, 2730518, 15678\nGPU-38984681-4d43-0b6d-20b2-96b4fd20f010, 2730519, 15552\nGPU-136e8f52-698e-904b-0bda-35b8382a45d8, 2730520, 15522\nGPU-b409b7db-7602-cc5d-095a-26983ff0609a, 244185, 812\nGPU-b409b7db-7602-cc5d-095a-26983ff0609a, 288691, 4072\n",
+  "filesystem_free_bytes": 146681860096,
+  "gates": {
+    "three_checks": true,
+    "authorized_gpus_free": true,
+    "disk_headroom": true,
+    "data_manifest": true,
+    "ordered_6000": true,
+    "recipe": true,
+    "deadline": true
+  },
+  "pass_all": true,
+  "available_authorized": [
+    4,
+    5,
+    6
+  ],
+  "estimated_output_bytes": 17179869184,
+  "expected_checkpoint_bytes": 1217116001,
+  "checkpoint_growth_estimate_bytes_per_update": 1217116.001,
+  "gpu_authorization": {
+    "no_preemption": true,
+    "owner_authorized_project_pool": [
+      4,
+      5,
+      6,
+      7
+    ],
+    "authorized_training_pool": [
+      4,
+      5,
+      6
+    ],
+    "protected_gpus": [
+      0,
+      1,
+      2,
+      3,
+      7
+    ],
+    "protected_pids": [
+      2730517,
+      2730518,
+      2730519,
+      2730520
+    ],
+    "spare_policy": "Require spare only when surplus exists inside the owner-authorized pool; do not count GPUs 0-3 belonging to zyc. GPU 7 is occupied by the higher-priority executor line.",
+    "spare_exemption": {
+      "authorization": "owner brief34, 2026-10-23",
+      "reason": "Fixed project pool 4/5/6/7; GPU 7 protected for executor; released GPUs 4/5/6 exclusively authorized for world_size=3 tau training.",
+      "default_spares": 2,
+      "required_spares_this_allocation": 0,
+      "no_other_gate_waived": true
+    },
+    "queue_if_unavailable": true,
+    "gpu_long_jobs_other_than_training": 0
+  },
+  "spare_exemption": "owner brief34/37 fixed pool4/5/6/7;7 executor;0-3 zyc; require surplus spares only within authorized pool; world3 uses4/5/6",
+  "disk_stop_bytes": 21474836480,
+  "disk_warn_bytes": 32212254720,
+  "artifact_alarm_bytes": 34359738368
+}

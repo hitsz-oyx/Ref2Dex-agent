@@ -1,0 +1,18 @@
+{
+  "actual_initial_step": 0,
+  "weights_from_step": 11000,
+  "model_tensors": 626,
+  "all_weights_bit_equal": true,
+  "initial_file_bytes": 405716522,
+  "source_file_bytes": 1217116001,
+  "optimizer_state_entries": 0,
+  "initialization": {
+    "kind": "weights-only-no-goal-no-event",
+    "checkpoint": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/ptv3-shared-wam-v6/flowmatching-overnight-20261022-r2/training/step011000.pt",
+    "source_step": 11000,
+    "optimizer_restored": false,
+    "training_step_reset": true,
+    "condition_recipe_sha256": "36872da24a5dc72cc5580d94a048b5fd7a6ed111b21e7053a4b17acbeff9fc5d"
+  },
+  "separate_third_cell_required": false
+}

@@ -1,0 +1,54 @@
+{
+  "status": "STARTED",
+  "at": "2026-10-22T21:59:24.277066+00:00",
+  "pid": 289790,
+  "pgid": 289790,
+  "supervisor_pid": 289782,
+  "physical_gpus": [
+    4,
+    5,
+    6
+  ],
+  "head": "b60e61db36ef97f764917c53cef2eb99ffa67a59",
+  "policy_sha256": "36872da24a5dc72cc5580d94a048b5fd7a6ed111b21e7053a4b17acbeff9fc5d",
+  "config_sha256": "de74a83d976eca08a7d9027ecda0ae01b5219447b4dc64677fe1f395921018ad",
+  "data_identity": {
+    "manifest_sha256": "5bda6a99678b0586b496eff7b4b3ba3afddda996cdc16c43603341ed1264225f",
+    "ordered_window_tuple_sha256": "d18ec57ee2de589152131eb2dfab4ac7581ab29275d08756c973dce2c000c3d7",
+    "windows": 6000
+  },
+  "command": [
+    "/home2/wyy/miniconda3/envs/dexplore_repro_py38_torch222_cu121/bin/python",
+    "-m",
+    "torch.distributed.run",
+    "--standalone",
+    "--nnodes=1",
+    "--nproc_per_node=3",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/ptv3-shared-wam-v6/tools/run/train_pretrain.py",
+    "--config",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/ptv3-shared-wam-v6/configs/tau_no_goal_no_event_train_v1.json",
+    "--manifest",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/ptv3-shared-wam-v6/local-expanded-recipe-20261021-r1/manifest.json",
+    "--stats",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/ptv3-shared-wam-v6/local-expanded-recipe-20261021-r1/stats.json",
+    "--output",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/ptv3-shared-wam-v6/tmp/tau-no-goal-no-event-20261023-r1/training",
+    "--initialize-condition-from",
+    "outputs/ptv3-shared-wam-v6/flowmatching-overnight-20261022-r2/training/step011000.pt",
+    "--workers",
+    "4",
+    "--git-commit",
+    "b60e61db36ef97f764917c53cef2eb99ffa67a59",
+    "--preserve-all-checkpoints",
+    "--checkpoint-budget-gib",
+    "32"
+  ],
+  "initialization": {
+    "checkpoint": "outputs/ptv3-shared-wam-v6/flowmatching-overnight-20261022-r2/training/step011000.pt",
+    "mode": "weights-only",
+    "restore_optimizer": false
+  },
+  "estimated_duration_s": 4535.722678899765,
+  "estimated_bytes": 17179869184,
+  "hard_stop_epoch": 1792710900.0
+}

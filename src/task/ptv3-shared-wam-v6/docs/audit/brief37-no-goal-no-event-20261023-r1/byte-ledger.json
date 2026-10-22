@@ -1,0 +1,28 @@
+{
+  "run_directory": {
+    "files": 18,
+    "logical_bytes": 417020827,
+    "allocated_bytes": 417071104
+  },
+  "engineering_fixtures": {
+    "files": 8,
+    "logical_bytes": 5905844,
+    "allocated_bytes": 5926912
+  },
+  "new_checkpoint_bytes": 405716522,
+  "training_updates": 0,
+  "optimizer_sample_exposures": 0,
+  "estimated_before_bytes": 17179869184,
+  "history_deleted": false,
+  "audit_evidence_excluding_ledger": {
+    "files": 18,
+    "logical_bytes": 6024643,
+    "allocated_bytes": 6070272
+  },
+  "code_and_report_files": {
+    "files": 15,
+    "logical_bytes": 132850,
+    "allocated_bytes": 159744
+  },
+  "total_accounted_logical_bytes_excluding_ledger": 429084164
+}

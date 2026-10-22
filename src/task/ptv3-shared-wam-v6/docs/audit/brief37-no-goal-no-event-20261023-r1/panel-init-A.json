@@ -1,0 +1,48 @@
+{
+  "schema": "ref2dex.no-goal-no-event.fixed-panel.v1",
+  "scope": "TRAIN distribution only; no new rollout or executor benefit",
+  "checkpoint": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/ptv3-shared-wam-v6/tmp/tau-no-goal-no-event-20261023-r1/training/step000000.pt",
+  "step": 0,
+  "rows": 512,
+  "mothers": 124,
+  "metrics_order": [
+    "first8_hand",
+    "fixed_contact_hand",
+    "first8_object"
+  ],
+  "means_mm": [
+    16.16936885247714,
+    59.22188021099478,
+    11.2522877601466
+  ],
+  "cluster_ci95_mm": [
+    [
+      15.325963283084167,
+      17.00660818865864
+    ],
+    [
+      53.82933850441091,
+      64.75640930152754
+    ],
+    [
+      10.110079798158894,
+      12.39937805156577
+    ]
+  ],
+  "bootstrap_repeats": 4000,
+  "paired_vs_reference": null,
+  "same_A_conditions": true,
+  "goal_policy": "v6.no-goal.no-event.unknown-invalid.frame30.v1",
+  "event_policy": "v6.event-free.unknown-invalid.frame30.v1",
+  "event_valid_count": 0,
+  "goal_valid_count": 0,
+  "contact_definition": "future frames with any valid surface contact target > threshold",
+  "contact_threshold": 0.25,
+  "repeated_prediction_bit_exact": true,
+  "repeat_max_abs_hand_mm": 0.0,
+  "elapsed_s": 27.48286684602499,
+  "physical_gpu": 7,
+  "free_gpu_bytes_before": 20297285632,
+  "peak_allocated_bytes": 641889792,
+  "anchor_sha256": "440c00c8609a2e9c6276f328f1aa5136a04708294a09b5dab8321044e6caa706"
+}

@@ -1,0 +1,1 @@
+{"at": "2026-10-22T22:01:41.871576+00:00", "csv": "index, memory.used [MiB], memory.free [MiB], utilization.gpu [%]\n0, 15621 MiB, 8632 MiB, 32 %\n1, 15697 MiB, 8556 MiB, 51 %\n2, 15569 MiB, 8684 MiB, 52 %\n3, 15539 MiB, 8715 MiB, 36 %\n4, 1685 MiB, 22568 MiB, 0 %\n5, 1623 MiB, 22630 MiB, 0 %\n6, 1623 MiB, 22630 MiB, 0 %\n7, 4364 MiB, 19889 MiB, 0 %\n"}

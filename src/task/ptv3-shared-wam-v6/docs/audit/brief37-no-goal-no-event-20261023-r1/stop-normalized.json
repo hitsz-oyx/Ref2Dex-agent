@@ -1,0 +1,64 @@
+{
+  "at": "2026-10-22T22:02:06.587789+00:00",
+  "pid": 289790,
+  "returncode": 0,
+  "reason": "FAILED_DATA_LOADER_NO_RESTART",
+  "result": {
+    "status": "FAILED_DATA_LOADER",
+    "loader_failure": "RuntimeError('DataLoader timed out after 120 seconds')",
+    "engineering_smoke": false,
+    "recovery_probe": false,
+    "continuation_updates": null,
+    "optimizer_updates": 0,
+    "last_step": 0,
+    "last_loss": null,
+    "elapsed_s": 141.7567397626117,
+    "source_ids_seen": [],
+    "capacity_probe": false,
+    "steady_updates_per_s": null,
+    "peak_reserved_gib": 1.19921875,
+    "peak_allocated_gib": 0.9168639183044434,
+    "timing": {},
+    "checkpoint_written": true,
+    "ddp_parameter_signatures": null,
+    "best_selection": {
+      "score": null,
+      "step": null,
+      "checkpoint": null,
+      "trajectory": null
+    }
+  },
+  "latest_progress": null,
+  "artifact_bytes": 417019911,
+  "automatic_restart": false,
+  "status": "BLOCKED_INFRASTRUCTURE_BEFORE_FIRST_UPDATE",
+  "raw_reason": "COMPLETED",
+  "raw_reason_is_incorrect": true,
+  "completed_optimizer_updates": 0,
+  "optimizer_sample_exposures": 0,
+  "second_launch": false,
+  "failure": "AF_UNIX path too long in multiprocessing resource_sharer Listener; followed by120s DataLoader timeout",
+  "cpu_reproducer": {
+    "absolute_tempdir_bytes": 116,
+    "af_unix_address_max_bytes": 107,
+    "expected_failure_reproduced": true,
+    "fixed_listener_and_spawn_tensor_delivery_passed": true
+  },
+  "no_oom": true,
+  "no_numerical_divergence": true,
+  "disk_stop_triggered": false,
+  "training_gpus_released": [
+    4,
+    5,
+    6
+  ],
+  "preregistration_outcome": "NOT_EVALUABLE_TRAINING_NEVER_UPDATED; no conclusion on tau route",
+  "gpu_processes_touched": [
+    289790,
+    289879,
+    289880,
+    289881
+  ],
+  "protected_pids_touched": [],
+  "training_restart_performed": false
+}

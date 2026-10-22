@@ -1,0 +1,25 @@
+{
+  "status": "FAILED_DATA_LOADER",
+  "loader_failure": "RuntimeError('DataLoader timed out after 120 seconds')",
+  "engineering_smoke": false,
+  "recovery_probe": false,
+  "continuation_updates": null,
+  "optimizer_updates": 0,
+  "last_step": 0,
+  "last_loss": null,
+  "elapsed_s": 141.7567397626117,
+  "source_ids_seen": [],
+  "capacity_probe": false,
+  "steady_updates_per_s": null,
+  "peak_reserved_gib": 1.19921875,
+  "peak_allocated_gib": 0.9168639183044434,
+  "timing": {},
+  "checkpoint_written": true,
+  "ddp_parameter_signatures": null,
+  "best_selection": {
+    "score": null,
+    "step": null,
+    "checkpoint": null,
+    "trajectory": null
+  }
+}
