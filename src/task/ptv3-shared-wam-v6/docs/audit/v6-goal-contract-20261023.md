@@ -53,7 +53,7 @@ PYTHONPATH=src/task/ptv3-shared-wam-v6/src:src/task/ptv3-shared-wam-v5/src:src/t
 PYTHONPATH=src/task/ptv3-shared-wam-v6/src:src/task/ptv3-shared-wam-v5/src:src/task/wam-rl-policy-v3/src \
   /home2/wyy/miniconda3/envs/graspenv/bin/python -m pytest -q \
   src/task/ptv3-shared-wam-v6/tests
-# 153 passed, 1 skipped, 7 warnings in 18.48s
+# 155 passed, 8 warnings in 18.57s
 ```
 
 The three deployment-path negative controls are:
@@ -93,7 +93,7 @@ The config remains
 
 | Gate item | Status | Command/evidence |
 |---|---|---|
-| Goal contract tests | **达成** | The targeted command above: `5 passed`; full v6 suite: `154 passed, 8 warnings`. The captured post-`collate()` assertions cover valid, missing, and non-finite goals. |
+| Goal contract tests | **达成** | The targeted command above: `6 passed`; full v6 suite: `155 passed, 8 warnings`. The captured post-`collate()` assertions cover valid, missing, and non-finite goals. |
 | Scheduler-conditioned cache identities | **未达成** | The read-only manifest check below reports the current cache is still endpoint-conditioned and no scheduler-conditioned identity receipt exists. |
 
 ```bash
