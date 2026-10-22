@@ -30,6 +30,7 @@ def summarize(reg,manifests):
                 initial_families=len({x['sequence'] for x in r}),goal15_k=sum(x['goal_within15mm'] for x in r),goal15_n=n,goal15_wilson95=wilson(sum(x['goal_within15mm'] for x in r),n) if n else None,
                 terminal_goal_error_mm=[float(v*1000) for v in errors],terminal_error_quantiles_mm=np.quantile(errors*1000,[0,.25,.5,.75,.9,1]).tolist() if n else None,
                 full_horizon_survivors=len(survived),fixed_horizon_error_mm=[x['final_goal_error_m']*1000 for x in survived],
+                reach_filter=[x.get('reach_filter_controls',0) for x in r],recovery=[x.get('recovery_controls',0) for x in r],goal_servo_saturated=[x.get('goal_servo_saturated_controls',0) for x in r],actor_calls=[x.get('actor_calls',0) for x in r],encoder_covered=[x.get('encoder_covered_controls',0) for x in r],
                 hold_s=[x['longest_hold_s'] for x in r],controls=[x['controls'] for x in r],adapter_clip=[x['adapter_clipped_controls'] for x in r],final_clip=[x['final_clipped_controls'] for x in r],physical_abort=[x['physical_abort'] for x in r])
         for a,b in itertools.combinations(reg['arms'],2):
             ga,gb=groups[subset][a],groups[subset][b]

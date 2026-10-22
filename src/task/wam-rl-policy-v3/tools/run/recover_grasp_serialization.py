@@ -46,7 +46,7 @@ def main():
         final_goal_error_m=error,goal_within15mm=bool(not safe['abort'] and n==reg['horizon_controls'] and error<=.015),goal_error_quantiles_m=np.quantile(errors,[0,.5,.9,1]).tolist(),physical_abort=safe['reason'] if safe['abort'] else None,physical_safety_final=safe,wam_calls=int(data['tau_valid'].sum()),actor_calls=n,encoder_covered_controls=int(data['tau_valid'][:-1].sum()),final_clipped_controls=int((np.abs(raw-actions)>1e-6).any(-1).sum()),adapter_clipped_controls=int((np.abs(adapter)>1+1e-6).any(-1).sum()),initial_errors=initial_errors,seconds_observed=n/30,serialization_recovered=True)
     spec=importlib.util.spec_from_file_location('repair_worker',TASK/'tools/run/run_grasp_repair_worker.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module);row.update(module.control_counts(consumer,actions))
     out.mkdir(parents=True);(out/'runtime-code').symlink_to(frozen,target_is_directory=True);shutil.copyfile(run/'registration.json',out/'registration.json')
-    for r in m['runs']:[(out/r['id']).symlink_to(run/r['id'],target_is_directory=True)]
+    for r in m['runs']:(out/r['id']).symlink_to(run/r['id'],target_is_directory=True)
     (out/label).symlink_to(folder,target_is_directory=True)
     recovered=dict(m,status='RECOVERED_COMPLETED_PHYSICAL',source_failed_manifest=str(run/'manifest.json'),runs=m['runs']+[row],original_error=m['error']);recovered.pop('error')
     (out/'manifest.json').write_text(json.dumps(recovered,indent=2)+'\n');(out/'recovered-result.json').write_text(json.dumps(row,indent=2)+'\n')

@@ -301,6 +301,12 @@
 | [P-20261013-goal-point-wam-visited-joint-anchor](../../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-visited-joint-anchor.md) | Joint actor/R update with a GT-tau action anchor | COMPLETED 3000 updates in 609s on GPU2. No checkpoint passed the | Stop this clocked joint update. Do not deploy the pair. The next | probes/UNPROMISING |
 | [P-20261013-goal-point-wam-visited-realign](../../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-visited-realign.md) | Current visited-state coverage and fixed-R actor realignment | 27 actual takeovers collected;19 successful recovery queries admitted;R repaired/GT-qualified;actor realignment running. | Complete one collect/qualify/align/rollout loop, without larger models. | probes/RUNNING |
 
+## HF-grasp-interface-repair
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261022-grasp-interface-repair](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261022-grasp-interface-repair.md) | v10 修复与同 R 的 n40 验收 | PENDING frozen 160 episodes, no training updates. | RL HOLD; no v6 retraining. | probes/RUNNING |
+
 ## HF-grasp-interface-stat40
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
