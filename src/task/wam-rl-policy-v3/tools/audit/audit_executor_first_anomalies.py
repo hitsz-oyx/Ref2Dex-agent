@@ -294,6 +294,19 @@ def main():
         rec["final_phase"] = json.loads((Path(folder) / "consumer.json").read_text())[-1].get("phase")
         rec["ever_close"] = any(x.get("phase") == "close" for x in json.loads((Path(folder) / "consumer.json").read_text()))
         r4.append(rec)
+    source_keys = {(row["sequence"], row["object"]) for row, _ in source_rows}
+    wam_keys = {(row["sequence"], row["object"]) for row, _ in wam_rows}
+    shared_keys = source_keys & wam_keys
+    source_by_key = {(row["sequence"], row["object"]): row for row, _ in source_rows}
+    wam_by_key = {(row["sequence"], row["object"]): row for row, _ in wam_rows}
+    witness = sorted(
+        [
+            {"sequence": key[0], "object": key[1], "source_id": source_by_key[key]["id"], "wam_id": wam_by_key[key]["id"]}
+            for key in shared_keys
+            if source_by_key[key].get("final_success") and not wam_by_key[key].get("final_success")
+        ],
+        key=lambda x: (x["sequence"], x["object"]),
+    )
     report = dict(
         schema="ref2dex.executor-first-anomaly-audit.v1",
         status="COMPLETED",
@@ -308,6 +321,12 @@ def main():
             wam_unseen40=dict(root=str(args.wam_run), arm="A1", subset="unseen", summary=summarize_limits(wam), records=wam),
             source40=dict(root=str(args.source_run), arm="A0", subset="interface_unseen", summary=summarize_limits(source), records=source),
             source_r4=dict(root=str(args.r4_run), arm="A0", subset="development_same_v11", summary=summarize_r4(r4), records=r4),
+        ),
+        panel_gate=dict(
+            source40_panel_n=len(source_keys), wam_unseen40_panel_n=len(wam_keys),
+            shared_sequence_object_n=len(shared_keys), same_initial_panel=len(shared_keys) == 40,
+            source_success_and_wam_failure_witnesses=witness,
+            decision="no_intersection_offline_witness_or_short_replay" if not shared_keys else "intersection_available_for_offline_witness_check",
         ),
         interpretation=dict(
             limit_label_is_not_root_cause=True,
