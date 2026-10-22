@@ -59,20 +59,28 @@ def main():
                 geometry.append(row)
     # Raw per-pair quantiles show whether dispersion means are dominated by a few
     # recordings; no clipping or silent target filtering is applied.
-    quantiles={}
+    quantiles={};presence_sensitivity={};bank_meta=read(out/'bank.json')['samples']
     for gate in (20,50,100):
         z=np.load(out/('pairs-%dmm.npz'%gate));v=z['variance_mm2']
         quantiles[str(gate)]=dict(pairs=len(v),per_pair_variance_mm2_p50=np.percentile(v,50,axis=0).tolist(),
             per_pair_variance_mm2_p90=np.percentile(v,90,axis=0).tolist(),per_pair_variance_mm2_max=v.max(0).tolist()) if len(v) else dict(pairs=0)
+        i,j=z['pairs'].T;available=np.array([s['contact_available'] for s in bank_meta]);region=np.array([s['region'] for s in bank_meta])
+        both=available[i]&available[j];same=both&(region[i]==region[j]);distance=z['state_goal_distance_m']
+        presence_sensitivity[str(gate)]={name:dict(pairs=int(mask.sum()),variance_mm2=v[mask].mean(0).tolist() if mask.any() else None,
+            raw_condition_distances_mm=(distance[mask].mean(0)*1000).tolist() if mask.any() else None)
+            for name,mask in [('all',np.ones(len(i),bool)),('both_future_contact_available',both),('same_oracle_region',same)]}
+    (out/'contact-presence-sensitivity.json').write_text(json.dumps(presence_sensitivity,indent=2)+'\n')
     result=dict(status='COMPLETED' if len(loaded)==2*len(panel['panels']) else 'PARTIAL',seed=178,bootstrap_seed=180,
         sample_counts={k:dict(windows=len(v),captures=len(set(r['capture'] for r in v))) for k,v in panel['panels'].items()},
-        bank_samples=identity['samples'],variance=identity['gates'],pair_quantiles=quantiles,prefix_and_phase=tables,self_consistency=geometry,
+        bank_samples=identity['samples'],variance=identity['gates'],pair_quantiles=quantiles,contact_presence_sensitivity=presence_sensitivity,prefix_and_phase=tables,self_consistency=geometry,
         commands=dict(recompute='python src/task/ptv3-shared-wam-v6/tools/audit/summarize_identifiability.py --output '+str(out.resolve())),
         caveats=['heldout_prefix_local_recipe is not certified lifetime-heldout because remote ancestor windows are unavailable',
         'conditional pair variance is mm^2,RMS spread not EPE;gate100mm is weak-match sensitivity',
         'penetration numbers are oriented point-cloud proxies,not mesh SDF;GT-hand/GT-object calibration is included',
         'confidence>0.25 contact mask includes soft proximity out to~17mm;GT reference distances need not be3mm',
         'contact/intent refinements use oracle realized labels;no causal intent tensor was added or fitted'])
+    for key,filename in [('strict_group_variance','group-identifiability.json'),('watertight_mesh','mesh-penetration.json')]:
+        if (out/filename).exists():result[key]=read(out/filename)
     (out/'summary.json').write_text(json.dumps(result,indent=2,allow_nan=False)+'\n')
     lines=['# Existing-checkpoint WAM-v6 audit numerical handoff','','Seed178;capture bootstrap/permutation180;flow noise172;GRAB only.','',
         '|Panel|stratum|windows/captures|frames|healthy hand/object mm|flow hand/object mm|','|---|---|---|---:|---|---|']

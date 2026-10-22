@@ -147,3 +147,23 @@ requires two known inside points and600mm summed depth. Bounds15min,~3.6GiB
 allocator; inference only, no optimizer/capacity/data changes. This distinguishes
 point-normal proxy artifacts from true inside tests on the transported hand
 proxy; it is still not penetration of the recorded future hand mesh.
+
+## Group and presence controls
+
+The raw pair reduction is descriptive,not a population-controlled variance
+decomposition: the matched subset changes. Explicitly separate future-contact
+PRESENCE from REGION. In the50mm bank,requiring both futures to contain contact
+already changes197pairs/3030.8hand8mm² to188pairs/2029.2;same-region66pairs
+yields2033.7. Thus the apparent33% reduction is not evidence for regional intent.
+
+Add a proper complete-link grouping check on the same cached bank:no new
+window extraction or network inference. Same CAD,presence,Etype,all-pair H4/goal
+gate;4–8distinct captures/group,each capture used once/gate. Refine group
+partitions by future-contact presence,then region/finger/interaction;pool
+unbiased within-partition variances with explicit df,singletons excluded rather
+than counted as zero.100 within-original-group label permutations and200group
+bootstraps;fewer than8groups receives no bootstrap confidence claim. Report
+20/50/100mm plus event-time3 controls;insufficient support remains inconclusive.
+Mesh review also reports best-SE3 fit residual/pair-distance distortion for
+model32 points,same16windows/ticks,with GT rigid residual calibration. No new
+model or fitting of learned parameters is performed by these geometry fits.

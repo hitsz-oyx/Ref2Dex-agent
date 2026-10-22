@@ -88,6 +88,13 @@ def main():
                 p32=batch['scene_points'][0,0];x=torch.cat((p32,torch.ones_like(p32[:,:1])),-1)
                 current=batch['interaction_points'][0,0];sx=torch.cat((current,torch.ones_like(current[:,:1])),-1)
                 canonical=torch.tensor(asset['triangles'],device='cuda');zero=torch.zeros(1,dtype=torch.long,device='cuda')
+                control=canonical[torch.linspace(0,len(canonical)-1,4,device='cuda').long()]
+                normal=torch.nn.functional.normalize(torch.cross(control[:,1]-control[:,0],control[:,2]-control[:,0],dim=-1),dim=-1)
+                center=control.mean(1)
+                inside_a=ray_inside(center+normal*.00005,canonical,(1.,.371,.733))
+                inside_b=ray_inside(center-normal*.00005,canonical,(1.,.371,.733))
+                crossing=float((inside_a^inside_b).float().mean())
+                if crossing<.75:raise ValueError('actual CAD inside/outside positive control failed')
                 check=point_face_distance(p32.contiguous(),zero,canonical.contiguous(),zero,32,1e-12).sqrt()*1000
                 if check.mean()>1:skipped.append(dict(model=label,row=row,reason='CAD/query mean distance>1mm',distance_mm=float(check.mean())));continue
                 ids=torch.linspace(0,777,32,device='cuda').long()
@@ -99,13 +106,20 @@ def main():
                     rigid=(p32-p32.mean(0))@(u@correction@vh)+proposed.mean(0)
                     rigid_error=float((rigid-proposed).norm(dim=-1).mean()*1000)
                     distance_error=float((torch.cdist(proposed,proposed)-torch.cdist(p32,p32)).abs().triu(1).sum()/496*1000)
+                    gt_points=p32+batch['scene_target'][0,0,k]
+                    gu,_,gvh=torch.linalg.svd((p32-p32.mean(0)).T@(gt_points-gt_points.mean(0)))
+                    gcorr=torch.eye(3,device='cuda');gcorr[2,2]=torch.det(gu@gvh).sign()
+                    gt_fit=(p32-p32.mean(0))@(gu@gcorr@gvh)+gt_points.mean(0)
+                    gt_rigid_error=float((gt_fit-gt_points).norm(dim=-1).mean()*1000)
+                    if gt_rigid_error>.01:raise ValueError('GT rigid fit calibration failed')
                     for anchor,mapping,h in [('GT_object',gt_map,skin[k]),('pred_object',pred_map,skin[k]),('GT_hand_GT_object',gt_map,gt_skin[k])]:
                         triangles=canonical@mapping[:3]+mapping[3]
                         points=h[:,ids].flatten(0,1)
                         values=mesh_metrics(points,triangles)
                         records.append(dict(model=label,row=row,tick=tick,anchor=anchor,asset=asset['path'],faces=len(canonical),
                             CAD_query_distance_mean_mm=float(check.mean()),rigid_fit_error_mm=rigid_error,
-                            pairwise_object_distance_error_mm=distance_error,**values))
+                            pairwise_object_distance_error_mm=distance_error,GT_rigid_fit_error_mm=gt_rigid_error,
+                            CAD_inside_outside_control_fraction=crossing,**values))
             print(json.dumps(dict(stage='mesh',model=label,done=number+1,total=len(rows))),flush=True)
         del model;gc.collect();torch.cuda.empty_cache()
     for model in ('healthy4371','flow8500'):
