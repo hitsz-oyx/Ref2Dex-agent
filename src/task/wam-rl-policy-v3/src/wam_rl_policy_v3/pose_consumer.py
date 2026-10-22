@@ -148,3 +148,114 @@ class PoseConsumer:
                          predicted_contact_index=None if plan is None else plan.contact_index,
                          direction_object=None if plan is None else plan.approach_direction_object.tolist(),
                          wrist_target=target.tolist(), measured_contact=measured_contact)
+
+
+GRASP_INTERFACE = 'grasp-intent.pose-preshape-closure-objectgoal.measured.v2'
+FINGER_ACTIVE = np.asarray(ACTIVE)[6:]
+FINGER_UPPER = np.array([1.55, 1.55, 1.55, 1.55, 1.10, .50])
+
+
+@dataclass
+class GraspIntent:
+    """Robot-specific adapter output, not a future-frame execution schedule."""
+    approach_pose_object: np.ndarray
+    grasp_pose_object: np.ndarray
+    preshape_q: np.ndarray
+    closure_q: np.ndarray
+    postgrasp_object_pose: np.ndarray
+    mode: str
+    tau_valid: bool
+    position_only: bool = True
+    approach_joint_angles: object = None  # IK branch, no extra task information
+
+
+def grasp_intent_from_retargeter(q, palm, object_pose, object_goal, action,
+                                offset, scale, *, plan=None, tau_valid=False):
+    """Keep the trained R's wrist AND finger interpretation of WAM.
+
+    R still reads the genuine live-conditioned tau. The controller receives only
+    two wrist keyposes, independent finger joint targets, and the task goal.
+    """
+    from .tau_replay_contract import pd_targets
+    target = pd_targets(np.asarray(action), q, offset, scale)
+    mount = Rotation.from_euler('XYZ', q[3:6]).as_matrix().T @ palm[:3,:3]
+    approach = np.eye(4)
+    approach[:3,:3] = Rotation.from_euler('XYZ', target[3:6]).as_matrix() @ mount
+    approach[:3,3] = palm[:3,3] + target[:3]-q[:3]
+    local = np.linalg.inv(object_pose) @ approach
+    grasp = local.copy() if plan is None else plan.local_poses[-1].copy()
+    preshape = target[FINGER_ACTIVE].copy()
+    closure = np.clip(np.maximum(preshape, q[FINGER_ACTIVE])+.015, .06, FINGER_UPPER)
+    return GraspIntent(local, grasp, preshape, closure, np.asarray(object_goal).copy(),
+                       'unavailable' if plan is None else plan.mode, bool(tau_valid),
+                       approach_joint_angles=target[3:6].copy())
+
+
+class MeasuredGraspConsumer:
+    """Position -> measured contact -> object goal, without a reference clock."""
+    def __init__(self, q, palm, offset, scale):
+        self.offset, self.scale = np.asarray(offset), np.asarray(scale)
+        self.mount = Rotation.from_euler('XYZ', q[3:6]).as_matrix().T @ palm[:3,:3]
+        self.phase = 'approach'; self.last_time = None
+        self.contact_since = None; self.contact_time = None
+        self.close_pose = self.fingers = None
+        self.last_info = None
+
+    def step(self, *, q, dq, palm, object_pose, object_velocity, forces, feedback,
+             near_fingers, fingertip_gap_m, intent, now):
+        if self.last_time is not None and now <= self.last_time:
+            raise ValueError('strictly increasing measured time required')
+        if self.last_time is not None and now-self.last_time > 1/30+1e-8:
+            self.contact_since = None
+        self.last_time = float(now)
+        # Reuse the production observer; graded S2c stage scores are not sensors.
+        contact = bool(feedback.force_valid and feedback.contact_observed)
+        if contact:
+            if self.contact_since is None:self.contact_since=float(now)
+        else:self.contact_since=None
+        candidate = object_pose @ intent.grasp_pose_object
+        position_ready = bool(near_fingers >= 2 or
+            (np.linalg.norm(candidate[:3,3]-palm[:3,3]) <= .025 and fingertip_gap_m <= .04))
+        if self.phase == 'approach' and position_ready:
+            self.phase='close'; self.close_pose=palm.copy()
+            self.fingers=np.clip(np.maximum(intent.closure_q,q[FINGER_ACTIVE]),.06,FINGER_UPPER)
+        if self.phase in ('lift','hold') and (not contact or feedback.grasp_lost):
+            self.phase='close';self.close_pose=palm.copy()
+        if self.phase == 'close' and self.contact_since is not None and now-self.contact_since >= .12-1e-10:
+            self.phase='lift'
+            if self.contact_time is None:self.contact_time=float(now)
+        if self.phase == 'approach':
+            target=object_pose @ intent.approach_pose_object
+            desired_fingers=intent.preshape_q
+            delta=target[:3,3]-palm[:3,3]
+            angles=closest_wrist_angles(target[:3,:3],q[3:6],self.mount) if intent.approach_joint_angles is None else np.asarray(intent.approach_joint_angles)
+            if not np.allclose(Rotation.from_euler('XYZ',angles).as_matrix()@self.mount,target[:3,:3],atol=1e-6,rtol=0):
+                raise ValueError('wrist IK branch disagrees with pose target')
+        else:
+            target=self.close_pose.copy()
+            # Force feedback changes closure targets, never the task score.
+            force=np.linalg.norm(forces,axis=-1)
+            finger_force=np.r_[force[:4],force[4],force[4]]
+            if feedback.force_valid:
+                self.fingers+=np.where(finger_force<.25,.0015,np.where(finger_force>4.,-.001,0.))
+            self.fingers=np.clip(self.fingers,.06,FINGER_UPPER)
+            desired_fingers=self.fingers
+            if self.phase in ('lift','hold'):
+                error=intent.postgrasp_object_pose[:3,3]-object_pose[:3,3]
+                correction=np.clip(.40*error-.010*np.asarray(object_velocity)[:3]-.005*dq[:3],-.0035,.0035)
+                target[:3,3]=palm[:3,3]+correction
+                if not intent.position_only:
+                    target[:3,:3]=intent.postgrasp_object_pose[:3,:3]@object_pose[:3,:3].T@palm[:3,:3]
+                self.phase='hold' if np.linalg.norm(error)<=.015 else 'lift'
+            delta=np.clip(target[:3,3]-palm[:3,3]-.006*dq[:3],-.006,.006)
+            angles=closest_wrist_angles(target[:3,:3],q[3:6],self.mount)
+            angles=q[3:6]+np.clip(.5*(angles-q[3:6])-.006*dq[3:6],-.08,.08)
+        command=np.r_[(delta-self.offset[:3])/self.scale[:3],
+                       (angles-q[3:6]-self.offset[3:6])/self.scale[3:6],
+                       2*(desired_fingers-self.offset[FINGER_ACTIVE])/self.scale[FINGER_ACTIVE]-1].astype(np.float32)
+        self.last_info=dict(phase=self.phase,measured_contact=contact,position_ready=position_ready,
+            grasp_mode=intent.mode,plan_mode=intent.mode,tau_valid=intent.tau_valid,preshape_q=intent.preshape_q.tolist(),
+            closure_q=intent.closure_q.tolist(),executed_finger_target=np.asarray(desired_fingers).tolist(),
+            postgrasp_object_pose=intent.postgrasp_object_pose.tolist(),wrist_target=target.tolist(),
+            object_goal_error_m=float(np.linalg.norm(intent.postgrasp_object_pose[:3,3]-object_pose[:3,3])))
+        return command,self.last_info
