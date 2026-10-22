@@ -114,18 +114,41 @@ class ReachabilityFilter:
 
 class RepairedGraspConsumer(MeasuredGraspConsumer):
     """Same measured phases and R for both arms; shared reach filter and PI."""
-    def __init__(self,*args,plane,palm_vertices,table_geometry=None,**kwargs):
+    def __init__(self,*args,plane,palm_vertices,table_geometry=None,object_points=None,**kwargs):
         super().__init__(*args,**kwargs);self.servo=GoalServo();self.reach=ReachabilityFilter();self.plane=plane
-        self.palm_vertices=np.asarray(palm_vertices);self.servo_active=False;self.table_geometry=table_geometry
+        self.palm_vertices=np.asarray(palm_vertices);self.servo_active=False;self.table_geometry=table_geometry;self.object_points=object_points;self.recovery=False;self.recovery_rotation=None
     def step(self,**args):
         intent=args['intent'];palm=args['palm'];q=np.asarray(args['q']);dq=np.asarray(args['dq']);obj=args['object_pose']
         reach_info=None
         if self.phase in ('approach','close'):
-            local=(np.asarray(args.pop('hand'))-palm[:3,3])@palm[:3,:3]
+            hand=np.asarray(args.pop('hand'));local=(hand-palm[:3,3])@palm[:3,:3]
             target,fingers,reach_info=self.reach.project(palm,obj@intent.approach_pose_object,obj,q,dq,intent.preshape_q,
                 plane=self.plane,hand_local=local,palm_vertices=self.palm_vertices,table_geometry=self.table_geometry)
             mount=Rotation.from_euler('XYZ',q[3:6]).as_matrix().T@palm[:3,:3]
-            if reach_info['filter_active']:
+            support_gap=reach_info.get('actual_support_gap_m')
+            pushing_support=bool(support_gap is not None and support_gap<.010 and (obj@intent.approach_pose_object-palm)[2,3]<-.15 and self.phase=='approach')
+            joint_pressure=bool((q[FINGER_ACTIVE]<-.035).any() or (q[FINGER_ACTIVE]>FINGER_UPPER+.06).any() or q[16]<-.035 or q[17]<-.035)
+            if self.object_points is not None and not args['feedback'].contact_observed and (pushing_support or joint_pressure):
+                self.recovery=True
+            if self.recovery:
+                desired,choice=geometric_grasp_candidate(palm,hand,obj,self.object_points,*self.plane,obj@intent.grasp_pose_object)
+                # First unload a table-loaded finger chain, then follow a current
+                # object candidate. Phase still advances ONLY on actual sensors.
+                if joint_pressure or (support_gap is not None and support_gap<-.003):
+                    desired=palm.copy();desired[:3,3]+=self.plane[0]*.06
+                    choice['unload_support']=True
+                angles=closest_wrist_angles(desired[:3,:3],q[3:6],mount)
+                angles=q[3:6]+np.clip(.4*(angles-q[3:6])-.010*dq[3:6],-.10,.10)
+                target=np.eye(4);target[:3,:3]=Rotation.from_euler('XYZ',angles).as_matrix()@mount
+                delta=np.clip(.5*(desired[:3,3]-palm[:3,3])-.010*dq[:3],-.025,.025)
+                target[:3,3]=palm[:3,3]+delta
+                fingers=np.clip(intent.preshape_q-.010*dq[FINGER_ACTIVE],.06,FINGER_UPPER)
+                if self.phase=='close':fingers=np.maximum(fingers,q[FINGER_ACTIVE]+.003)
+                fingers=np.clip(np.clip(fingers,q[FINGER_ACTIVE]-.08,q[FINGER_ACTIVE]+.08),.06,FINGER_UPPER)
+                intent=replace(intent,approach_pose_object=np.linalg.inv(obj)@target,grasp_pose_object=np.linalg.inv(obj)@desired,
+                    preshape_q=fingers,approach_joint_angles=angles)
+                reach_info['recovery_candidate']=choice;reach_info['filter_active']=True
+            elif reach_info['filter_active']:
                 intent=replace(intent,approach_pose_object=np.linalg.inv(obj)@target,preshape_q=fingers,
                     approach_joint_angles=closest_wrist_angles(target[:3,:3],q[3:6],mount))
         else:args.pop('hand')
@@ -140,3 +163,30 @@ class RepairedGraspConsumer(MeasuredGraspConsumer):
         elif self.servo_active:self.servo.reset();self.servo_active=False
         info['reachability']=reach_info;info['repair_contract']=REPAIR_CONTRACT
         return command,info
+
+
+def geometric_grasp_candidate(palm,hand,object_pose,points,normal,height,hint):
+    """Object-pose candidates scored by opposing measured fingertips and support.
+
+    No source commands, initial-state ID, object label, or privileged future.
+    The optional hint is the SAME tau-derived keypose for either input arm.
+    """
+    local=(np.asarray(hand)-palm[:3,3])@palm[:3,:3]
+    world=np.asarray(points)@object_pose[:3,:3].T+object_pose[:3,3]
+    center=world.mean(0);candidates=[]
+    # Current orientation plus the tau wrist hint, with object-frame half turns.
+    for base in (palm[:3,:3],hint[:3,:3]):
+        for axis in range(3):
+            for angle in (0.,np.pi):
+                r=Rotation.from_rotvec(object_pose[:3,axis]*angle).as_matrix()@base
+                for tip in (4,6,8,10):
+                    position=center-r@((local[2]+local[tip])*.5)
+                    # Limit the whole hand's planned support penetration.
+                    bottom=float(np.min((local@r.T+position)@normal));position+=normal*max(height+.003-bottom,0.)
+                    proposed=local@r.T+position;gap=np.linalg.norm(proposed[[2,tip],None]-world[None],axis=-1).min(-1)
+                    angle_cost=np.linalg.norm(Rotation.from_matrix(r@palm[:3,:3].T).as_rotvec())
+                    cost=float(gap.sum()+.015*angle_cost+.05*np.linalg.norm(position-palm[:3,3]))
+                    result=np.eye(4);result[:3,:3]=r;result[:3,3]=position
+                    candidates.append((cost,result,axis,angle,tip))
+    selected=min(candidates,key=lambda x:x[0])
+    return selected[1],dict(count=len(candidates),score=selected[0],object_axis=selected[2],angle_rad=selected[3],opposing_tip=selected[4])

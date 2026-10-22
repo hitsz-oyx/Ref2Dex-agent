@@ -5,14 +5,17 @@ ROOT=Path(__file__).resolve().parents[5]
 
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);p.add_argument('--engineering',action='store_true');a=p.parse_args()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);p.add_argument('--engineering',action='store_true');p.add_argument('--engineering-trigger',action='append');a=p.parse_args()
+    if a.engineering_trigger and not a.engineering:raise ValueError('engineering trigger selection cannot change formal registration')
     if a.output.exists():raise ValueError('fresh registration required')
     reg=json.loads((ROOT/'outputs/wam-rl-policy-v3/grasp-v9-stat40-20261022-r1/registration.json').read_text())
     for j in reg['jobs']:
         j['order']=['A1','A2'] if int(j['id'][1:])//2%2==0 else ['A2','A1']
     if a.engineering:
         # One trigger per object plus two seen seeds, no efficacy claims or resampling.
-        reg['jobs']=[j for j in reg['jobs'] if j['id'] in ('p000','p006','p001','p005','p013')]
+        selected=a.engineering_trigger or ['p000','p006','p001','p005','p013']
+        if len(selected)!=len(set(selected)) or not set(selected)<={j['id'] for j in reg['jobs']}:raise ValueError('known distinct engineering triggers required')
+        reg['jobs']=[j for j in reg['jobs'] if j['id'] in selected]
         for i,j in enumerate(reg['jobs']):j['worker']=i%3;j['order']=['A1']
         reg['n_per_arm_per_subset']=None;reg['engineering_only']=True
     reg.update(protocol='grasp.sharedR.zero-tau.reachable-PI.stagefinal20s15mm.v1',experiment_id='P-20261022-grasp-interface-repair',

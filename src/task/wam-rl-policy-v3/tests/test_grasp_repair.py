@@ -56,3 +56,15 @@ def test_healthy_R_PD_proposal_is_not_mistaken_for_instantaneous_kinematic_motio
     assert not info['filter_active']
     np.testing.assert_array_equal(out,target)
     np.testing.assert_array_equal(fingers,np.ones(6)*.7)
+
+
+def test_geometric_candidate_follows_object_and_is_not_selected_by_object_identity():
+    from wam_rl_policy_v3.grasp_repair import geometric_grasp_candidate
+    palm=np.eye(4);palm[2,3]=1.2
+    hand=np.array([[0,0,0],[0,0,-.05],[.05,0,-.10],[0,0,-.05],[-.05,0,-.10],[0,.01,-.05],[-.05,.01,-.10],[0,.02,-.05],[-.05,.02,-.10],[0,.03,-.05],[-.05,.03,-.10]])+palm[:3,3]
+    obj=np.eye(4);obj[:3,3]=[.3,0,1.1];points=np.array([[x,y,z] for x in (-.02,.02) for y in (-.02,.02) for z in (-.02,.02)])
+    a,info=geometric_grasp_candidate(palm,hand,obj,points,np.array([0,0,1]),.9,palm)
+    shift=np.array([.2,-.4,0]);p2=palm.copy();p2[:3,3]+=shift;o2=obj.copy();o2[:3,3]+=shift
+    b,_=geometric_grasp_candidate(p2,hand+shift,o2,points,np.array([0,0,1]),.9,p2)
+    np.testing.assert_allclose(b[:3,3],a[:3,3]+shift,atol=1e-8)
+    assert info['count']>=40 and np.linalg.norm(a[:3,3]-obj[:3,3])<.2
