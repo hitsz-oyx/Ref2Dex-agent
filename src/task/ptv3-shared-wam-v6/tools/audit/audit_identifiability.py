@@ -1,7 +1,7 @@
 """Existing-weight, overlap-controlled GRAB identifiability/prefix/geometry audit.
 
-No fitting, optimizer, input mutation or training control. CUDA_VISIBLE_DEVICES=0
-is mandatory. All future-contact refinements are explicitly oracle diagnostics.
+No fitting, optimizer, input mutation or training control. One explicitly
+selected GPU0..3 only. Future-contact refinements are oracle diagnostics.
 """
 import argparse
 from collections import Counter,defaultdict
@@ -43,6 +43,7 @@ def write(path,value):
 def guard(out):
     if time.monotonic()-START>3600 or (out/'STOP').exists():raise RuntimeError('owned audit time/STOP bound')
     if shutil.disk_usage(out).free<20*2**30:raise RuntimeError('20GiB disk floor')
+    if torch.cuda.is_initialized() and torch.cuda.mem_get_info()[0]<512*2**20:raise RuntimeError('audit yields below512MiB device headroom')
 
 
 def phases(folder,slot,tick):
@@ -418,20 +419,41 @@ def evaluate(a):
         'all contact masks/phases share the same realized GT frame and confidence labels; future labels only affect diagnostics','single fixed flow noise seed172,no best-of-N selection']))
 
 
+def geometry_smoke(a):
+    panel=read(a.output/'panels.json');dataset=V6Windows(a.manifest,'train',geometry_gt_object=True)
+    sample=window(dataset,panel['panels']['train_prefix'][0]);batch={k:v.cuda() for k,v in collate([sample]).items()}
+    config=dict(geometry_contact_radius_m=.003,geometry_contact_falloff_m=.010,geometry_contact_smoothing_m=.001)
+    pred=dict(trajectory=batch['trajectory_target'],scene=batch['scene_target'])
+    with torch.inference_mode():
+        result=geometry_metrics(pred,batch,config)
+        error=float(result['branch_object_dense_error_mm'].max())
+        matched=(result['pred_hand_GT_object']['distance']-result['pred_hand_pred_object']['distance']).abs().max()
+        shifted=geometry_metrics(dict(pred,scene=pred['scene']+.01),batch,config)
+        shifted_error=float(shifted['branch_object_dense_error_mm'].mean())
+    if error>.01 or matched>.01 or abs(shifted_error-math.sqrt(3)*10)>.01:raise ValueError('geometry identity/independent-object smoke failed')
+    write(a.output/'geometry-smoke.json',dict(status='PASS',GT_affine_max_error_mm=error,
+        GT_anchor_vs_pred_anchor_max_gap_mm=float(matched),translated_object_error_mm=shifted_error,
+        expected_translation_mm=math.sqrt(3)*10,GT_anchor_distance_unchanged=bool(torch.equal(result['pred_hand_GT_object']['distance'],shifted['pred_hand_GT_object']['distance']))))
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     for name in ('manifest','stats','baseline','flow','output'):p.add_argument('--'+name,type=Path,required=True)
-    p.add_argument('--phase',choices=('prepare','bank','analyze','evaluate','all'),default='all')
+    p.add_argument('--phase',choices=('prepare','bank','analyze','evaluate','smoke','all'),default='all')
+    p.add_argument('--memory-gib',type=float,default=8.)
     p.add_argument('--seed',type=int,default=178);p.add_argument('--bank-samples',type=int,default=4096);p.add_argument('--panel-samples',type=int,default=96);p.add_argument('--batch-size',type=int,default=2)
     a=p.parse_args()
-    if os.environ.get('CUDA_VISIBLE_DEVICES')!='0':raise ValueError('audit authorized physical GPU0 only')
-    a.output.mkdir(exist_ok=True);torch.set_num_threads(2);torch.cuda.set_device(0);torch.cuda.set_per_process_memory_fraction(.4,0)
-    write(a.output/'environment.json',dict(work_version=VERSION,command=sys.argv,seed=a.seed,python=sys.version,torch=torch.__version__,cuda=torch.version.cuda,
-        git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),physical_gpu=0,training=False,seconds_bound=3600,artifact_bound_gib=3))
+    if os.environ.get('CUDA_VISIBLE_DEVICES') not in ('0','1','2','3'):raise ValueError('one owner-authorized physical GPU0..3 required')
+    if not 1<=a.memory_gib<=8:raise ValueError('bounded1..8GiB allocator required')
+    a.output.mkdir(exist_ok=True);torch.set_num_threads(2);torch.cuda.set_device(0)
+    total=torch.cuda.get_device_properties(0).total_memory;torch.cuda.set_per_process_memory_fraction(a.memory_gib*2**30/total,0)
+    write(a.output/('environment-'+a.phase+'.json'),dict(work_version=VERSION,command=sys.argv,seed=a.seed,python=sys.version,torch=torch.__version__,cuda=torch.version.cuda,
+        git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),physical_gpu=int(os.environ['CUDA_VISIBLE_DEVICES']),training=False,seconds_bound=3600,artifact_bound_gib=3,memory_limit_gib=a.memory_gib))
     if a.phase in ('prepare','all'):prepare(a)
     if a.phase in ('bank','all'):extract_bank(a)
     if a.phase in ('analyze','all'):analyze_bank(a)
     if a.phase in ('evaluate','all'):evaluate(a)
+    if a.phase=='smoke':geometry_smoke(a)
     write(a.output/('complete-'+a.phase+'.json'),dict(status='COMPLETED',elapsed_s=time.monotonic()-START,peak_allocated_gib=torch.cuda.max_memory_allocated()/2**30))
 
 
