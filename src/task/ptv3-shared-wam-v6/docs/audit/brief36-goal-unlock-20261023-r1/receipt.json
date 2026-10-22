@@ -1,0 +1,252 @@
+{
+  "schema": "ref2dex.brief36.goal-unlock-readiness.v1",
+  "experiment_id": "P-20261023-goal-unlock-readiness",
+  "run_id": "brief36-goal-unlock-20261023-r1",
+  "frozen_head": "2d4c07c341b33d8bbf7fa5e8cd7affadc1fd911a",
+  "A": {
+    "status": "NOT_READY_TRAINING_DATA_PATH_HAS_NO_UNKNOWN_GOAL_ENCODING",
+    "training_entry_probe": "V6Windows -> production Steps -> DataLoader(collate) -> CPU transfer -> SharedWAMV6 forward_pre_hook",
+    "equivalence": {
+      "all_collated_fields_equal_to_direct_reader": true,
+      "field_count": 35,
+      "entrypoint_source": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/ptv3-shared-wam-v6/tools/run/train_pretrain.py",
+      "entrypoint_sha256": "1ed714e9588f5c1a9fa4b4d1cfa291b7357757b9147838d7ddd18f616b5cd5cc"
+    },
+    "model": {
+      "class_name": "SharedWAMV6",
+      "config_sha256": "ec4464bfd6b3982d088e308af2911fd44d7126f230d117f3650167e51a21fe1d",
+      "geometry_constructor_seam": "UnusedGeometry; never called",
+      "interception": "forward_pre_hook before any model/geometry computation",
+      "no_optimizer_created": true,
+      "no_backward": true,
+      "no_network_forward_computed": true
+    },
+    "source_ids": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "sample_ids": [
+      [
+        676,
+        0,
+        92
+      ],
+      [
+        434,
+        0,
+        226
+      ],
+      [
+        40,
+        0,
+        185
+      ],
+      [
+        817,
+        0,
+        117
+      ],
+      [
+        577,
+        0,
+        53
+      ],
+      [
+        923,
+        0,
+        382
+      ],
+      [
+        27,
+        0,
+        547
+      ],
+      [
+        190,
+        0,
+        147
+      ]
+    ],
+    "training_unknown_batches": 0,
+    "training_legacy_boundary_batches": 1,
+    "deployment_boundary_batches": 2,
+    "curated_model_calls": 0,
+    "curated_error": "scheduler waypoint cache binding absent for curated tau; refusing realized-endpoint fallback before training",
+    "actual_training_equals_deployment_missing_bits": {
+      "goal_object_delta": false,
+      "goal_object_points": false,
+      "object_goal_valid": false
+    },
+    "unknown_training_vs_unknown_deployment_equality": null,
+    "constant_vs_missing_bits": {
+      "goal_object_delta": true,
+      "goal_object_points": false,
+      "object_goal_valid": false
+    },
+    "masked_queries": {
+      "training_legacy": 0,
+      "deployment_missing": 256,
+      "deployment_constant": 0
+    }
+  },
+  "B": {
+    "rules": [
+      {
+        "id": "B0-hold-or-zero",
+        "rule": "Hold at reset pose / zero displacement",
+        "parameter_field_aliases": [
+          "goal_rule_id",
+          "task_goal_rule",
+          "hold_goal_at_reset"
+        ],
+        "literal_parameter_candidate_mothers": 0,
+        "literal_parameter_candidate_windows": 0,
+        "certified_full_waypoint_mothers": 0,
+        "certified_full_waypoint_windows": 0,
+        "status": "NOT_DEPLOY_LEGAL_UNDER_FROZEN_RECORDED_INTENT_CONTRACT",
+        "missing": "rule/parameter identity and <=reset intent binding; geometry/hand observations do not supply this",
+        "implemented": false
+      },
+      {
+        "id": "B1-observed-reset-plus-fixed-offset",
+        "rule": "Observed reset pose + prescribed displacement",
+        "parameter_field_aliases": [
+          "goal_displacement",
+          "task_displacement",
+          "desired_displacement"
+        ],
+        "literal_parameter_candidate_mothers": 0,
+        "literal_parameter_candidate_windows": 0,
+        "certified_full_waypoint_mothers": 0,
+        "certified_full_waypoint_windows": 0,
+        "status": "NOT_DEPLOY_LEGAL_UNDER_FROZEN_RECORDED_INTENT_CONTRACT",
+        "missing": "rule/parameter identity and <=reset intent binding; geometry/hand observations do not supply this",
+        "implemented": false
+      },
+      {
+        "id": "B2-approach-direction",
+        "rule": "Reset approach direction + prescribed distance / orientation",
+        "parameter_field_aliases": [
+          "approach_distance",
+          "goal_direction",
+          "approach_direction",
+          "task_direction"
+        ],
+        "literal_parameter_candidate_mothers": 0,
+        "literal_parameter_candidate_windows": 0,
+        "certified_full_waypoint_mothers": 0,
+        "certified_full_waypoint_windows": 0,
+        "status": "NOT_DEPLOY_LEGAL_UNDER_FROZEN_RECORDED_INTENT_CONTRACT",
+        "missing": "rule/parameter identity and <=reset intent binding; geometry/hand observations do not supply this",
+        "implemented": false
+      },
+      {
+        "id": "B3-geometry-contact-goal",
+        "rule": "Geometry + prescribed target region / offset / side",
+        "parameter_field_aliases": [
+          "goal_contact_region",
+          "target_contact_region",
+          "goal_surface_query_id",
+          "target_patch",
+          "goal_offset"
+        ],
+        "literal_parameter_candidate_mothers": 0,
+        "literal_parameter_candidate_windows": 0,
+        "certified_full_waypoint_mothers": 0,
+        "certified_full_waypoint_windows": 0,
+        "status": "NOT_DEPLOY_LEGAL_UNDER_FROZEN_RECORDED_INTENT_CONTRACT",
+        "missing": "rule/parameter identity and <=reset intent binding; geometry/hand observations do not supply this",
+        "implemented": false
+      },
+      {
+        "id": "B4-native-Shadow-constructor",
+        "rule": "Native nominal object_start_pose + constructor goal_displacement, restored goal_init_state",
+        "parameter_mothers": 3,
+        "parameter_windows": 30,
+        "mother_fraction": 0.002819548872180451,
+        "window_fraction": 0.005,
+        "positive_evidence": "brief35 stored goal=(100,3), constant; owner-approved frozen collector 6141c34e constructor/reset proof",
+        "caution": "Nominal constructor anchor is not measured post-reset pose; no observed-reset +0.2 rule is inferred.",
+        "certified_full_waypoint_mothers": 0,
+        "certified_full_waypoint_windows": 0,
+        "missing": "same deployed scheduler conversion/path/frame/goal-type binding is not recorded; other mothers lack this native task rule",
+        "anchor_rows_with_native_parameters": 10,
+        "status": "RECORDED_NATIVE_POSITION_PARAMETERS_ONLY_BELOW_80_PERCENT",
+        "implemented": false
+      },
+      {
+        "id": "B5-recorded-reference-plan",
+        "rule": "Predeclared source trajectory / TaskSpec",
+        "certified_full_waypoint_windows": 0,
+        "certified_full_waypoint_mothers": 0,
+        "status": "UNPROVEN_FROM_BRIEF35_NOT_RESCANNED",
+        "implemented": false
+      }
+    ],
+    "threshold_mothers_percent": 80,
+    "any_recorded_full_rule_over_threshold": false,
+    "full_waypoint_certified_windows": 0,
+    "no_rule_implemented": true,
+    "candidate_parameter_coverage_from_shadow": {
+      "mothers": 3,
+      "windows": 30,
+      "denominator_mothers": 1064,
+      "denominator_windows": 6000
+    }
+  },
+  "C": {
+    "source": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/ptv3-shared-wam-v6/docs/audit/brief32-cost-envelope-20261023.json",
+    "sha256": "50306b89f1c657e3a3ecbd53cfe90043d315cdd04a33675db2b086b274395d52",
+    "existing_envelope": {
+      "mother_rollouts": 1064,
+      "object_streams": 1067,
+      "mother_ticks": 260526,
+      "object_ticks": 261720,
+      "aggregate_mother_stream_hours_at30": 2.412277777777778,
+      "aggregate_object_stream_hours_at30": 2.4233333333333333,
+      "minimal_raw_payload_bytes_512_per_object_tick": 134000640,
+      "expanded_raw_payload_bytes_2048_per_object_tick": 536002560,
+      "event_only_bytes_7_per_object_tick": 1832040,
+      "event_only_bytes_16_aligned_per_object_tick": 4187520,
+      "instruction_snapshots_geometry_overhead": "additional; raw payload only, not a total storage guarantee"
+    },
+    "estimates_recomputed": false,
+    "new_collection": false
+  },
+  "historical_comparability": {
+    "if_A_chosen_goal_validity_bits_changed_train": 192000,
+    "if_A_chosen_fixed_panel_rows_changed": 512,
+    "if_A_chosen_fixed_panel_query_bits_changed": 16384,
+    "tau_error_effect_mm": null,
+    "reason": "No newly trained model or panel inference; changed conditioning invalidates input identity, not an estimated EPE effect"
+  },
+  "input_identities": {
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/ptv3-shared-wam-v6/docs/audit/brief35-source-role-20261023-r1/receipt.json": "2a1c91bbac41b30d31681606813cbb90c021495f580c9282af3e60d03d9315d9",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/ptv3-shared-wam-v6/docs/audit/brief35-source-role-20261023-r1/mother-provenance.json": "632ba4df27e07d7524bf2f787151f2cfe30143f91bdaf53bdbcb92915d3e28ff",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/ptv3-shared-wam-v6/docs/audit/brief32-raw-signal-inventory-20261023.json": "c3b5ec52338825718266d409f951e089679a6d852e726cdaf97919618760540a",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/ptv3-shared-wam-v6/docs/audit/brief32-cost-envelope-20261023.json": "50306b89f1c657e3a3ecbd53cfe90043d315cdd04a33675db2b086b274395d52",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/ptv3-shared-wam-v6/tau-curated-20261023-r2/train-anchor.json": "440c00c8609a2e9c6276f328f1aa5136a04708294a09b5dab8321044e6caa706",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/ptv3-shared-wam-v6/tau-curated-20261023-r7/curated-manifest.json": "5bda6a99678b0586b496eff7b4b3ba3afddda996cdc16c43603341ed1264225f",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/ptv3-shared-wam-v6/configs/tau_event_free_v1.json": "7bfcd6e569bb205b88439a9d2bf056eff8421198a03fe614c69d1538d6308044"
+  },
+  "prior_censuses_rerun": false,
+  "training_updates": 0,
+  "gpu_used": false,
+  "production_modified": false,
+  "goal_policy_enabled": false,
+  "filesystem_free_before_bytes": 147013210112,
+  "write_estimate_bytes": 16777216,
+  "write_hard_limit_bytes": 1073741824,
+  "elapsed_s": 3.137813904322684,
+  "environment": {
+    "python": "3.8.20 (default, Oct  3 2024, 15:24:27) \n[GCC 11.2.0]",
+    "torch": "2.4.1+cu121",
+    "numpy": "1.24.4"
+  }
+}
