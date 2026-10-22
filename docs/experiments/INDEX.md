@@ -307,6 +307,12 @@
 | [P-20261013-goal-point-wam-visited-joint-anchor](../../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-visited-joint-anchor.md) | Joint actor/R update with a GT-tau action anchor | COMPLETED 3000 updates in 609s on GPU2. No checkpoint passed the | Stop this clocked joint update. Do not deploy the pair. The next | probes/UNPROMISING |
 | [P-20261013-goal-point-wam-visited-realign](../../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-visited-realign.md) | Current visited-state coverage and fixed-R actor realignment | 27 actual takeovers collected;19 successful recovery queries admitted;R repaired/GT-qualified;actor realignment running. | Complete one collect/qualify/align/rollout loop, without larger models. | probes/RUNNING |
 
+## HF-grasp-coverage40
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261022-grasp-coverage40](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261022-grasp-coverage40.md) | v11 扩大初态覆盖：每链40个接口未见初态 | pending preregistered 120-episode zero-update coverage, queued behind existing GPU456 work. | n12 engineering coverage remains separate; use n40 per chain and retain every physical failure. | probes/PLANNED |
+
 ## HF-grasp-geometry-coverage
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

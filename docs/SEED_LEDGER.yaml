@@ -25,6 +25,13 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261022-grasp-coverage40:
+    seed_pool: probe
+    native_seeds: {ranges: [[100, 139]]}
+    inference_seeds: {ranges: [[180, 219]]}
+    initialization_seeds: [196]
+    reuse_reason: fresh interface object families, matched three-chain initial packets; probe seed reuse, not validation
+
   P-20261022-grasp-geometry-coverage:
     seed_pool: probe
     native_seeds: {ranges: [[260, 271]]}
