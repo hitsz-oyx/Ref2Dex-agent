@@ -12,6 +12,14 @@ def write(p,v):
 def stamp():return datetime.datetime.now(datetime.timezone.utc).isoformat()
 def size(root):return sum(p.stat().st_size for p in root.rglob('*') if p.is_file() and not p.is_symlink())
 
+
+def terminal_reason(code, result, watchdog_reason=None):
+    if result and result.get('status', '').startswith('FAILED'):
+        return result['status']+'_NO_RESTART'
+    if code:
+        return 'FAILED_NO_RESTART'
+    return watchdog_reason or ('COMPLETED' if result and result.get('status')=='COMPLETED' else 'STOPPED')
+
 def snapshot():
     g=subprocess.check_output(['nvidia-smi','--query-gpu=index,uuid,memory.used,memory.total,memory.free,utilization.gpu','--format=csv,noheader,nounits'],text=True)
     p=subprocess.check_output(['nvidia-smi','--query-compute-apps=gpu_uuid,pid,used_memory','--format=csv,noheader,nounits'],text=True)
@@ -88,7 +96,7 @@ def main():
         code=process.wait()
     result=read(training/'result.json') if (training/'result.json').exists() else None
     progress=read(training/'progress.json') if (training/'progress.json').exists() else None
-    write(out/'stop-receipt.json',dict(at=stamp(),pid=process.pid,returncode=code,reason=reason or ('COMPLETED' if code==0 else 'FAILED_NO_RESTART'),
+    write(out/'stop-receipt.json',dict(at=stamp(),pid=process.pid,returncode=code,reason=terminal_reason(code,result,reason),
         result=result,latest_progress=progress,artifact_bytes=size(out),automatic_restart=False))
 
 if __name__=='__main__':main()

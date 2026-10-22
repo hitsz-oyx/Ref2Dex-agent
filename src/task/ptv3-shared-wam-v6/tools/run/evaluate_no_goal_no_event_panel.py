@@ -40,7 +40,7 @@ def main():
     model=SharedWAMV6(read(ROOT/panel['stats']),config).cuda().eval().requires_grad_(False);model.load_state_dict(checkpoint['model'],strict=True);step=checkpoint['step'];del checkpoint
     start=time.monotonic();sums=[];counts=[];hands=[];scenes=[];hand_masks=[];scene_masks=[];repeated=False;repeat_max=None
     for offset in range(0,len(rows),args.batch_size):
-        if time.time()>=read(TASK/'configs/tau_no_goal_no_event_train_v1.json')['hard_stop_epoch']:raise TimeoutError('07:15 panel deadline')
+        if time.monotonic()-start>1200:raise TimeoutError('bounded panel inference exceeds1200s; training deadline is separate')
         batch={k:v.cuda() for k,v in collate([ds[i] for i in positions[offset:offset+args.batch_size]]).items()};assert_unknown_inputs(batch)
         with torch.inference_mode():
             pred=model(batch)

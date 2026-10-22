@@ -240,10 +240,8 @@ def main():
                 num_workers=a.workers,pin_memory=device.startswith('cuda'),
                 generator=torch.Generator().manual_seed(seed*1009+rank))
     if a.workers:
-        ipc=Path(os.environ.get('REF2DEX_RUN_ROOT',paths.ROOT))/'tmp'/('v6i-'+str(os.getpid()))
-        ipc.mkdir(parents=True,exist_ok=True,mode=0o700)
-        os.environ['TMPDIR']=str(ipc);tempfile.tempdir=str(ipc)
-        multiprocessing.current_process()._config['tempdir']=str(ipc)
+        from ptv3_shared_wam_v6.loader_ipc import configure_loader_ipc
+        configure_loader_ipc()
     kwargs.update(loader_options(a.workers,a.loader_timeout,a.loader_context))
     loader=DataLoader(**kwargs)
     dev_options={k:v for k,v in reader_options.items() if k!='curated_manifest'}
@@ -433,6 +431,8 @@ def main():
             progress=read_json(a.output/'progress.json');progress.update(status=result['status'],step=completed_step)
             write(a.output/'progress.json',progress)
     if world>1:dist.destroy_process_group()
+    if loader_failure:
+        raise RuntimeError('training failed before successful loader delivery: '+loader_failure)
 
 
 if __name__=='__main__':main()
