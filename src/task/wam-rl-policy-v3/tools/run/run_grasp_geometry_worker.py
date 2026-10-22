@@ -155,7 +155,7 @@ def main():
                     if max(initial_errors.values())>2e-6 or state['sequences']!=[name] or state['contact_force_valid'][0] or int(state['tick'][0])!=0:raise ValueError('reference/reset mismatch: '+str(initial_errors))
                     initial={k:np.asarray(state[k]).copy() for k in ('q','dq','hand','objects','physical','tick','table_pose','contact_force_valid','dof_force_valid')};np.savez_compressed(folder/'initial.npz',**initial)
                     pose=pose7(np.asarray(state['objects'])[0]);target=grasp_lift_task(pose);geometry=GraspGeometry.from_points(points);context=TaskController(target,points,scheduler_config=TaskSchedulerConfig(episode_timeout_s=30.),path_config=SchedulerConfig(stall_timeout_s=60.))
-                    consumer=GeometryGraspConsumer(np.asarray(state['q'])[0],pose7(np.asarray(state['palm_pose'])[0]),offset,scale,plane=support_plane(np.asarray(state['table_pose'])[0],bounds),palm_vertices=palm_surface.vertices[::32],table_geometry=(pose7(np.asarray(state['table_pose'])[0]),bounds),object_points=points,joint_limits=limits);stages=StagedProgress(pose[2,3],geometry=geometry);rewarder=StagedDenseReward(stages);rollout=dict(observations=[],latents=[],old_logp=[],rewards=[],values=[]);reward_parts=[];history=[];hands=[];decision=None
+                    consumer=GeometryGraspConsumer(np.asarray(state['q'])[0],pose7(np.asarray(state['palm_pose'])[0]),offset,scale,plane=support_plane(np.asarray(state['table_pose'])[0],bounds),palm_vertices=palm_surface.vertices[::32],table_geometry=(pose7(np.asarray(state['table_pose'])[0]),bounds),object_points=points,joint_limits=limits);stages=StagedProgress(pose[2,3],geometry=geometry);rewarder=None;rollout=dict(observations=[],latents=[],old_logp=[],rewards=[],values=[]);reward_parts=[];history=[];hands=[];decision=None
                     wam_calls=actor_calls=covered=final_clipped=adapter_clipped=source_failures=0;ever_primary=False;physical_abort=None;lastsafe=None;errors_m=[];drop_after_hold=False
                     for t in range(reg['horizon_controls']+1):
                         report['active_episode']['tick']=t
@@ -174,6 +174,7 @@ def main():
                         goal_error=float(np.linalg.norm(pose[:3,3]-target.object_path[-1,:3,3]));errors_m.append(goal_error)
                         current_primary=bool(stage['current']['hold'] and goal_error<=geometry.position_tolerance_m and not safe['abort']);ever_primary|=current_primary
                         drop_after_hold|=bool(stage['achieved']['hold'] and feedback.released)
+                        if a.ppo and not actions:rewarder=StagedDenseReward(stages)
                         if a.ppo and actions:
                             reward_decision=SimpleNamespace(task_complete=bool(t==reg['horizon_controls'] and stage['current']['hold'] and geometry.arrived(goal_error) and not safe['abort']),failure_reason='physical' if safe['abort'] else None,terminated=bool(safe['abort']))
                             reward,parts,_=rewarder.step(stages,reward_decision,np.asarray(actions[-1]),terminal=bool(safe['abort'] or t==reg['horizon_controls']),failed=bool(safe['abort']))
