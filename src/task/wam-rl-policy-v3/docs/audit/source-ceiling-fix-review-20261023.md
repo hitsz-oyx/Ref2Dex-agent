@@ -8,7 +8,7 @@
 | 提升但<32/40 | 修复不够，不能拿WAM解释数据量 | 按余下死因继续修source |
 | 不提升或实际限位仍多 | 当前方案未解决物理瓶颈 | 保留全部失败和gate，继续修；不训练v6 |
 
-当前状态：**新物理批次尚未运行，无修后成功率**。GPU4/5/6被并行v13占用；软件检查不是物理达标。旧source=14/40（Wilson95 [0.2213453,0.5049412]），16745控制，0更新。
+当前状态：**R3物理批次正在运行、尚未完成40**；已至少13个失败，32/40目标已不可能达到，仍保留并跑完整批。fresh R4修正实测参考游标与有界起动，尚无R4物理结论。软件检查不是物理达标。旧source=14/40（Wilson95 [0.2213453,0.5049412]），16745控制，0更新。
 
 ## 修复、可证伪预测与复现
 
@@ -81,3 +81,18 @@ $PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wa
 预启动修订：原r1已冻结但未获GPU；查出close→lift手指目标跳变与最终目标日志失真，分别由红测试复现。r1 supervisor明确记CANCELLED_PRESTART、0子进程/0控制，原快照和日志保留；物理批次改为fresh r3，不混算。修后对12个真实首限位前状态单步重算：12/12目标准入、6/12触发卸载；这不是反事实仿真，不声称已防止任何旧失败。
 
 第二次预启动修订：r2仍为QUEUED/无子进程/0控制时，生产source-PD→intent边界的红测试确认：物体平移50mm，原source抓姿仍移动0mm。已加入通用参考物体→live物体SE3映射（含姿态），手指目标不变，修后目标同移50mm；不是单初态常数，也不是GTτ/R上界。原r2 receipt明确CANCELLED_PRESTART和原因，fresh r3才是计划物理批次。新10项专项与7个mutant均须通过，40/40参考含实测palm_pose。
+
+## R4：修源参考时钟与运动耦合等待环
+
+R3至少13个失败/剩余最多27成功，已触发下版修复条件，但不提前终止原40。trace中p002/p005满600控制、0卸载、手仍远离物体时参考已结束，是参考时钟比限速后的物理执行跑得快，不可把0限位称改善。
+
+- `source_ceiling.py::SourceReferenceClock`：当前/下一录制状态与实测腕在当前物体局部SE3内匹配；只有更接近下一状态才推进，最多1帧/tick，卸载暂停。39个参考的首次双指力接触+0.5秒是接近参考上限；p034无接触证据留在分母，不填假事件/不修改任务终态。
+- 同`SourceCeilingConsumer.step`：复用生产FeedbackObserver.grasp_candidate及force_valid/contact_observed；未有运动耦合时最多10mm、0.06m/s起动，不累计，未凭探测就宣称grasp。失去有效接触清除起点。原成功门仍真实coupled/lift5cm/hold1s/尺寸误差，原抓后伺服不变。
+- worker实际调用source_clock.advance再取source_target；记录匹配误差、推进/停顿、参考接触missing、探测起点/上限。queue在R3至少9个已完成失败后才允许fresh R4，R3其余回合不中止。
+
+每版本仍n40、≤24000控制、0updates；R3/R4累计≤48000控制。R4不是把新控制器塞进旧run。
+预期：远离下一参考时推进1→0；接触无运动耦合时0起动→≤10mm；新最终目标≥32/40及限位≤2/40，物理效果尚待测。
+专项14 passed/0 failed/0 skipped；完整v3 283 passed/0 failed/0 skipped（24.85s，3警告）；10/10 mutants killed，新增抓住时钟越过实测状态、遗漏探测、探测累计3种错误。探测红测试在R3代码下1 failed，见R3/probe-red.log。
+复现：运行本报告上述pytest/mutants命令（现预期14项/10mutants）；启动R4的两条命令见实验卡R4节，首次prepare需带 --predecessor .../source-ceiling-20261023-r3。
+
+无法自证：接触候选+10mm探测能否建立真实运动耦合、实测游标会不会停滞、source接近的几何构型是否可行，均须原生40回合给数；不以这些CPU测试替代物理证据。

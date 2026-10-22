@@ -9,7 +9,7 @@ def write(path,obj):
     temporary=path.with_suffix('.new');temporary.write_text(json.dumps(obj,indent=2)+'\n');temporary.replace(path)
 
 
-def prepare(out):
+def prepare(out,predecessor=None):
     if (out/'registration.json').exists():raise ValueError('already registered; no overwrite')
     out.mkdir(parents=True,exist_ok=True)
     launch=out/'launch-code';shutil.copytree(BASELINE/'frozen-source',launch)
@@ -21,13 +21,15 @@ def prepare(out):
     worker=(TASK/'tools/run/run_source_ceiling_worker.py').read_text().replace("ROOT=Path(__file__).resolve().parents[5];TASK=ROOT/'src/task/wam-rl-policy-v3'", "ROOT=Path(%r);TASK=Path(%r)"%(str(ROOT),str(launch/'src/task/wam-rl-policy-v3')))
     (out/'worker.py').write_text(worker)
     reg=json.loads((BASELINE/'registration.json').read_text())
-    reg.update(protocol='source.object-anchored.measured-unload.margin-admission.slew.n40.v3',experiment_id='P-20261023-source-controller-ceiling',
+    reg.update(protocol='source.measured-clock.object-anchored.unload.probe.n40.v4',experiment_id='P-20261023-source-controller-ceiling',
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         arms=['A0'],subsets=['development_same_v11'],maximum_controls=24000,worker_wall_s=14400,queue_wall_s=14400,learning_updates=0,ppo_authorized=False,
         worker_source=str(out/'worker.py'),runtime_source=str(launch),baseline=str(BASELINE),
         target_successes=32,target_pregrasp_joint_abort_max=2,
-        source_clock='advance one recorded control only when not measured-unloading; pause on unloading',
+        source_clock='nearest of current/next object-local measured source wrist state; monotone <=1/frame; pause while unloading; cap at first reference force contact +0.5s; no-contact references retained',
         source_geometry='PD wrist intent mapped reference-object to live-object SE3; source finger targets retained; not GT-tau/R',
+        acquisition_probe=dict(maximum_m=.01,rate_mps=.06,trigger='existing measured force-valid grasp_candidate; does not certify acquisition or success'),
+        predecessor=str(predecessor.resolve()) if predecessor else None,
         postgrasp='exact baseline RelativePoseServo and hold-force controller; no changes',
         main_rule='source final successes >=32/40; no WAM comparison before this gate',
         scope='same 20 objects x2 sequences; source-only development repair, not tau comparison or new holdout')
@@ -36,9 +38,9 @@ def prepare(out):
 
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--run',type=Path,required=True);p.add_argument('--prepare',action='store_true');p.add_argument('--detached',action='store_true');a=p.parse_args();out=a.run.resolve()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--run',type=Path,required=True);p.add_argument('--prepare',action='store_true');p.add_argument('--detached',action='store_true');p.add_argument('--predecessor',type=Path);a=p.parse_args();out=a.run.resolve()
     if ROOT/'outputs/wam-rl-policy-v3' not in out.parents:raise ValueError('task output required')
-    if a.prepare:prepare(out);return
+    if a.prepare:prepare(out,a.predecessor);return
     if a.detached:
         with (out/'supervisor.log').open('x') as log:
             child=subprocess.Popen([sys.executable,'-u',str(Path(__file__).resolve()),'--run',str(out)],cwd=ROOT,stdin=subprocess.DEVNULL,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
@@ -50,6 +52,19 @@ def main():
     try:
         pending={g:i for i,g in enumerate((4,5,6))}
         while pending or any(c.poll() is None for c in children):
+            if reg.get('predecessor') and not children:
+                prior=[]
+                for manifest in Path(reg['predecessor']).glob('g[456]/manifest.json'):
+                    prior.extend(json.loads(manifest.read_text())['runs'])
+                failures=sum(not r['final_success'] for r in prior)
+                receipt['predecessor_progress']=dict(completed=len(prior),failures=failures,
+                    maximum_possible_successes=40-failures)
+                if len(prior)==40 and failures<=8:
+                    receipt.update(status='NOT_NEEDED_PREDECESSOR_PASSED');write(path,receipt);return
+                if failures<9:
+                    write(path,receipt)
+                    if time.time()-receipt['start']>reg['queue_wall_s']:raise TimeoutError('predecessor decision/resource queue budget')
+                    time.sleep(45);continue
             reading=subprocess.check_output(['nvidia-smi','--query-gpu=index,memory.used,utilization.gpu','--format=csv,noheader,nounits'],text=True)
             memory={int(r.split(',')[0]):int(r.split(',')[1]) for r in reading.splitlines()}
             receipt.update(gpu_latest=reading,last_check=time.time());write(path,receipt)

@@ -7,10 +7,10 @@ from dataclasses import replace
 import numpy as np
 from scipy.spatial.transform import Rotation
 from .grasp_geometry import GeometryGraspConsumer, JointAdmission, COUPLINGS
-from .pose_consumer import FINGER_ACTIVE, closest_wrist_angles
+from .pose_consumer import FINGER_ACTIVE, closest_wrist_angles,pose7
 from .tau_replay_contract import pd_targets
 
-SOURCE_CEILING_CONTRACT = 'source.object-anchored.measured-unload.margin-admission.slew.v3'
+SOURCE_CEILING_CONTRACT = 'source.measured-clock.object-anchored.unload.probe.v4'
 
 
 def object_anchored_source_target(target,reference_q,reference_palm,reference_object,
@@ -28,6 +28,39 @@ def object_anchored_source_target(target,reference_q,reference_palm,reference_ob
     result=np.asarray(target).copy();result[:3]=live_q[:3]+desired[:3,3]-live_palm[:3,3]
     result[3:6]=closest_wrist_angles(desired[:3,:3],live_q[3:6],mount)
     return result
+
+
+class SourceReferenceClock:
+    """Advance only when the measured wrist is closer to the next source state.
+
+    This follows recorded STATES, not potentially unreachable PD targets. Source
+    contact limits the approach horizon, never changes TaskSpec or success labels.
+    No-contact references remain in the denominator with an explicit missing flag.
+    """
+    def __init__(self,reference,length_scale_m):
+        self.local=np.array([np.linalg.inv(pose7(o[0]))@pose7(p[0]) for o,p in zip(reference['objects'],reference['palm_pose'])])
+        count=(np.linalg.norm(reference['contact_forces'][:,0],axis=-1)>=.1).sum(-1)
+        contact=np.flatnonzero((count>=2)&reference['contact_force_valid'][:,0])
+        self.contact_frame=int(contact[0]) if len(contact) else None
+        self.limit=len(reference['action'])-1
+        if self.contact_frame is not None:self.limit=min(self.limit,self.contact_frame+15)
+        self.scale=float(length_scale_m)
+        if self.scale<=0:raise ValueError('positive measured geometry scale required')
+        self.cursor=0;self.last_info=None
+
+    def advance(self,object_pose,palm,*,paused=False):
+        live=np.linalg.inv(object_pose)@palm;next_frame=min(self.cursor+1,self.limit)
+        def error(frame):
+            ref=self.local[frame]
+            return float(np.linalg.norm(ref[:3,3]-live[:3,3])/self.scale+
+                         np.linalg.norm(Rotation.from_matrix(ref[:3,:3]@live[:3,:3].T).as_rotvec())/np.pi)
+        before=self.cursor;current_error=error(before);next_error=error(next_frame)
+        if not paused and next_error<=current_error+1e-9:self.cursor=next_frame
+        self.last_info=dict(cursor_before=before,cursor=self.cursor,advanced=self.cursor!=before,
+            current_error=current_error,next_error=next_error,paused=bool(paused),
+            reference_contact_frame=self.contact_frame,reference_contact_missing=self.contact_frame is None,
+            approach_frame_limit=self.limit)
+        return self.last_info
 
 
 class MarginAdmission(JointAdmission):
@@ -52,6 +85,8 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
     finger_rate_radps=1.2
     reaching_linear_rate_mps=.30
     reaching_angular_rate_radps=1.2
+    acquisition_distance_m=.01
+    acquisition_rate_mps=.06
 
     def __init__(self,*args,joint_limits,**kwargs):
         super().__init__(*args,joint_limits=joint_limits,**kwargs)
@@ -60,12 +95,14 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
         self.unload_until=-np.inf
         self.unload_direction=None
         self.source_paused=False
+        self.acquire_anchor=None
 
     def step(self,**args):
         if self.phase not in ('approach','close'):
             # Same post-grasp control as the registered source baseline.
             self.admission=self.outer_admission
             self.source_paused=False
+            self.acquire_anchor=None
             command,info=super().step(**args)
             info['source_ceiling']=dict(contract=SOURCE_CEILING_CONTRACT,active=False,source_paused=False)
             return command,info
@@ -110,11 +147,22 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
         closure=q[FINGER_ACTIVE]+np.clip(intent.closure_q-q[FINGER_ACTIVE],-self.finger_rate_radps/30,self.finger_rate_radps/30)
         closure=self.admission.fingers(closure)
         proposal=args['object_pose']@intent.approach_pose_object
+        candidate=bool(force_valid and args['feedback'].contact_observed and getattr(args['feedback'],'grasp_candidate',False))
+        probing=bool(candidate and not args['feedback'].grasp_established and not unloading)
+        if not probing:self.acquire_anchor=None
+        if probing:
+            if self.acquire_anchor is None:self.acquire_anchor=palm.copy()
+            proposal=self.acquire_anchor.copy();proposal[:3,3]+=self.plane[0]*self.acquisition_distance_m
+            # Preserve the actual force-bearing pre-shape rather than following
+            # a later reference opening command while waiting for acquisition.
+            mapped_force=np.r_[magnitudes[:4],magnitudes[4],magnitudes[4]]
+            fingers=self.admission.fingers(q[FINGER_ACTIVE]+np.where(mapped_force<.25,.005,0.))
         if unloading:
             proposal=palm.copy();proposal[:3,3]+=self.unload_direction*self.reaching_linear_rate_mps/30
         # Pre-limit the source too, not just replacement geometry candidates.
         delta=proposal[:3,3]-palm[:3,3]
-        delta*=min(1.,self.reaching_linear_rate_mps/30/max(np.linalg.norm(delta),1e-12))
+        linear_step=self.acquisition_rate_mps/30 if probing else self.reaching_linear_rate_mps/30
+        delta*=min(1.,linear_step/max(np.linalg.norm(delta),1e-12))
         proposal[:3,3]=palm[:3,3]+delta
         rotation=Rotation.from_matrix(proposal[:3,:3]@palm[:3,:3].T).as_rotvec()
         rotation*=min(1.,self.reaching_angular_rate_radps/30/max(np.linalg.norm(rotation),1e-12))
@@ -136,6 +184,11 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
             command[3:6]=-self.offset[3:6]/self.scale[3:6]
             command[6:]=2*(fingers-self.offset[FINGER_ACTIVE])/self.scale[FINGER_ACTIVE]-1
             command=self.admission.bound_action(command,q)
+        elif probing and self.phase in ('approach','close'):
+            command[:3]=(proposal[:3,3]-palm[:3,3]-self.offset[:3])/self.scale[:3]
+            command[3:6]=(closest_wrist_angles(proposal[:3,:3],q[3:6],mount)-q[3:6]-self.offset[3:6])/self.scale[3:6]
+            command[6:]=2*(fingers-self.offset[FINGER_ACTIVE])/self.scale[FINGER_ACTIVE]-1
+            command=self.admission.bound_action(command,q)
         applied_unloading=bool(unloading and self.phase in ('approach','close'))
         self.source_paused=applied_unloading
         applied=pd_targets(command,q,self.offset,self.scale)
@@ -147,6 +200,7 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
             force_valid=force_valid,force_norm_n=magnitudes.tolist(),force_limit_n=self.force_limit_n,
             loaded_fingers=np.flatnonzero(loaded).tolist(),coasting_joint_indices=np.flatnonzero(risk).tolist(),
             unloading=applied_unloading,unload_requested=unloading,source_paused=self.source_paused,inner_target_admitted=self.admission.check(command,q)[0],
+            acquisition_probe=probing,acquisition_anchor=None if self.acquire_anchor is None else self.acquire_anchor.tolist(),acquisition_maximum_m=self.acquisition_distance_m,
             finger_max_applied_delta_rad=finger_delta,finger_rate_override_for_admission=bool(finger_delta>self.finger_rate_radps/30+1e-6),
             finger_rate_radps=self.finger_rate_radps,retreat_direction=None if not unloading else self.unload_direction.tolist())
         self.last_info=info

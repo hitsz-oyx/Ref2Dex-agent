@@ -120,3 +120,55 @@ def test_object_anchor_maps_rotation_and_preserves_finger_targets():
     moved,target,_=source_target_intent(reference,live)
     np.testing.assert_allclose(moved,live@np.linalg.inv(reference)@original,atol=1e-6,rtol=0)
     np.testing.assert_array_equal(source[6:],target[6:])
+
+
+def test_force_bearing_candidate_gets_bounded_probe_before_motion_coupling():
+    c,args=approaching(force=.5);args['feedback'].grasp_candidate=True
+    command,info=c.step(**args)
+    assert 0<command[2]*c.scale[2]<=.002+1e-6
+    assert c.phase=='close', 'A probe must not invent acquired-grasp evidence'
+
+
+def test_acquisition_probe_is_not_cumulative_and_requires_valid_contact():
+    c,args=approaching(force=.5);args['feedback'].grasp_candidate=True
+    start=args['palm'][2,3]
+    for i in range(12):
+        args['now']=i/30;command,info=c.step(**args)
+        args['palm'][2,3]+=command[2]*c.scale[2];args['q'][2]=args['palm'][2,3]
+        args['hand'][:]=args['palm'][:3,3]
+        assert args['palm'][2,3]<=start+.01+1e-6
+        assert c.phase=='close'
+    args['feedback'].force_valid=False;args['now']=12/30
+    _,info=c.step(**args)
+    assert not info['source_ceiling']['acquisition_probe'] and c.acquire_anchor is None
+
+
+def clock_reference(n=30,contact_frame=None):
+    palm=np.zeros((n,1,7));palm[:,0,0]=np.arange(n)*.04;palm[:,0,2]=1.2;palm[:,0,6]=1
+    objects=np.zeros((n,1,13));objects[:,0,2]=1.1;objects[:,0,6]=1
+    force=np.zeros((n,1,5,3))
+    if contact_frame is not None:force[contact_frame:,0,:2,2]=1.
+    return dict(palm_pose=palm,objects=objects,action=np.zeros((n-1,12)),contact_forces=force,contact_force_valid=np.ones((n,1),bool))
+
+
+def test_source_cursor_waits_for_measured_wrist_and_is_object_frame_invariant():
+    from wam_rl_policy_v3.source_ceiling import SourceReferenceClock
+    from wam_rl_policy_v3.pose_consumer import pose7
+    ref=clock_reference();c=SourceReferenceClock(ref,.04)
+    obj=pose7(ref['objects'][0,0]);palm=pose7(ref['palm_pose'][0,0])
+    assert not c.advance(obj,palm)['advanced'] and c.cursor==0
+    palm[0,3]=.03;assert c.advance(obj,palm)['advanced'] and c.cursor==1
+    obj[1,3]+=.5;palm[1,3]+=.5
+    assert not c.advance(obj,palm)['advanced'] and c.cursor==1
+    palm[0,3]=.07;assert not c.advance(obj,palm,paused=True)['advanced'] and c.cursor==1
+
+
+def test_reference_contact_caps_approach_but_missing_contact_is_not_removed():
+    from wam_rl_policy_v3.source_ceiling import SourceReferenceClock
+    from wam_rl_policy_v3.pose_consumer import pose7
+    ref=clock_reference(contact_frame=1);c=SourceReferenceClock(ref,.04)
+    obj=pose7(ref['objects'][0,0])
+    for i in range(30):c.advance(obj,pose7(ref['palm_pose'][min(i,29),0]))
+    assert c.cursor==16 and c.last_info['reference_contact_frame']==1
+    missing=SourceReferenceClock(clock_reference(),.04)
+    assert missing.limit==28 and missing.contact_frame is None

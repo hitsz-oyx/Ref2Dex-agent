@@ -87,7 +87,7 @@ def main():
     from wam_rl_policy_v3.pose_consumer import pose7,reduce_to_wrist_plan,grasp_intent_from_retargeter
     from wam_rl_policy_v3.grasp_repair import clean_tau_future,support_plane
     from wam_rl_policy_v3.grasp_geometry import GraspGeometry
-    from wam_rl_policy_v3.source_ceiling import SourceCeilingConsumer as GeometryGraspConsumer,object_anchored_source_target
+    from wam_rl_policy_v3.source_ceiling import SourceCeilingConsumer as GeometryGraspConsumer,object_anchored_source_target,SourceReferenceClock
     from wam_rl_policy_v3.source_pd import source_pd_action
     from wam_rl_policy_v3.intent_residual import IntentResidualPolicy,residual_observation,apply_intent_residual,ppo_update,RESIDUAL_CONTRACT
     from wam_rl_policy_v3.evaluation_sources import freeze_template,template_intent,gt_future
@@ -161,6 +161,7 @@ def main():
                     initial={k:np.asarray(state[k]).copy() for k in ('q','dq','hand','objects','physical','tick','table_pose','contact_force_valid','dof_force_valid')};np.savez_compressed(folder/'initial.npz',**initial)
                     pose=pose7(np.asarray(state['objects'])[0]);target=grasp_lift_task(pose);geometry=GraspGeometry.from_points(points);context=TaskController(target,points,scheduler_config=TaskSchedulerConfig(episode_timeout_s=30.),path_config=SchedulerConfig(stall_timeout_s=60.))
                     consumer=GeometryGraspConsumer(np.asarray(state['q'])[0],pose7(np.asarray(state['palm_pose'])[0]),offset,scale,plane=support_plane(np.asarray(state['table_pose'])[0],bounds),palm_vertices=palm_surface.vertices[::32],table_geometry=(pose7(np.asarray(state['table_pose'])[0]),bounds),object_points=points,joint_limits=limits);stages=StagedProgress(pose[2,3],geometry=geometry);rewarder=None;rollout=dict(observations=[],latents=[],old_logp=[],rewards=[],values=[]);reward_parts=[];history=[];hands=[];decision=None;source_cursor=0
+                    source_clock=SourceReferenceClock(reference,geometry.minimum_extent_m)
                     wam_calls=actor_calls=covered=final_clipped=adapter_clipped=source_failures=0;ever_primary=False;physical_abort=None;lastsafe=None;errors_m=[];drop_after_hold=False
                     for t in range(reg['horizon_controls']+1):
                         report['active_episode']['tick']=t
@@ -207,6 +208,8 @@ def main():
                         if safe['abort'] or t==reg['horizon_controls']:break
                         with torch.inference_mode():adapter=model.actor(torch.tensor(observation[None],device='cuda')).cpu().numpy()
                         if arm=='A0' and consumer.phase in ('approach','close'):
+                            source_clock.advance(pose,palm,paused=consumer.source_paused)
+                            source_cursor=source_clock.cursor
                             ref_t=min(source_cursor,len(reference['action'])-1)
                             source_action=reference['action'][ref_t]
                             if source_action.shape==(18,):source_action=source_action[list(ACTIVE)]
@@ -231,7 +234,7 @@ def main():
                         evidence=context.observer.last_evidence
                         raw,info=consumer.step(hand=np.asarray(state['hand'])[0],q=np.asarray(state['q'])[0],dq=np.asarray(state['dq'])[0],palm=palm,object_pose=pose,object_velocity=obj[7:13],forces=forces,feedback=feedback,near_fingers=evidence['near_fingers'],fingertip_gap_m=evidence['fingertip_gap_m'],intent=intent,now=t/30)
                         info['source_cursor']=source_cursor
-                        if not consumer.source_paused:source_cursor+=1
+                        info['source_clock']=source_clock.last_info
                         action=np.clip(raw[None],-1,1).astype(np.float32);final_clipped+=int((np.abs(raw-action[0])>1e-6).any());full=expand_action(action)
                         predicted=pd_targets(action,np.asarray(state['q']),offset,scale);before=list(state['episodes']);tick=np.asarray(state['tick']).copy()
                         send(native.connection,dict(op='step',action=full.tolist(),episodes=before,return_pd=True));reply=receive(native.connection);report['environment_controls']+=1;nextstate=unpack_state(reply['state']);actual=np.asarray(reply['pd_targets'])
