@@ -11,7 +11,7 @@ def main():
     p.add_argument('--arm',choices=['replay','gt','healthy','flow'],required=True);p.add_argument('--gpu',type=int,default=2)
     p.add_argument('--native-gpu',type=int,default=3);p.add_argument('--controls',type=int,default=300);p.add_argument('--seconds',type=int,default=3600)
     p.add_argument('--checkpoint',type=Path,default=ROOT/'outputs/wam-rl-policy-v3/inspire-scheduled686-bc-20261020-r4/latest.pt')
-    p.add_argument('--wam',type=Path);p.add_argument('--stats',type=Path,required=True)
+    p.add_argument('--gt-origin',choices=['measured','reference'],default='measured');p.add_argument('--wam',type=Path);p.add_argument('--stats',type=Path,required=True)
     a=p.parse_args();assert a.gpu in range(4) and a.native_gpu in range(4)
     a.output=a.output.resolve();a.output.mkdir(parents=True,exist_ok=False)
     scratch=ROOT/'tmp'/('exqual-'+a.arm+'-'+a.output.parent.name+'-'+str(os.getpid()));scratch.mkdir(parents=True,exist_ok=False)
@@ -55,7 +55,7 @@ def main():
     start=time.monotonic();state=dict(status='STARTING',arm=a.arm,python=sys.executable,torch=torch.__version__,numpy=np.__version__,seed=185,
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),checkpoint=str(a.checkpoint),wam=str(a.wam),
         panel=str(a.panel.resolve()),native_command=cmd,samples=n,controls=a.controls,policy_updates=0,native_output=str(native_out),
-        gt_contract='world(reference_hand[t+1:t+8] - live_measured_hand[t]); held last reference beyond end',
+        gt_origin=a.gt_origin,gt_contract='world reference_future minus '+a.gt_origin+' current hand; held last reference beyond end',
         adapter='v6 sparse11 observed in joint21; remaining joints/skin invalid; first8 of24 to frozen Scheduled686')
     write(a.output/'manifest.json',state);log=(a.output/'native.log').open('x');proc=subprocess.Popen(cmd,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
     connection=None;trace=[];workspace_failed=np.zeros(n,bool);workspace_first=np.full(n,-1,int);previous=np.zeros((n,12),np.float32);hist=[deque(maxlen=4) for _ in rows];hands=[deque(maxlen=4) for _ in rows]
@@ -85,7 +85,8 @@ def main():
             if a.arm=='gt':
                 for i,ref in enumerate(refs):
                     tick=int(np.asarray(snapshot['tick'])[i]);idx=np.minimum(tick+np.arange(1,9),len(ref['hand'])-1)
-                    taus[i]=(InspireAdapter.canonical_hand(ref['hand'][idx])-hands[i][-1])[:,WAM_TO_NATIVE];valid[i]=True
+                    origin=hands[i][-1] if a.gt_origin=='measured' else InspireAdapter.canonical_hand(ref['hand'][min(tick,len(ref['hand'])-1)])
+                    taus[i]=(InspireAdapter.canonical_hand(ref['hand'][idx])-origin)[:,WAM_TO_NATIVE];valid[i]=True
             elif runtime and step>=3:
                 objects4=np.asarray(hist);hands4=np.asarray(hands)
                 admissible=runtime.workspace_valid(objects4,hands4)
