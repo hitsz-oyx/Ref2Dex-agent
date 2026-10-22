@@ -172,3 +172,43 @@ def test_reference_contact_caps_approach_but_missing_contact_is_not_removed():
     assert c.cursor==16 and c.last_info['reference_contact_frame']==1
     missing=SourceReferenceClock(clock_reference(),.04)
     assert missing.limit==28 and missing.contact_frame is None
+
+
+def test_measured_wrist_arrival_starts_closure_with_open_fingertips():
+    c,args=approaching();c.phase='approach'
+    args['near_fingers']=0;args['fingertip_gap_m']=1.
+    args['intent'].preshape_q[:]=.2;args['intent'].closure_q[:]=.8
+    command,info=c.step(**args)
+    assert c.phase=='close'
+    target=pd_targets(command,args['q'],c.offset,c.scale)
+    assert np.all(target[FINGER_ACTIVE]>args['q'][FINGER_ACTIVE])
+    assert not info['measured_contact'], 'Wrist arrival authorizes closing, not a grasp label'
+
+
+def key_reference():
+    ref=clock_reference(contact_frame=4);n=len(ref['objects'])
+    points=np.array([[x,y,z] for x in (-.02,.02) for y in (-.02,.02) for z in (-.02,.02)])
+    ref['hand']=np.tile(ref['objects'][:,:,None,:3]+points[0],(1,1,11,1))
+    ref['q']=np.ones((n,1,18))*.2;ref['q'][8:,0,6:]=.8
+    return ref,points
+
+
+def test_source_keygrasp_preserves_preshape_closure_and_live_SE3_without_clock():
+    from wam_rl_policy_v3.source_ceiling import SourceGraspReference
+    from wam_rl_policy_v3.pose_consumer import pose7
+    ref,points=key_reference();key=SourceGraspReference(ref,points)
+    assert key.contact_frame==4 and key.grasp_frame==8
+    intent=key.intent(np.eye(4));np.testing.assert_array_equal(intent.preshape_q,np.full(6,.2))
+    np.testing.assert_array_equal(intent.closure_q,np.full(6,.8))
+    live=pose7(ref['objects'][8,0]);live[1,3]+=.15
+    expected=pose7(ref['palm_pose'][8,0]);expected[1,3]+=.15
+    np.testing.assert_allclose(live@intent.grasp_pose_object,expected,atol=1e-8)
+    assert not key.manifest()['consumes_R'] and not key.manifest()['consumes_source_actions']
+
+
+def test_source_contact_force_without_object_proximity_is_not_a_contact_label():
+    from wam_rl_policy_v3.source_ceiling import SourceGraspReference
+    ref,points=key_reference();ref['hand']+=10.
+    key=SourceGraspReference(ref,points)
+    assert key.contact_frame is None and key.raw_force_contact_frames>0 and key.object_contact_frames==0
+    assert key.manifest()['evidence']=='geometric_candidate_no_source_contact'

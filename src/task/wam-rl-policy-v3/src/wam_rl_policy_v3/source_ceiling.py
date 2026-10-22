@@ -6,11 +6,13 @@ servo and physical failure/scoring contracts are inherited without modification.
 from dataclasses import replace
 import numpy as np
 from scipy.spatial.transform import Rotation
+from scipy.spatial import cKDTree
 from .grasp_geometry import GeometryGraspConsumer, JointAdmission, COUPLINGS
-from .pose_consumer import FINGER_ACTIVE, closest_wrist_angles,pose7
+from .pose_consumer import FINGER_ACTIVE, closest_wrist_angles,pose7,GraspIntent,TIPS
 from .tau_replay_contract import pd_targets
+from .interaction_state import InteractionConfig
 
-SOURCE_CEILING_CONTRACT = 'source.measured-clock.object-anchored.unload.probe.v4'
+SOURCE_CEILING_CONTRACT = 'source.keygrasp.measured-close.unload.probe.v5'
 
 
 def object_anchored_source_target(target,reference_q,reference_palm,reference_object,
@@ -63,6 +65,49 @@ class SourceReferenceClock:
         return self.last_info
 
 
+class SourceGraspReference:
+    """Three source intentions, without replaying its unstable PD/state clock.
+
+    Contact is evidence from the source recording, not a live success label.
+    No-contact recordings get an explicit geometric candidate and stay in n40.
+    """
+    def __init__(self,reference,points):
+        force=np.asarray(reference['contact_forces'])[:,0]
+        raw_contact=(np.linalg.norm(force,axis=-1)>=.1).sum(-1)>=2
+        raw_contact&=reference['contact_force_valid'][:,0]&np.isfinite(force).all(axis=(1,2))
+        hands=np.asarray(reference['hand'])[:,0,TIPS]
+        rotations=Rotation.from_quat(reference['objects'][:,0,3:7]).as_matrix()
+        local=np.einsum('tki,tij->tkj',hands-reference['objects'][:,0,None,:3],rotations)
+        gaps=cKDTree(points).query(local.reshape(-1,3))[0].reshape(len(local),5)
+        # Reuse the production observer's measured proximity contract. Native
+        # fingertip forces include table/self contacts, not only the object.
+        near=(gaps<=InteractionConfig().near_surface_m).sum(-1)>=2
+        contact=raw_contact&near
+        self.raw_force_contact_frames=int(raw_contact.sum());self.object_contact_frames=int(contact.sum())
+        found=np.flatnonzero(contact);self.contact_frame=int(found[0]) if len(found) else None
+        if len(found):
+            stable=[int(i)+4 for i in found if i+4<len(contact) and contact[i:i+5].all()]
+            frame=stable[0] if stable else self.contact_frame
+            self.evidence='measured_source_force_contact'
+        else:
+            frame=int(np.argmin(np.partition(gaps,1,axis=1)[:,1]))
+            self.evidence='geometric_candidate_no_source_contact'
+        self.grasp_frame=frame;self.preshape_frame=max(0,(self.contact_frame if self.contact_frame is not None else frame)-5)
+        self.grasp=np.linalg.inv(pose7(reference['objects'][frame,0]))@pose7(reference['palm_pose'][frame,0])
+        self.preshape=np.asarray(reference['q'][self.preshape_frame,0,FINGER_ACTIVE]).copy()
+        self.closure=np.asarray(reference['q'][frame,0,FINGER_ACTIVE]).copy()
+
+    def intent(self,object_goal):
+        return GraspIntent(self.grasp.copy(),self.grasp.copy(),self.preshape.copy(),self.closure.copy(),
+                           np.asarray(object_goal).copy(),'source-keygrasp',False,True)
+
+    def manifest(self):
+        return dict(kind='source_keygrasp',evidence=self.evidence,contact_frame=self.contact_frame,
+                    grasp_frame=self.grasp_frame,preshape_frame=self.preshape_frame,
+                    raw_force_contact_frames=self.raw_force_contact_frames,object_contact_frames=self.object_contact_frames,
+                    consumes_source_actions=False,consumes_R=False,source_contact_is_live_success=False)
+
+
 class MarginAdmission(JointAdmission):
     """Use an inner target workspace, never relax the physical abort bounds."""
     def __init__(self, limits, offset, scale):
@@ -87,6 +132,7 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
     reaching_angular_rate_radps=1.2
     acquisition_distance_m=.01
     acquisition_rate_mps=.06
+    wrist_angle_tolerance_rad=.2
 
     def __init__(self,*args,joint_limits,**kwargs):
         super().__init__(*args,joint_limits=joint_limits,**kwargs)
@@ -109,6 +155,12 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
         self.admission=self.inner_admission
         q=np.asarray(args['q']);dq=np.asarray(args['dq']);palm=np.asarray(args['palm'])
         now=float(args['now']);intent=args['intent'];force=np.asarray(args['forces'])
+        grasp=args['object_pose']@intent.grasp_pose_object
+        wrist_arrived=bool(np.linalg.norm(grasp[:3,3]-palm[:3,3])<=self.geometry.wrist_gap_m and
+                           np.linalg.norm(Rotation.from_matrix(grasp[:3,:3]@palm[:3,:3].T).as_rotvec())<=self.wrist_angle_tolerance_rad)
+        if self.phase=='approach' and wrist_arrived:
+            # Closing is an attempted action, not a contact/grasp certificate.
+            self.phase='close';self.close_pose=palm.copy();self.fingers=q[FINGER_ACTIVE].copy()
         force_valid=bool(args['feedback'].force_valid)
         magnitudes=np.linalg.norm(force,axis=-1) if force_valid else np.zeros(5)
         loaded=magnitudes>self.force_limit_n
@@ -130,7 +182,7 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
             self.unload_direction=direction/np.linalg.norm(direction)
         unloading=now<self.unload_until
         self.source_paused=unloading
-        fingers=np.asarray(intent.preshape_q).copy()
+        fingers=np.asarray(intent.closure_q if self.phase=='close' else intent.preshape_q).copy()
         if unloading:
             finger_load=np.r_[loaded[:4],loaded[4],loaded[4]]
             fingers=np.where(finger_load,q[FINGER_ACTIVE]-.04,fingers)
@@ -198,6 +250,7 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
         finger_delta=float(np.max(np.abs(applied[FINGER_ACTIVE]-q[FINGER_ACTIVE])))
         info['source_ceiling']=dict(contract=SOURCE_CEILING_CONTRACT,active=True,
             force_valid=force_valid,force_norm_n=magnitudes.tolist(),force_limit_n=self.force_limit_n,
+            wrist_pose_ready=wrist_arrived,
             loaded_fingers=np.flatnonzero(loaded).tolist(),coasting_joint_indices=np.flatnonzero(risk).tolist(),
             unloading=applied_unloading,unload_requested=unloading,source_paused=self.source_paused,inner_target_admitted=self.admission.check(command,q)[0],
             acquisition_probe=probing,acquisition_anchor=None if self.acquire_anchor is None else self.acquire_anchor.tolist(),acquisition_maximum_m=self.acquisition_distance_m,

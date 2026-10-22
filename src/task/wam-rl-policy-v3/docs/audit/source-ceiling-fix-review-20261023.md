@@ -96,3 +96,16 @@ R3至少13个失败/剩余最多27成功，已触发下版修复条件，但不�
 复现：运行本报告上述pytest/mutants命令（现预期14项/10mutants）；启动R4的两条命令见实验卡R4节，首次prepare需带 --predecessor .../source-ceiling-20261023-r3。
 
 无法自证：接触候选+10mm探测能否建立真实运动耦合、实测游标会不会停滞、source接近的几何构型是否可行，均须原生40回合给数；不以这些CPU测试替代物理证据。
+
+## R5：消费source关键抓姿，移除录制时钟约束
+
+R4至少13个已完成失败，32/40已不可能达到；旧40不中止、不换样本。p005 trace显示PD平衡点误差current=3.936、next=4.160，cursor0卡满600controls。R5不继续调时钟常数，按v7保留完整抓取意图：source实际object-local腕抓姿+独立手指预形/闭合目标+同任务抓后目标。
+
+`source_ceiling.py::SourceGraspReference`从原native轨迹提取实际抓姿；力接触必须同时满足生产InteractionConfig的18mm两指邻近，避免表面/自接触力冒充对象接触。39/40有source对象接触；p034最近双指几何候选仍在分母，source接触missing显式保留，不把UNKNOWN改HOLD。
+`SourceCeilingConsumer.step`到达腕抓姿就尝试闭合，不要求开指先触物；闭合消费closure_q，失持/过载按实测卸载。只有生产反馈实测运动耦合才转lift；成功判据未改。
+worker不消费R或source action，不再声称同source-PD原样重放；旧R forward仍保存作兼容诊断，source_R_consumed_controls=0，source_pd_inverse_applicable=false。诊断R的超界不能当作source实际动作裁剪。源指令的原生限位投影仍逐tick记录，不以0 canonical clipping冒称无饱和。
+
+R5同40/≤24000controls/0updates，累计三版≤72000；每GPU等待所有前序source worker完成，继续等空闲4/5/6，不抢v13。预期最终≥32/40/预抓限位≤2/40。
+新增回归：腕到位/开指时必须进入close且不假造contact；source独立预形/闭合/live SE3必须保留；离对象很远的手部力不能成为source对象接触。R4冻结运行时首条确实失败，见R4/key-close-red.log。
+专项17项/0 failed/0 skipped、完整v3预计286项（以本run tests.log全量结果为准），13个故意错误（以mutants.log为准）。真实新成功率仍必须原生40验收，不能用这些数字替代。
+启动fresh R5的prepare/--detached命令见实验卡R5节。全部源帧/接触依据见`outputs/wam-rl-policy-v3/source-ceiling-20261023-r5/source-keys.json`。

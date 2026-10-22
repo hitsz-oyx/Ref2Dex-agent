@@ -21,13 +21,13 @@ def prepare(out,predecessor=None):
     worker=(TASK/'tools/run/run_source_ceiling_worker.py').read_text().replace("ROOT=Path(__file__).resolve().parents[5];TASK=ROOT/'src/task/wam-rl-policy-v3'", "ROOT=Path(%r);TASK=Path(%r)"%(str(ROOT),str(launch/'src/task/wam-rl-policy-v3')))
     (out/'worker.py').write_text(worker)
     reg=json.loads((BASELINE/'registration.json').read_text())
-    reg.update(protocol='source.measured-clock.object-anchored.unload.probe.n40.v4',experiment_id='P-20261023-source-controller-ceiling',
+    reg.update(protocol='source.keygrasp.measured-close.unload.probe.n40.v5',experiment_id='P-20261023-source-controller-ceiling',
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         arms=['A0'],subsets=['development_same_v11'],maximum_controls=24000,worker_wall_s=14400,queue_wall_s=14400,learning_updates=0,ppo_authorized=False,
         worker_source=str(out/'worker.py'),runtime_source=str(launch),baseline=str(BASELINE),
         target_successes=32,target_pregrasp_joint_abort_max=2,
-        source_clock='nearest of current/next object-local measured source wrist state; monotone <=1/frame; pause while unloading; cap at first reference force contact +0.5s; no-contact references retained',
-        source_geometry='PD wrist intent mapped reference-object to live-object SE3; source finger targets retained; not GT-tau/R',
+        source_clock='none: measured wrist arrival starts closure; measured valid contact/coupling drives acquisition',
+        source_geometry='source actual object-local keygrasp/preshape/closure; source R forward is diagnostic and never consumed; not GT-tau/R',
         acquisition_probe=dict(maximum_m=.01,rate_mps=.06,trigger='existing measured force-valid grasp_candidate; does not certify acquisition or success'),
         predecessor=str(predecessor.resolve()) if predecessor else None,
         postgrasp='exact baseline RelativePoseServo and hold-force controller; no changes',
@@ -69,6 +69,12 @@ def main():
             memory={int(r.split(',')[0]):int(r.split(',')[1]) for r in reading.splitlines()}
             receipt.update(gpu_latest=reading,last_check=time.time());write(path,receipt)
             for gpu,worker in list(pending.items()):
+                ancestor=reg.get('predecessor');released=True
+                while ancestor:
+                    ancestor=Path(ancestor);m=ancestor/('g%d'%gpu)/'manifest.json'
+                    if not m.exists() or json.loads(m.read_text())['status']!='COMPLETED':released=False;break
+                    ancestor=json.loads((ancestor/'registration.json').read_text()).get('predecessor')
+                if not released:continue
                 if memory.get(gpu,999999)>64:continue
                 command=[sys.executable,'-u',reg['worker_source'],'--registration',str(out/'registration.json'),'--worker',str(worker),'--gpu',str(gpu),'--output',str(out/('g%d'%gpu))]
                 handle=(out/('g%d.log'%gpu)).open('x');handles.append(handle)

@@ -14,7 +14,7 @@ seeds: [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 11
 decision_changed_if_positive: qualify source-only controller on the same forty development initials before comparing WAM
 decision_changed_if_negative: retain all failures and repair measured approach or closure without relaxing physical gates
 status: RUNNING
-run_id: source-ceiling-20261023-r4
+run_id: source-ceiling-20261023-r5
 ---
 
 ## 结果解读表
@@ -58,4 +58,24 @@ export TMPDIR="$PWD/tmp"
 PY=/home2/wyy/miniconda3/envs/graspenv/bin/python
 $PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r4 --prepare --predecessor outputs/wam-rl-policy-v3/source-ceiling-20261023-r3
 $PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r4 --detached
+```
+
+## R5运行前修订：source关键抓姿，而不是录制时钟
+
+R4已有至少13个完整失败，因此同40最多27成功，32门槛不可达；仍完成40。实际trace的PD平衡点并不总是更接近下一录制状态，R4匹配时钟停滞（p005 cursor0满600步）。不再靠更松的时钟阈值绕过它。
+R5按v7三项接口直接提取source实际抓姿/预形/闭合目标，物体局部抓姿映射live；抓后目标仍来自同一任务。
+39/40参考具有“有效双指力+生产18mm两指邻近”证据，选首次持续≥0.12秒的接触完成状态；p034用最近的双指几何候选，明确无source接触证据，不剔除/不伪造CONTACT。
+预形取接触前约0.167秒的实际关节，闭合目标取抓姿状态的实际关节；实测腕到位就允许尝试闭合，即便打开的指尖尚未触物，真实接触/耦合仍是抬升资格。
+R的forward仅保留为旧trace兼容诊断，**不消费R输出、不消费source动作/时钟**；这是source-keygrasp控制器，不叫原source-PD原样重放，更不叫GTτ/R上界。
+卸载/限位余量/限速/有界起动保留，原抓后伺服/成功/物理gate不变。
+
+fresh R5同40初态、≤24000控制、0updates；仅在R4至少9个已完成失败后启动，R3/R4仍保留完整40。三版累计≤72000控制。
+每GPU须等所有前序source版本的该GPU worker完成后才可启动，避免相互抢同一张卡；并行v13不动。
+预期：源游标停滞消除（接口不再有游标）；腕到位但开指时approach→close；新source最终≥32/40，预抓限位≤2/40。目标不是实测结论。
+
+```bash
+export TMPDIR="$PWD/tmp"
+PY=/home2/wyy/miniconda3/envs/graspenv/bin/python
+$PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r5 --prepare --predecessor outputs/wam-rl-policy-v3/source-ceiling-20261023-r4
+$PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r5 --detached
 ```

@@ -3,7 +3,8 @@ import importlib.util,json,sys,dataclasses
 from pathlib import Path
 from unittest.mock import patch
 TASK=Path(__file__).resolve().parents[2];sys.path.insert(0,str(TASK/'src'))
-from wam_rl_policy_v3.source_ceiling import SourceCeilingConsumer,MarginAdmission,SourceReferenceClock
+from wam_rl_policy_v3.source_ceiling import SourceCeilingConsumer,MarginAdmission,SourceReferenceClock,SourceGraspReference
+from types import SimpleNamespace
 from wam_rl_policy_v3.grasp_geometry import JointAdmission
 import wam_rl_policy_v3.source_ceiling as controller_module
 
@@ -29,6 +30,10 @@ def main():
     def cumulative_probe(self,**args):
         self.acquire_anchor=None
         return original(self,**args)
+    key_intent=SourceGraspReference.intent
+    def omit_finger_closure(self,*args):
+        intent=key_intent(self,*args);intent.closure_q=intent.preshape_q.copy()
+        return intent
     cases=[('ignore-measured-pressure',patch.object(SourceCeilingConsumer,'force_limit_n',float('inf')),tests.test_measured_pressure_unloads_at_actual_approach_close_step),
         ('unlimited-finger-target-jump',patch.object(SourceCeilingConsumer,'finger_rate_radps',100.),tests.test_approach_finger_target_does_not_jump_to_reference),
         ('omit-target-margin',patch.object(MarginAdmission,'__init__',JointAdmission.__init__),tests.test_nominally_legal_near_limit_target_is_rejected_before_candidate_ranking),
@@ -38,7 +43,10 @@ def main():
         ('retain-recording-world-source',patch.object(tests,'object_anchored_source_target',lambda target,*args:target),tests.test_source_approach_follows_live_object_translation_not_recording_world),
         ('outrun-measured-source-phase',patch.object(SourceReferenceClock,'advance',wall_clock),tests.test_source_cursor_waits_for_measured_wrist_and_is_object_frame_invariant),
         ('remove-acquisition-probe',patch.object(SourceCeilingConsumer,'acquisition_distance_m',0.),tests.test_force_bearing_candidate_gets_bounded_probe_before_motion_coupling),
-        ('make-probe-cumulative',patch.object(SourceCeilingConsumer,'step',cumulative_probe),tests.test_acquisition_probe_is_not_cumulative_and_requires_valid_contact)]
+        ('make-probe-cumulative',patch.object(SourceCeilingConsumer,'step',cumulative_probe),tests.test_acquisition_probe_is_not_cumulative_and_requires_valid_contact),
+        ('never-close-at-measured-wrist-pose',patch.object(SourceCeilingConsumer,'wrist_angle_tolerance_rad',-1.),tests.test_measured_wrist_arrival_starts_closure_with_open_fingertips),
+        ('omit-source-finger-closure-intent',patch.object(SourceGraspReference,'intent',omit_finger_closure),tests.test_source_keygrasp_preserves_preshape_closure_and_live_SE3_without_clock),
+        ('count-table-force-as-object-contact',patch.object(controller_module,'InteractionConfig',lambda:SimpleNamespace(near_surface_m=float('inf'))),tests.test_source_contact_force_without_object_proximity_is_not_a_contact_label)]
     result=[]
     for name,mutation,check in cases:
         check() # First prove the unmutated check passes.
