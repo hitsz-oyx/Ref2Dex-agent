@@ -51,7 +51,7 @@ def test_gt_reuses_s2d_24step_mapping_and_roundtrip_matches_first_eight_world_de
     calls=[]
     def actual(*args,**kwargs):calls.append(kwargs['horizon']);return object_anchored_targets(*args,**kwargs)
     future,valid=gt_future(actual,ref,3,live,True)
-    assert valid and calls==[24]
+    assert valid and calls==[24] and future.dtype==np.float32
     np.testing.assert_allclose(future[0],ref['hand'][4,0]+live[:3])
     hand=np.ones((11,3))*.3;tau=(future[:8]-hand).astype(np.float32)
     np.testing.assert_allclose(tau+hand,future[:8],atol=1e-7)

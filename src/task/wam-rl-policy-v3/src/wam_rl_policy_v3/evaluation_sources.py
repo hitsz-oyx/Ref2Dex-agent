@@ -61,5 +61,5 @@ def template_intent(template,q,palm,object_pose,object_goal,phase):
 def gt_future(s2d_targets,reference,frame,live_object,available):
     """Reuse S2d's whole-future object anchor; future[0] is t+1/30s."""
     if not available or frame<3 or frame+24>=len(reference['hand']):return None,False
-    target=s2d_targets(reference['hand'][:,0],reference['objects'][:,0],frame,live_object,horizon=24)
+    target=np.asarray(s2d_targets(reference['hand'][:,0],reference['objects'][:,0],frame,live_object,horizon=24),np.float32)
     return target,True

@@ -78,7 +78,7 @@ def main():
     if a.suite=='robust' and a.repeats!=1:raise ValueError('one trial per registered new initial')
     order=[keys[b%len(keys):]+keys[:b%len(keys)] for b in range(a.repeats)];maximum_controls=300*len(keys)*a.repeats
     report=dict(status='STARTING',experiment_id='P-20261022-single-tau-calibration',run_id=out.name,git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
-        protocol='grasp-intent.v8.frozen-consumer.'+a.suite,consumer=GRASP_INTERFACE,stages=STAGE_CONTRACT,scheduler_schema=SCHEDULER_SCHEMA,original_run=str(oldrun),source_sequence=name,source_object=catalog_record['object'],source_split=catalog_record['split'],source_reference=str(reference_path),
+        protocol='grasp-intent.v8.frozen-consumer.'+a.suite,python=sys.executable,torch=torch.__version__,cuda=torch.version.cuda,consumer=GRASP_INTERFACE,stages=STAGE_CONTRACT,scheduler_schema=SCHEDULER_SCHEMA,original_run=str(oldrun),source_sequence=name,source_object=catalog_record['object'],source_split=catalog_record['split'],source_reference=str(reference_path),
         base_checkpoint=original['base_checkpoint'],calibrated_checkpoint_loaded_unused=str(oldrun/'calibrated.pt'),wam_step=wam.step,flow_eval_seed=wam.config.get('flow_eval_seed'),
         native_gpu=a.native_gpu,model_gpu=a.model_gpu,gpu_before=gpu,native_seed=195,model_seed=196,envs=1,repeats_per_chain=a.repeats,order=order,
         maximum_environment_controls=maximum_controls,maximum_wall_s=1800,learning_updates=0,environment_controls=0,runs=[],maximum_pd_reconstruction_error=0.,task_contract=LiftHoldWitness.contract,
