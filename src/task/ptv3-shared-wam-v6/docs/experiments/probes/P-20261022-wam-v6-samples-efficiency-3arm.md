@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [191, 192, 193, 194]
 decision_changed_if_positive: retain WAM pretraining if C reproducibly improves interaction efficiency over both A and geometric B
 decision_changed_if_negative: reject current sample-efficiency claim and prioritize executor or representation changes
-status: PLANNED
+status: RUNNING
 run_id: samples-efficiency-3arm-20261022-r1
 ---
 
@@ -226,3 +226,23 @@ INCOMPLETE（只是工程通路，不是9job科学结果）。r2全实现/依赖
 正式启动另加项目内XDG_CACHE_HOME/MPLCONFIGDIR/CUDA_CACHE_PATH，避免driver/图形缓存落home；
 C冻结推理用fork_rng恢复CPU/CUDA策略RNG，不让PTv3随机序列化消耗PPO探索流。
 正式批次独立run_id仍为samples-efficiency-3arm-20261022-r1，不混入以上任何工程数据。
+
+## 正式首批已启动（结果待定）
+
+run=`samples-efficiency-3arm-20261022-r1`，冻结代码fe81b6b5，supervisor PID2708769，
+独立session、GPU1/2。启动前两卡均6MiB/0%，未动4/5/6或他人作业；其他空闲卡未占用。
+完整命令/启动receipt在`tmp/samples-efficiency-3arm-20261022-r1/launch.json`，supervisor.log同目录；
+运行数据根`outputs/ptv3-shared-wam-v6/samples-efficiency-3arm-20261022-r1/`。
+
+首个正式大规模状态：A-seed191迭代10、200optimizer steps、20480训练交互；
+B-seed191迭代5、100optimizer steps、10240训练交互。source/behavior logprob/参数同步误差均0。
+实际dense2048并行采集A8.25s/iter、B16.25s/iter，learning约0.16s，模型CUDA峰值202MiB；
+整卡约4.95–5.01GiB。30s资源采样A0–17%、B0%，采集/几何CPU路径主导、GPU间歇空闲，
+没有因此改变冻结设计或减少样本。A当前剩约1.17h，B约2.31h；正式C尚排队。
+
+上述A/B比早期单job512点容量更慢，旧17.7GPU-hour总训练估计偏低。
+以当前A/B与新C容量估算9训练jobs约22GPU-hours，双卡训练约11–14h；评估另计，
+整批暂估16–22h wall。此为在线更新ETA，不是完成承诺；C正式运行后应再次更新。
+目标仍9job各1,048,576训练交互、3训练seed、45共同初态评估panels。
+目前完成科学训练runs=0/9、完成评估panels=0/45，阈值/AUC/固定预算成功率均待定。
+不能用上面的工程数据或训练计数给出样本效率收益。
