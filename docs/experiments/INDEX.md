@@ -927,7 +927,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261022-wam-v6-identifiability-audit](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261022-wam-v6-identifiability-audit.md) | Existing-checkpoint identifiability, prefix and hand/object consistency | protocol/code prepared; numerical run pending. | read-only Decision Probe requested by owner at09:55; no training, model expansion, data additions, training control, credentials or remote p | probes/RUNNING |
+| [P-20261022-wam-v6-identifiability-audit](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261022-wam-v6-identifiability-audit.md) | Existing-checkpoint identifiability, prefix and hand/object consistency | COMPLETED. FM8500 held-out prefix hand/object20.28/9.36→21.78/10.97mm despite improved C; strict conditional support insufficient; geometry  | hand off numerical evidence for owner review; do not expand model/data or start training. Keep existing GPUs4/5/6 training untouched. Condit | probes/COMPLETED |
 
 ## HF-v6-joint-trajectory-flow
 
