@@ -26,8 +26,10 @@ logprob0；C batch64保留24帧、跳独立未用C头后实测26.921s/更新，�
 run=`outputs/ptv3-shared-wam-v6/samples-efficiency-3arm-20261022-r1/`；receipt在同名tmp/launch.json。
 A/B已实际optimizer更新，首轮logprob误差0；尚无正式eval点，成功率/阈值步数/AUC均待定。
 所有9run和eval均从runtime-code快照读取实现、有限队列/共享6h每run/8GiB产物/20GiB磁盘底线。
-预计9个训练约17.7GPUh，含评估暂估13–17h wall，正式吞吐较容量更慢，ETA须随progress更新。
-首轮实际A约8.2s/update、B14.6s/update。结束自动生成sample-efficiency-summary.json与
+按统一dense2048正式A/B吞吐更新：9训练约22GPUh、双卡11–14h，含评估暂估16–22h wall；
+C科学run尚排队，ETA须随progress更新。
+首轮实际A约8.3s/update、B16.5s/update，GPU利用率偏低，采集/几何CPU路径主导；已如实报告。
+科学完成0/9、正式eval0/45；工程/在线随机episode计数不能冒充固定面板成功率。结束自动生成sample-efficiency-summary.json与
 learning-curves.png/svg；缺seed/点记INCOMPLETE。中断多收集未更新rollout用native.steps成本账，
 不冒充完整预算。冻结smoke缺配置r1保留，r2已真实A/C checkpoint0评估及14字段配对/图表通过。
 工程smoke不是学习曲线或成功率证据。P2仅公平训练设计，0运行。

@@ -1033,7 +1033,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261022-wam-v6-samples-efficiency-3arm](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261022-wam-v6-samples-efficiency-3arm.md) | 三臂抓取—抬升样本效率 Decision Probe | 见原卡 | 见原卡 | probes/PLANNED |
+| [P-20261022-wam-v6-samples-efficiency-3arm](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261022-wam-v6-samples-efficiency-3arm.md) | 三臂抓取—抬升样本效率 Decision Probe | 见原卡 | 见原卡 | probes/RUNNING |
 
 ## HF-weak-temporal-value
 
