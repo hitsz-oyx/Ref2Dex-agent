@@ -9,6 +9,22 @@ from .model import SharedWAMV6
 from .data import collate
 from ptv3_shared_wam_v5.data import history, transform
 from ptv3_shared_wam_v5.contracts import SPARSE11_IN_21
+from .executor_bridge import full21_to_sparse11
+
+
+def voxel_config(config):
+    """Require checkpoint voxel coordinates; never guess training-time defaults."""
+    missing = [key for key in ('voxel_origin_m', 'voxel_m') if key not in config]
+    if missing:
+        raise ValueError('v6 runtime config missing required key(s): '+', '.join(missing))
+    try:
+        origin = np.asarray(config['voxel_origin_m'], dtype=float)
+        size = np.asarray(config['voxel_m'], dtype=float)
+    except (TypeError, ValueError) as error:
+        raise ValueError('v6 runtime config requires numeric voxel_origin_m/voxel_m') from error
+    if origin.shape != (3,) or not np.isfinite(origin).all() or size.shape != () or not np.isfinite(size) or size <= 0:
+        raise ValueError('v6 runtime config requires finite voxel_origin_m[3] and positive scalar voxel_m')
+    return origin, float(size)
 
 def online(geo, poses, joints, dense, joint_valid, dense_valid, parts, goal, event=None):
     """Only H4 observed/generated geometry and instruction inputs; no future labels."""
@@ -42,6 +58,7 @@ class OnlineV6Runtime:
         if not 1<=self.inference_batch<=96:raise ValueError("bounded inference batch required")
         packet=torch.load(checkpoint,map_location="cpu",weights_only=False)
         self.config=packet["config"]; self.step=packet["step"]
+        voxel_config(self.config)
         self.model=SharedWAMV6(json.loads(Path(stats).read_text()),self.config).to(device).eval().requires_grad_(False)
         self.model.load_state_dict(packet["model"],strict=True)
         self.root=Path(geometry_cache)
@@ -51,6 +68,10 @@ class OnlineV6Runtime:
             with np.load(self.root/row["path"]) as z:
                 self.geometries[row["key"]]={k:z[k].copy() for k in z.files}
         self.calls=0;self.seconds=0.;self.samples=0
+
+    def _synchronize(self):
+        if self.device.type == 'cuda':
+            torch.cuda.synchronize(self.device)
 
     def _trajectory(self, batch):
         if not self.forecast_only:return self.model(batch)["trajectory"]
@@ -72,17 +93,21 @@ class OnlineV6Runtime:
 
     def workspace_valid(self, objects, hands):
         from scipy.spatial.transform import Rotation
+        origin, size = voxel_config(self.config)
         objects=np.asarray(objects);hands=np.asarray(hands)
         rotation=Rotation.from_quat(objects[:,-1,3:7]).as_matrix()
         local=np.einsum("bhki,bij->bhkj",hands-objects[:,-1,None,None,:3],rotation)
-        grid=np.floor((local[:,-1]-np.asarray(self.config["voxel_origin_m"]))/self.config["voxel_m"])
+        grid=np.floor((local[:,-1]-origin)/size)
         return np.isfinite(grid).all((1,2)) & (grid>=0).all((1,2)) & (grid<=65535).all((1,2))
 
     def predict(self, objects, hands, goals, events, object_codes):
         from scipy.spatial.transform import Rotation
+        origin, size = voxel_config(self.config)
         objects=np.asarray(objects);hands=np.asarray(hands);goals=np.asarray(goals)
         if objects.shape[1:]!=(4,7) or hands.shape!=(len(objects),4,11,3):
             raise ValueError("measured Bx4 objects/hand11 required")
+        if not len(objects) or goals.shape != (len(objects),4,4) or len(events) != len(objects) or len(object_codes) != len(objects):
+            raise ValueError('one goal/event/object code per nonempty H4 batch required')
         ids=np.asarray(SPARSE11_IN_21);samples=[];rotations=[]
         for i,code in enumerate(object_codes):
             geo=self.geometries[code if "@" in code else code+"@1"]
@@ -94,18 +119,20 @@ class OnlineV6Runtime:
             sample=online(geo,poses,joints,np.zeros((4,2,778,3),np.float32),valid,
                 np.zeros((2,778),bool),np.zeros((2,778),np.int64),goals[i],events[i])
             xyz=np.r_[sample["xyz"],sample["start_hand"][valid]]
-            grid=np.floor((xyz-np.asarray(self.config["voxel_origin_m"]))/self.config["voxel_m"])
+            grid=np.floor((xyz-origin)/size)
             if not np.isfinite(grid).all() or grid.min()<0 or grid.max()>65535:
                 raise ValueError("measured state outside v6 voxel workspace")
             samples.append(sample);rotations.append(poses[-1,:3,:3])
-        torch.cuda.synchronize(self.device);started=time.monotonic()
+        self._synchronize()
+        started=time.monotonic()
         chunks=[]
         for offset in range(0,len(samples),self.inference_batch):
             batch={k:v.to(self.device) for k,v in collate(samples[offset:offset+self.inference_batch]).items()}
             with torch.inference_mode(),torch.autocast("cuda",enabled=False):
-                chunks.append(self._trajectory(batch)[:,:,0][:,:,ids].float().cpu().numpy())
+                chunks.append(full21_to_sparse11(self._trajectory(batch))[:,:,0].float().cpu().numpy())
         prediction=np.concatenate(chunks)
-        torch.cuda.synchronize(self.device);self.seconds+=time.monotonic()-started;self.calls+=1;self.samples+=len(objects)
+        self._synchronize()
+        self.seconds+=time.monotonic()-started;self.calls+=1;self.samples+=len(objects)
         result=np.einsum("btki,bji->btkj",prediction,np.asarray(rotations))
         if not np.isfinite(result).all():raise ValueError("nonfinite v6 world tau")
         return result.astype(np.float32)
