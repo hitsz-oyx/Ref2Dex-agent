@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219]
 decision_changed_if_positive: retain geometry and SE3 repair on new interface initials and budget drift recovery residual separately
 decision_changed_if_negative: repair approach or qualify physical witness before attributing failure to WAM
-status: RUNNING
+status: COMPLETED
 run_id: grasp-v11-coverage40-20261022-r1
 ---
 
@@ -28,8 +28,14 @@ run_id: grasp-v11-coverage40-20261022-r1
 | 三链均失败或A0命令准入失败 | 没有可执行正见证，尚不能归因WAM或任务不可能 | 保留全部失败，修物理接近/动作合同 |
 | A1仍有关节/桌面中止 | 静态候选准入不足以保证动态安全 | 修接触下的压力与速度控制；不放宽gate |
 
-Result: registered 40 distinct initials /20 unexposed objects x3 arms=120 episodes; resource queue starts GPU5/6 after preceding COVERAGE, GPU4 after preceding residual check, 0 updates.
-Decision: n12 engineering coverage remains separate; use n40 per chain and retain every physical failure.
+Result: 120/120 complete and raw-replay matched; A1=3/40 Wilson95 .025836-.198642, A2=0/40 0-.087622, A0=14/40 .221345-.504941; A1/A2 Fisher .240506; 52839 controls, 0 updates.
+Decision: unseen tau contribution and broad controller qualification fail; retain v10 seen result separately, repair approach/closure pressure control; no v6 retraining or three-arm RL.
+
+完成报告：[逐臂计数、分布、限位/clip、源见证与精确复现](../../grasp-v11-coverage40-results-20261022.md)。
+原始轨迹120/120一致、初态40/40组三链一致、干净A2 40/40；当前完整v3回归269passed/0failed/0skipped。
+新A1有14次限位，其中approach8/close5/lift1；PD名义目标全部合法仍会动态受压，软件PASS没有解决物理失败。
+同后段source臂14成功，12个同初态A1失败，均无source表达拒绝；A0不是GTτ→R上界。
+下方为运行前冻结的协议与目标，目标未达部分不得被完成状态掩盖。独立Hermes/GPT物理复跑仍待裁决。
 
 分类Decision：区分“接口只适合旧圆柱初态”与“新几何/SE3合同可扩到新初态”，决定继续修接近还是可保留接口。
 最便宜符合机主统计要求的批次为40个不同初态×三链，不追加v9重复或训练。

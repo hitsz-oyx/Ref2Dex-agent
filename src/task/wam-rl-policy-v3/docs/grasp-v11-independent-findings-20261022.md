@@ -14,6 +14,10 @@
 后续[每链n40接口未见覆盖](experiments/probes/P-20261022-grasp-coverage40.md)另行冻结、排队；
 不对未满40的中间数据宣称显著性，不把12例工程覆盖与其合并。
 
+收口更新：n40现已完成120/120及raw复核，A1/A2/A0=3/0/14，A1/A2 Fisher .240506；
+新几何/SE3修改没有解决宽覆盖，接近/闭合限位仍是下一修复入口。
+详见[最终结果、来源/待裁决与精确冻结复现](grasp-v11-coverage40-results-20261022.md)。
+
 ## 互斥死因与重叠指标
 
 `outputs/wam-rl-policy-v3/grasp-v10-stat40-20261022-r1/v9-death-geometry.json`包含每例实测对象/目标SE3、掌相对物体SE3、真实掌面与腕原点间距、5指尖间距、力、q/dq、PD、末态桌面间距和轨迹路径。

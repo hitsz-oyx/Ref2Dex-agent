@@ -311,13 +311,19 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261022-grasp-coverage40](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261022-grasp-coverage40.md) | v11 扩大初态覆盖：每链40个接口未见初态 | registered 40 distinct initials /20 unexposed objects x3 arms=120 episodes; resource queue starts GPU5/6 after preceding COVERAGE, GPU4 afte | n12 engineering coverage remains separate; use n40 per chain and retain every physical failure. | probes/RUNNING |
+| [P-20261022-grasp-coverage40](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261022-grasp-coverage40.md) | v11 扩大初态覆盖：每链40个接口未见初态 | 120/120 complete and raw-replay matched; A1=3/40 Wilson95 .025836-.198642, A2=0/40 0-.087622, A0=14/40 .221345-.504941; A1/A2 Fisher .240506 | unseen tau contribution and broad controller qualification fail; retain v10 seen result separately, repair approach/closure pressure control | probes/COMPLETED |
 
 ## HF-grasp-geometry-coverage
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261022-grasp-geometry-coverage](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261022-grasp-geometry-coverage.md) | 尺寸几何与新增初态覆盖 | 36/36 completed and raw-matched; new-object A1=2/8 A2=0/8 A0=2/8, new-sequence A1=0/4 A2=0/4 A0=2/4; three-arm initials12/12 matched. | three source-only strict witnesses localize a reference/intent/execution bottleneck; do not promote global geometry qualification or retrain | probes/COMPLETED |
+
+## HF-grasp-intent-mechanism
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261022-grasp-intent-mechanism](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261022-grasp-intent-mechanism.md) | 成分消融与同接口 A3/A4 | 见原卡 | 见原卡 | probes/REGISTERED |
 
 ## HF-grasp-interface-repair
 
