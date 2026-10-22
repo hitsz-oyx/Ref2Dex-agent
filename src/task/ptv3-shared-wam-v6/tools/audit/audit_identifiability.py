@@ -43,7 +43,7 @@ def write(path,value):
 def guard(out):
     if time.monotonic()-START>3600 or (out/'STOP').exists():raise RuntimeError('owned audit time/STOP bound')
     if shutil.disk_usage(out).free<20*2**30:raise RuntimeError('20GiB disk floor')
-    if torch.cuda.is_initialized() and torch.cuda.mem_get_info()[0]<512*2**20:raise RuntimeError('audit yields below512MiB device headroom')
+    if torch.cuda.is_initialized() and torch.cuda.mem_get_info()[0]<2*2**30:raise RuntimeError('audit yields below2GiB device headroom')
 
 
 def phases(folder,slot,tick):
@@ -377,7 +377,14 @@ def evaluate(a):
         model_report=dict(checkpoint=str(path.resolve()),step=step,precision=model.precision_runtime,panels={})
         for name,rows in panel['panels'].items():
             aggregates=defaultdict(dict);records=[]
-            for first in range(0,len(rows),a.batch_size):
+            completed=a.output/(label+'-'+name+'.json')
+            partial=a.output/(label+'-'+name+'-partial.json')
+            if completed.exists():
+                report=read(completed);model_report['panels'][name]={k:v for k,v in report.items() if k!='records'};continue
+            if partial.exists():
+                saved_partial=read(partial);records=saved_partial['records'];aggregates=defaultdict(dict,saved_partial['aggregates'])
+                if saved_partial['checkpoint']!=str(path.resolve()):raise ValueError('partial checkpoint mismatch')
+            for first in range(len(records),len(rows),a.batch_size):
                 guard(a.output);selected=rows[first:first+a.batch_size];samples=[window(dataset,row) for row in selected]
                 batch={k:v.cuda() for k,v in collate(samples).items()}
                 with torch.inference_mode():
@@ -408,6 +415,7 @@ def evaluate(a):
                         for part,store in sample_metrics.items():
                             for key,value in store.items():
                                 item=aggregates[part].setdefault(key,dict(sum=0.,count=0));item['sum']+=value['sum'];item['count']+=value['count']
+                if len(records)%8==0:write(partial,dict(checkpoint=str(path.resolve()),records=records,aggregates=aggregates))
                 if first%16==0:print(json.dumps(dict(stage='evaluate',model=label,panel=name,done=min(first+a.batch_size,len(rows)))),flush=True)
             report=dict(windows=len(rows),captures=len(set(r['capture'] for r in rows)),metrics={k:summarize(v) for k,v in aggregates.items()},records=records)
             write(a.output/(label+'-'+name+'.json'),report);model_report['panels'][name]={k:v for k,v in report.items() if k!='records'}
