@@ -33,16 +33,20 @@ def main():
         with np.load(folder/'trajectory.npz') as z:data={k:z[k].copy() for k in FIELDS};actions=z['action'].copy();actual_pd=z['pd_targets_actual'].copy();raw=z['raw_action'].copy();adapter=z['adapter_raw_action'].copy()
         ticks=data['tick'][:,0]
         if len(actions)+1!=len(ticks) or not np.array_equal(ticks,np.arange(len(ticks))):raise ValueError('saved clock mismatch '+r['id'])
-        observer=FeedbackObserver(points);stages=StagedProgress(data['objects'][0,0,2]);goal=pose7(data['objects'][0,0]);goal[2,3]+=.08;decision=SimpleNamespace(local_goal_pose=goal,terminal_goal_pose=goal)
+        geometry=None
+        if 'geometry' in r:
+            from wam_rl_policy_v3.grasp_geometry import GraspGeometry
+            geometry=GraspGeometry.from_points(points)
+        observer=FeedbackObserver(points);stages=StagedProgress(data['objects'][0,0,2],**({} if geometry is None else dict(geometry=geometry)));goal=pose7(data['objects'][0,0]);goal[2,3]+=.08;decision=SimpleNamespace(local_goal_pose=goal,terminal_goal_pose=goal)
         ever=False;any_abort=False
         for t in range(len(ticks)):
             state={k:v[t] for k,v in data.items()};obj=state['objects'][0];pose=pose7(obj);hand=state['hand'][0,NATIVE_TO_WAM];force=state['contact_forces'][0]
             safety=physical_safety(state,0,points,bounds,audit['physical_joint_limits']);any_abort|=safety['abort']
             feedback=observer.update(pose,hand,obj[7:13],float(ticks[t])/30,contact_forces=force,force_valid=bool(state['contact_force_valid'][0]),supported=online_support(state,0,pose,points,bounds),workspace_ok=not safety['abort'])
             features=reward_features(pose,hand,points,decision,obj[7:13],force);features=palm.features(features,pose7(state['palm_pose'][0]),pose,points)
-            stage=stages.update(obj[2],float(ticks[t])/30,features,feedback,force,release_authorized=False,physical_abort=safety['abort'])
-            error=float(np.linalg.norm(pose[:3,3]-goal[:3,3]));ever|=bool(stage['current']['hold'] and error<=.015 and not safety['abort'])
-        full=bool(ticks[-1]==reg['horizon_controls']);final=bool(full and not any_abort and stage['current']['hold'] and error<=.015)
+            stage=stages.update(obj[2],float(ticks[t])/30,features,feedback,force,release_authorized=False,physical_abort=safety['abort'],**({} if geometry is None else dict(approach_tip_gap_m=geometry.paired_tip_gap(hand,pose,points))))
+            error=float(np.linalg.norm(pose[:3,3]-goal[:3,3]));ever|=bool(stage['current']['hold'] and error<=(.015 if geometry is None else geometry.position_tolerance_m) and not safety['abort'])
+        full=bool(ticks[-1]==reg['horizon_controls']);final=bool(full and not any_abort and stage['current']['hold'] and error<=(.015 if geometry is None else geometry.position_tolerance_m))
         hold=bool(full and not any_abort and stage['current']['hold']);goal15=bool(full and not any_abort and error<=.015)
         expected_pd=pd_targets(actions,data['q'][:-1,0],np.asarray(audit['controller']['offset']),np.asarray(audit['controller']['scale']));pd_error=float(np.max(np.abs(expected_pd-actual_pd))) if len(actions) else 0.
         clip=int((np.abs(raw-actions)>1e-6).any(-1).sum());upstream=int((np.abs(adapter)>1+1e-6).any(-1).sum())

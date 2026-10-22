@@ -12,9 +12,12 @@ WEIGHTS = np.array([.1, .15, .25, .25, .25])
 
 
 class StagedProgress:
-    def __init__(self, initial_z, *, max_sample_gap_s=1/30+1e-8):
+    def __init__(self, initial_z, *, max_sample_gap_s=1/30+1e-8, geometry=None):
         if not np.isfinite([initial_z, max_sample_gap_s]).all() or max_sample_gap_s <= 0:
             raise ValueError('finite initial height and positive sample gap required')
+        self.geometry = geometry
+        self.palm_threshold = .10 if geometry is None else geometry.palm_gap_m
+        self.tip_threshold = .05 if geometry is None else geometry.tip_gap_m
         self.initial_z = float(initial_z)
         self.max_sample_gap_s = max_sample_gap_s
         self.first = dict.fromkeys(STAGES)
@@ -24,7 +27,7 @@ class StagedProgress:
         self.current = dict.fromkeys(STAGES, False)
 
     def update(self, z, now, features, feedback, contact_forces, *,
-               release_authorized=False, physical_abort=False):
+               release_authorized=False, physical_abort=False, approach_tip_gap_m=None):
         if not np.isfinite([z, now]).all() or (self.last_time is not None and now <= self.last_time):
             raise ValueError('strictly increasing finite stage time required')
         forces = np.asarray(contact_forces, dtype=float)
@@ -39,7 +42,10 @@ class StagedProgress:
         safe = bool(not physical_abort and feedback.workspace_ok)
         valid = bool(feedback.force_valid and np.isfinite(forces).all())
         counts = int((np.linalg.norm(forces, axis=-1) >= .1).sum()) if valid else None
-        approach = bool(safe and gaps[0] <= .10 and gaps[1] <= .05)
+        if self.geometry is not None:
+            if approach_tip_gap_m is None or not np.isfinite(approach_tip_gap_m) or approach_tip_gap_m<0:raise ValueError('geometry stage requires measured second-closest fingertip gap')
+            gaps[1]=approach_tip_gap_m
+        approach = bool(safe and gaps[0] <= self.palm_threshold and gaps[1] <= self.tip_threshold)
         contact = bool(safe and approach and valid and counts >= 2 and feedback.contact_observed)
         if approach and self.first['approach'] is None:
             self.first['approach'] = float(now)
@@ -79,13 +85,13 @@ class StagedProgress:
         if released and self.first['release'] is None:
             self.first['release'] = float(now)
         self.current = dict(zip(STAGES, (approach, contact, lifted, held, released)))
-        proximity = float(np.clip(1-(gaps[0]/.10+gaps[1]/.05)/2, 0, 1)) if safe else 0.
+        proximity = float(np.clip(1-(gaps[0]/self.palm_threshold+gaps[1]/self.tip_threshold)/2, 0, 1)) if safe else 0.
         self.progress = np.array([proximity, float(contact), lift_fraction,
                                   min(hold_s, 1.), float(released)])
         return self.snapshot()
 
     def snapshot(self):
-        return dict(contract=STAGE_CONTRACT, current=self.current.copy(),
+        return dict(contract=STAGE_CONTRACT if self.geometry is None else self.geometry.manifest()['contract'], current=self.current.copy(),
                     achieved={k: self.first[k] is not None for k in STAGES},
                     first_time_s=self.first.copy(), longest_hold_s=self.longest_hold_s,
                     continuous_hold_s=0. if self.hold_since is None else self.last_time-self.hold_since)

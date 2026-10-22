@@ -25,6 +25,19 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261022-grasp-geometry-coverage:
+    seed_pool: probe
+    native_seeds: {ranges: [[260, 271]]}
+    inference_seeds: {ranges: [[280, 291]]}
+    reuse_reason: lexical expanded coverage, one matched seed per initial across three chains; not validation
+
+  P-20261022-drift-intent-residual:
+    seed_pool: probe
+    bc_seed: 292
+    ppo_seed: 293
+    evaluation_seeds: [294, 295]
+    reuse_reason: bounded recovery-intent BC and residual PPO feasibility pilot; paired before/after initial states, not independent efficacy validation
+
   P-20261022-grasp-interface-repair:
     seed_pool: probe
     native_seeds: {ranges: [[100, 179]]}

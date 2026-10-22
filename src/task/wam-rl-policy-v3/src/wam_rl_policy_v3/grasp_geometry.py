@@ -7,6 +7,7 @@ from dataclasses import dataclass,asdict,replace
 import itertools
 import numpy as np
 from scipy.spatial.transform import Rotation
+from scipy.spatial import ConvexHull
 from .pose_consumer import MeasuredGraspConsumer,FINGER_ACTIVE,closest_wrist_angles
 from .grasp_repair import GoalServo
 from .tau_replay_contract import pd_targets
@@ -31,8 +32,8 @@ class GraspGeometry:
         if points.ndim!=2 or points.shape[1]!=3 or len(points)<4 or not np.isfinite(points).all():raise ValueError('finite 3D object geometry required')
         # PCA gives a geometry frame independent of world orientation. Sparse
         # canonical surface coverage is a documented approximation to true CAD.
-        values,axes=np.linalg.eigh(np.cov(points.T));extent=np.ptp(points@axes,axis=0)
-        width=float(extent.min());diameter=float(np.linalg.norm(points[:,None]-points[None],axis=-1).max())
+        hull=ConvexHull(points);normals=hull.equations[:,:3]
+        width=float(np.ptp(points@normals.T,axis=0).min());diameter=float(np.linalg.norm(points[:,None]-points[None],axis=-1).max())
         if width<=1e-6 or diameter<=1e-6:raise ValueError('nondegenerate volumetric object required')
         tol=.10*width
         return cls(width,diameter,tol,.50*diameter,.25*width,.25*width,float(2*np.arcsin(min(1.,tol/diameter))))
@@ -40,7 +41,13 @@ class GraspGeometry:
     def arrived(self,position_error,angle_error=0.,position_only=True):
         return bool(position_error<=self.position_tolerance_m and (position_only or angle_error<=self.angle_tolerance_rad))
 
-    def manifest(self):return dict(contract=GEOMETRY_CONTRACT,**asdict(self))
+    def paired_tip_gap(self,hand_wam,object_pose,points):
+        world=np.asarray(points)@object_pose[:3,:3].T+object_pose[:3,3]
+        tips=np.asarray(hand_wam)[6:]
+        gaps=np.linalg.norm(tips[:,None]-world[None],axis=-1).min(-1)
+        return float(np.partition(gaps,1)[1])
+
+    def manifest(self):return dict(contract=GEOMETRY_CONTRACT,tip_measurement='second-closest of five native fingertips in WAM order; two-finger grasp',**asdict(self))
 
 
 class JointAdmission:
@@ -57,7 +64,9 @@ class JointAdmission:
                 self.active_upper[i]=min(self.active_upper[i],self.upper[dst]/ratio)
 
     def check(self,action,q):
-        target=pd_targets(np.asarray(action),q,self.offset,self.scale)
+        action=np.asarray(action)
+        if action.shape!=(12,) or not np.isfinite(action).all() or (np.abs(action)>1+1e-6).any():return False,["canonical_action_range"]
+        target=pd_targets(action,q,self.offset,self.scale)
         bad=np.flatnonzero(self.mask&((target<self.lower-1e-7)|(target>self.upper+1e-7)))
         return not len(bad),bad.tolist()
 
@@ -164,13 +173,19 @@ class GeometryGraspConsumer(MeasuredGraspConsumer):
             raw,_=action_for_pose(palm,proposal,q,intent.preshape_q,self.admission,mount)
             safe,bad=self.admission.check(raw,q)
             local=(hand-palm[:3,3])@palm[:3,:3];normal,height=self.plane
-            measured_gap=float(np.min(np.r_[hand,self.palm_vertices@palm[:3,:3].T+palm[:3,3]]@normal)-height)
+            measured=np.r_[hand,self.palm_vertices@palm[:3,:3].T+palm[:3,3]]
+            mask=np.ones(len(measured),bool)
+            if self.table_geometry is not None:
+                table_pose,bounds=self.table_geometry;axes=np.argsort(bounds[1]-bounds[0])[1:]
+                table_local=(measured-table_pose[:3,3])@table_pose[:3,:3]
+                mask=((table_local[:,axes]>=bounds[0,axes])&(table_local[:,axes]<=bounds[1,axes])).all(-1)
+            measured_gap=float(np.min(measured[mask]@normal)-height) if mask.any() else np.inf
             # Coasting beyond a true bound is an admission warning, independent
             # of the more permissive unchanged physical abort margin.
             projected=q+np.asarray(args['dq'])/30
             pressure=bool((self.admission.mask&((projected<self.admission.lower)|(projected>self.admission.upper))).any())
             geometry_needed=not safe or pressure or measured_gap<0
-            choice=dict(status='R_ADMITTED',rejected_joint_indices=bad,measured_support_gap_m=measured_gap)
+            choice=dict(status='R_ADMITTED',rejected_joint_indices=bad,measured_support_gap_m=measured_gap if np.isfinite(measured_gap) else None)
             if geometry_needed:
                 fingers=self.admission.fingers(intent.preshape_q)
                 desired,choice=grasp_candidates(palm,hand,obj,self.points,normal,height,obj@intent.grasp_pose_object,fingers,q,self.admission)

@@ -52,17 +52,17 @@ class NativeEpisode:
 
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--registration',type=Path,required=True);p.add_argument('--worker',type=int,choices=[0,1,2],required=True);p.add_argument('--gpu',type=int,choices=[4,5,6],required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--carry-run',type=Path);a=p.parse_args()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--registration',type=Path,required=True);p.add_argument('--worker',type=int,choices=[0,1,2],required=True);p.add_argument('--gpu',type=int,choices=[4,5,6],required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--carry-run',type=Path);p.add_argument('--runtime-source',type=Path,help='pin controller/scorer/host to an existing frozen runtime tree');a=p.parse_args()
     out=a.output.resolve();reg=json.loads(a.registration.read_text());jobs=[j for j in reg['jobs'] if j['worker']==a.worker]
     if out.exists() or ROOT/'outputs/wam-rl-policy-v3' not in out.parents:raise ValueError('fresh task-local output required')
     gpu=subprocess.check_output(['nvidia-smi','-i',str(a.gpu),'--query-gpu=index,memory.used,utilization.gpu','--format=csv,noheader,nounits'],text=True)
     if int(gpu.split(',')[1])>64:raise RuntimeError('GPU occupied, queue this worker: '+gpu)
     out.mkdir(parents=True);oldrun=ROOT/'outputs/ptv3-shared-wam-v6/single-tau-calibration-20261022-r1';frozen=freeze(out,oldrun)
     for name in ('pose_consumer','evaluation_sources','geometry_tau','stage_evaluation','grasp_repair'):
-        shutil.copyfile(TASK/'src/wam_rl_policy_v3'/(name+'.py'),frozen/'src/task/wam-rl-policy-v3/src/wam_rl_policy_v3'/(name+'.py'))
-    shutil.copyfile(ROOT/'src/task/ptv3-shared-wam-v6/src/ptv3_shared_wam_v6/staged_progress.py',frozen/'src/task/ptv3-shared-wam-v6/src/ptv3_shared_wam_v6/staged_progress.py')
+        shutil.copyfile((a.runtime_source/'src/task/wam-rl-policy-v3/src/wam_rl_policy_v3' if a.runtime_source else TASK/'src/wam_rl_policy_v3')/(name+'.py'),frozen/'src/task/wam-rl-policy-v3/src/wam_rl_policy_v3'/(name+'.py'))
+    shutil.copyfile((a.runtime_source if a.runtime_source else ROOT)/'src/task/ptv3-shared-wam-v6/src/ptv3_shared_wam_v6/staged_progress.py',frozen/'src/task/ptv3-shared-wam-v6/src/ptv3_shared_wam_v6/staged_progress.py')
     shutil.copyfile(TASK/'tools/audit/measure_s2d_controls.py',out/'s2d_mapping.py');shutil.copyfile(Path(__file__),out/'runner.py');shutil.copyfile(a.registration,out/'registration.json')
-    shutil.copyfile(TASK/'tools/run/inspire_physics_host.py',frozen/'src/task/wam-rl-policy-v3/tools/run/inspire_physics_host.py')
+    shutil.copyfile((a.runtime_source if a.runtime_source else ROOT)/'src/task/wam-rl-policy-v3/tools/run/inspire_physics_host.py',frozen/'src/task/wam-rl-policy-v3/tools/run/inspire_physics_host.py')
     private=Path(tempfile.mkdtemp(prefix='gv10-',dir=str(ROOT/'tmp')))
     os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu),REF2DEX_RUN_ROOT=str(ROOT),REF2DEX_V6_V5_CODE_ROOT=str(frozen),REF2DEX_V5_BASE_CODE_ROOT=str(frozen),TMPDIR=str(private),PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='2',OPENBLAS_NUM_THREADS='2')
     sys.path[:0]=[str(out),str(frozen/'src/task/wam-rl-policy-v3/src'),str(frozen/'src/task/trajectory-policy/src'),str(frozen/'src/task/ptv3-shared-wam-v6/src')]

@@ -150,6 +150,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261015-dexplore-current-rollout](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-dexplore-current-rollout.md) | Complete same-execution DExplore current-input rollout collection | Engineering capture/audit COMPLETE and PASS; native-input benefit remains | collect the actually missing native current observation/contact/body | probes/UNCLEAR |
 
+## HF-drift-intent-residual
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261022-drift-intent-residual](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261022-drift-intent-residual.md) | 漂移恢复 BC 与有界意图残差 PPO | pending; 195 measured drift states prepared, train135/DEV60 separated by sequence. | continue BC on bounded recovery intent, then only a registered residual PPO feasibility pilot; three-arm RL HOLD. | probes/RUNNING |
+
 ## HF-egodex-shared-track-admission
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
@@ -300,6 +306,12 @@
 | [P-20261013-goal-point-wam-student-pd](../../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-student-pd.md) | One student-state action round on the successful reference contract | 见原卡 | 见原卡 | probes/UNPROMISING |
 | [P-20261013-goal-point-wam-visited-joint-anchor](../../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-visited-joint-anchor.md) | Joint actor/R update with a GT-tau action anchor | COMPLETED 3000 updates in 609s on GPU2. No checkpoint passed the | Stop this clocked joint update. Do not deploy the pair. The next | probes/UNPROMISING |
 | [P-20261013-goal-point-wam-visited-realign](../../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-visited-realign.md) | Current visited-state coverage and fixed-R actor realignment | 27 actual takeovers collected;19 successful recovery queries admitted;R repaired/GT-qualified;actor realignment running. | Complete one collect/qualify/align/rollout loop, without larger models. | probes/RUNNING |
+
+## HF-grasp-geometry-coverage
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261022-grasp-geometry-coverage](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261022-grasp-geometry-coverage.md) | 尺寸几何与新增初态覆盖 | pending fixed 36-episode coverage; recorded reference geometry contract attainable for 2.000s hold. | preserve all results and distinguish interface failure from unqualified positive control; three-arm RL HOLD. | probes/RUNNING |
 
 ## HF-grasp-interface-repair
 
