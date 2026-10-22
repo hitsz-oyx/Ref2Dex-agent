@@ -34,7 +34,7 @@ def apply_intent_residual(intent,latent):
     def changed(pose):
         pose=pose.copy();pose[:3,3]+=correction[:3];pose[:3,:3]=delta[:3,:3]@pose[:3,:3];return pose
     return replace(intent,approach_pose_object=changed(intent.approach_pose_object),grasp_pose_object=changed(intent.grasp_pose_object),
-                   preshape_q=intent.preshape_q+correction[6:],closure_q=intent.closure_q+correction[6:],approach_joint_angles=None)
+                   preshape_q=intent.preshape_q+correction[6:],closure_q=intent.closure_q+correction[6:],approach_joint_angles=intent.approach_joint_angles if np.all(correction[3:6]==0) else None)
 
 
 def ppo_update(policy,optimizer,observations,latents,old_logp,rewards,values,*,bootstrap=0.,gamma=.96,lam=.95,epochs=4):

@@ -122,3 +122,13 @@ def test_pose_integrator_tracks_final_admitted_translation_for_antiwindup():
     servo.step(goal,np.eye(4),np.eye(4),np.zeros(18),np.zeros(18),np.eye(3),0.,True)
     requested=servo.requested_delta.copy();servo.applied_translation(np.zeros(3))
     np.testing.assert_allclose(servo.translation.integral,-requested)
+
+
+def test_zero_residual_preserves_original_R_pose_fingers_and_IK_branch():
+    from wam_rl_policy_v3.intent_residual import apply_intent_residual
+    p=np.eye(4);branch=np.array([3.,.2,-.1])
+    intent=GraspIntent(p.copy(),p.copy(),np.ones(6)*.2,np.ones(6)*.3,np.eye(4),'R',True,approach_joint_angles=branch)
+    changed=apply_intent_residual(intent,np.zeros(12))
+    np.testing.assert_array_equal(changed.approach_pose_object,intent.approach_pose_object)
+    np.testing.assert_array_equal(changed.preshape_q,intent.preshape_q)
+    np.testing.assert_array_equal(changed.approach_joint_angles,branch)
