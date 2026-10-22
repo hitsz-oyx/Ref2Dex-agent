@@ -138,3 +138,10 @@ loss。此运行可用物理 GPU4/5/6 三卡，0–3/7 禁止触碰；覆盖旧�
 机主明确停止flowmatching-overnight-20261022-r2；SIGINT后目标进程已退、GPU4/5/6释放。
 上方12h/30000更新的续训例外不再授权自动恢复/重启。P1仍HOLD；本轮只修确认缺陷与CPU
 审计，不将释放的GPU4–7改派新方法实验。后续以机主新指令为准。
+
+## 2026-10-22 13:0x narrow calibration authorization and closeout
+
+机主v2授权GPU4/5/6用于修后必要验证；单轨迹同τ executor校准上限2000updates或30min，
+不启动v6大训练。实际GPU4物理/GPU5拟合推理，GPU0–3/7未动；2000updates/5.376s及
+1608物理controls均已完成、进程退出。此次授权不恢复flowmatching或P1；新大训练须Hermes
+确认。机主要求窄路径验收后收口，本轮不继续无界扩大完整RELEASE/泛化/三臂研究。

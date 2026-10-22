@@ -38,6 +38,12 @@ def main():
          'result[:,3:6]=torch.remainder(result[:,3:6]+math.pi,2*math.pi)-math.pi',
          'result[:,3:6]=result[:,3:6]',
          TESTS/'test_continuous_wrist.py','test_only_continuous_rotation_coordinates_change_and_fk_is_equivalent'),
+        ('invalid-task-scoring-allowed','task_spec.py','if self.annotation_invalid:','if False:',
+         TESTS/'test_task_annotation_validity.py','test_defined_but_invalid_annotation_cannot_enter_full_task_scoring'),
+        ('missing-validity-assumed-valid','task_annotations.py',"if 'contact_force_valid' not in data else []","if False else []",
+         TESTS/'test_task_annotation_validity.py','test_missing_archive_validity_cannot_be_certified_by_assuming_tick_valid'),
+        ('source-pd-substitutes-gt','executor_qualification.py',"if name!='wam_tau_executor' and successes/n<.95:","if name=='source_pd' and successes/n<.95:",
+         TESTS/'test_executor_qualification.py','test_source_pd_alone_cannot_certify_the_gt_tau_executor'),
     ]
     reports=[]
     for name,filename,old,new,test,case in mutants:

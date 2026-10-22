@@ -26,6 +26,10 @@ def voxel_config(config):
         raise ValueError('v6 runtime config requires finite voxel_origin_m[3] and positive scalar voxel_m')
     return origin, float(size)
 
+
+class EncodingUnavailable(ValueError):
+    """A state/forecast cannot be encoded; mask tau without judging physics."""
+
 def online(geo, poses, joints, dense, joint_valid, dense_valid, parts, goal, event=None):
     """Only H4 observed/generated geometry and instruction inputs; no future labels."""
     anchor = np.linalg.inv(poses[-1]); local = joints@anchor[:3,:3].T+anchor[:3,3]
@@ -121,7 +125,7 @@ class OnlineV6Runtime:
             xyz=np.r_[sample["xyz"],sample["start_hand"][valid]]
             grid=np.floor((xyz-origin)/size)
             if not np.isfinite(grid).all() or grid.min()<0 or grid.max()>65535:
-                raise ValueError("measured state outside v6 voxel workspace")
+                raise EncodingUnavailable("measured state outside v6 voxel workspace")
             samples.append(sample);rotations.append(poses[-1,:3,:3])
         self._synchronize()
         started=time.monotonic()
@@ -134,5 +138,5 @@ class OnlineV6Runtime:
         self._synchronize()
         self.seconds+=time.monotonic()-started;self.calls+=1;self.samples+=len(objects)
         result=np.einsum("btki,bji->btkj",prediction,np.asarray(rotations))
-        if not np.isfinite(result).all():raise ValueError("nonfinite v6 world tau")
+        if not np.isfinite(result).all():raise EncodingUnavailable("nonfinite v6 world tau")
         return result.astype(np.float32)

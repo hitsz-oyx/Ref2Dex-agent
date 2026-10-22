@@ -102,6 +102,18 @@ def test_v6_recipe_reader_dropout_and_spawn_preserve_parent_inputs(packet):
     assert batch['trajectory_target'].shape==(2,24,2,21,3)
 
 
+def test_raw_event_invalidity_and_active_dropout_are_separate(packet):
+    root,_,_,_=packet
+    file=root/'s0-test/event_valid.npy';values=np.load(file);values[3,0]=False;np.save(file,values)
+    data=V6Windows(root/'manifest.json','train')
+    raw=data[(0,False)];both=data[(0,True)];dropped=data[(1,True)];observed=data[(1,False)]
+    assert raw['event_raw_invalid'] and not raw['event_condition_dropout'] and not raw['event_valid']
+    assert both['event_raw_invalid'] and both['event_condition_dropout']
+    assert not dropped['event_raw_invalid'] and dropped['event_condition_dropout'] and not dropped['event_valid']
+    assert not observed['event_raw_invalid'] and not observed['event_condition_dropout'] and observed['event_valid']
+    assert all(np.array_equal(observed[k],dropped[k]) for k in ('start_hand','trajectory_target','goal_object_delta'))
+
+
 def test_gt_object_labels_survive_spawn_and_never_enter_model_predictions(packet):
     root,_,_,cfg=packet
     old=V6Windows(root/'manifest.json','dev')

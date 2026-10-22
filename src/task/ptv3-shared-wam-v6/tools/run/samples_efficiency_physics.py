@@ -108,6 +108,9 @@ def main():
     install_reset_patch()
     from wam_rl_policy_v3.inspire_reset_submission import install_reset_submission
     install_reset_submission(DexploreTask,gymtorch)
+    from wam_rl_policy_v3.continuous_wrist import install_continuous_wrist_reset,require_continuous_wrist_dofs,RESET_ANGLE_POLICY
+    from env.tasks.dexplore_inspire import Dexplore_Inspire
+    install_continuous_wrist_reset(Dexplore_Inspire)
     original_load=DexploreTask._load_table
     def table(task,requested):
         exported=task.export_rl;task.export_rl=True
@@ -136,6 +139,7 @@ def main():
         source_sequence_names=[r['sequence'] for r in records],source_object_names=sorted({r['object'] for r in records}),
         state_transport=a.state_transport,
         reset_submission='logical_FK_now_once_indexed_setters_before_simulate.v1',
+        reset_angle_policy=RESET_ANGLE_POLICY,
         indexed_resets=0,steps=0,episode_action_mismatches=0,maximum_pd_error=0.,extended_state=a.extended_state,synchronize_setters=a.synchronize_setters,physics_backend=a.physics_backend)
     def save():
         (a.output/'manifest.json').write_text(json.dumps(audit,indent=2)+'\n')
@@ -147,6 +151,9 @@ def main():
         @torch.no_grad()
         def run(self):
             env=create();task=env.task
+            properties=task.gym.get_actor_dof_properties(task.envs[0],task.humanoid_handles[0])
+            require_continuous_wrist_dofs(task.gym.get_actor_dof_names(task.envs[0],task.humanoid_handles[0]),properties['hasLimits'])
+            audit['physical_joint_limits']=dict(has_limits=properties['hasLimits'].tolist(),lower=properties['lower'].tolist(),upper=properties['upper'].tolist())
             if a.physics_backend!='gpu':
                 # Upstream motion loading hardcodes CUDA even with a CPU sim.
                 # Keep all reference/index caches beside the actual sim tensors.
@@ -200,6 +207,7 @@ def main():
                 if a.extended_state:
                     roots=task._root_states.view(a.envs,task.get_num_actors_per_env(),-1)
                     result.update(dof_force=torch.where(force_valid[:,None],task.dof_force_tensor,0.).cpu().tolist(),
+                        palm_pose=bodies[:,hand_ids[0],:7].cpu().tolist(),
                         contact_forces=torch.where(force_valid[:,None,None],task._contact_forces[:,task._contact_body_ids],0.).cpu().tolist(),
                         object_contact_force=torch.where(force_valid[:,None],task._tar_contact_forces,0.).cpu().tolist(),
                         table_pose=roots[torch.arange(a.envs,device=task.device),table_indices,:7].cpu().tolist(),

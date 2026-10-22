@@ -713,6 +713,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261015-shared-native-grasp](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-shared-native-grasp.md) | Inspire shared-only 原生抓取初筛 | 见原卡 | 见原卡 | probes/UNPROMISING |
 
+## HF-single-trajectory-tau-feasibility
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261022-single-tau-calibration](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261022-single-tau-calibration.md) | 单轨迹同τ通道可实现性校准（执行前注册） | 见原卡 | 见原卡 | probes/COMPLETED |
+
 ## HF-spatial-action-fidelity
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
@@ -801,7 +807,13 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
+| [P-20261017-direct-tau-executor](../../src/task/trajectory-policy/docs/experiments/probes/P-20261017-direct-tau-executor.md) | P-20261017-direct-tau-executor | 见原卡 | 见原卡 | probes/UNPROMISING |
 | [P-20261017-gt-tau-executor](../../src/task/trajectory-policy/docs/experiments/probes/P-20261017-gt-tau-executor.md) | GT-tau closed-loop executor qualification | 见原卡 | 见原卡 | probes/PLANNED |
+| [P-20261017-gt-tau-new-sequence](../../src/task/trajectory-policy/docs/experiments/probes/P-20261017-gt-tau-new-sequence.md) | P-20261017-gt-tau-new-sequence | 见原卡 | 见原卡 | probes/UNPROMISING |
+| [P-20261018-absolute-plan-executor](../../src/task/trajectory-policy/docs/experiments/probes/P-20261018-absolute-plan-executor.md) | P-20261018-absolute-plan-executor | 见原卡 | 见原卡 | probes/UNCLEAR |
+| [P-20261018-direct-tau-dagger-pd](../../src/task/trajectory-policy/docs/experiments/probes/P-20261018-direct-tau-dagger-pd.md) | P-20261018-direct-tau-dagger-pd | 见原卡 | 见原卡 | probes/UNPROMISING |
+| [P-20261018-direct-tau-dagger](../../src/task/trajectory-policy/docs/experiments/probes/P-20261018-direct-tau-dagger.md) | P-20261018-direct-tau-dagger | 见原卡 | 见原卡 | probes/UNPROMISING |
+| [P-20261018-direct-tau-executor-r3](../../src/task/trajectory-policy/docs/experiments/probes/P-20261018-direct-tau-executor-r3.md) | P-20261018-direct-tau-executor-r3 | 见原卡 | 见原卡 | probes/UNPROMISING |
 
 ## HF-trajectory-policy-history-to-tau
 
@@ -1335,12 +1347,6 @@
 | [P-20261009-gpu-group-contract](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-gpu-group-contract.md) | Native GPU group role/layout contract | 见原卡 | 见原卡 | probes/见原卡 |
 | [P-20261009-gpu-group-value-noise](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-gpu-group-value-noise.md) | Native GPU synchronous group Value-noise calibration | 见原卡 | 见原卡 | probes/见原卡 |
 | [P-20261009-gpu-pipeline-threads1](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-gpu-pipeline-threads1.md) | GPU pipeline with one PhysX task thread | 见原卡 | 见原卡 | probes/见原卡 |
-| [P-20261017-direct-tau-executor](../../src/task/trajectory-policy/docs/experiments/probes/P-20261017-direct-tau-executor.md) | P-20261017-direct-tau-executor | 见原卡 | 见原卡 | probes/UNPROMISING |
-| [P-20261017-gt-tau-new-sequence](../../src/task/trajectory-policy/docs/experiments/probes/P-20261017-gt-tau-new-sequence.md) | P-20261017-gt-tau-new-sequence | 见原卡 | 见原卡 | probes/UNPROMISING |
-| [P-20261018-absolute-plan-executor](../../src/task/trajectory-policy/docs/experiments/probes/P-20261018-absolute-plan-executor.md) | P-20261018-absolute-plan-executor | 见原卡 | 见原卡 | probes/UNCLEAR |
-| [P-20261018-direct-tau-dagger-pd](../../src/task/trajectory-policy/docs/experiments/probes/P-20261018-direct-tau-dagger-pd.md) | P-20261018-direct-tau-dagger-pd | 见原卡 | 见原卡 | probes/UNPROMISING |
-| [P-20261018-direct-tau-dagger](../../src/task/trajectory-policy/docs/experiments/probes/P-20261018-direct-tau-dagger.md) | P-20261018-direct-tau-dagger | 见原卡 | 见原卡 | probes/UNPROMISING |
-| [P-20261018-direct-tau-executor-r3](../../src/task/trajectory-policy/docs/experiments/probes/P-20261018-direct-tau-executor-r3.md) | P-20261018-direct-tau-executor-r3 | 见原卡 | 见原卡 | probes/UNPROMISING |
 | [P-20261018-unidex-live-oracle-tau](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261018-unidex-live-oracle-tau.md) | P-20261018-unidex-live-oracle-tau | 见原卡 | mark this particular packet-plus-update expansion UNPROMISING and | probes/见原卡 |
 | [P-20261020-inspire-bc-action-scale](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-inspire-bc-action-scale.md) | P-20261020-inspire-bc-action-scale | 见原卡 | 见原卡 | probes/见原卡 |
 | [P-20261020-inspire-current421-bc](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-inspire-current421-bc.md) | P-20261020-inspire-current421-bc | 见原卡 | 见原卡 | probes/见原卡 |

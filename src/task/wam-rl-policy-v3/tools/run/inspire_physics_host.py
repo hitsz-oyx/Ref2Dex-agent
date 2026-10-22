@@ -53,7 +53,7 @@ def main():
     p.add_argument('--fixed-motions-json',type=Path,help='Engineering replay only: exact collection batch membership, no object sampler')
     p.add_argument('--extended-state',action='store_true',help='Measured DOF/contact forces and per-episode validity; legacy actor input is unchanged')
     a=p.parse_args();a.cache=a.cache.resolve();a.output=a.output.resolve();a.socket=a.socket.resolve()
-    if a.output.exists() or ROOT/'outputs/wam-rl-policy-v3' not in a.output.parents or not 2<=a.envs<=512:
+    if a.output.exists() or ROOT/'outputs/wam-rl-policy-v3' not in a.output.parents or not 1<=a.envs<=512:
         raise ValueError('fresh bounded native host required')
     a.output.mkdir(parents=True);scratch=ROOT/'tmp'/a.output.parent.name;scratch.mkdir(exist_ok=True)
     os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu),TMPDIR=str(scratch),OMP_NUM_THREADS='2',OPENBLAS_NUM_THREADS='2',
@@ -152,6 +152,7 @@ def main():
             env=create();task=env.task
             properties=task.gym.get_actor_dof_properties(task.envs[0],task.humanoid_handles[0])
             require_continuous_wrist_dofs(task.gym.get_actor_dof_names(task.envs[0],task.humanoid_handles[0]),properties['hasLimits'])
+            audit['physical_joint_limits']=dict(has_limits=properties['hasLimits'].tolist(),lower=properties['lower'].tolist(),upper=properties['upper'].tolist())
             if a.physics_backend!='gpu':
                 # Upstream motion loading hardcodes CUDA even with a CPU sim.
                 # Keep all reference/index caches beside the actual sim tensors.

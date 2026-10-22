@@ -29,6 +29,31 @@
 6 张旧卡仅补 schema 所需 metadata，不改原状态/结果；family 索引是档案编号，不是新实验。
 以下旧段落（含“verify 被6张metadata阻断”）保留为历史状态，当前以本节与卫生报告为准。
 
+## 2026-10-22 13:0x v2负结果审计收口：窄任务可行，GTτ executor仍未资格
+
+一页结算：`src/task/ptv3-shared-wam-v6/docs/audit/negative-result-audit-one-page-20261022.md`；
+diff/命令/期望/待裁决均在fix-review-20261022.md。修复遗漏的三臂voxel误终止，encoder/
+真实物理安全/task_success三信号分开；同executor无τ模式预先固定，记录实际WAM覆盖，
+后执行状态ever/final成功不被编码失败覆盖。实际三臂各20controls，故意outage仍继续，
+额外encoder终止0，C有效WAM13/20。三臂为独立synthetic +8cm精确位置HOLD任务，不能
+报告501完整任务率，source_full_task_success=null；旧A/B训练不按新协议续跑。
+
+501完整实录重建逐条相同，64旧UNKNOWN逐例恢复62R/2H，数据全保留；新增annotation_invalid
+与完整评分准入守卫，raw invalid/dropout分开。0/501原始force无效不等于计划意图已认证，
+11条raw/reference终态冲突保留待裁决。v6独立adapter/C路早已存在并经真实接口验证；
+此前UNWIRED仅指官方V4 PPO入口，不是全仓v6没接。
+
+按机主E完成单轨迹copy-R校准：80条新source-PD状态动作，2000updates/5.376s，RMSE
+0.103540→0.001849。独立5cm升高/真实force耦合/离桌elapsed1s窄任务：source-PD1/1；
+GTτ原R/校准R各0/2（最长0/.633s）；WAMτ11000原R/校准R各0/1（最长.9667/0s）。
+不能把source阳性替代同τ executor资格。GT参考后段覆盖不足、限位代理及可见初态相同
+仍有物理后缀差异均明确记录。预算已用尽，不自动加训；P1 HOLD，无v6/PPO大训练。
+
+本轮1488+60+60=1608物理controls，所有自有进程退出，GPU4/5/6核查均6MiB。正式RL两个
+入口现有物理资格硬门：匹配任务/executor/策略及序列范围，source-PD与GTτ各≥95%，
+WAM结果单列；本轮receipt不放行。按机主F本轮审计收口，完整RELEASE/泛化/样本效率/
+候选路径撤回转future evidence。下面各节为历史时点记录。
+
 ## 2026-10-22 12:4x 共同复核修复：完整任务评分0→77/501，teacher新执行资格仍FAIL
 
 优先级为修执行/标注合同；P1继续HOLD，没有新RL或v6大训练。旧437准入方案已被本节取代：

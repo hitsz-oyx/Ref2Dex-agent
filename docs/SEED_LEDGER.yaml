@@ -25,6 +25,12 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261022-single-tau-calibration:
+    seed_pool: probe
+    native_repeated_reset_seed: 195
+    fitting_seed: 196
+    training_sequence: s1_cylindersmall_pass_1
+    reuse_reason: same single seen trajectory with common physical initial state; repeated resets are not independent validation and this sequence is now training-exposed
   P-20261022-teacher-action-reset-validation:
     seed_pool: probe
     native_engineering_seed: 195

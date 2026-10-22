@@ -1,5 +1,149 @@
 # 修复共同复核包（2026-10-22）
 
+## 13:0x v2：本轮收口与复核入口
+
+本节比较基线`1f41bcdbd613335b11d7accca9b2ec1035ec6e24`，覆盖下方前轮待推进状态。
+机主v2(A–G)已逐项处理，窄路径的正负结果均保留：
+[一页结算](negative-result-audit-one-page-20261022.md)。**审计收口，正式RL保持HOLD；
+source-PD阳性不能替代GT-τ executor资格，未启动v6大训练。**
+
+| 修复/核实 | 当前diff定位（仓库相对路径） | 修完期望与实测 |
+|---|---|---|
+| A 完整任务/无效标注 | `src/task/wam-rl-policy-v3/src/wam_rl_policy_v3/task_spec.py:49`、`task_annotations.py:92`、`task_admission.py:31` | 完整录制重建501/501一致，0/prefix造成新终态翻转；旧64 UNKNOWN逐条恢复62R/2H。缺原始force或validity字段/未定义终态显式annotation_invalid并拒绝完整评分，不改HOLD/RELEASE |
+| A raw invalid与dropout | `src/task/ptv3-shared-wam-v6/src/ptv3_shared_wam_v6/data.py:64` | raw-invalid/dropout原先只有合并valid，现两个独立boolean；原始无效、主动drop、同时发生三种状态可区分，完整TaskSpec不依赖它们。输入条件mask数值保持原算法，未据此宣称v6必须重训 |
+| B 复制到三臂的voxel误终止 | `src/task/ptv3-shared-wam-v6/tools/run/samples_efficiency_env.py:118`、`:131`、`:198`、`:209` | 注入编码故障额外终止1→0，τ零/valid=false；物理穿透仍终止；同tick成功不被encoder失败否决。CPU真实Env边界与实际三臂native60controls均通过 |
+| B 三信号/可恢复编码失败 | 同文件`:159`、`:225`；`src/task/ptv3-shared-wam-v6/src/ptv3_shared_wam_v6/online_runtime.py:14` | info独立提供encoder_available/physical_safety_abort/task_success、ever/final；模型域/非有限预测用EncodingUnavailable降级，不结束物理回合。注入异常修前抛出、修后继续；schema/shape错误、OOM/坏CUDA上下文仍为run失败，不能假写物理失败 |
+| B 真物理约束 | `src/task/wam-rl-policy-v3/src/wam_rl_policy_v3/physical_safety.py:9`；两个native host导出actual joint bounds | 保留原voxel网格；另查真实CAD/table穿透>20mm与实际limited-joint越界（平移>100mm/转动>100mrad），强制安全abort。两种encoder状态下穿透负控制都拒绝。它们是工程安全代理，未证明覆盖所有手物碰撞 |
+| C1 adapter已存在 | `src/task/ptv3-shared-wam-v6/src/ptv3_shared_wam_v6/online_runtime.py:103`、`:111`、`:136`；`:53`注入event | **确认外部审计**：已有v6独立adapter及三臂C路；“未接线”仅指官方V4 PPO。真实predict接口验证21/11、左右slot/anchor/world/event/goal；真实C路WAM覆盖13/20controls。没有硬造新桥 |
+| C2 synthetic任务来源 | `samples_efficiency_env.py:108`、`:212`；`src/task/ptv3-shared-wam-v6/src/ptv3_shared_wam_v6/execution_contract.py:14` | Source TaskSpec保留，episode另建synthetic +8cm位置HOLD1s；source_full_task_success=null，不能混成501完整任务率。新run绑定task/encoder/fallback/safety/reset身份；旧训练不按新协议续跑 |
+| 教师资格硬门 | `src/task/wam-rl-policy-v3/src/wam_rl_policy_v3/executor_qualification.py:8`；`train_samples_efficiency.py:35`；`inspire_measured_official_ppo.py:38` | 正式RL必须匹配任务/executor/执行策略/序列范围的物理receipt；source-PD与GTτ→R各≥95%，WAM结果单列。实际本轮两份receipt均因GTτ→R 0/2明确拒绝；单序列证据不能放行未知初态cohort |
+
+### 固定无τ后备模式及覆盖率
+
+选择**同executor、只用当前已观测状态，τ=0且tau_valid=false**。这个输入规则在运行前固定；
+保持同一actor的行为分布，不在env.step里替换已经被PPO计算logprob的action。没有把未训练
+的fallback称为稳定控制器；它也必须受物理安全和资格门约束。A本来没有τ，B/C在不可用tick
+按同规则提供零τ。覆盖率分母是实际执行controls的输入状态，不把未执行的最后一次预测混入。
+实际三臂各20controls：不可用7（启动6+故意outage1），额外encoder done0；C有效WAM13/20。
+65%是工程注入场景的覆盖率，不能报告成自然部署覆盖率或任务成功率。
+
+可恢复错误限定为模型域/非有限预测；输入合同错、missing checkpoint、OOM等显式停止run，
+不静默丢掉任务，也不把基础设施失败升级成方法负证据。错误摘要最多8条、每条512字节。
+
+### E 单轨迹校准：预算已用尽，分别报告三链
+
+固定`cylindersmall/s1_cylindersmall_pass_1`，本轮起该序列为已见训练序列。
+预注册新窄任务是升高≥5cm、两指真实force/耦合、离桌且连续elapsed≥1s；它不同于三臂
+精确8cm终点与完整RELEASE。9个共同初态字段逐数组差0；同轨迹重复不作独立样本。
+
+| 执行链 | 窄任务成功/复跑 | 最长连续持握 |
+|---|---:|---:|
+| source-PD（canonical clipping0） |1/1|1.000s|
+| GTτ→原R |0/2|0 /0s|
+| GTτ→同架构校准R |0/2|0.633 /0.467s|
+| WAMτ11000→原R |0/1|0.9667s，仍失败|
+| WAMτ11000→校准R |0/1|0s|
+
+80条新source-PD真实状态动作，Adam1e-4/batch64/seed196；**2000updates、5.3758s**，
+128000次监督样本呈现不是环境交互。动作RMSE0.103540→0.001849，下降98.21%；不能当物理
+资格PASS。基线权重不改，校准只更新同Scheduled686 actor，shape encoder冻结，无DAgger。
+总校准1488物理controls+三臂接口两轮120=1608，所有自有native退出，GPU4/5/6核查各6MiB。
+
+独立重算不用在线LiftHoldWitness，直接从保存state重建force/support/coupling及整数连续区间：
+7条trace verdict全部一致；coupling仍复用FeedbackObserver，所以不是第二种接触探测真值。
+原R-WAM最长只有30状态=29/30s，拒绝。校准GT两次于66/64帧已失持，当时GT仍有效；
+参考共81状态，只覆盖70个有效GTτcontrols，之后fallback限制后段归因。一次GT校准和两条
+WAM链触发真实joint16或joint7限位代理，具体轴/q/上下界保存。没有为凑成功改阈值。
+
+### 可复跑命令与期望输出
+
+```bash
+# 当前diff；复核提交后HEAD指交付版本。新文件也包含在commit中。
+git diff 1f41bcdbd613335b11d7accca9b2ec1035ec6e24 HEAD -- src/task/ptv3-shared-wam-v6 src/task/wam-rl-policy-v3
+
+# 501完整实录逐条重建；期望PASS、501、64→62R/2H、raw-invalid0、意图冲突11。
+CUDA_VISIBLE_DEVICES='' PYTHONDONTWRITEBYTECODE=1 /home2/wyy/miniconda3/envs/graspenv/bin/python \
+  src/task/ptv3-shared-wam-v6/tools/audit/audit_annotation_provenance.py \
+  --output outputs/ptv3-shared-wam-v6/negative-audit-v2-review/annotation-provenance.json
+
+# 实际三臂+一次编码outage工程smoke；需先看GPU4/5仍空闲。期望PASS、60controls、每臂unavailable7/20、C covered13/20、额外done0。
+nvidia-smi
+PYTHONDONTWRITEBYTECODE=1 /home2/wyy/miniconda3/envs/graspenv/bin/python \
+  src/task/ptv3-shared-wam-v6/tools/audit/smoke_samples_signals_native.py \
+  --output outputs/ptv3-shared-wam-v6/samples-signals-native-20261022-review
+
+# 已完成的单轨迹实验重算，不开新训练/仿真；期望PASS、source1/1、GT原/校准均0/2，WAM均0/1。
+CUDA_VISIBLE_DEVICES='' PYTHONDONTWRITEBYTECODE=1 /home2/wyy/miniconda3/envs/graspenv/bin/python \
+  src/task/ptv3-shared-wam-v6/tools/audit/summarize_single_tau_calibration.py \
+  --run outputs/ptv3-shared-wam-v6/single-tau-calibration-20261022-r1
+
+# 最终定向回归；期望64 passed（实测18.86s，1个PyTorch弃用警告）。
+CUDA_VISIBLE_DEVICES='' PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 \
+PYTHONPATH=src/task/wam-rl-policy-v3/src:src/task/trajectory-policy/src:src/task/ptv3-shared-wam-v6/src \
+/home2/wyy/miniconda3/envs/graspenv/bin/python -m pytest -q -p no:cacheprovider \
+  --basetemp=tmp/audit-v2-external-pytest \
+  src/task/wam-rl-policy-v3/tests/test_task_annotation_validity.py \
+  src/task/wam-rl-policy-v3/tests/test_executor_qualification.py \
+  src/task/wam-rl-policy-v3/tests/test_task_annotations.py \
+  src/task/wam-rl-policy-v3/tests/test_prefix_task_semantics.py \
+  src/task/wam-rl-policy-v3/tests/test_terminal_release_timing.py \
+  src/task/wam-rl-policy-v3/tests/test_task_scheduler.py \
+  src/task/wam-rl-policy-v3/tests/test_executable_task_admission.py \
+  src/task/wam-rl-policy-v3/tests/test_model_domain_admission.py \
+  src/task/wam-rl-policy-v3/tests/test_continuous_wrist.py \
+  src/task/wam-rl-policy-v3/tests/test_measured_episode_logging.py \
+  src/task/ptv3-shared-wam-v6/tests/test_ppo_model_identity.py \
+  src/task/ptv3-shared-wam-v6/tests/test_v6_training.py \
+  src/task/ptv3-shared-wam-v6/tests/test_samples_execution_signals.py
+
+# 11个共享源码回归+10个三臂/adapter/时长回归；每个都必须由断言失败拒绝，import错误不计。
+PYTHONDONTWRITEBYTECODE=1 /home2/wyy/miniconda3/envs/graspenv/bin/python \
+  src/task/ptv3-shared-wam-v6/tools/audit/run_fix_mutants.py \
+  --output outputs/ptv3-shared-wam-v6/audit-v2-shared-mutants-review
+PYTHONDONTWRITEBYTECODE=1 /home2/wyy/miniconda3/envs/graspenv/bin/python \
+  src/task/ptv3-shared-wam-v6/tools/audit/run_signal_mutants.py \
+  --output outputs/ptv3-shared-wam-v6/audit-v2-signal-mutants-review
+```
+
+单轨迹原始运行命令为`run_single_tau_calibration.py --output ... --updates 2000 --train-seconds 1800`；
+完整入口、环境与预算在[P单轨迹卡](../experiments/probes/P-20261022-single-tau-calibration.md)和
+run manifest，主机native Torch2.0.1+cu118、策略/拟合Torch2.4.1+cu121。**本轮2000updates
+已经用完，不自动再执行这个训练命令**；外部复核应先使用保存权重/trace/源码冻结和上面纯重算。
+
+产物根`outputs/ptv3-shared-wam-v6/negative-audit-v2-20261022-r1/`：73项首轮回归、最终64项定向复核（含新增缺validity及资格范围），
+annotation-provenance-final.json逐501/旧64说明；final-reviewed-tests-2.log记录最终64项；shared-mutants-final/（11/11）、signal-mutants-reviewed/（10/10）、测试日志。
+最初三臂native r1因harness给错输出namespace而被拒，0物理步；native r2改用入口要求的
+Task输出目录，完成60controls；最终r3运行前冻结v3/v6源码与manifest，再次60controls通过。
+r1错误/超时与r2/r3结果均保留，没有静默换协议；r3 native_returncode=0。
+
+最终已stage本轮33个文件后运行`python3 tools/verify.py --changed`：**VERIFY PASS**，
+日志`negative-audit-v2-20261022-r1/verify-staged.log`。这覆盖当前实验卡/schema/seed/链接及
+仓库自动选择的合同检查；下方旧metadata阻断描述仅属于前轮历史。未提交`docs/PROJECT_MEMORY.md`。
+
+### 三方待裁决与当前证据边界
+
+1. raw-invalid0/501只指原始force/tick有效与完整重建一致；11条rawH/referenceR、29条疑似
+   release-loss仍无独立计划意图认证。不能以0 raw-invalid宣称501份真实完整任务GT；正式完整
+   任务正控认证分母仍0。所有数据保留，未把UNKNOWN强改HOLD或依据proxy删样本。
+2. 同τ校准未得到阳性。可见初态相同而物理后缀略异、短GT参考和state-only fallback都限制
+   因果归因；当前只能阻止扩大正式RL，不能否决τ表示或预训练路线。
+3. 新安全规则是有明确单位的工程代理，不是完整碰撞认证：limited-joint余量平移100mm/转动100mrad、CAD/table
+   20mm与force/geometry误差需Hermes/外部审计复核；不因本次0.9667s失败放宽它们。手物
+   pairwise penetration和GPU隐藏warm-start未自证。
+4. 第一版adapter接口测试曾让一个错误21→11 mutant存活（9/10）。已补独立的21槽valid mask
+   与坐标断言，不能只拿由同一坏映射生成的输出自证；保留survivor日志，最终结果另列。
+5. Hermes/外部审计尚未给这次diff的复跑结论。任何分歧保留双方版本、命令、指标和原始trace，
+   不宣称三方已经一致。候选几何进度回退、完整RELEASE及独立样本效率转future evidence；
+   按机主F本轮收口，不再无限扩大审计。
+
+若重训v6，最小清单仍是**数据/标注**分离完整TaskSpec、训练可用mask及raw-invalid/dropout，
+重建受旧task10/τ条件污染的cache；**条件**对齐spatial waypoint与t+24 endpoint的语义，保留
+已有21/11 adapter与观测mask；**预算**由Hermes另行批准，先固定DEV与短资格预算再定主预算。
+这次robot后处理bug不自动证明全部v6预训练数据有错；当前GTτ→R未资格，追加v6预训练
+无法替代该前置条件。本轮只微拟合executor，v6权重/原flowmatching进程均未改。
+
+## 前轮12:4x修复记录（保留原时点范围）
+
 本轮以修好实际合同为目标。比较基线为已推送的
 `60efadce2444709bbbf9802107de7bc5e3f9eef6`；历史训练冻结代码为`3a0779f6`。
 数据、旧模型、旧结果均保留。下面区分修复后的实测变化、必须达到的验收目标、仍未通过的资格。

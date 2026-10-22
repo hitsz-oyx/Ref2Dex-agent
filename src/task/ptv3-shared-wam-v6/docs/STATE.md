@@ -1,3 +1,22 @@
+## 2026-10-22 13:0x v2审计收口；正式RL仍HOLD
+
+[一页结算](audit/negative-result-audit-one-page-20261022.md)；
+[共同复核diff/命令/期望与未决项](audit/fix-review-20261022.md)。
+补修三臂复制的voxel终止，三信号与ever/final分开；实际A/B/C各20controls故意outage
+无额外终止，C WAM13/20覆盖。原始TaskSpec保留，新episode是独立+8cm位置HOLD任务，
+source_full_task_success=null，旧训练不续作新协议。raw-invalid/dropout分离，501完整
+录制重建全一致、64旧UNKNOWN逐例恢复62R/2H；计划意图尚非独立真值。
+
+采纳单轨迹同τ校准，已见cylindersmall80条state/action、同架构R2000updates/5.376s，
+actionRMSE0.103540→0.001849。独立5cm/force耦合/离桌elapsed1s窄任务source-PD1/1；
+GTτ原R/校准R均0/2，WAMτ11000原R/校准R均0/1。source阳性不能替代GTτ executor，
+也不能放行精确8cm/完整RELEASE；两份真实receipt被硬门拒绝。正式RL入口绑定任务/
+executor/执行策略/初态序列范围的资格证据；P1 HOLD，大训练待Hermes另行确认。
+
+v6独立adapter和C路径已存在并真实验证，UNWIRED仅指官方V4 PPO。单轨迹物理1488+
+三臂接口两轮120=1608controls，GPU4/5/6均已释放。微拟合预算用尽，审计按机主F收口；
+后续需要的新控制器/完整RELEASE/泛化/样本效率均为future evidence，不继续扩大本轮。
+
 ## 2026-10-22 12:4x 完整声明/释放时序/voxel协议已修，teacher上限资格FAIL，P1 HOLD
 
 共同复核入口：[fix-review-20261022.md](audit/fix-review-20261022.md)。未启动新RL或v6大训练，

@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 from .task_spec import TaskSpec,TerminalMode
 
-POLICY='ref2dex.executable-task-admission.full-declaration.reject-unknown.v2'
+POLICY='ref2dex.executable-task-admission.full-declaration.reject-invalid.v3'
 
 
 def load_executable_tasks(manifest):
@@ -28,9 +28,10 @@ def load_executable_tasks(manifest):
             if spec.packet()!=declared.packet():
                 raise ValueError('prefix-rewritten task differs from full declaration: '+row['sequence']+
                     '; run repair_prefix_task_semantics.py into a new corpus before admission')
-        if spec.terminal_mode==TerminalMode.UNKNOWN:
+        if spec.terminal_mode==TerminalMode.UNKNOWN or spec.annotation_invalid:
             rejected.append(dict(sequence=row['sequence'],terminal_mode=spec.terminal_mode.value,
-                reason='UNKNOWN has no defined task success branch',task_path=str(side/'task.json')))
+                reason='UNKNOWN has no defined task success branch' if spec.terminal_mode==TerminalMode.UNKNOWN else 'annotation_invalid',
+                annotation_invalid_reasons=list(spec.annotation_invalid_reasons),task_path=str(side/'task.json')))
             continue
         spec.require_success_path()
         accepted.append((row,spec,side))

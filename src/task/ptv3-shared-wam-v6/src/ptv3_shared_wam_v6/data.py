@@ -61,10 +61,12 @@ class V6Windows(V5Windows):
             self.event_cache[key] = arrays
             while len(self.event_cache) > self.cache_size: self.event_cache.popitem(last=False)
         self.event_cache.move_to_end(key); values = self.event_cache[key]
-        valid = bool(values['event_valid'][tick, slot]) and not drop
+        raw_valid=bool(values['event_valid'][tick,slot])
+        valid = raw_valid and not drop
         sample.update(event_type=np.int64(values['event_type'][tick, slot] if valid else 0),
                       event_delta_steps=np.float32(values['event_delta_steps'][tick, slot] if valid else 0),
-                      event_valid=np.bool_(valid), event_hz=np.int64(30))
+                      event_valid=np.bool_(valid), event_hz=np.int64(30),
+                      event_raw_invalid=np.bool_(not raw_valid),event_condition_dropout=np.bool_(drop))
         return sample
 
     def draw(self, count, seed, step=0, rank=0):

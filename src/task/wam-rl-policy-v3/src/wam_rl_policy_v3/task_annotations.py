@@ -84,7 +84,8 @@ def teacher_rollout_task_spec(object_pose,contact_forces,force_valid,*,source_fp
     # duplicates are simplified; return-to-start and original event frames stay.
     spec=TaskSpec.from_reference(object_pose,source_fps=source_fps,terminal_mode=inferred if terminal_mode is None else terminal_mode,
         events=events,trim_interaction=False,require_support=require_support)
-    return replace(spec,source_role=GOAL_SOURCE)
+    invalid=tuple(['missing_raw_force_observations'] if not valid[1:].all() else [])
+    return replace(spec,source_role=GOAL_SOURCE,annotation_invalid=bool(invalid),annotation_invalid_reasons=invalid)
 
 
 def task_from_teacher_archive(data,contact_body_ids,*,source_fps=30,terminal_mode=None,object_points=None):
@@ -101,5 +102,12 @@ def task_from_teacher_archive(data,contact_body_ids,*,source_fps=30,terminal_mod
             gap=np.linalg.norm(local[:,:,None]-points[None,None],axis=-1).min(-1)
             near.extend((gap<=.018).sum(-1)>=2)
         valid&=np.asarray(near)
-    return teacher_rollout_task_spec(data['obj'],data['body_contact_forces'][:,contact_body_ids],valid,
+    spec=teacher_rollout_task_spec(data['obj'],data['body_contact_forces'][:,contact_body_ids],valid,
         source_fps=source_fps,terminal_mode=terminal_mode)
+    # A measured hand far from the object is known noncontact, not invalid force
+    # instrumentation. Only the original sensor-valid stream defines raw invalid.
+    from dataclasses import replace
+    sensor_valid=np.asarray(data.get('contact_force_valid',tick>0),bool)
+    reasons=tuple((['missing_raw_force_observations'] if not sensor_valid[1:].all() else [])+
+        (['missing_raw_force_validity'] if 'contact_force_valid' not in data else []))
+    return replace(spec,annotation_invalid=bool(reasons),annotation_invalid_reasons=reasons)

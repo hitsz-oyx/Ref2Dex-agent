@@ -14,6 +14,7 @@ def main():
  p.add_argument('--gpu',type=int,required=True);p.add_argument('--rank',type=int,default=0);p.add_argument('--world-size',type=int,default=1);p.add_argument('--rendezvous')
  p.add_argument('--wam-batch',type=int,default=256);p.add_argument('--shared-tf32',action='store_true');p.add_argument('--updates',type=int,default=10000);p.add_argument('--seconds',type=int,default=172800);p.add_argument('--seed',type=int,default=246);p.add_argument('--reset-probe',action='store_true');p.add_argument('--resume',type=Path)
  p.add_argument('--migrate-physics-backend',action='store_true',help='Explicit new experiment identity: allow only the physical backend to differ from --resume')
+ p.add_argument('--qualification',type=Path,help='Required full-source-task physical qualification for formal RL')
  a=p.parse_args();a.output=a.output.resolve();a.socket=a.socket.resolve()
  if a.migrate_physics_backend and not a.resume:p.error('--migrate-physics-backend requires --resume')
  if a.output.exists() or ROOT/'outputs/wam-rl-policy-v3' not in a.output.parents or ROOT/'tmp' not in a.socket.parents or not 1<=a.updates<=10000 or not 30<=a.seconds<=172800:raise ValueError('fresh bounded PPO paths/budget required')
@@ -33,6 +34,10 @@ def main():
  from wam_rl_policy_v3.task_admission import load_executable_tasks,require_native_membership
  from wam_rl_policy_v3.model_domain import DOMAIN_POLICY
  from wam_rl_policy_v3.task_scheduler import SCHEDULER_SCHEMA
+ from wam_rl_policy_v3.executor_qualification import require_qualification,require_qualified_membership
+ from wam_rl_policy_v3.continuous_wrist import RESET_ANGLE_POLICY
+ qualification=require_qualification(a.qualification,task_contract='complete-source-task.'+SCHEDULER_SCHEMA,executor_checkpoint=a.bc,
+  policies=dict(model_domain_policy=DOMAIN_POLICY,reset_angle_policy=RESET_ANGLE_POLICY))
  _,task_admission=load_executable_tasks(a.audit_manifest.resolve())
  write(a.output/'task-admission.json',task_admission)
  if not task_admission['admitted_count']:raise ValueError('no executable TRAIN tasks: all eligible tasks UNKNOWN or empty')
@@ -52,6 +57,7 @@ def main():
   connection,_=listener.accept();connection.settimeout(600);hello=receive(connection);state['native_peer_pid']=peer_pid(connection)
   if not hello['audit'].get('extended_state') or hello['audit'].get('state_transport')!='packed':raise ValueError('native measured packed state required')
   require_native_membership(hello['audit'].get('source_sequence_names'),task_admission)
+  require_qualified_membership(hello['audit'].get('source_sequence_names'),qualification)
   state['native_sampled_sequence_count']=len(hello['audit']['source_sequence_names'])
   state['status']='INITIALIZING_MODELS';write(a.output/'manifest.json',state)
   native=unpack_state(hello['state']);objects=[dict(object_code='dexplore/'+s.split('_')[1],scale=1.) for s in native['sequences']]

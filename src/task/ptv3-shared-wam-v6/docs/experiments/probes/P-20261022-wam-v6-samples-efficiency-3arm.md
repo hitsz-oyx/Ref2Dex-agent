@@ -19,6 +19,18 @@ run_id: samples-efficiency-3arm-20261022-r1
 
 # 三臂抓取—抬升样本效率 Decision Probe
 
+**13:0x v2继续HOLD/协议冻结**：本环境单独生成`synthetic-grasp-lift8cm-position-HOLD1s-timeout20s.v2`，
+测的是当前初态向上8cm的精确位置抓取—抬升任务，**不是501条原始完整任务完成率**。
+保留原TaskSpec作为来源，source_full_task_success=null；不将UNKNOWN重标成HOLD。
+修复复制过来的每tick voxel误终止：编码不可用只给同executor τ=0/valid=false，物理安全/
+任务成功独立；真实native三臂总60controls的故意outage smoke PASS，C覆盖13/20。
+这是工程检查，不是小规模样本效率结果。
+
+正式RL现在必须通过匹配任务/executor/策略/初态序列的物理资格门。单轨迹另外的5cm
+elapsed1s校准source-PD1/1，但GTτ原R/校准R均0/2，且不同于本卡精确8cm；不能放行本卡。
+旧A286720/B149504交互受旧reward/编码终止影响，事后重算不能消除训练污染；旧checkpoint
+不得作为新协议续跑。见[一页结算](../../audit/negative-result-audit-one-page-20261022.md)。
+
 **12:4x继续HOLD**：prefix完整声明与release时序已修（同501记录评分0→77），物理动作/
 indexed reset已过工程检查；新teacher/sourcePD6例完整任务仍0/6，95%上限资格未过，
 raw释放意图/连续腕角/动作范围与跟踪误差仍须解决。此时三臂“无收益”无法归因，禁止恢复。

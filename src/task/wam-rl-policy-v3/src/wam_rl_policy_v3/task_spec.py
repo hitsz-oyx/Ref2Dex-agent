@@ -46,10 +46,14 @@ class TaskSpec:
     goal_type:str='se3_pose'
     require_support:bool=True
     source_role:str='explicit_task_instruction'
+    annotation_invalid:bool=False
+    annotation_invalid_reasons:tuple=()
 
     def require_success_path(self):
         if self.terminal_mode==TerminalMode.UNKNOWN:
             raise ValueError('UNKNOWN task has no defined success path; reject at executable-task admission')
+        if self.annotation_invalid:
+            raise ValueError('annotation_invalid task is ineligible for complete-task scoring: '+','.join(self.annotation_invalid_reasons))
 
     def __post_init__(self):
         poses=_poses(self.object_path);frames=np.asarray(self.source_frames)
@@ -69,6 +73,11 @@ class TaskSpec:
         poses.setflags(write=False);frames=frames.astype(np.int64,copy=True);frames.setflags(write=False)
         object.__setattr__(self,'object_path',poses);object.__setattr__(self,'source_frames',frames)
         object.__setattr__(self,'events',events);object.__setattr__(self,'terminal_mode',terminal)
+        reasons=tuple(self.annotation_invalid_reasons)
+        if terminal==TerminalMode.UNKNOWN and 'terminal_semantics_undefined' not in reasons:reasons+=('terminal_semantics_undefined',)
+        if any(not isinstance(reason,str) or not reason for reason in reasons):raise ValueError('explicit annotation invalid reasons required')
+        object.__setattr__(self,'annotation_invalid',bool(self.annotation_invalid or reasons))
+        object.__setattr__(self,'annotation_invalid_reasons',reasons)
 
     @classmethod
     def from_reference(cls,poses,*,source_fps,terminal_mode,events=(),goal_type='se3_pose',
@@ -100,11 +109,13 @@ class TaskSpec:
         return dict(schema=TASK_SCHEMA,object_path=self.object_path.tolist(),source_frames=self.source_frames.tolist(),
             source_fps=self.source_fps,source_length=self.source_length,terminal_mode=self.terminal_mode.value,
             events=[dict(source_frame=e.source_frame,kind=e.kind.value) for e in self.events],
-            goal_type=self.goal_type,require_support=self.require_support,source_role=self.source_role)
+            goal_type=self.goal_type,require_support=self.require_support,source_role=self.source_role,
+            annotation_invalid=self.annotation_invalid,annotation_invalid_reasons=list(self.annotation_invalid_reasons))
 
     @classmethod
     def from_packet(cls,packet):
         if packet.get('schema')!=TASK_SCHEMA:raise ValueError('unsupported TaskSpec schema')
         return cls(np.asarray(packet['object_path']),np.asarray(packet['source_frames']),packet['source_fps'],
             packet['source_length'],packet['terminal_mode'],tuple(TaskEvent(**e) for e in packet['events']),
-            packet['goal_type'],packet['require_support'],packet.get('source_role','explicit_task_instruction'))
+            packet['goal_type'],packet['require_support'],packet.get('source_role','explicit_task_instruction'),
+            packet.get('annotation_invalid',False),tuple(packet.get('annotation_invalid_reasons',())))
