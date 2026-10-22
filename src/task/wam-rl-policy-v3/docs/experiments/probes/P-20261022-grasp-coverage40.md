@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [100, 139, 180, 196, 219]
 decision_changed_if_positive: retain geometry and SE3 repair on new interface initials and budget drift recovery residual separately
 decision_changed_if_negative: repair approach or qualify physical witness before attributing failure to WAM
-status: PLANNED
+status: RUNNING
 run_id: grasp-v11-coverage40-20261022-r1
 ---
 
@@ -28,7 +28,7 @@ run_id: grasp-v11-coverage40-20261022-r1
 | 三链均失败或A0命令准入失败 | 没有可执行正见证，尚不能归因WAM或任务不可能 | 保留全部失败，修物理接近/动作合同 |
 | A1仍有关节/桌面中止 | 静态候选准入不足以保证动态安全 | 修接触下的压力与速度控制；不放宽gate |
 
-Result: pending preregistered 120-episode zero-update coverage, queued behind existing GPU456 work.
+Result: registered 40 distinct initials /20 unexposed objects x3 arms=120 episodes; supervisor PID3603938 QUEUED behind existing GPU456 work, 0 updates.
 Decision: n12 engineering coverage remains separate; use n40 per chain and retain every physical failure.
 
 分类Decision：区分“接口只适合旧圆柱初态”与“新几何/SE3合同可扩到新初态”，决定继续修接近还是可保留接口。
@@ -89,3 +89,8 @@ $PY $TOOLS/run_grasp_coverage40.py --run outputs/wam-rl-policy-v3/grasp-v11-cove
 产物根：`outputs/wam-rl-policy-v3/grasp-v11-coverage40-20261022-r1/`。
 最后必须通过：40三链九字段初态一致、40干净A2、120 raw重评分与标签翻转负控制；
 这些仍共用冻结反馈/几何模块，不等于外部接触真值。Hermes/GPT独立物理复跑尚待裁决。
+
+已做注册器故意错误注入：允许scale不匹配、漏掉暴露对象筛选，**killed2/2**；
+`outputs/wam-rl-policy-v3/grasp-v10-stat40-20261022-r1/coverage40-registration-mutants.json`。
+当前完整v3回归**257passed/0failed/0skipped，19.43s**；注册+快照定向**3passed/0failed**。
+这些只核软件合同，不作为三处修复在物理环境有效的证据。

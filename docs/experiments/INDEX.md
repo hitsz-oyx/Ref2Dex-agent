@@ -311,7 +311,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261022-grasp-coverage40](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261022-grasp-coverage40.md) | v11 扩大初态覆盖：每链40个接口未见初态 | pending preregistered 120-episode zero-update coverage, queued behind existing GPU456 work. | n12 engineering coverage remains separate; use n40 per chain and retain every physical failure. | probes/PLANNED |
+| [P-20261022-grasp-coverage40](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261022-grasp-coverage40.md) | v11 扩大初态覆盖：每链40个接口未见初态 | registered 40 distinct initials /20 unexposed objects x3 arms=120 episodes; supervisor PID3603938 QUEUED behind existing GPU456 work, 0 upda | n12 engineering coverage remains separate; use n40 per chain and retain every physical failure. | probes/RUNNING |
 
 ## HF-grasp-geometry-coverage
 
