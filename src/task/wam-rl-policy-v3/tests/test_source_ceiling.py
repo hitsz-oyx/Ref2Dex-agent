@@ -124,6 +124,7 @@ def test_object_anchor_maps_rotation_and_preserves_finger_targets():
 
 def test_force_bearing_candidate_gets_bounded_probe_before_motion_coupling():
     c,args=approaching(force=.5);args['feedback'].grasp_candidate=True
+    c.finger_target=c.admission.fingers(args['intent'].closure_q);c.closure_ready_since=-1.
     command,info=c.step(**args)
     assert 0<command[2]*c.scale[2]<=.002+1e-6
     assert c.phase=='close', 'A probe must not invent acquired-grasp evidence'
@@ -131,6 +132,7 @@ def test_force_bearing_candidate_gets_bounded_probe_before_motion_coupling():
 
 def test_acquisition_probe_is_not_cumulative_and_requires_valid_contact():
     c,args=approaching(force=.5);args['feedback'].grasp_candidate=True
+    c.finger_target=c.admission.fingers(args['intent'].closure_q);c.closure_ready_since=-1.
     start=args['palm'][2,3]
     for i in range(12):
         args['now']=i/30;command,info=c.step(**args)
@@ -376,7 +378,7 @@ def test_acquisition_probe_does_not_freeze_partly_completed_finger_closure():
     target=pd_targets(command,args['q'],c.offset,c.scale)[FINGER_ACTIVE]
     np.testing.assert_allclose(target,np.full(6,.44),atol=1e-6,
         err_msg='A candidate probe must retain the registered closure slew; tiny force-hold updates are premature')
-    assert info['source_ceiling']['acquisition_probe'] and not args['feedback'].grasp_established
+    assert not info['source_ceiling']['acquisition_probe'] and not args['feedback'].grasp_established
 
 
 def test_inner_target_margin_is_not_a_measured_collision_or_replanning_gate():
@@ -396,3 +398,14 @@ def test_wrist_command_slew_accumulates_pd_tracking_offset_while_measured_hand_l
     np.testing.assert_allclose(targets[-1]-args['q'][:3],[.15,0,0],atol=1e-6,
         err_msg='A .75m/s command ramp is NOT a permanent .025m tracking-error clamp')
     assert np.linalg.norm(np.diff(np.array([args['q'][:3]]+targets),axis=0),axis=-1).max()<=.025+1e-6
+
+
+def test_candidate_waits_for_completed_closure_and_motion_history_before_probe():
+    c,args=approaching(force=.5);args['feedback'].grasp_candidate=True
+    probes=[]
+    for i in range(26):
+        args['now']=i/30;_,info=c.step(**args)
+        if info['source_ceiling']['acquisition_probe']:probes.append(i/30)
+        if i<16:assert not info['source_ceiling']['acquisition_probe'], 'Partial finger closure must finish before the motion-coupling probe'
+    assert probes and probes[0]>=.55, 'Clear the .25s motion history after commanded closure before probing'
+    assert c.phase=='close' and not args['feedback'].grasp_established

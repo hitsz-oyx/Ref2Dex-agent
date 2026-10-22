@@ -14,7 +14,7 @@ from .tau_replay_contract import pd_targets
 from .interaction_state import InteractionConfig
 from .task_feedback import FeedbackObserver
 
-SOURCE_CEILING_CONTRACT = 'source.measured-motion.command-slew.v11'
+SOURCE_CEILING_CONTRACT = 'source.measured-motion.close-before-probe.v12'
 
 
 def object_anchored_source_target(target,reference_q,reference_palm,reference_object,
@@ -205,6 +205,7 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
     measured_warning_margin=.05 # Half the unchanged .10 physical abort margin.
     contact_geometry='segment'
     contact_loss_dwell_s=.12
+    probe_closure_dwell_s=InteractionConfig().history_s
 
     def __init__(self,*args,joint_limits,**kwargs):
         super().__init__(*args,joint_limits=joint_limits,**kwargs)
@@ -220,13 +221,22 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
         self.finger_target=self.inner_admission.fingers(initial[FINGER_ACTIVE])
         self.unload_fingers=self.finger_target.copy()
         self.closing_goal=None;self.closing_lost_since=None;self.regrasp_pending=False
+        self.closure_ready_since=None
+
+    def closure_ready_for_probe(self,now,closure,candidate):
+        completed=np.max(np.abs(self.finger_target-self.admission.fingers(closure)))<=1e-6
+        if not (candidate and self.phase=='close' and completed):
+            self.closure_ready_since=None
+            return False
+        if self.closure_ready_since is None:self.closure_ready_since=now
+        return now-self.closure_ready_since>=self.probe_closure_dwell_s-1e-10
 
     def step(self,**args):
         if self.phase not in ('approach','close'):
             # Same post-grasp control as the registered source baseline.
             self.admission=self.outer_admission
             self.source_paused=False
-            self.acquire_anchor=None
+            self.acquire_anchor=None;self.closure_ready_since=None
             self.closing_goal=None;self.closing_lost_since=None
             command,info=super().step(**args)
             applied=pd_targets(command,args['q'],self.offset,self.scale)
@@ -320,7 +330,8 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
         captured_close=bool(self.phase=='close' and self.closing_goal is not None and not unloading)
         proposal=self.closing_goal.copy() if captured_close else args['object_pose']@intent.approach_pose_object
         candidate=bool(force_valid and args['feedback'].contact_observed and getattr(args['feedback'],'grasp_candidate',False))
-        probing=bool(candidate and not args['feedback'].grasp_established and not unloading)
+        closure_ready=self.closure_ready_for_probe(now,intent.closure_q,candidate and not unloading)
+        probing=bool(candidate and closure_ready and not args['feedback'].grasp_established and not unloading)
         if not probing:self.acquire_anchor=None
         if probing:
             if self.acquire_anchor is None:self.acquire_anchor=palm.copy()
@@ -399,7 +410,8 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
             near_object=near_object,command_linear_rate_mps=linear_rate,command_angular_rate_radps=angular_rate,
             loaded_fingers=np.flatnonzero(loaded).tolist(),coasting_joint_indices=np.flatnonzero(risk).tolist(),
             unloading=applied_unloading,unload_requested=unloading,source_paused=self.source_paused,inner_target_admitted=self.admission.check(command,q)[0],
-            acquisition_probe=probing,acquisition_anchor=None if self.acquire_anchor is None else self.acquire_anchor.tolist(),acquisition_maximum_m=self.acquisition_distance_m,
+            acquisition_probe=probing,closure_ready_for_probe=closure_ready,closure_ready_since=self.closure_ready_since,probe_closure_dwell_s=self.probe_closure_dwell_s,
+            acquisition_anchor=None if self.acquire_anchor is None else self.acquire_anchor.tolist(),acquisition_maximum_m=self.acquisition_distance_m,
             finger_target_step_rad=finger_step,finger_tracking_error_rad=finger_error,
             finger_emergency_slew_override=bool(finger_step>self.finger_rate_radps/30+1e-6),
             measured_warning_margin=self.measured_warning_margin,physical_abort_margin_unchanged=.10,

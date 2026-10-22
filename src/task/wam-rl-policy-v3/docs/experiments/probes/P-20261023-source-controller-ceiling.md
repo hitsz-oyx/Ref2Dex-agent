@@ -14,7 +14,7 @@ seeds: [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 11
 decision_changed_if_positive: qualify source-only controller on the same forty development initials before comparing WAM
 decision_changed_if_negative: retain all failures and repair measured approach or closure without relaxing physical gates
 status: RUNNING
-run_id: source-ceiling-20261023-r11
+run_id: source-ceiling-20261023-r12
 ---
 
 ## 结果解读表
@@ -162,4 +162,17 @@ $PY -m pytest -q src/task/wam-rl-policy-v3/tests/test_source_ceiling.py src/task
 $PY src/task/wam-rl-policy-v3/tools/audit/run_source_ceiling_mutants.py
 $PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r11 --prepare --predecessor outputs/wam-rl-policy-v3/source-ceiling-20261023-r8
 $PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r11 --detached
+```
+
+## R12运行前修订：闭合完成/历史清空后才做耦合探测
+
+R11至少19个完整失败，32/40已不可达，但仍完成40，不换分母。已出现真实完整成功，不能选例称达标；全量数字以本版summary为准。最初9个完整回合中，失败例p002/p005/p004首次probe时距原计划closure还差0.229/0.269/0.366rad，成功例剩余约0.04rad（含inner projection），表明探测仍可能早于闭合。不是统计归因实验，而是已由实际step红测试复现的相位接口缺口。
+R12把候选force+原反馈条件保留，并要求**内余量投影后的闭合命令完成**、随后持续原InteractionConfig.history_s=0.25秒，再起动同一个≤10mm探测。这个等待是为清除闭合手指自身运动占据的相对运动历史，不伪造q/dq/接触，不修改评分/后段/物理gate；已由真实运动建立的grasp不等探测。
+预期首次probe时指令余量0.23–0.37rad→≤1e-6rad，完成后候选持续≥.25s；实际关节是否稳定仍待物理trace，不拿命令完成当持握。CPU定向38项（35控制+3queue）、32/32控制mutants通过，queue另抓2种注入错误。目标source≥32/40、预抓限位≤2，尚未证实。
+按“达不到继续修”追加同40初态/≤24000控制/0updates/20秒；前序R11。R3–R8及R10中断已141276，加R11/R12各≤24000，累计新上限189276（明确追加本版24k，不冒称仍168k）。GPU仅等空闲4/5/6，旧批不中止；不比WAM，不RL/不重训v6。
+```bash
+export TMPDIR="$PWD/tmp"
+PY=/home2/wyy/miniconda3/envs/graspenv/bin/python
+$PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r12 --prepare --predecessor outputs/wam-rl-policy-v3/source-ceiling-20261023-r11
+$PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r12 --detached
 ```

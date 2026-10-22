@@ -58,7 +58,7 @@ def main():
         return key_intent(self,goal,**kwargs)
     def freeze_probe_closure(self,**args):
         command,info=original(self,**args)
-        if info.get('source_ceiling',{}).get('acquisition_probe'):
+        if getattr(args['feedback'],'grasp_candidate',False):
             command[6:]=2*(args['q'][[6,8,10,12,14,15]]+.0015-self.offset[[6,8,10,12,14,15]])/self.scale[[6,8,10,12,14,15]]-1
         return command,info
     def target_margin_as_pressure(self,q,dq):
@@ -96,7 +96,9 @@ def main():
         ('continue-inserting-after-measured-contact',patch.object(SourceCeilingConsumer,'step',chasing_close_goal),tests.test_first_measured_contact_stops_insertion_and_closes_fingers_at_measured_wrist),
         ('freeze-closure-at-provisional-candidate',patch.object(SourceCeilingConsumer,'step',freeze_probe_closure),tests.test_acquisition_probe_does_not_freeze_partly_completed_finger_closure),
         ('use-target-margin-as-measured-collision',patch.object(MarginAdmission,'measured_pressure',target_margin_as_pressure),tests.test_inner_target_margin_is_not_a_measured_collision_or_replanning_gate),
-        ('limit-PD-error-instead-of-command-velocity',patch.object(SourceCeilingConsumer,'step',anchor_wrist_slew_to_measurement),tests.test_wrist_command_slew_accumulates_pd_tracking_offset_while_measured_hand_lags)]
+        ('limit-PD-error-instead-of-command-velocity',patch.object(SourceCeilingConsumer,'step',anchor_wrist_slew_to_measurement),tests.test_wrist_command_slew_accumulates_pd_tracking_offset_while_measured_hand_lags),
+        ('probe-with-partially-open-fingers',patch.object(SourceCeilingConsumer,'closure_ready_for_probe',lambda *args:True),tests.test_candidate_waits_for_completed_closure_and_motion_history_before_probe),
+        ('skip-motion-history-after-closure',patch.object(SourceCeilingConsumer,'probe_closure_dwell_s',0.),tests.test_candidate_waits_for_completed_closure_and_motion_history_before_probe)]
     result=[]
     for name,mutation,check in cases:
         check() # First prove the unmutated check passes.

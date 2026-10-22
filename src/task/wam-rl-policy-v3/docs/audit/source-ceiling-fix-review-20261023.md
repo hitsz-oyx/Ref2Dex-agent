@@ -8,7 +8,7 @@
 | 提升但<32/40 | 修复不够，不能拿WAM解释数据量 | 按余下死因继续修source |
 | 不提升或实际限位仍多 | 当前方案未解决物理瓶颈 | 保留全部失败和gate，继续修；不训练v6 |
 
-当前状态：**原source14/40；R3–R8各完整0/40；未修好，不能称改善。** R9为0控制取消；R10在3/40完成时被manifest读取竞态技术中断，2494控制保留，不报成0/40。R11修腕PD限速和manifest竞态，按同40重新冻结；仍不比WAM。
+当前状态：**原source14/40；R3–R8各完整0/40；未修好，不能称改善。** R9为0控制取消；R10在3/40完成时被manifest读取竞态技术中断，2494控制保留，不报成0/40。R11已有完整物理成功但≥19失败、32门槛不可达，仍跑满40；R12修闭合完成前过早probe，仍不比WAM。
 ## 修复、可证伪预测与复现
 
 R3历史定位（以提交99875f23核对；均以`src/task/wam-rl-policy-v3/`为前缀）：
@@ -176,3 +176,9 @@ R10 supervisor.log明确JSONDecodeError发生于读前序manifest，随后两个
 `run_source_ceiling_worker.py::write`改原子替换；supervisor `read_manifest/ancestors_released`对瞬时空/截断文件返回pending，保留排队超时，不把pending当完成或致命错误。CPU三个queue回归抓住故意“空文件当完成”和“非原子直接覆盖”，不是物理成功证明。
 `SourceCeilingConsumer.step`腕限速改相邻最终PD命令SE3之间，而非永久限制相对实测q的跟踪偏移；红测试六拍旧目标=.025m，新=.150m，每拍仍≤.025m。跟踪偏移与命令步长分字段记录；卸载/有界probe以实测锚点优先，抓后原伺服不改。mutant恢复相对实测限速会被实际step断言抓住。
 复现命令/预算见实验卡R11节。全部版本已实耗141276（含R10中断），本版≤24000后≤165276，0updates，目标32/40仍未证实。全仓verify本次被并行v6卡P-20261023-tau-fixed-panel-metric缺claim_id/hypothesis_family/probe_index_in_family阻断，未修改对方文件，不报PASS。最初frozen preflight误读launch覆盖层缺inspire_contract，不能当测试通过；已在R10真实完整runtime复跑33/33，见frozen-preflight.json。
+
+## R12：探测必须在闭合命令完成/原运动历史窗口后
+
+R11初期失败p002/p005/p004在首次probe时closure raw余量.229/.269/.366rad；成功例约.04rad含投影。源码现先对closure做同inner admission再比命令差≤1e-6，完成后保持候选原force条件≥.25s（原observer历史窗），才允许≤10mm probe。真实耦合已成立仍按原反馈进入lift，不改评分。预期首次probe闭合指令余量→≤1e-6，等待→≥.25s；不能将此当实际q完成/力闭合证据。
+红测试R11/premature-probe-red.log明确候选第一拍就probe，1 failed/34 deselected；修后35控制+3queue定向通过、32控制mutants killed，新增抓住“半张开就probe”和“省掉运动历史等待”。旧probe正控制fixture显式声明闭合已稳定，不用不完整手形冒充已闭合。独立复现仍按本报告pytest/mutant与实验卡R12启动命令。
+同40/24k/0updates，source≥32仍门禁；前序R11全40保留。累计预算明确追加24k到≤189276，不隐瞒版本间成本。无法自证：命令稳定.25秒是否足够清除真实接触求解器抖动、是否因此增加握力超限，须本版完整40与q/dq/forces验证。
