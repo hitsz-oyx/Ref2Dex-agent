@@ -15,6 +15,7 @@ def main():
         ('tau-includes-current','src/wam_rl_policy_v3/tau_replay_contract.py','np.arange(1,horizon+1)','np.arange(horizon)','test_tau_replay_contract.py::test_reference_delta_is_first_future_and_does_not_reanchor_on_live_hand'),
         ('shifted-clock-accepted','src/wam_rl_policy_v3/tau_replay_contract.py','not np.array_equal(tick,np.arange(controls+1))','False','test_tau_replay_contract.py::test_saved_clock_rejects_shifted_post_action_state'),
         ('pd-coupling-ratio-lost','src/wam_rl_policy_v3/tau_replay_contract.py','target[...,dst]=target[...,src]*ratio','target[...,dst]=target[...,src]','test_tau_replay_contract.py::test_pd_reconstruction_matches_independent_torch_native_contract'),
+        ('impossible-support-accepted','src/wam_rl_policy_v3/terminal_support_contract.py','geometrically_disproved=bool(applies and (gap_impossible or footprint_impossible))','geometrically_disproved=False','test_terminal_support_contract.py'),
     ]
     results=[]
     for name,relative,old,new,test in cases:
