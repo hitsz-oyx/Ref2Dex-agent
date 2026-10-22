@@ -1,0 +1,30 @@
+{
+  "schema": "ref2dex.tau-fixed-panel.v1",
+  "experiment_id": "P-20261023-tau-fixed-panel-metric",
+  "task": "ptv3-shared-wam-v6",
+  "seed": 170,
+  "flow_eval_seed": 172,
+  "anchor": "outputs/ptv3-shared-wam-v6/tau-curated-20261023-r2/train-anchor.json",
+  "data_manifest": "outputs/ptv3-shared-wam-v6/local-data-20261021-r2/data/recipe/manifest.json",
+  "event_recipe": "outputs/ptv3-shared-wam-v6/local-expanded-recipe-20261021-r1/manifest.json",
+  "stats": "outputs/ptv3-shared-wam-v6/local-expanded-recipe-20261021-r1/stats.json",
+  "preprocessing": {
+    "reader": "ptv3_shared_wam_v6.data.V6Windows",
+    "split": "train",
+    "collate": "ptv3_shared_wam_v5.data.collate",
+    "history": 4,
+    "horizon": 24,
+    "fps": 30,
+    "event_condition_dropout": false
+  },
+  "metrics": {
+    "primary": "hand_endpoint_error_mm",
+    "phase_labels": ["approach", "close", "contact", "hold", "unknown"],
+    "first_n_frames": 8,
+    "contact_confidence_threshold": 0.25,
+    "contact_window": "future frames with any valid surface contact target > threshold",
+    "aggregation": "all valid hand-point frame values; mean, median, p95"
+  },
+  "checkpoint_independent": true,
+  "fixed_order": true
+}
