@@ -57,6 +57,9 @@ future endpoint。
 - 通过 `OrderedGoalScheduler` + `update_schedulers` 的 scheduler replay helper，
   以及 24 steps @ 30 Hz 的合同元数据。
 
+该 helper 只接受显式 `scheduler_reference_poses` 字段；缺失时直接报错，绝不回退到
+观测 `object_poses`。
+
 新增 [verify_scheduler_cache_identities.py](../../tools/run/verify_scheduler_cache_identities.py)
 生成机器可读 receipt。当前 receipt：
 
@@ -81,8 +84,9 @@ receipt 的 `excluded_windows`，统一原因是
 新增测试 [test_scheduler_cache_identity.py](../../tests/test_scheduler_cache_identity.py)：
 
 - 相同 local `sample_id` 在不同 `source_id` 下 identity 不碰撞；
-- 训练 replay helper 与推理同一 `update_schedulers(..., fast_geometry=True)` 路径
-  逐位一致。结果：`2 passed`。
+- 训练 replay helper 产出的 scheduler delta 与 v6 `online_runtime._goal_from_pose`
+  sanitizer 逐位一致；scheduler state 也由推理使用的
+  `update_schedulers(..., fast_geometry=True)` 生成。结果：`2 passed`。
 
 已有负控制也通过：训练/推理 goal tensor equivalence 与错误 endpoint semantic
 拒绝测试 `2 passed, 7 deselected`。直接把错误语义送入 `v4_online_samples` 的真实输出是：
@@ -126,4 +130,3 @@ src/task/wam-rl-policy-v3/tests/test_batched_geometry.py \
 是 0%。下一步必须先提供或物化与推理同源的 planned scheduler reference path，
 再重新生成条件、identity 和 receipt；在此之前不改 `tau_curated_data_only_v1.json`
 的 status，也不放行训练。
-

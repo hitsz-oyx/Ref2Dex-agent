@@ -17,7 +17,7 @@ def _toy_inputs():
     query[:, 1] = np.tile([-.01, .01], 16)
     query[:, 2] = np.repeat([-.01, .01], 16)
     surface = np.zeros((16, 3), dtype=np.float64)
-    return dict(object_poses=poses, joints=joints), {"query": query, "surface": surface}
+    return dict(object_poses=poses, scheduler_reference_poses=poses, joints=joints), {"query": query, "surface": surface}
 
 
 def test_identity_uses_source_and_composite_sample_id():
@@ -32,6 +32,7 @@ def test_identity_uses_source_and_composite_sample_id():
 def test_training_replay_matches_the_inference_scheduler_path_bitwise():
     sequence, geometry = _toy_inputs()
     replayed = scheduler_conditions_for_ticks(sequence, geometry, 0, 0, [3, 5])
+    from ptv3_shared_wam_v6.online_runtime import _goal_from_pose
     scheduler = OrderedGoalScheduler(sequence["object_poses"][:, 0], np.arange(8) / 30.,
                                      geometry["query"], interaction_points=geometry["surface"],
                                      goal_type="se3_pose")
@@ -42,7 +43,13 @@ def test_training_replay_matches_the_inference_scheduler_path_bitwise():
                                      np.asarray([tick / 30.]), hands[tick:tick+1],
                                      fast_geometry=True)[0]
         if tick in (3, 5):
-            direct[tick] = np.asarray(decision["goal_delta"], np.float32)
+            # The online v6 boundary converts the scheduler waypoint pose to
+            # the same-ID current-object-frame tensor consumed by the model.
+            online_delta, online_valid = _goal_from_pose(
+                geometry["query"], np.linalg.inv(sequence["object_poses"][tick, 0]),
+                decision["goal_pose"])
+            assert online_valid.dtype == bool
+            direct[tick] = np.asarray(online_delta[0], np.float32)
     assert np.array_equal(replayed[3], direct[3])
     assert np.array_equal(replayed[5], direct[5])
     assert condition_tensor_hash(replayed[3]) == condition_tensor_hash(direct[3])

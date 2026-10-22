@@ -90,7 +90,12 @@ def scheduler_conditions_for_ticks(sequence, geometry, source_id, slot, ticks):
     ticks = sorted({int(t) for t in ticks})
     if not ticks or min(ticks) < 3:
         raise ValueError("scheduler replay requires admitted H4 ticks")
-    poses = np.asarray(sequence["object_poses"][:, slot], dtype=np.float64)
+    # A planned reference path must be supplied under an explicit field.  The
+    # observed object trajectory is a label and is intentionally rejected.
+    reference = sequence.get("scheduler_reference_poses")
+    if reference is None:
+        raise ValueError("scheduler reference path absent; observed object_poses are labels")
+    poses = np.asarray(reference[:, slot], dtype=np.float64)
     joints = np.asarray(sequence["joints"], dtype=np.float64)
     query = np.asarray(geometry["query"], dtype=np.float64)
     surface = np.asarray(geometry["surface"], dtype=np.float64)
@@ -127,4 +132,3 @@ def scheduler_conditions_for_ticks(sequence, geometry, source_id, slot, ticks):
 
 def scheduler_condition_for_tick(sequence, geometry, source_id, slot, tick):
     return scheduler_conditions_for_ticks(sequence, geometry, source_id, slot, [tick])[int(tick)]
-
