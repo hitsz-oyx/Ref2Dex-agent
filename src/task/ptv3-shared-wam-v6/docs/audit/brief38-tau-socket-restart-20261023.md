@@ -4,8 +4,8 @@
 
 | 可能结果/当前实测 | 含义 | 决定 |
 |---|---|---|
-| 启动且updates>0、有限loss，跑到07:15（待测） | 训练真正运行 | 硬停后同512锚点trained@A面板，附复现命令 |
-| 新报错或06:45仍未启动（待测） | 第二原因或时间不足 | 保留证据、停手；不换配方，不另开实验 |
+| 06:10:43启动，已3 updates、loss2.35821，07:15硬停待到时核验 | 训练真正运行 | 硬停后同512锚点trained@A面板，附复现命令 |
+| 当前无新报错；已在06:45前启动 | 第二原因或时间不足 | 保留证据、停手；不换配方，不另开实验 |
 | hand前8/contact均改善≥5%，object前8恶化≤5%（待测） | τ预测改善 | 仅称预测改善，执行收益未达门槛，本轮禁止rollout |
 | 两层不改善或只部分改善（待测） | 本次配方+预算未通过或部分改善 | 不否证τ路线；执行收益未测 |
 | OOM/非有限值/盘<20GiB/产物>32GiB（待测） | 故障门 | 立即停、不自动重启、不删除历史产物 |
@@ -182,3 +182,15 @@ python3 src/task/ptv3-shared-wam-v6/tools/run/launch_tau_no_goal_no_event.py --c
 ```
 
 已有panel-init-A基线不重算。原面板脚本硬编码GPU7，与本轮只用4/5/6冲突；停训后仅在新run中保存其副本，修改TASK定位与GPU资源字段为4/5/6，保持模型/数据/512锚点/124母序列/4000次cluster bootstrap全部算法逐字不变；禁止修改原脚本或执行器。执行收益保持未测。
+
+## 06:12训练实测（三重证据，不是离线面板）
+
+启动提交 `a83a3df3dae5bf68ac5edbefd81fd8c27c5c57c3`；06:10:43 supervisor PID308597、torchrun PID308607、rank308630/308631/308632，GPU4/5/6。`training-start-proof.json`保存pgrep进程、progress及日志grep三重证据：step3、loss2.358209827788174（有限），53.245s时steady0.2810updates/s，按当前粗估硬停前约1000次更新，最终以实测为准。三卡显存18.5–20.3GiB，利用率77–85%；不是容量或loader timeout参数变化。
+
+12个实际resource-sharer listener均在 `tmp/b38-308597/tmp/v6i-<rank_pid>/listener-XXXXXXXX`；绝对85字节、实际相对绑定47字节，均<108。`rg -n 'AF_UNIX path too long' tmp/t38-r2/train-launch.log` 返回码1、stdout空（0匹配）；没有调高120s loader timeout。checkpoint step000000=405716522 bytes、step000001=1217081377 bytes，确实落盘；watchdog周期记录updates/last_loss/checkpoint_bytes/磁盘/总产物/倒计时。
+
+回归本机Python 5 passed；实际训练Python3.8环境另5 passed。配置SHA256仍 `de74a83d976eca08a7d9027ecda0ae01b5219447b4dc64677fe1f395921018ad`，配置改动字段为空；配方SHA、manifestSHA、ordered6000 SHA与seed170见identity-before.json，保持brief38原值。既有审计未重做。
+
+停后任务 `tmp/t38-r2/poststop-panel.py` 已独立登记PID311661，只等待stop-receipt；新训练失败则不做面板、不重启。正常停训且updates>0后，使用最终保存checkpoint和旧panel-init-A，在空闲GPU4/5/6做一次trained@A；原GPU7专用脚本只读，副本仅TASK路径与GPU资源/来源字段不同，diff存panel-resource-only.diff。训练硬停不受面板任务影响。
+
+Git：首次 `git pull --rebase origin main` 被其他会话未暂存修改拒绝（`cannot pull with rebase: You have unstaged changes`）；未stash、未改保护文件，显式四路径提交后普通push成功。06:10核对本地与远端均为a83a3df3dae5bf68ac5edbefd81fd8c27c5c57c3；终态再核对。
