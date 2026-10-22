@@ -73,3 +73,21 @@ def test_postgrasp_command_is_identical_to_existing_controller():
     args['feedback'].grasp_established=True;args['feedback'].contact_observed=True
     x,_=a.step(**args);y,_=b.step(**args)
     np.testing.assert_array_equal(x,y)
+
+
+def test_close_to_lift_handover_cannot_jump_to_future_closure_target():
+    c,args=approaching(force=.5);c.contact_since=-1.
+    args['feedback'].grasp_established=True;args['feedback'].contact_observed=True
+    command,info=c.step(**args)
+    assert c.phase in ('lift','hold')
+    target=pd_targets(command,args['q'],c.offset,c.scale)
+    assert np.max(np.abs(target[FINGER_ACTIVE]-args['q'][FINGER_ACTIVE]))<=.04+1e-6
+
+
+def test_executed_target_telemetry_matches_final_admitted_command():
+    c,args=approaching(force=30.)
+    args['q'][16]=-.01 # Geometry selection and measured unloading both active.
+    command,info=c.step(**args)
+    target=pd_targets(command,args['q'],c.offset,c.scale)
+    np.testing.assert_allclose(info['executed_finger_target'],target[FINGER_ACTIVE],atol=1e-6,rtol=0)
+    np.testing.assert_allclose(np.asarray(info['wrist_target'])[:3,3],args['palm'][:3,3]+target[:3]-args['q'][:3],atol=1e-6,rtol=0)

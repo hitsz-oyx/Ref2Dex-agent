@@ -21,15 +21,16 @@ def prepare(out):
     worker=(TASK/'tools/run/run_source_ceiling_worker.py').read_text().replace("ROOT=Path(__file__).resolve().parents[5];TASK=ROOT/'src/task/wam-rl-policy-v3'", "ROOT=Path(%r);TASK=Path(%r)"%(str(ROOT),str(launch/'src/task/wam-rl-policy-v3')))
     (out/'worker.py').write_text(worker)
     reg=json.loads((BASELINE/'registration.json').read_text())
-    reg.update(protocol='source.measured-unload.margin-admission.slew.n40.v1',experiment_id='P-20261023-source-controller-ceiling',
+    reg.update(protocol='source.measured-unload.margin-admission.slew.n40.v2',experiment_id='P-20261023-source-controller-ceiling',
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
-        maximum_controls=24000,worker_wall_s=14400,queue_wall_s=14400,learning_updates=0,ppo_authorized=False,
+        arms=['A0'],subsets=['development_same_v11'],maximum_controls=24000,worker_wall_s=14400,queue_wall_s=14400,learning_updates=0,ppo_authorized=False,
         worker_source=str(out/'worker.py'),runtime_source=str(launch),baseline=str(BASELINE),
         target_successes=32,target_pregrasp_joint_abort_max=2,
         source_clock='advance one recorded control only when not measured-unloading; pause on unloading',
         postgrasp='exact baseline RelativePoseServo and hold-force controller; no changes',
-        scientific_scope='same 20 objects x2 sequences; source-only development repair, not tau comparison or new holdout')
-    for j in reg['jobs']:j['order']=['A0']
+        main_rule='source final successes >=32/40; no WAM comparison before this gate',
+        scope='same 20 objects x2 sequences; source-only development repair, not tau comparison or new holdout')
+    for j in reg['jobs']:j.update(order=['A0'],original_subset=j['subset'],subset='development_same_v11')
     write(out/'registration.json',reg)
 
 

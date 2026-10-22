@@ -8,8 +8,9 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 from .grasp_geometry import GeometryGraspConsumer, JointAdmission, COUPLINGS
 from .pose_consumer import FINGER_ACTIVE, closest_wrist_angles
+from .tau_replay_contract import pd_targets
 
-SOURCE_CEILING_CONTRACT = 'source.measured-unload.margin-admission.slew.v1'
+SOURCE_CEILING_CONTRACT = 'source.measured-unload.margin-admission.slew.v2'
 
 
 class MarginAdmission(JointAdmission):
@@ -89,6 +90,8 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
                     fingers[i]=min(q[j]/ratio-.04 for j,ratio in group)
         fingers=q[FINGER_ACTIVE]+np.clip(fingers-q[FINGER_ACTIVE],-self.finger_rate_radps/30,self.finger_rate_radps/30)
         fingers=self.admission.fingers(fingers)
+        closure=q[FINGER_ACTIVE]+np.clip(intent.closure_q-q[FINGER_ACTIVE],-self.finger_rate_radps/30,self.finger_rate_radps/30)
+        closure=self.admission.fingers(closure)
         proposal=args['object_pose']@intent.approach_pose_object
         if unloading:
             proposal=palm.copy();proposal[:3,3]+=self.unload_direction*self.reaching_linear_rate_mps/30
@@ -101,7 +104,7 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
         proposal[:3,:3]=Rotation.from_rotvec(rotation).as_matrix()@palm[:3,:3]
         mount=Rotation.from_euler('XYZ',q[3:6]).as_matrix().T@palm[:3,:3]
         changed=replace(intent,approach_pose_object=np.linalg.inv(args['object_pose'])@proposal,
-                        preshape_q=fingers,approach_joint_angles=closest_wrist_angles(proposal[:3,:3],q[3:6],mount))
+                        preshape_q=fingers,closure_q=closure,approach_joint_angles=closest_wrist_angles(proposal[:3,:3],q[3:6],mount))
         # Parent geometry selection still checks all candidate targets against
         # the INNER bounds before ranking. It also retains table feasibility.
         command,info=super().step(**dict(args,intent=changed))
@@ -116,10 +119,18 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
             command[3:6]=-self.offset[3:6]/self.scale[3:6]
             command[6:]=2*(fingers-self.offset[FINGER_ACTIVE])/self.scale[FINGER_ACTIVE]-1
             command=self.admission.bound_action(command,q)
+        applied_unloading=bool(unloading and self.phase in ('approach','close'))
+        self.source_paused=applied_unloading
+        applied=pd_targets(command,q,self.offset,self.scale)
+        executed_pose=palm.copy();executed_pose[:3,3]+=applied[:3]-q[:3]
+        executed_pose[:3,:3]=Rotation.from_euler('XYZ',applied[3:6]).as_matrix()@mount
+        info.update(wrist_target=executed_pose.tolist(),executed_finger_target=applied[FINGER_ACTIVE].tolist())
+        finger_delta=float(np.max(np.abs(applied[FINGER_ACTIVE]-q[FINGER_ACTIVE])))
         info['source_ceiling']=dict(contract=SOURCE_CEILING_CONTRACT,active=True,
             force_valid=force_valid,force_norm_n=magnitudes.tolist(),force_limit_n=self.force_limit_n,
             loaded_fingers=np.flatnonzero(loaded).tolist(),coasting_joint_indices=np.flatnonzero(risk).tolist(),
-            unloading=unloading,source_paused=self.source_paused,inner_target_admitted=self.admission.check(command,q)[0],
+            unloading=applied_unloading,unload_requested=unloading,source_paused=self.source_paused,inner_target_admitted=self.admission.check(command,q)[0],
+            finger_max_applied_delta_rad=finger_delta,finger_rate_override_for_admission=bool(finger_delta>self.finger_rate_radps/30+1e-6),
             finger_rate_radps=self.finger_rate_radps,retreat_direction=None if not unloading else self.unload_direction.tolist())
         self.last_info=info
         return command,info

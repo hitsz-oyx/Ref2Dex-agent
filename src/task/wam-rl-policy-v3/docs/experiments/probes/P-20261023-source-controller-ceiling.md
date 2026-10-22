@@ -14,7 +14,7 @@ seeds: [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 11
 decision_changed_if_positive: qualify source-only controller on the same forty development initials before comparing WAM
 decision_changed_if_negative: retain all failures and repair measured approach or closure without relaxing physical gates
 status: PLANNED
-run_id: source-ceiling-20261023-r1
+run_id: source-ceiling-20261023-r2
 ---
 
 ## 结果解读表
@@ -37,4 +37,6 @@ run_id: source-ceiling-20261023-r1
 实现为独立source_ceiling模块，保留并行v13默认控制器；12N通用指尖压力阈值、1.2rad/s手指目标限速、候选目标40mrad内余量/根位置10mm余量、0.30m/s和1.2rad/s接近限速。过载/实际关节向限位滑行时退让，并暂停source参考游标；力无效不触发力卸载。阈值未经物理批次验证，明确不宣称正确最优。抓后原伺服逐字节对照测试通过。
 
 代码/复现/逐物体证据：[本轮修复报告](../../audit/source-ceiling-fix-review-20261023.md)。
-产物`outputs/wam-rl-policy-v3/source-ceiling-20261023-r1/`；旧source40实测为14/40、16745控制、12限位回合/13关节事件。
+产物`outputs/wam-rl-policy-v3/source-ceiling-20261023-r2/`；旧source40实测为14/40、16745控制、12限位回合/13关节事件。
+
+预启动修订：原r1已冻结但未获GPU；查出close→lift手指目标跳变与最终目标日志失真，分别由红测试复现。r1 supervisor明确记CANCELLED_PRESTART、0子进程/0控制，原快照和日志保留；物理批次改为fresh r2，不混算。修后对12个真实首限位前状态单步重算：12/12目标准入、6/12触发卸载；这不是反事实仿真，不声称已防止任何旧失败。
