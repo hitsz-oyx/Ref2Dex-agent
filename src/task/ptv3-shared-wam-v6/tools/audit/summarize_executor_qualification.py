@@ -11,7 +11,8 @@ import sys
 import numpy as np
 from scipy.spatial.transform import Rotation
 
-ARMS = ('replay', 'gt', 'healthy', 'flow')
+ARMS = ('replay', 'gt_reference', 'gt', 'healthy', 'flow')
+PRIMARY_GT = 'gt_reference'
 THRESHOLDS = dict(hz=30, lift_m=.05, palm_object_distance_m=.20,
                   contact_body_force_n=.10, minimum_contact_bodies=2,
                   hold_controls=30, horizontal_push_m=.05, tilt_degrees=45.,
@@ -84,7 +85,7 @@ def compare_initials(root):
                                shape=list(b.shape) if b is not None else None, maximum_absolute_difference=delta)
         result['comparisons'][arm] = dict(all_arrays_exact=all(c['exact'] for c in checks.values()), arrays=checks)
     result['all_available_arms_identical'] = all(x['all_arrays_exact'] for x in result['comparisons'].values())
-    result['four_arms_available'] = len(loaded) == len(ARMS)
+    result['all_five_arms_available'] = len(loaded) == len(ARMS)
     return result
 
 
@@ -200,7 +201,10 @@ def summarize_arm(root, arm, panel):
     with np.load(trace_path, allow_pickle=False) as z:
         trace = {k: z[k].copy() for k in z.files}
     if trace['objects'].shape[1] != len(panel['records']): raise ValueError('panel size mismatch')
-    if manifest.get('arm') != arm: raise ValueError('arm manifest mismatch')
+    expected_arm = 'gt' if arm == 'gt_reference' else arm
+    if manifest.get('arm') != expected_arm: raise ValueError('arm manifest mismatch')
+    if arm == 'gt_reference' and manifest.get('gt_origin') != 'reference':
+        raise ValueError('primary GT must use reference_future minus reference_current')
     native_path = Path(manifest['native_output'])/'manifest.json' if manifest.get('native_output') else None
     native = json.loads(native_path.read_text()) if native_path and native_path.exists() else {}
     if native.get('source_sequence_names') and native['source_sequence_names'] != panel['sequences']:
@@ -212,6 +216,21 @@ def summarize_arm(root, arm, panel):
                        indexed_resets=native.get('indexed_resets'),
                        extended_state=native.get('extended_state'))
     cases = [case_metrics(trace, i, row, completed) for i, row in enumerate(panel['records'])]
+    for index, case in enumerate(cases):
+        controls = case['evaluated_controls']
+        if arm in ('healthy', 'flow') and 'workspace_failed' in trace:
+            failures = trace['workspace_failed'][:controls+1, index].astype(bool)
+            first = first_true(failures)
+            case['workspace_failure_first_tick'] = first
+            case['failure_proxies']['workspace_failure'] = bool(failures.any())
+            full_failures = trace['workspace_failed'][:completed+1, index].astype(bool)
+            case['full_trace_diagnostic_workspace_first_tick'] = first_true(full_failures)
+            case['full_trace_diagnostic_workspace_failure'] = bool(full_failures.any())
+        else:
+            case['workspace_failure_first_tick'] = None
+            case['failure_proxies']['workspace_failure'] = None
+            case['full_trace_diagnostic_workspace_first_tick'] = None
+            case['full_trace_diagnostic_workspace_failure'] = None
     successes = sum(c['proxy_success'] for c in cases)
     completion = [c['task_completion_for_uncensored_rate'] for c in cases if c['task_completion_for_uncensored_rate'] is not None]
     failure_counts = {}
@@ -223,6 +242,12 @@ def summarize_arm(root, arm, panel):
     opportunities = sum(c['natural_recovery']['loss_opportunities'] for c in cases)
     recovered = sum(c['natural_recovery']['recovered_losses'] for c in cases)
     return dict(status=manifest['status'], manifest=str(manifest_path), trace=str(trace_path),
+        gt_origin=manifest.get('gt_origin', 'measured' if arm == 'gt' else None),
+        gt_contract=manifest.get('gt_contract') if arm in ('gt', 'gt_reference') else None,
+        startup_contract=manifest.get('gt_startup') if arm in ('gt', 'gt_reference') else 'first3 zero tau invalid',
+        startup_tau_valid_counts=[int(v) for v in trace['tau_valid'][:3].sum(1)] if 'tau_valid' in trace else None,
+        startup_tau_maximum_absolute=float(np.abs(trace['tau'][:3]).max()) if 'tau' in trace else None,
+        startup_first3_zero_invalid=bool(not trace['tau_valid'][:3].any() and not trace['tau'][:3].any()) if 'tau_valid' in trace and 'tau' in trace else None,
         native_engineering=engineering,
         samples=len(cases), completed_controls_per_environment=completed,
         metric_controls=sum(c['evaluated_controls'] for c in cases),
@@ -240,6 +265,8 @@ def summarize_arm(root, arm, panel):
         natural_recovery=dict(opportunities=opportunities, recovered=recovered, rate=recovered/opportunities if opportunities else None,
                               forced_perturbation=None),
         failure_proxies=failure_counts,
+        full_trace_diagnostic_workspace_failures=sum(c['full_trace_diagnostic_workspace_failure'] is True for c in cases),
+        full_trace_diagnostic_workspace_known_cases=sum(c['full_trace_diagnostic_workspace_failure'] is not None for c in cases),
         inference_seconds=manifest.get('inference_seconds'), inference_samples=manifest.get('inference_samples'),
         inference_ms_per_sample=manifest['inference_seconds']/manifest['inference_samples']*1000 if manifest.get('inference_samples') else None,
         elapsed_seconds=manifest.get('elapsed_s'), cases=cases)
@@ -260,18 +287,21 @@ def paired_difference(a, b):
 
 
 def decisions(arms, initials):
-    replay, gt = arms['replay'], arms['gt']
+    replay, gt = arms['replay'], arms[PRIMARY_GT]
     if not replay.get('samples') or not gt.get('samples'):
-        return dict(gt_stably_executable=None, prediction_clearly_worse=None, conclusion='PENDING replay and GT traces')
+        return dict(primary_gt=PRIMARY_GT, gt_stably_executable=None, prediction_clearly_worse=None, conclusion='PENDING replay and standard reference-displacement GT traces')
     if any(a['status'] != 'COMPLETED' for a in (replay, gt)):
         return dict(gt_stably_executable=None, prediction_clearly_worse=None,
                     conclusion='Incomplete replay or GT run; partial metrics do not establish executor qualification')
-    for name, a in (('replay', replay), ('gt', gt)):
+    if gt.get('startup_first3_zero_invalid') is not True:
+        return dict(primary_gt=PRIMARY_GT, gt_stably_executable=None, prediction_clearly_worse=None,
+                    conclusion='Primary GT startup is not matched to the predictor first3 zero/invalid contract; qualification remains pending')
+    for name, a in (('replay', replay), (PRIMARY_GT, gt)):
         native = a.get('native_engineering', {})
         if native.get('episode_action_mismatches') not in (0, None) or native.get('indexed_resets') not in (0, None):
             return dict(gt_stably_executable=None, prediction_clearly_worse=None,
                         conclusion=name+' has action/episode or reset mismatches; qualification is confounded')
-    paired_initials = initials.get('comparisons', {}).get('gt', {}).get('all_arrays_exact')
+    paired_initials = initials.get('comparisons', {}).get(PRIMARY_GT, {}).get('all_arrays_exact')
     if initials.get('reference_arm') != 'replay' or not paired_initials:
         return dict(gt_stably_executable=None, prediction_clearly_worse=None,
                     conclusion='Initial states are not exactly paired; qualification comparison is confounded')
@@ -291,7 +321,13 @@ def decisions(arms, initials):
         conclusion = 'GT qualifies and both prediction arms have a paired deficit on this selected panel. This supports a prediction-to-execution gap for this bridge, not a universal generator bottleneck.'
     else:
         conclusion = 'GT qualifies; a clear deficit for both prediction arms is not established.'
-    return dict(replay_qualified=replay_ok, gt_stably_executable=gt_ok,
+    return dict(primary_gt=PRIMARY_GT,
+                primary_gt_contract='world reference_future minus reference_current hand; standard reference displacement',
+                primary_gt_startup_matched=gt['startup_first3_zero_invalid'],
+                additional_gt='gt: world reference_future minus live_measured_current hand; additional corrective oracle with legacy tau-valid-from-step0 startup; differs in both origin and startup',
+                additional_gt_startup_matched=arms['gt'].get('startup_first3_zero_invalid'),
+                primary_gt_minus_additional_gt=paired_difference(gt, arms['gt']),
+                replay_qualified=replay_ok, gt_stably_executable=gt_ok,
                 gt_required_success_rate=THRESHOLDS['gt_fraction_of_replay_gate']*r,
                 prediction_clearly_worse=deficits, gt_minus_predictions=contrasts,
                 conclusion=conclusion)
@@ -300,6 +336,7 @@ def decisions(arms, initials):
 def markdown(report):
     def fmt(value, digits=3): return 'UNKNOWN' if value is None else f'{value:.{digits}f}'
     lines = ['# Executor qualification summary', '', report['decision']['conclusion'], '',
+             'Primary GT is **gt_reference**: reference_future − reference_current hand, with the same first3 zero/invalid startup as both prediction arms. The extra **gt** arm uses reference_future − live_measured_current as a corrective oracle with legacy valid-from-step0 startup; its comparison changes both origin and startup.', '',
              'Metrics use post-control states 1..C, C=min(completed controls, admitted prefix, 300). Final unused decisions are excluded.', '',
              '|arm|cases|success|lift-only|hold mean / median / max (s)|task observed / uncensored / censored|',
              '|---|---:|---:|---:|---|---|']
@@ -311,8 +348,8 @@ def markdown(report):
         lines.append(f"|{arm}|{n}|{a['proxy_successes']}/{n} ({100*a['proxy_success_rate']:.1f}%)|{a['lift_only_successes']}/{n}|{a['hold_seconds_mean']:.3f} / {a['hold_seconds_median']:.3f} / {a['hold_seconds_max']:.3f}|{a['task_complete_observed_count']} / {a['task_uncensored_count']} / {a['task_censored_count']}|")
     lines += ['', 'Success is 30 consecutive controls with lift>=5cm, no measured table support, palm distance<=20cm, and >=2 finger net-force bodies >0.1N. Force evidence is not object-specific contact-pair proof.', '',
               f"Initial arrays exactly equal across available arms: {report['initial_state_pairing']['all_available_arms_identical']}. See JSON for each array and each case.", '',
-              '|arm|natural losses / recoveries|push or tip|loss after lift|no lift|no finger contact|early contact|penetration|',
-              '|---|---|---|---|---|---|---|---|']
+              '|arm|natural losses / recoveries|push or tip|loss after lift|no lift|no finger contact|early contact|workspace|penetration|',
+              '|---|---|---|---|---|---|---|---|---|']
     for arm in ARMS:
         a = report['arms'][arm]
         if not a.get('samples'): continue
@@ -320,16 +357,22 @@ def markdown(report):
             d = a['failure_proxies'][key]
             return 'UNKNOWN' if not d['known_cases'] else f"{d['observed_true']}/{d['known_cases']} (unknown {d['unknown_cases']})"
         recovery = a['natural_recovery']
-        cells = [cell(k) for k in ('pushed_or_tipped', 'loss_after_lift', 'no_lift', 'no_finger_closure_contact', 'early_contact', 'penetration')]
+        cells = [cell(k) for k in ('pushed_or_tipped', 'loss_after_lift', 'no_lift', 'no_finger_closure_contact', 'early_contact', 'workspace_failure', 'penetration')]
         lines.append('|'+ '|'.join([arm, f"{recovery['opportunities']} / {recovery['recovered']}"]+cells)+'|')
     lines += ['', 'Labels overlap and are observable proxies. Natural object lowering may be deliberate release; penetration and forced-disturbance recovery remain UNKNOWN. No natural loss opportunity means recovery rate UNKNOWN, not zero.', '',
               'Early contact compares >=2 force bodies >0.1N against the archived measured robot contacts at the same native ticks; >=3 controls earlier is the flag. Reset step0 is excluded. Missing reference onset gives UNKNOWN.', '',
               'All rates concern a reference-selected 16-case robot DEV panel, one executor/physics seed. Robot TRAIN is sequence/source-disjoint; WAM lifetime exposure is uncertified. This executor was adapted to v4 tau, not certified as v6-adapted.', '',
-              'GT minus predicted proxy success (paired sequence bootstrap; not independent training seeds):']
+              'Standard reference-displacement GT minus predicted proxy success (paired sequence bootstrap; not independent training seeds):']
     for arm, contrast in report['decision'].get('gt_minus_predictions', {}).items():
         if contrast:
             lo, hi = contrast['paired_sequence_bootstrap95_pp']
             lines.append(f"- GT − {arm}: {contrast['a_minus_b_pp']:.1f} pp, 95% CI [{lo:.1f}, {hi:.1f}], n={contrast['samples']}.")
+    lines += ['', 'Workspace events after the admitted prefix are excluded from primary failure counts. Full-300-control diagnostic workspace counts:']
+    for arm in ('healthy', 'flow'):
+        a = report['arms'][arm]
+        if a.get('samples'):
+            count = a['full_trace_diagnostic_workspace_known_cases']
+            lines.append(f"- {arm}: {a['full_trace_diagnostic_workspace_failures']}/{count}" if count else f'- {arm}: UNKNOWN (trace field absent).')
     lines += ['', 'Exact thresholds, per-case metrics, source files, failure denominators and censoring are in summary.json.', '']
     return '\n'.join(lines)
 
@@ -349,7 +392,7 @@ def main():
                   panel=str(panel_path), python=sys.executable, numpy=np.__version__,
                   thresholds=THRESHOLDS, initial_state_pairing=initials,
                   arms=arms, decision=decisions(arms, initials),
-                  limits='Observable selected-panel probe; no mesh penetration, forced perturbation, independent executor seed or WAM lifetime-heldout certification.')
+                  limits='Observable selected-panel probe; no mesh penetration, forced perturbation, independent executor seed or WAM lifetime-heldout certification. Primary gt_reference startup matches predicted arms (first3 zero/invalid); extra gt live-centered oracle retains legacy valid-from-step0 startup and is not an isolated origin ablation.')
     for name, body in [('summary.json', json.dumps(report, indent=2, allow_nan=False)+'\n'),
                        ('summary.md', markdown(report))]:
         part = root/(name+'.part')
