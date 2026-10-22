@@ -12,6 +12,12 @@
 只承担工程Decision，不冒充覆盖每子集n40；并发对此门槛仍有分歧。BC转漂移状态意图恢复，
 随后仅有条件小预算残差pilot；不恢复三臂、不做完整RELEASE资格。
 
+正式接口未见扩覆盖已另注册[每链n40卡](experiments/probes/P-20261022-grasp-coverage40.md)：
+20个排除旧接口暴露的对象×2不同序列，A1 WAM/同R零τ A2/source-PD接近A0各40；
+120回合≤72000controls、0updates，算法快照冻结于0e8c8214。GPU5/6已启动，GPU4等待前序小预算检查释放；
+监督PID3631768，确切命令/预算/中断记录在`outputs/wam-rl-policy-v3/grasp-v11-coverage40-20261022-r1/`。
+尺寸评分是新协议，旧15mm结果不回改；A0不作GTτ→R上界，n12工程检查不并入本分母。
+
 # 2026-10-22 v9：320回合完成，seen局部收益成立、unseen及GT资格失败
 
 [预注册、diff、统计与复现](experiments/probes/P-20261022-grasp-interface-stat40.md)：每臂每子集40，
