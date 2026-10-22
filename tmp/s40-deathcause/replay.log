@@ -1,0 +1,43 @@
+{
+  "status": "PASS_EVIDENCE_REPLAY_NOT_CAUSAL_CERTIFICATION",
+  "n": 32,
+  "states_replayed": 7400,
+  "controls_read": 7368,
+  "physical_abort_episodes": 23,
+  "joint_abort_episodes": 21,
+  "joint_events": 30,
+  "failures_in_original_protocol": 31,
+  "stops": {
+    "physical_abort": 23,
+    "legacy_success_early_stop": 1,
+    "horizon_truncation": 8
+  },
+  "signatures": {
+    "physical_joint_limit": 21,
+    "legacy_witness_success": 1,
+    "stage_contact_not_certified": 6,
+    "stage_unrecorded": 2,
+    "physical_table_penetration": 2
+  },
+  "joint_abort_with_any_prior_PD_outside_nominal": 11,
+  "joint_abort_triggering_joint_last_PD_outside_nominal": 0,
+  "joint_abort_any_joint_last_PD_outside_nominal": 7,
+  "joint_names": {
+    "middle_proximal_joint": 2,
+    "pinky_proximal_joint": 8,
+    "ring_proximal_joint": 3,
+    "thumb_distal_joint": 2,
+    "thumb_proximal_pitch_joint": 4,
+    "thumb_intermediate_joint": 9,
+    "index_proximal_joint": 2
+  },
+  "gate_sensitivity_checks": {
+    "silently_remove_joint_gate": 21,
+    "score_precommand_instead_of_postcommand": 21
+  },
+  "terminal_branch_episodes": 15,
+  "terminal_branch_joint_abort_episodes": 15,
+  "branch_transition_events": 37,
+  "nonterminal_branch_events": 22,
+  "scope": "Read-only per-state safety and PD reconstruction. Same gate is not proof of a common physical/controller cause. No physics/model calls, no relabeling success to a new protocol."
+}

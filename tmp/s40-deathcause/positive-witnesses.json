@@ -1,0 +1,42 @@
+[
+  {
+    "success": "ppo/p0005-A1",
+    "paired_failed_assessment": "assessment-ppo/p0005-A1",
+    "sequence": "s10_cylindermedium_inspect_1",
+    "controls": 600,
+    "original_scored_longest_hold_s": 17.96666666666667,
+    "goal_error_mm": 3.497697829745578,
+    "initial_max_errors": {
+      "q": 0.0,
+      "dq": 0.0,
+      "hand": 0.0,
+      "objects": 0.0,
+      "physical": 0.0,
+      "tick": 0.0,
+      "table_pose": 0.0,
+      "contact_force_valid": 0.0,
+      "dof_force_valid": 0.0
+    },
+    "scope": "raw endpoint error and nine initial arrays rechecked; continuous hold is frozen original scorer, not external contact truth"
+  },
+  {
+    "success": "ppo/p0034-A1",
+    "paired_failed_assessment": "assessment-ppo/p0004-A1",
+    "sequence": "s10_cup_drink_1",
+    "controls": 600,
+    "original_scored_longest_hold_s": 16.633333333333333,
+    "goal_error_mm": 1.3859134789454144,
+    "initial_max_errors": {
+      "q": 0.0,
+      "dq": 0.0,
+      "hand": 0.0,
+      "objects": 0.0,
+      "physical": 0.0,
+      "tick": 0.0,
+      "table_pose": 0.0,
+      "contact_force_valid": 0.0,
+      "dof_force_valid": 0.0
+    },
+    "scope": "raw endpoint error and nine initial arrays rechecked; continuous hold is frozen original scorer, not external contact truth"
+  }
+]
