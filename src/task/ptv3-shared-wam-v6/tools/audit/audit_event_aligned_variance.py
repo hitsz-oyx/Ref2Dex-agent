@@ -62,9 +62,12 @@ def pooled(parts,z):
 
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--output',type=Path,required=True);p.add_argument('--seed',type=int,default=188);a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--output',type=Path,required=True);p.add_argument('--seed',type=int,default=188);p.add_argument('--event-only',action='store_true');a=p.parse_args()
     out=a.output;samples=json.loads((out/'bank.json').read_text())['samples']
     with np.load(out/'bank.npz') as f:z={k:f[k] for k in f.files}
+    if a.event_only:
+        keep=np.array([i for i,s in enumerate(samples) if s['event_type']>0 and 0<s['event_delta']<24])
+        samples=[samples[i] for i in keep];z={k:v[keep] for k,v in z.items()}
     report={};names=('base','contact_presence','object_region','hand_region','interaction')
     for gate in (.02,.05,.1):
         for timing in (False,True):
@@ -118,11 +121,11 @@ def main():
             report[str(round(gate*1000))+('_time3' if timing else '')]=dict(groups=len(selected),windows=sum(map(len,selected)),
                 aligned_groups=align_groups,aligned_windows=align_windows,aligned_event_median_ticks=anchors,stages=stages)
             print({k:v for k,v in report.items() if k==str(round(gate*1000))+('_time3' if timing else '')},flush=True)
-    result=dict(status='COMPLETED',seed=a.seed,bank_windows=len(samples),bank_captures=len(set(s['capture'] for s in samples)),
+    result=dict(status='COMPLETED',seed=a.seed,event_inside_horizon_only=a.event_only,bank_windows=len(samples),bank_captures=len(set(s['capture'] for s in samples)),
                 metric_order=groups.NAMES,groups=report,
                 alignment='piecewise-linear phase warp preserving t0/t24;BASE group median E_next;only groups whose common event lies in1..23;other groups unchanged and counted',
                 caveat='Aligned prefix8 means phase ticks, not actual first8 execution ticks. No exact-input irreducibility claim; unseen Ref unavailable.')
-    (out/'event-aligned-variance.json').write_text(json.dumps(result,indent=2,allow_nan=False)+'\n')
+    (out/('event-only-aligned-variance.json' if a.event_only else 'event-aligned-variance.json')).write_text(json.dumps(result,indent=2,allow_nan=False)+'\n')
 
 
 if __name__=='__main__':main()
