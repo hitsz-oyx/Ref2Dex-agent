@@ -25,6 +25,7 @@ class GraspGeometry:
     tip_gap_m:float
     wrist_gap_m:float
     angle_tolerance_rad:float
+    point_count:int
 
     @classmethod
     def from_points(cls,points):
@@ -36,7 +37,7 @@ class GraspGeometry:
         width=float(np.ptp(points@normals.T,axis=0).min());diameter=float(np.linalg.norm(points[:,None]-points[None],axis=-1).max())
         if width<=1e-6 or diameter<=1e-6:raise ValueError('nondegenerate volumetric object required')
         tol=.10*width
-        return cls(width,diameter,tol,.50*diameter,.25*width,.25*width,float(2*np.arcsin(min(1.,tol/diameter))))
+        return cls(width,diameter,tol,.50*diameter,.25*width,.25*width,float(2*np.arcsin(min(1.,tol/diameter))),len(points))
 
     def arrived(self,position_error,angle_error=0.,position_only=True):
         return bool(position_error<=self.position_tolerance_m and (position_only or angle_error<=self.angle_tolerance_rad))
