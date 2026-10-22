@@ -333,7 +333,10 @@ def pilot(output: Path) -> dict[str, Any]:
         }
         (candidate_dir / (root_name + "-" + str(row.get("parent_seq_id", row["id"]).replace("/", "_")) + ".json")).write_text(json.dumps(rec, indent=2) + "\n")
         records.append(rec)
-    allocated = sum(p.stat().st_blocks * 512 for p in output.rglob("*") if p.is_file())
+    # Measure the pilot payload itself, excluding the receipt that the caller
+    # writes after this function returns.  This keeps reruns independent of an
+    # earlier audit.json already present in the output directory.
+    allocated = sum(p.stat().st_blocks * 512 for p in candidate_dir.rglob("*") if p.is_file())
     free_after = shutil.disk_usage(output.parent).free
     return {
         "selection_rule": "lexicographic first three TRAIN rows per root; no object-identity filtering",
