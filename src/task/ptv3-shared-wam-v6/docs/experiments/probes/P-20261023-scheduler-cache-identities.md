@@ -46,6 +46,11 @@ cache。
 `goal_scheduler.py:389–403` 标注 `goal_semantics='spatial_path_waypoint'`，而不是
 future endpoint。
 
+审计没有发现第二份 scheduler waypoint 语义实现：唯一的 waypoint 产生器是上述
+`goal_scheduler.py`；v6 `online_runtime.py:73–99` 只把已给定的 scheduler pose
+转换成同一 query frame 的 delta、做 finite/mask sanitation，不重新决定 waypoint
+语义。receipt 的 `semantic_implementations` 因此只列 scheduler source。
+
 ## 实现与证据
 
 新增 [scheduler_cache_identity.py](../../src/ptv3_shared_wam_v6/scheduler_cache_identity.py)
