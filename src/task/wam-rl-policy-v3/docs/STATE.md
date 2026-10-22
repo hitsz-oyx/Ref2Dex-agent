@@ -1,3 +1,12 @@
+# 2026-10-22 v5：clipping全量复核，零裁剪仅限source见证
+
+[v5定义/逐block/复现](audit/action-clipping-review-20261022.md)：此前0/0只属于六例生产
+source-PD，不覆盖R链。冻结五链n=5的裁剪0/400、5/1500、50/1139、24/931、11/963；
+关节安全中止0/0/4/2/5。block3校准GT25/300=8.333%，首次clip159晚于首次高度失败60，
+held内部0/10；不把短时held当整链无饱和资格。六例source active3230独立核实实质clip0，
+合法手指端点2。全25回合向量与ever/final均列报告，无新仿真/训练；完整RELEASE0/6保留，
+三臂RL仍HOLD。206 passed/0 failed/0 skipped；13/13源码mutants被断言拒绝。
+
 # 2026-10-22 v4：冻结条件重复完成；完整任务资格仍未通过
 
 复核入口：[τ条件/闭环审计](audit/tau-executor-loop-audit-20261022.md)。旧81状态参考、

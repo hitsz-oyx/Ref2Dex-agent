@@ -1,3 +1,6 @@
+> v5动作口径补充：[25回合全分布与裁剪/限位复核](action-clipping-review-20261022.md)。
+> “source-PD零裁剪”不得外推到四条NN链；完整成绩与本报告原始数字不变。
+
 # v4：τ条件/闭环首偏差与冻结重复（2026-10-22）
 
 所属`wam-rl-policy-v3`；关联既有`P-20261022-single-tau-calibration`，本轮run为

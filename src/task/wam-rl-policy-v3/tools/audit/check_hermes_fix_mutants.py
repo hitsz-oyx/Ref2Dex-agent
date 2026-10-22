@@ -16,6 +16,10 @@ def main():
         ('shifted-clock-accepted','src/wam_rl_policy_v3/tau_replay_contract.py','not np.array_equal(tick,np.arange(controls+1))','False','test_tau_replay_contract.py::test_saved_clock_rejects_shifted_post_action_state'),
         ('pd-coupling-ratio-lost','src/wam_rl_policy_v3/tau_replay_contract.py','target[...,dst]=target[...,src]*ratio','target[...,dst]=target[...,src]','test_tau_replay_contract.py::test_pd_reconstruction_matches_independent_torch_native_contract'),
         ('impossible-support-accepted','src/wam_rl_policy_v3/terminal_support_contract.py','geometrically_disproved=bool(applies and (gap_impossible or footprint_impossible))','geometrically_disproved=False','test_terminal_support_contract.py'),
+        ('clip-count-omitted','src/wam_rl_policy_v3/action_boundary_audit.py','reported_clipped is not None and int(reported_clipped) != int(clipped.sum())','False','test_action_boundary_audit.py::test_injected_omission_of_clipped_count_is_rejected'),
+        ('clip-confused-with-endpoint','src/wam_rl_policy_v3/action_boundary_audit.py','clipped = changed.any(axis=1)','clipped = (np.abs(action)>=1-1e-6).any(axis=1)','test_action_boundary_audit.py::test_substantive_clip_and_legal_endpoints_have_distinct_denominators'),
+        ('joint-abort-margin-lost','src/wam_rl_policy_v3/action_boundary_audit.py','q < lower - .10','q < lower','test_action_boundary_audit.py::test_joint_limit_mask_and_margin_cannot_be_conflated_with_command_boundary'),
+        ('source-rejection-bypassed','src/wam_rl_policy_v3/action_boundary_audit.py','if source_chain and (','if False and (','test_action_boundary_audit.py::test_source_rejects_substantive_overflow_but_accepts_roundoff_and_endpoints'),
     ]
     results=[]
     for name,relative,old,new,test in cases:

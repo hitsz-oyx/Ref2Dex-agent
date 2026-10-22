@@ -1,5 +1,34 @@
 # 修复共同复核包（2026-10-22）
 
+## v5动作统计共同复核回填（本线程仅改v3实现；本节按机主点名回填）
+
+完整定义、**25个block全表**、n=5全持握向量、逐例限位DOF、diff与fresh复现命令在
+[v5动作边界复核](../../../wam-rl-policy-v3/docs/audit/action-clipping-review-20261022.md)。
+范围更正：此前“实质clipping/超界拒绝0/0”只属于六例source-PD，不属于NN；v4
+`clipped_controls`也是>1e-6实质裁剪，**不是阈值不同**。NN日志`source_clipped_controls=0`
+是未进入source检查，不能证明未裁剪；新汇总对NN明确null。
+
+- 冻结五链各n=5，clips/control依次source **0/400**、原GT **5/1500**、校准GT **50/1139**、
+  原WAM **24/931**、校准WAM **11/963**；ever/final依次5/5、0/5、0/5、2/5、0/5；
+  关节安全中止回合0/0/4/2/5。所有动作边界均在手指，腕/平移边界0。
+- 点名block3校准GT **25/300=8.333%**真实裁剪，首次tick159；该例held49..59、高度失败60，
+  这段内部裁剪0/10。不得称该整链无饱和；五次校准GT都未达到1s资格，也不靠最好单例报数。
+- 六例生产source另独立反解active **3230** controls：实质裁剪0、实质超界0、合法手指端点2，
+  仍安全中止2/6、完整RELEASE ever/final **0/6**。不是重跑、更不是25条完整任务0/25。
+- 完整任务清单：2个终点/当前桌面支撑几何矛盾、2个实测DOF中止（交集1），cube/cup已
+  终态稳定7.167/6.733s仍欠早期路径见证；这些source/评分缺口**不依赖τ**。S2b完整参考
+  不自动解决它们，也不能解释GT仍有效时的早期高度失败。源/GT两执行链需分别资格，三臂HOLD。
+- diff：`wam-rl-policy-v3/src/wam_rl_policy_v3/action_boundary_audit.py:7`、
+  `tools/audit/audit_frozen_action_boundaries.py:17`、`tests/test_action_boundary_audit.py:16`；
+  上述后两项相对v3 Task。数组重算/全量输出修复期望漏报或范围混用0项，**不改变旧物理成绩**。
+- 实测v3全套 **206 passed /0 failed /0 skipped，17.61s**；隔离源码错误 **13 killed /0 survived /
+  0 collection errors**（含4个新统计错误）。产物`outputs/wam-rl-policy-v3/clipping-review-20261022-r1/`，
+  全量`final/summary.json`及`final/blocks.md`，复核命令见报告。0新仿真/0学习更新。
+
+**具名待裁决（未宣称三方一致）**：Hermes/外部审计请分别复跑统计；“有裁剪回合的短暂held”
+可保留物理谓词观测，但不能当无饱和执行资格；裁剪因果与原始任务意图均未自证。完整RELEASE
+的支撑对象/路径要求仍须独立裁决。下方原报告的旧状态/数字不作当前完整预期。
+
 ## Hermes14:1x复核回填（仅v3结算；v6实现由S2负责）
 
 本段按机主点名要求回填；本线程没有修改S2的v6实现/fixture，也不改S3的STATE。
