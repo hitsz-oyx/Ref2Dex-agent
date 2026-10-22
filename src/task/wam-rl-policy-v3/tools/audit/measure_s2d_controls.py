@@ -28,6 +28,11 @@ def freeze(out,oldrun):
         dst=frozen/relative;dst.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(oldrun/'code'/relative,dst)
     shutil.copyfile(TASK/'src/wam_rl_policy_v3/tau_replay_contract.py',frozen/'src/task/wam-rl-policy-v3/src/wam_rl_policy_v3/tau_replay_contract.py')
     (frozen/'third_party').symlink_to(ASSETS/'third_party',target_is_directory=True)
+    native=frozen/'src/task/wam-rl-policy-v3/tools/run/inspire_physics_host.py'
+    native_source=native.read_text()
+    old_native="NATIVE=ROOT/'third_party/DExplore/dexplore'"
+    if old_native not in native_source:raise ValueError('native input anchor missing')
+    native.write_text(native_source.replace(old_native,"NATIVE=Path(os.environ.get('REF2DEX_ASSET_ROOT',ROOT))/'third_party/DExplore/dexplore'"))
     shutil.copyfile(Path(__file__),out/'runner.py')
     write(out/'snapshot.json',dict(base_commit=BASE,recorded_source_diff=str(oldrun/'source.diff'),restored_original_files=originals,
         helper='tau_replay_contract is new instrumentation; exact GT deltas verified against saved old traces',production_scheduler_not_rolled_back=True))
