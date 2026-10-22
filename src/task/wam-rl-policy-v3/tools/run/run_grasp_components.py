@@ -13,7 +13,7 @@ def register(out):
         for j in old['jobs']:
             if stage=='mechanism' and j['subset']!='seen':continue
             j=dict(j);shift=j['replicate']%len(arms);j['order']=arms[shift:]+arms[:shift];jobs.append(j)
-        reg=dict(old,protocol='grasp.v13.components.frozen-v10-15mm.v1',experiment_id='P-20261022-grasp-intent-mechanism',stage=stage,work_version='source-gt.native11-through-measured-acquisition.v1' if stage=='comparators' else 'component-output-swaps.v1',jobs=jobs,arms=arms,maximum_controls=sum(len(j['order']) for j in jobs)*600,worker_wall_s=14400,learning_updates=0)
+        reg=dict(old,protocol='grasp.v13.components.frozen-v10-15mm.v1',experiment_id='P-20261022-grasp-intent-mechanism',stage=stage,work_version='source-gt.native11-acquisition.whole-future-anchor.v1' if stage=='comparators' else 'component-output-swaps.v1',jobs=jobs,arms=arms,maximum_controls=sum(len(j['order']) for j in jobs)*600,worker_wall_s=14400,learning_updates=0)
         write(out/(stage+'-registration.json'),reg)
     return old
 
@@ -39,7 +39,7 @@ def summarize(out,mechanism_run=None):
     names=sorted([a+'_vs_T0' for a in ('WRIST','FINGER','TIME')],key=lambda n:comparisons['seen'][n]['fisher_two_sided_p']);running=0.
     for i,name in enumerate(names):running=max(running,min(1.,(3-i)*comparisons['seen'][name]['fisher_two_sided_p']));comparisons['seen'][name]['holm_primary_p']=running
     result=dict(mechanism_run=str(mechanism_run or out),comparator_run=str(out),groups=groups,comparisons=comparisons,new_controls=sum(r['controls'] for r in allrows if r['arm'] not in ('A1','A2')),learning_updates=0,reused_A1_A2=str(old/'summary-final.json'),rows=allrows)
-    engineering=(mechanism_run or out)/'GT-preflight-interruption.json'
+    engineering=out/'engineering-overhead.json' if (out/'engineering-overhead.json').exists() else (mechanism_run or out)/'GT-preflight-interruption.json'
     if engineering.exists():
         pilot=json.loads(engineering.read_text());result.update(old_provider_engineering=pilot,all_physical_controls_lower=result['new_controls']+pilot['acknowledged_controls'],all_physical_controls_upper=result['new_controls']+pilot['physical_controls_upper'])
     write(out/'summary-final.json',result);print(json.dumps(groups,indent=2))
@@ -48,9 +48,10 @@ def idle_gpus(csv):
     return {int(line.split(',')[0]) for line in csv.splitlines() if int(line.split(',')[0]) in (4,5,6) and int(line.split(',')[1])<=64}
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);p.add_argument('--detached',action='store_true');p.add_argument('--resume-empty-queue',action='store_true');p.add_argument('--comparators-only',action='store_true');p.add_argument('--mechanism-run',type=Path);p.add_argument('--queue-wall-s',type=int,default=14400);a=p.parse_args();out=a.output.resolve()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);p.add_argument('--detached',action='store_true');p.add_argument('--resume-empty-queue',action='store_true');p.add_argument('--comparators-only',action='store_true');p.add_argument('--mechanism-run',type=Path);p.add_argument('--carry-a3-index',type=Path);p.add_argument('--queue-wall-s',type=int,default=14400);a=p.parse_args();out=a.output.resolve()
     if ROOT/'outputs/wam-rl-policy-v3' not in out.parents:raise ValueError('task-local output required')
     if bool(a.comparators_only)!=bool(a.mechanism_run):raise ValueError('comparators-only needs its completed mechanism run')
+    if a.carry_a3_index and not a.comparators_only:raise ValueError('A3 carry is only valid for comparator continuation')
     if a.comparators_only:
         a.mechanism_run=a.mechanism_run.resolve()
         if a.resume_empty_queue:raise ValueError('fresh comparator run, not an empty-queue resume')
@@ -60,6 +61,7 @@ def main():
         command=[sys.executable,'-u',str(Path(__file__).resolve()),'--output',str(out),'--queue-wall-s',str(a.queue_wall_s)]
         if a.resume_empty_queue:command+=['--resume-empty-queue']
         if a.comparators_only:command+=['--comparators-only','--mechanism-run',str(a.mechanism_run)]
+        if a.carry_a3_index:command+=['--carry-a3-index',str(a.carry_a3_index.resolve())]
         with (out.parent/(out.name+('-supervisor-resume.log' if a.resume_empty_queue else '-supervisor.log'))).open('x') as f:child=subprocess.Popen(command,cwd=ROOT,stdin=subprocess.DEVNULL,stdout=f,stderr=subprocess.STDOUT,start_new_session=True,close_fds=True)
         print(json.dumps(dict(pid=child.pid,command=command)));return
     out.mkdir(parents=True,exist_ok=True)
@@ -77,7 +79,9 @@ def main():
         receipt=dict(status='QUEUED',git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),python=sys.executable,queued_at=time.time(),queue_wall_s=a.queue_wall_s,maximum_new_controls=96000 if a.comparators_only else 192000,mechanism_run=str(a.mechanism_run) if a.mechanism_run else None,learning_updates=0,commands=[])
     worker=frozen/'src/task/wam-rl-policy-v3/tools/run/run_grasp_component_worker.py'
     receipt.update(status='QUEUED',supervisor_pid=os.getpid());write(out/'supervisor.json',receipt)
-    runtime=ROOT/'outputs/wam-rl-policy-v3/grasp-v10-stat40-20261022-r1/g4-resume2/runtime-code'
+    if a.carry_a3_index:
+        shutil.copyfile(a.carry_a3_index,out/'carry-A3-index.json') if a.carry_a3_index.resolve()!=out/'carry-A3-index.json' else None
+    runtime=(a.mechanism_run or ROOT/'outputs/wam-rl-policy-v3/grasp-v13-mechanism-20261022-r1')/'mechanism/g4/runtime-code'
     for stage in (('comparators',) if a.comparators_only else ('mechanism','comparators')):
         queue_start=receipt['queued_at'] if stage=='mechanism' else time.time();children={};logs=[];starts={};pending={4,5,6};(out/stage).mkdir()
         while pending or any(c.poll() is None for c in children.values()):
@@ -89,6 +93,7 @@ def main():
                 return
             for g in sorted(pending & idle_gpus(gpu)):
                 i=(4,5,6).index(g);command=[sys.executable,'-u',str(worker),'--registration',str(out/(stage+'-registration.json')),'--worker',str(i),'--gpu',str(g),'--output',str(out/stage/f'g{g}'),'--runtime-source',str(runtime)]
+                if a.carry_a3_index:command+=['--carry-a3-index',str(a.carry_a3_index.resolve())]
                 log=(out/stage/f'g{g}.log').open('x');logs.append(log);env=dict(os.environ,REF2DEX_COMPONENT_ROOT=str(ROOT),REF2DEX_COMPONENT_CODE=str(frozen));children[g]=subprocess.Popen(command,cwd=ROOT,env=env,stdin=subprocess.DEVNULL,stdout=log,stderr=subprocess.STDOUT,start_new_session=True,close_fds=True);starts[g]=time.time();pending.remove(g);receipt['commands'].append(command)
             for g,c in children.items():
                 if c.poll() is None and time.time()-starts[g]>14700:c.terminate()

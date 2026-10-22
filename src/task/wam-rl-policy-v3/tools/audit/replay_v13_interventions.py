@@ -47,7 +47,10 @@ def main():
                 if r['arm']=='A3':indices=tick+np.arange(1,25)
                 else:
                     lh=(hand-pose[:3,3])@pose[:3,:3];errors=np.mean(np.linalg.norm(local[cursor:phase_cap+1]-lh,axis=-1),axis=-1) if full_native_phase else np.mean(np.linalg.norm(local[cursor:contact+1,rigid]-lh[rigid],axis=-1),axis=-1);cursor+=int(np.argmin(errors));indices=np.minimum(cursor+np.arange(1,25),len(local)-1)
-                expected=local[indices]@pose[:3,:3].T+pose[:3,3];future_error=max(future_error,float(np.abs(expected-future).max()))
+                if r['arm']=='A4' and infos[tick].get('gt_future_anchor')=='matched-source-frame':
+                    anchor=pose7(reference['objects'][cursor,0]);expected=(reference['hand'][indices,0]-anchor[:3,3])@anchor[:3,:3]@pose[:3,:3].T+pose[:3,3]
+                else:expected=local[indices]@pose[:3,:3].T+pose[:3,3]
+                future_error=max(future_error,float(np.abs(expected-future).max()))
             if full_native_phase and infos[tick]['gt_phase_cap_frame']!=phase_cap:raise ValueError('GT acquisition cap mismatch')
             if r['arm']=='A4' and (cursor!=infos[tick]['gt_cursor'] or contact!=infos[tick]['gt_contact_frame']):raise ValueError('closed-loop GT source phase mismatch')
             intent=grasp_intent_from_retargeter(state['q'][0],palm,pose,np.asarray(infos[tick]['postgrasp_object_pose']),np.clip(data['adapter_raw_action'][tick],-1,1),offset,scale,plan=plan,tau_valid=valid)

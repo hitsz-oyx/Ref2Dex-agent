@@ -196,3 +196,20 @@ python3 src/task/wam-rl-policy-v3/tools/run/run_grasp_components.py --comparator
 Hermes普通新重复仍可用同一runner、不加`--comparators-only`，在全新目录一次跑完整两阶段，使用修后GT来源。r2的`summary-final.json`将读取r1机制与旧v10A1/A2，明确列出两次执行及旧工程控制开销。
 
 来源：Hermes指出旧GT未进入close；外部审计要求先排除实现/准入问题；当前回放确认并修复的是相位回退，不声称“源示范GT”是干预后的真实未来或最优策略上界。
+
+## 完整源GT恒等性修订与有效A3复用（最终对照方案）
+
+另一条资格检查揭示原实现错误：在源自身第49帧状态，GT必须还原源第50–73帧实际手轨迹；逐未来帧重锚定会抹掉物体后续运动，误差最大170.924mm。这是把A3几何臂的锚定误用于完整GT；`GT-anchor-red.log`先红。修为“在匹配到的当前源帧作一次SE3锚定”，保留全部源未来运动。原生11点/抓取相位修复同时保留。9条源均通过原状态未来恒等性和刚体变换等变性，见最终r3的 `GT-full-source-qualification.json`；GT依然是源示范参照，非当前干预的因果未来或最优策略。
+
+只停止自有r2对照进程，保留所有完整/部分轨迹。为避免重跑有效A3，最终r3按**先r1后r2、每个trial首次有效完成**规则复用15个A3，包含物理中止失败；不读取成功标签作选择。A3生成器、消费器、R模型代码及swap函数均检查未变，原始目录直接软链接，原始重评分与R权重复算覆盖这些样本。专门的来源测试确保“首次失败、后次成功”仍保留首次失败。原生初态/模型seed继续原面板，不抽新seed。
+
+旧两次对照执行合计确认10374步，上界10376；其中4510步属于复用的正式A3，额外工程开销5864–5866步（包含旧A4变体、重复A3和技术中断）。最终对照尚需145个新回合，正式样本仍A3/A4各seen40+unseen40。整轮物理上限95620+10376+145×600=192996步，未超过前一次修订的195289上限；全部0updates。
+
+最终正式对照：`outputs/wam-rl-policy-v3/grasp-v13-comparators-20261023-r3/`。r1机制160不变，r1/r2对照原数据全部保留；旧A4两种算法作为工程变体，不混入正式“完整GT”统计。r3 `summary-final.json`会分列正式控制数、工程开销及总控制上下界。
+
+```sh
+python3 src/task/wam-rl-policy-v3/tools/run/prepare_v13_carry.py --source-run outputs/wam-rl-policy-v3/grasp-v13-mechanism-20261022-r1 --source-run outputs/wam-rl-policy-v3/grasp-v13-comparators-20261023-r2 --output-run outputs/wam-rl-policy-v3/grasp-v13-comparators-20261023-r3
+python3 src/task/wam-rl-policy-v3/tools/run/run_grasp_components.py --comparators-only --mechanism-run outputs/wam-rl-policy-v3/grasp-v13-mechanism-20261022-r1 --carry-a3-index outputs/wam-rl-policy-v3/grasp-v13-comparators-20261023-r3/carry-A3-index.json --output outputs/wam-rl-policy-v3/grasp-v13-comparators-20261023-r3 --queue-wall-s 14400 --detached
+```
+
+上面prepare已执行，重复需全新输出目录。Hermes全新完整重复仍只需普通runner命令，自动使用最终GT来源，不必携带旧A3。A3每未来帧物体局部映射，A4在当前匹配源帧锚定完整真实源未来；两者区别不能再被抹掉。

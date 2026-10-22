@@ -1,5 +1,5 @@
 """V13 fixed-interface component/geometry/closed-loop GT worker."""
-import argparse,json,os,shutil,socket,subprocess,sys,time,tempfile
+import argparse,ast,json,os,shutil,socket,subprocess,sys,time,tempfile
 from pathlib import Path
 import numpy as np
 ROOT=Path(os.environ.get('REF2DEX_COMPONENT_ROOT',Path(__file__).resolve().parents[5]));TASK=ROOT/'src/task/wam-rl-policy-v3'
@@ -53,13 +53,13 @@ class NativeEpisode:
 
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--registration',type=Path,required=True);p.add_argument('--worker',type=int,choices=[0,1,2],required=True);p.add_argument('--gpu',type=int,choices=[4,5,6],required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--carry-run',type=Path);p.add_argument('--runtime-source',type=Path,help='pin controller/scorer/host to an existing frozen runtime tree');a=p.parse_args()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--registration',type=Path,required=True);p.add_argument('--worker',type=int,choices=[0,1,2],required=True);p.add_argument('--gpu',type=int,choices=[4,5,6],required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--carry-run',type=Path);p.add_argument('--carry-a3-index',type=Path);p.add_argument('--runtime-source',type=Path,help='pin controller/scorer/host to an existing frozen runtime tree');a=p.parse_args()
     out=a.output.resolve();reg=json.loads(a.registration.read_text());jobs=[j for j in reg['jobs'] if j['worker']==a.worker]
     if out.exists() or ROOT/'outputs/wam-rl-policy-v3' not in out.parents:raise ValueError('fresh task-local output required')
     gpu=subprocess.check_output(['nvidia-smi','-i',str(a.gpu),'--query-gpu=index,memory.used,utilization.gpu','--format=csv,noheader,nounits'],text=True)
     if int(gpu.split(',')[1])>64:raise RuntimeError('GPU occupied, queue this worker: '+gpu)
     out.mkdir(parents=True);oldrun=ROOT/'outputs/ptv3-shared-wam-v6/single-tau-calibration-20261022-r1';frozen=freeze(out,oldrun)
-    for name in ('pose_consumer','evaluation_sources','geometry_tau','stage_evaluation','grasp_repair','intent_components'):
+    for name in ('pose_consumer','evaluation_sources','geometry_tau','stage_evaluation','grasp_repair','intent_components','tau_replay_contract','measured_policy','task_feedback','interaction_state'):
         shutil.copyfile((COMPONENT_CODE/'src/task/wam-rl-policy-v3/src/wam_rl_policy_v3' if name in ('pose_consumer','intent_components') else a.runtime_source/'src/task/wam-rl-policy-v3/src/wam_rl_policy_v3')/(name+'.py'),frozen/'src/task/wam-rl-policy-v3/src/wam_rl_policy_v3'/(name+'.py'))
     shutil.copyfile((a.runtime_source if a.runtime_source else ROOT)/'src/task/ptv3-shared-wam-v6/src/ptv3_shared_wam_v6/staged_progress.py',frozen/'src/task/ptv3-shared-wam-v6/src/ptv3_shared_wam_v6/staged_progress.py')
     shutil.copyfile(TASK/'tools/audit/measure_s2d_controls.py',out/'s2d_mapping.py');shutil.copyfile(Path(__file__),out/'runner.py');shutil.copyfile(a.registration,out/'registration.json')
@@ -109,7 +109,7 @@ def main():
     if a.carry_run:
         previous=json.loads((a.carry_run/'manifest.json').read_text())
         if json.loads((a.carry_run/'registration.json').read_text())!=reg or previous['worker']!=a.worker:raise ValueError('carry protocol/assignment mismatch')
-        for name in ('pose_consumer','evaluation_sources','geometry_tau','stage_evaluation','grasp_repair','intent_components'):
+        for name in ('pose_consumer','evaluation_sources','geometry_tau','stage_evaluation','grasp_repair','intent_components','tau_replay_contract','measured_policy','task_feedback','interaction_state'):
             relative=Path('src/task/wam-rl-policy-v3/src/wam_rl_policy_v3')/(name+'.py')
             if (frozen/relative).read_bytes()!=(a.carry_run/'runtime-code'/relative).read_bytes():raise ValueError('carry consumer/scorer changed: '+name)
         report['environment_controls']=previous['environment_controls'];report['carried_elapsed_s']=previous['elapsed_s']
@@ -117,6 +117,27 @@ def main():
         for row in previous['runs']:
             report['runs'].append(dict(row,carried_unchanged=True,source_run=str(a.carry_run.resolve())))
             (out/row['id']).symlink_to(a.carry_run.resolve()/row['id'],target_is_directory=True)
+    if a.carry_a3_index:
+        index=json.loads(a.carry_a3_index.read_text());lookup={j['id']:j for j in jobs};carried=0
+        for entry in index['records']:
+            row=entry['row']
+            if row['trial'] not in lookup:continue
+            job=lookup[row['trial']]
+            if 'A3' not in job['order']:raise ValueError('A3 carry cannot enter a component-only stage')
+            source=Path(entry['episode']);oldtree=Path(entry['runtime_code'])
+            if row['arm']!='A3' or row['seed']!=job['native_seed'] or row['model_seed']!=job['model_seed'] or row['sequence']!=job['sequence']:raise ValueError('A3 carry identity mismatch')
+            if json.loads((source/'result.json').read_text())!=row:raise ValueError('A3 carry row differs from original result')
+            for name in ('pose_consumer','geometry_tau','evaluation_sources','stage_evaluation','grasp_repair','tau_replay_contract','measured_policy','task_feedback','interaction_state'):
+                relative=Path('src/task/wam-rl-policy-v3/src/wam_rl_policy_v3')/(name+'.py')
+                if (frozen/relative).read_bytes()!=(oldtree/relative).read_bytes():raise ValueError('A3 unchanged controller/provider guard: '+name)
+            def swap_ast(path):
+                return ast.dump(next(n for n in ast.parse(path.read_text()).body if isinstance(n,ast.FunctionDef) and n.name=='swap_components'),include_attributes=False)
+            relative=Path('src/task/wam-rl-policy-v3/src/wam_rl_policy_v3/intent_components.py')
+            if swap_ast(frozen/relative)!=swap_ast(oldtree/relative):raise ValueError('A3 identity swap changed')
+            (out/row['id']).symlink_to(source.resolve(),target_is_directory=True)
+            report['runs'].append(dict(row,carried_unchanged=True,source_run=str(source.parent),carry_rule='first completed A3 chronologically; physical aborts retained'))
+            carried+=row['controls']
+        report.update(carried_controls=carried,environment_controls=carried,carry_a3_index=str(a.carry_a3_index.resolve()))
     write(out/'manifest.json',report);started=time.monotonic()
     def save_trace(folder,trace,observations,actions,raw_actions,adapter_actions,pds,taus,valids):
         if trace:np.savez_compressed(folder/'trajectory.npz',**{k:np.stack([r[k] for r in trace]) for k in trace[0]},observation=np.asarray(observations),action=np.asarray(actions),raw_action=np.asarray(raw_actions),adapter_raw_action=np.asarray(adapter_actions),pd_targets_actual=np.asarray(pds),tau=np.asarray(taus),tau_valid=np.asarray(valids),forecast_hand=np.asarray(forecast_hands))
@@ -198,7 +219,7 @@ def main():
                         close_at=latch_predicted_close(consumer,plan,t/30) if arm=='TIME' else None
                         evidence=context.observer.last_evidence
                         raw,info=consumer.step(hand=np.asarray(state['hand'])[0],q=np.asarray(state['q'])[0],dq=np.asarray(state['dq'])[0],palm=palm,object_pose=pose,object_velocity=obj[7:13],forces=forces,feedback=feedback,near_fingers=evidence['near_fingers'],fingertip_gap_m=evidence['fingertip_gap_m'],intent=intent,now=t/30)
-                        info.update(component_arm=arm,predicted_close_at_s=close_at,gt_cursor=gt_cursor if arm=='A4' else None,gt_contact_frame=gt_contact if arm=='A4' else None,gt_phase_cap_frame=gt_cap if arm=='A4' else None,predicted_contact_index=None if plan is None else plan.contact_index,contact_eta_s=None if plan is None else plan.eta_s,grasp_candidate_object=intent.grasp_pose_object.tolist(),unmodified_R_action=adapter[0].tolist())
+                        info.update(component_arm=arm,predicted_close_at_s=close_at,gt_cursor=gt_cursor if arm=='A4' else None,gt_contact_frame=gt_contact if arm=='A4' else None,gt_phase_cap_frame=gt_cap if arm=='A4' else None,gt_future_anchor='matched-source-frame' if arm=='A4' else None,predicted_contact_index=None if plan is None else plan.contact_index,contact_eta_s=None if plan is None else plan.eta_s,grasp_candidate_object=intent.grasp_pose_object.tolist(),unmodified_R_action=adapter[0].tolist())
                         action=np.clip(raw[None],-1,1).astype(np.float32);final_clipped+=int((np.abs(raw-action[0])>1e-6).any());full=expand_action(action)
                         predicted=pd_targets(action,np.asarray(state['q']),offset,scale);before=list(state['episodes']);tick=np.asarray(state['tick']).copy()
                         send(native.connection,dict(op='step',action=full.tolist(),episodes=before,return_pd=True));reply=receive(native.connection);report['environment_controls']+=1;nextstate=unpack_state(reply['state']);actual=np.asarray(reply['pd_targets'])

@@ -50,4 +50,9 @@ def closed_loop_gt_future(local,reference,hand,object_pose,points,*,cursor=0,pha
     measured=(hand-pose[:3,3])@pose[:3,:3]
     errors=np.mean(np.linalg.norm(local[cursor:cap+1]-measured,axis=-1),axis=-1)
     phase=cursor+int(np.argmin(errors));indices=phase+np.arange(1,25)
-    return local[indices]@pose[:3,:3].T+pose[:3,3],phase,cap
+    # One anchor at the matched source phase preserves the actual source future.
+    # Re-anchoring every future object's pose would erase object motion (A3).
+    from .pose_consumer import pose7
+    source_pose=pose7(reference['objects'][phase,0])
+    relative=(reference['hand'][indices,0]-source_pose[:3,3])@source_pose[:3,:3]
+    return relative@pose[:3,:3].T+pose[:3,3],phase,cap
