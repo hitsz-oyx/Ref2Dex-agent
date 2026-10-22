@@ -134,3 +134,16 @@ Raw GRAB TRAIN1040/DEV92 captures,zero overlap;26147 unadmitted disjoint local
 prefix candidates across902TRAIN captures. Gate20/50/100mm yields15/197/1045
 distinct-capture pairs; strict gate support is limited,especially after matching
 E_next time within3frames (2/34/117pairs). Precise results will follow.
+
+## Bounded mesh cross-check protocol
+
+Once GPU0 is free, use first16 frozen sequence-panel windows (no result-based
+selection),ticks8/24,32fixed vertices/hand. Existing watertight GRAB CAD triangles
+with CUDA point-triangle distance and two generic-ray parity directions; require
+ray agreement,report>1mm inside fraction/depth and GT-hand-proxy calibration.
+Predicted CAD is the observed-only affine32 extension; GT uses recorded poses.
+Skip/report nonwatertight or CAD/query alignment>1mm. Analytic unit-cube control
+requires two known inside points and600mm summed depth. Bounds15min,~3.6GiB
+allocator; inference only, no optimizer/capacity/data changes. This distinguishes
+point-normal proxy artifacts from true inside tests on the transported hand
+proxy; it is still not penetration of the recorded future hand mesh.

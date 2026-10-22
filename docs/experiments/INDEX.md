@@ -923,6 +923,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261021-wam-v6-gt-object-contact](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261021-wam-v6-gt-object-contact.md) | GT2048 object and predicted-hand contact probability supervision | new arm saved/stopped3238 at its4h boundary; final checkpoint audit PASS; fixed DEV3000 shows no short-prefix or GT-contact gain. | do not extend this GT-object probability package; preserve checkpoints and investigate the held-out trajectory gap before another training a | probes/STOPPED |
 
+## HF-v6-identifiability-prefix-self-consistency
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261022-wam-v6-identifiability-audit](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261022-wam-v6-identifiability-audit.md) | Existing-checkpoint identifiability, prefix and hand/object consistency | protocol/code prepared; numerical run pending. | read-only Decision Probe requested by owner at09:55; no training, model expansion, data additions, training control, credentials or remote p | probes/RUNNING |
+
 ## HF-v6-joint-trajectory-flow
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
