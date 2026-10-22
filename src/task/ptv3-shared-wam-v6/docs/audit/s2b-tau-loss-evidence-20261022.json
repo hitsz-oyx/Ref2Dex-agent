@@ -1,0 +1,51 @@
+{
+  "status": "PASS",
+  "reference": {
+    "states": 81,
+    "controls": 80,
+    "valid_tau_controls": 70,
+    "valid_control_fraction": 0.875,
+    "first_valid_tick": 3,
+    "last_valid_tick": 72,
+    "endpoint_tick": 80,
+    "post_endpoint_states": 0,
+    "post_endpoint_elapsed_s": 0.0,
+    "valid_post_endpoint_elapsed_s": 0.0,
+    "endpoint_plus_1s_tau_covered": false
+  },
+  "records": [
+    {
+      "first_loss_tick": 67,
+      "last_held_tick_before_first_loss": 66,
+      "actual_tau_valid": true,
+      "reference_future_available": true,
+      "loss_while_gt_valid": true,
+      "coverage_expiry_explains_first_loss": false,
+      "label": "calibrated-gt-0",
+      "loss_predicate": "first loss of lift5cm/force/coupled/unsupported/safe conjunction",
+      "feedback_grasp_lost_at_first_loss": false,
+      "first_feedback_grasp_lost_tick": 104,
+      "valid_tau_controls": 70,
+      "loss_has_following_control": true
+    },
+    {
+      "first_loss_tick": 65,
+      "last_held_tick_before_first_loss": 64,
+      "actual_tau_valid": true,
+      "reference_future_available": true,
+      "loss_while_gt_valid": true,
+      "coverage_expiry_explains_first_loss": false,
+      "label": "calibrated-gt-1",
+      "loss_predicate": "first loss of lift5cm/force/coupled/unsupported/safe conjunction",
+      "feedback_grasp_lost_at_first_loss": false,
+      "first_feedback_grasp_lost_tick": 110,
+      "valid_tau_controls": 70,
+      "loss_has_following_control": true
+    }
+  ],
+  "python": "/home2/wyy/miniconda3/envs/graspenv/bin/python",
+  "numpy": "1.24.4",
+  "gpu_allocated": false,
+  "optimizer_updates": 0,
+  "limitation": "FeedbackObserver reused; this verifies timing/channel attribution, not independent grasp truth or executor qualification."
+}

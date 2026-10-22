@@ -1,0 +1,79 @@
+{
+  "status": "COVERAGE_PASS_RELEASE_NOT_QUALIFIED",
+  "run_id": "s2b-reference-r2",
+  "artifact": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/ptv3-shared-wam-v6/outputs/s2b-reference-r2/reference.npz",
+  "source_sequence": "s1_cylindersmall_pass_1",
+  "reference_origin": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/wam-rl-policy-v3/teacher-upper-bound-validation-20261022-r1/sequences/s1_cylindersmall_pass_1",
+  "declared_terminal_mode": "RELEASE",
+  "declared_release_tick": 114,
+  "coverage": {
+    "states": 205,
+    "controls": 204,
+    "valid_tau_controls": 194,
+    "valid_control_fraction": 0.9509803921568627,
+    "first_valid_tick": 3,
+    "last_valid_tick": 196,
+    "endpoint_tick": 166,
+    "post_endpoint_states": 38,
+    "post_endpoint_elapsed_s": 1.2666666666666666,
+    "valid_post_endpoint_elapsed_s": 1.0,
+    "endpoint_plus_1s_tau_covered": true
+  },
+  "valid_tau_controls": 194,
+  "terminal_suffix_definition": "38 observed states strictly after declared endpoint166: 30 settle ticks plus8 lookahead ticks",
+  "identical_historical_prefix_states": 81,
+  "initial_and_prefix_max_errors": {
+    "q": 0.0,
+    "dq": 0.0,
+    "hand": 0.0,
+    "objects": 0.0,
+    "physical": 0.0,
+    "tick": 0.0,
+    "table_pose": 0.0,
+    "contact_force_valid": 0.0,
+    "dof_force_valid": 0.0
+  },
+  "original80_executed_action_max_error": 0.0,
+  "maximum_pd_target_error": 2.384185791015625e-07,
+  "clipped_controls": 0,
+  "physical_safety_abort": null,
+  "full_release_success": false,
+  "final_task": {
+    "tick": 204,
+    "phase": "ACQUIRE",
+    "task_success": false,
+    "path_complete": false,
+    "failure_reason": null
+  },
+  "new_assumptions": [
+    "Stationary last-PD-target continuation after the original 166 commands; not an observed teacher action suffix.",
+    "Fresh uninterrupted replay of the same sequence/targets; not bitwise continuation of the historical 81-state execution.",
+    "Original raw RELEASE is retained as declared intent, not independently certified intended release."
+  ],
+  "elapsed_s": 19.433224227279425,
+  "gpu": 4,
+  "gpu_before": "4, 6, 0\n",
+  "gpu_after_scope": "physical4/5/6 each6MiB, utilization0% after collection; no owned process remains",
+  "environment": {
+    "client_python": "/home2/wyy/miniconda3/envs/graspenv/bin/python",
+    "python_version": "3.8.20",
+    "numpy": "1.24.4",
+    "native_python": "/home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train/bin/python",
+    "native_torch": "2.0.1+cu118",
+    "native_dt_s": 0.03333333507180214,
+    "reset_angle_policy": "inspire.continuous-wrist-reset-principal-radians.v1"
+  },
+  "optimizer_updates": 0,
+  "source_code_commit": "418e4c0a08fef5ee54221e7896d32ae37509c0f5",
+  "host_diff": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/ptv3-shared-wam-v6/outputs/s2b-reference-r2/host-code/paths.diff",
+  "failed_attempt": {
+    "run_id": "s2b-reference-r1",
+    "controls": 0,
+    "reason": "relative socket path invalid after native chdir; native exited, client interrupted; receipts retained"
+  },
+  "limitations": [
+    "This completes temporal coverage of the declared RELEASE endpoint and settle interval, not a successful physical RELEASE witness.",
+    "No calibrated-R rollout on the new reference was run; the old fit used its original end-of-reference invalid mask.",
+    "The first81 measured states/actions match exactly in this execution; fresh physics runs are not promised bitwise deterministic."
+  ]
+}

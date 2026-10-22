@@ -1,3 +1,13 @@
+## 2026-10-22 S2b：参考时域补齐，物理 RELEASE 资格仍未通过
+
+[S2b diff/复现/期望与协议](audit/s2b-tau-reference-transfer-20261022.md)：同source-PD连续
+重放205状态/204controls/194有效GTτ，前81状态及原80动作与旧校准精确相等；终点166后
+38个实测状态覆盖1s settle及8步前视。后缀保持最后PD target是新增假设，完整RELEASE
+scorer仍未成功，不能称为完整阳性见证。未重训、未用新reference再跑校准R。
+CPU合同明确τ[0]为第一未来、插值原点独立及30/60Hz差异；旧64/66是最后正持握tick，
+首负为65/67，GT仍有效。冻结校准迁移预检PASS，但不同初态/异轨迹性能NOT_EVALUATED；
+最小9rollouts/5400controls协议已记录，尚未执行。P1/RL仍HOLD。
+
 ## 2026-10-22 13:0x v2审计收口；正式RL仍HOLD
 
 [一页结算](audit/negative-result-audit-one-page-20261022.md)；

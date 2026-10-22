@@ -1,0 +1,112 @@
+{
+  "status": "DRY_RUN_PASS",
+  "task": "ptv3-shared-wam-v6",
+  "run_id": "s2b-calibration-transfer-preflight-20261022",
+  "decision": "Does frozen single-trajectory calibration damage behavior away from its fit distribution?",
+  "classification": "Decision; execution deferred, this run is engineering preflight only",
+  "distinct_sequence": "s10_airplane_pass_1",
+  "distinct_source": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/wam-rl-policy-v2/inspire-teacher-rollout-20261019-r5/batches/inherited-batch000/sequences/s10_airplane_pass_1",
+  "distinct_states": 173,
+  "distinct_object": "airplane",
+  "same_object_as_calibration": false,
+  "distinct_raw_terminal_mode": "RELEASE",
+  "distinct_initial_max_q_difference": 0.46045321226119995,
+  "distinct_initial_max_hand_difference_m": 0.1690647304058075,
+  "no_overlap_scope": "different sequence and source recording from the calibration batch; WAM/ancestor lifetime exposure NOT certified",
+  "checkpoints": [
+    {
+      "checkpoint": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/wam-rl-policy-v3/inspire-scheduled686-bc-20261020-r4/latest.pt",
+      "input_dim": 686,
+      "action_dim": 12,
+      "hidden_dims": [
+        1024,
+        1024,
+        512,
+        512
+      ],
+      "finite_forward": true,
+      "state_keys": 20
+    },
+    {
+      "checkpoint": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/ptv3-shared-wam-v6/single-tau-calibration-20261022-r1/calibrated.pt",
+      "input_dim": 686,
+      "action_dim": 12,
+      "hidden_dims": [
+        1024,
+        1024,
+        512,
+        512
+      ],
+      "finite_forward": true,
+      "state_keys": 20
+    }
+  ],
+  "nominal_interface_samples_per_checkpoint": 1,
+  "nominal_action_max_difference": 0.1556965559720993,
+  "minimum_protocol": {
+    "cells": [
+      {
+        "label": "seen-nominal",
+        "sequence": "s1_cylindersmall_pass_1",
+        "initial": "same captured full initial/native reset state"
+      },
+      {
+        "label": "seen-shifted-initial",
+        "sequence": "s1_cylindersmall_pass_1",
+        "initial": "coherently shift hand root +5mm in world x; preserve object/table; recompute all native rigid bodies, q/dq, caches and previous actions; verify actual measured state"
+      },
+      {
+        "label": "different-trajectory",
+        "sequence": "s10_airplane_pass_1",
+        "initial": "its own declared measured initial state"
+      }
+    ],
+    "arms": [
+      "source-PD feasibility witness",
+      "frozen baseline R + GT-tau",
+      "same frozen calibrated R + GT-tau"
+    ],
+    "repeats_per_cell_arm": 1,
+    "maximum_controls_per_rollout": 600,
+    "maximum_rollouts": 9,
+    "maximum_environment_controls": 5400,
+    "optimizer_updates": 0,
+    "wam_inference_calls": 0,
+    "gpu_plan": "co-locate native and frozen R on one idle physical4/5/6; keep two cards globally idle; split across two cards only if that idle-card floor still holds",
+    "wall_limit_s": 900,
+    "output_limit_gib": 1,
+    "minimum_free_gib": 20,
+    "stop": "abort only own episode on physical safety or malformed reset; no retry/tuning/new fitting",
+    "reference": "uninterrupted source-PD witness per cell; endpoint + elapsed1s +8 observed future; declare final-PD hold; never splice or use live future",
+    "paired_initial": "all three arms share and compare visible+hidden native reset state; source trajectories differ by cell",
+    "no_tau_fallback": "same frozen executor zero-tau/valid=false; report actual mask each control",
+    "task_inputs": "same declared narrow lift5cm/force/coupled/unsupported elapsed1s task in every arm; full original RELEASE scored separately, never substitute",
+    "metrics": [
+      "source feasibility",
+      "ever/final narrow success",
+      "first loss vs actual valid tau",
+      "longest elapsed hold",
+      "clip/safety/domain/fallback counts",
+      "frozen action RMSE on fixed reference states"
+    ],
+    "decision_rule": "If any source-positive shifted/distinct cell loses baseline success after calibration, flag observed regression; paired hold decrease >=0.2s is a warning. All source-negative cells are inconclusive. A pass is only a small-screen pass, not a population non-inferiority claim.",
+    "expansion": "two repeats of the failing cell only if a regression changes the next decision; no training; do not reuse for checkpoint selection"
+  },
+  "training_started": false,
+  "simulator_started": false,
+  "gpu_allocated": false,
+  "optimizer_created": false,
+  "shifted_initial_reset_verified": false,
+  "transfer_evaluated": false,
+  "transfer_verdict": "NOT_EVALUATED",
+  "python": "/home2/wyy/miniconda3/envs/graspenv/bin/python",
+  "python_version": "3.8.20",
+  "numpy": "1.24.4",
+  "torch": "2.4.1+cu121",
+  "cuda": "12.1",
+  "limitations": [
+    "Nominal single-row forwards are compatibility checks, not transfer RMSE or physical performance.",
+    "Prefer same-object DEV; if unavailable use lexically first bounded different-object DEV and record the object/trajectory confound. Broader evaluation remains future evidence.",
+    "Historical source-PD original81 channel remains the fit target; extended reference is not silently treated as old calibration supervision."
+  ]
+}

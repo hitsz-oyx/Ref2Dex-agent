@@ -1,0 +1,3 @@
+# S2b artifacts stay within the session's strictly authorized Task tree.
+/outputs/
+/tmp/
