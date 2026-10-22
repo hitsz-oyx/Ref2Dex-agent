@@ -14,8 +14,9 @@ from ptv3_shared_wam_v6.data import V6Windows
 
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--output',type=Path,required=True);p.add_argument('--seed',type=int,default=182);a=p.parse_args()
-    root=a.output;out=root/'event-bank';out.mkdir(exist_ok=True)
+    p=argparse.ArgumentParser();p.add_argument('--output',type=Path,required=True);p.add_argument('--seed',type=int,default=182);p.add_argument('--bank-name',default='event-bank');a=p.parse_args()
+    if Path(a.bank_name).name!=a.bank_name:raise ValueError('local bank directory name required')
+    root=a.output;out=root/a.bank_name;out.mkdir(exist_ok=True)
     dataset=V6Windows(MANIFEST,'train');ix=np.asarray(dataset.index);by=defaultdict(list)
     for i,row in enumerate(ix):by[int(row[0])].append(i)
     rng=np.random.default_rng(a.seed);rows=[];near_count=0

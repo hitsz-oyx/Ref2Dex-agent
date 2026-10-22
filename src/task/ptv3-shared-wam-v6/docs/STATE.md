@@ -1,3 +1,14 @@
+## 2026-10-22 大规模 goal 契约诊断进行中
+
+本轮仅用既有健康4371与FM8500，未启动训练/扩容/加数据。全DEV3356、TRAIN5241/1064序列、
+本地未覆盖前缀905；FM K8，GPU95–99%。GPU2被并发作业占用后仅迁移本轮自己的诊断到3，
+另一worker用0；4/5/6长训与7及其他作业未动。调度器是spatial_path_waypoint且endpoint_time=None，
+训练是实际t24终点，语义不同。健康全DEV前8手/物EPE Oracle15.80/14.72→Planner21.12/25.55mm，
+C F1 .686→.620；FM全量尚待完成，不拿部分面板混比。DEV约69.85% Oracle目标超调度器单次边界。
+事件对齐方差扩大候选与CAD占用复核正在做；executor三条件只写设计，不执行。
+卡片：`src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261022-wam-v6-goal-chain-audit.md`。
+产物：`outputs/ptv3-shared-wam-v6/goal-chain-audit-20261022-r1/`。
+
 ## 2026-10-22 第一阶段现有checkpoint诊断完成，无新训练/扩容/加数据
 
 固定健康4371与FM8500；GRAB三面板各96窗口：TRAIN95录制、序列DEV66、本地未覆盖

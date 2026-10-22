@@ -689,3 +689,11 @@ allocations:
     training_seeds: [191, 192, 193]
     common_evaluation_seed: 194
     reuse_reason: three independently seeded matched A/B/C runs with common evaluation initial states; exploratory first batch
+
+  P-20261022-wam-v6-goal-chain-audit:
+    seed_pool: probe
+    panel_and_perturbation_seed: 181
+    enriched_bank_selection_seeds: [182,183]
+    flow_sampling_seeds: [172,181,182,183,184,185,186,187]
+    bootstrap_permutation_seed: 188
+    reuse_reason: existing-weight paired goal interventions; multiple inference/candidate draws, not independent trained models or validation

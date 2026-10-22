@@ -5,7 +5,7 @@ experiment_id: P-20261022-wam-v6-goal-chain-audit
 date: 2026-10-22
 task: ptv3-shared-wam-v6
 branch: main
-git_commit: fbdb82a7
+git_commit: c971bca689fa76845128cecb04c2dc43173f069c
 claim_id: C1
 hypothesis_family: HF-v6-goal-contract-identifiability
 probe_index_in_family: 1
@@ -140,3 +140,81 @@ fixed maximum10M transitions/seed; budget at most24GPUh total initially and stop
 at matched target success or bound. Count all prior/executor training separately;
 do not present inherited pretraining as free. No PPO, training or execution of
 this design is authorized in this diagnostic run.
+
+## Execution update 11:17 CST — partial, not the final FM comparison
+
+Prepared10454 candidate rows. Neural panels: TRAIN5241/1064 sequences,
+DEV3356/113 sequences, local-uncovered-prefix905/905 sequences; DEV nonoverlap
+core847. One TRAIN alias-overlap row1167/0/11 was excluded; independent complete
+207579-window/cross-slot/alias support audit PASS. `panels.json` and
+`support-audit.json` contain exact identities.
+
+Main GT bank6185 valid windows/1063 captures (up to16 disjoint supports); narrow
+50mm complete-link only6 groups/32 captures, time3 control zero groups. To obtain
+inside-horizon event alignment support, add existing-TRAIN candidate bank with
+16 uniform+16 event-inside-window candidates/capture, seed182; seed183 repeats
+that SAME candidate selection protocol. Candidate pool may overlap, but each
+variance group and gate use a native capture at most once. This changes candidate
+coverage, not model/data/training/evaluation panels. Full bank plus event-inside-
+horizon-only subpopulation reported separately; no mixture of raw/aligned cohorts.
+
+Seed181 healthy baseline, all3356 DEV: Oracle hand/object8=15.797/14.722mm,
+Planner21.122/25.550, Perturbed21.668/25.887; C-head F1=.685894/.619804/.684312.
+C-head contact centroid3.883/4.002/3.889mm. Predicted hand vs GT/own object contact
+unsigned distance: Oracle14.709/10.537mm, Planner22.980/11.287mm. Small relative
+own-object distance accompanies worse absolute EPE; do not call it better quality.
+FM full panel pending; its partial subset is deliberately not compared to full
+healthy DEV. Exact sums/counts/capture-paired intervals in `large-summary.json`.
+
+Goal contract gaps independently computed: DEV planner/oracle point gap205.037mm
+(mean),107.842mm median; target-reference-frame-minus-t median1.032, not24.
+69.845% of realized Oracle t24 poses exceed the deployment scheduler's default
+50mm/.35rad/50mm translation/rotation/mean-point budget. This is a substantial
+conditioning-domain mismatch. It does NOT establish the causal benefit of any
+new training recipe; no new training is run.
+
+Full-frame geometry aggregates use oriented-normal proxies. To also give actual
+watertight CAD occupancy at scale, queue a t8 endpoint-only pass after each OWNED
+GPU worker finishes; exact existing model computation, native-forward identity
+check. All DEV inferred; native GRAB CAD assets used where mapped/watertight.
+128 sampled transported-skin vertices/draw, K8 FM; CPU BVH SDF with cube and
+CAD-registration controls. Predicted affine CAD containment is exact for invertible
+maps; world depth lower/upper bounds=positive canonical SDF×min/max singular value.
+This is object mesh occupancy of a hand skin proxy, not full robot geometry.
+GT-trajectory smoke4 windows/1 capture: GT-object and predicted-object identity
+both11/512 inside,9/512 >1mm; depth sums44.68359mm match to1e-5mm. The smoke
+correctly permits penetration in the proxy GT skin; it does not assert zero.
+
+GPU event:3 was claimed by PID2626443 between idle checks;32-window smoke had
+already completed22.70s, no signal delivered. Initial full workers GPU2/0.
+GPU2 later acquired other PIDs2633253/2633564; only owned PID2629688 was stopped
+at complete healthy4737 batch boundary, then resumed on freshly idle3 as
+PID2639649. GPU0 PID2629690 uninterrupted. Record details in
+`gpu3-resource-interruption.json`, `gpu2-resource-interruption.json` and
+`launch-worker0-resume1.json`. GPU4/5/6/7 and other jobs untouched.
+
+Commands (all from repository root; full argv/PIDs/time/commit in launch JSON):
+
+```bash
+PY=/home2/wyy/miniconda3/envs/graspenv/bin/python
+OUT=outputs/ptv3-shared-wam-v6/goal-chain-audit-20261022-r1
+TOOL=src/task/ptv3-shared-wam-v6/tools/audit
+$PY $TOOL/audit_goal_chain.py --output "$OUT" --phase prepare --workers 6 --seed 181
+$PY $TOOL/audit_goal_chain.py --output "$OUT" --phase bank
+CUDA_VISIBLE_DEVICES=3 $PY $TOOL/audit_goal_chain.py --output "$OUT" --phase evaluate --batch-size 64 --shard 0 --shards 2 --k 8 --memory-gib 18 --max-seconds 10400
+CUDA_VISIBLE_DEVICES=0 $PY $TOOL/audit_goal_chain.py --output "$OUT" --phase evaluate --batch-size 64 --shard 1 --shards 2 --k 8 --memory-gib 18 --max-seconds 10800
+CUDA_VISIBLE_DEVICES='' $PY $TOOL/prepare_event_enriched_bank.py --output "$OUT" --seed 182
+CUDA_VISIBLE_DEVICES='' $PY $TOOL/audit_event_aligned_variance.py --output "$OUT/event-bank" --seed 188
+CUDA_VISIBLE_DEVICES='' $PY $TOOL/audit_event_aligned_variance.py --output "$OUT/event-bank" --seed 188 --event-only
+CUDA_VISIBLE_DEVICES='' $PY $TOOL/audit_goal_contract_gaps.py --output "$OUT"
+CUDA_VISIBLE_DEVICES='' $PY $TOOL/summarize_goal_chain.py --output "$OUT"
+```
+
+The launchers use `subprocess.Popen(start_new_session=True,stdin=DEVNULL)`;
+training=False, frozen inference corec971bca6, later diagnostic helpers as logged.
+Shared workspace HEAD can change due other threads; it is not a new model version.
+GPU batch64 reaches95–99% utilization,2.83GiB peak torch allocation (~5–6GiB
+nvidia process usage). Estimated all primary metrics11:28, followed by CAD pass
+~11:35–11:45 CST subject to resource conflicts. Initial3h bound remains14:05;
+no budget extension or new training. Native-forward control max2.09e-7m and
+4 event-warp/support/variance tests PASS.
