@@ -317,7 +317,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261022-grasp-interface-repair](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261022-grasp-interface-repair.md) | v10 修复与同 R 的 n40 验收 | PENDING frozen 160 episodes, no training updates. | RL HOLD; no v6 retraining. | probes/RUNNING |
+| [P-20261022-grasp-interface-repair](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261022-grasp-interface-repair.md) | v10 修复与同 R 的 n40 验收 | completed160; seen A1=35/40 vs A2=0/40, Fisher2.2728876e-17; prior-unseen A1=3/40 vs0/40, Fisher.2405063; raw160/160 and A2 80/80 PASS. | retain local seen repair and clean tau contribution; unseen qualification and three-arm RL HOLD, no v6 retraining. | probes/COMPLETED |
 
 ## HF-grasp-interface-stat40
 
