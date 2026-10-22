@@ -10,7 +10,8 @@ def main():
     if a.output.exists():raise ValueError('fresh registration required')
     reg=json.loads((ROOT/'outputs/wam-rl-policy-v3/grasp-v9-stat40-20261022-r1/registration.json').read_text())
     for j in reg['jobs']:
-        j['order']=['A1','A2'] if int(j['id'][1:])//2%2==0 else ['A2','A1']
+        rotation=j['replicate']%2 if j['subset']=='seen' else (j['replicate']+int(j['id'][1:])//2%8)%2
+        j['order']=['A1','A2'] if rotation==0 else ['A2','A1']
     if a.engineering:
         # One trigger per object plus two seen seeds, no efficacy claims or resampling.
         selected=a.engineering_trigger or ['p000','p006','p001','p005','p013']

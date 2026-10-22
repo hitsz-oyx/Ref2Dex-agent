@@ -189,11 +189,13 @@ def main():
                         pd_error=float(np.abs(predicted-actual).max());report['maximum_pd_reconstruction_error']=max(report['maximum_pd_reconstruction_error'],pd_error)
                         if pd_error>2e-5 or nextstate['episodes']!=before or not np.array_equal(np.asarray(nextstate['tick']),tick+1):raise ValueError('native action/PD/clock contract')
                         actions.append(action[0]);raw_actions.append(raw);adapter_actions.append(adapter[0]);pds.append(actual[0]);control_info.append(info);covered+=int(valid);state=nextstate
+                    if actor_calls!=len(actions) or (arm=='A2' and np.abs(np.asarray(taus)).max()!=0):raise ValueError('clean shared-R ablation contract')
                     save_trace(folder,trace,observations,actions,raw_actions,adapter_actions,pds,taus,valids);write(folder/'stages.json',stage_info);write(folder/'consumer.json',control_info)
                     row=dict(id=label,trial=job['id'],subset=job['subset'],sequence=name,object=record['object'],arm=arm,order_position=job['order'].index(arm),seed=job['native_seed'],model_seed=job['model_seed'],controls=len(actions),
                         final_success=terminal_success(stage,goal_error,t,reg['horizon_controls'],safe['abort']),ever_success=ever_primary,final_hold=bool(t==reg['horizon_controls'] and stage['current']['hold'] and not safe['abort']),
                         stage_achieved=stage['achieved'],stage_final=stage['current'],longest_hold_s=stages.longest_hold_s,release_applicable=False,drop_after_hold=drop_after_hold,
                         final_goal_error_m=goal_error,goal_within15mm=bool(not safe['abort'] and t==reg['horizon_controls'] and goal_error<=.015),goal_error_quantiles_m=np.quantile(errors_m,[0,.5,.9,1]).tolist(),
+                        reach_filter_controls=sum(bool(i['reachability'] and i['reachability']['filter_active']) for i in control_info),recovery_controls=sum(bool(i['reachability'] and 'recovery_candidate' in i['reachability']) for i in control_info),goal_servo_saturated_controls=sum(i['phase'] in ('lift','hold') and np.abs(ac[:3]).max()>=.024999 for i,ac in zip(control_info,actions)),
                         physical_abort=physical_abort,physical_safety_final=lastsafe,wam_calls=wam_calls,actor_calls=actor_calls,encoder_covered_controls=covered,final_clipped_controls=final_clipped,adapter_clipped_controls=adapter_clipped,initial_errors=initial_errors,seconds_observed=t/30)
                     native.finish(send,receive);write(folder/'result.json',row);report['runs'].append(row);report.update(status='RUNNING',elapsed_s=time.monotonic()-started+report['carried_elapsed_s']);write(out/'manifest.json',report);print(json.dumps(row),flush=True)
                 except BaseException:

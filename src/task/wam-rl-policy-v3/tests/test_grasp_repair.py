@@ -26,7 +26,7 @@ def test_goal_servo_overcomes_saved_v9_saturated_drift_and_never_uses_reported_v
         now=i/30
         r1=s1.step(np.array([.01,0.,0.]),np.zeros(3),np.zeros(3),now)
         r2=s2.step(np.array([.01,0.,0.]),np.zeros(3),np.zeros(3),now)
-    assert r1[0]>.007 and np.array_equal(r1,r2)
+    assert r1[0]>.012 and np.array_equal(r1,r2)
     # Integral does not persist through a measured loss/reacquisition.
     s1.reset();assert s1.integral.max()==0
 
@@ -68,3 +68,16 @@ def test_geometric_candidate_follows_object_and_is_not_selected_by_object_identi
     b,_=geometric_grasp_candidate(p2,hand+shift,o2,points,np.array([0,0,1]),.9,p2)
     np.testing.assert_allclose(b[:3,3],a[:3,3]+shift,atol=1e-8)
     assert info['count']>=40 and np.linalg.norm(a[:3,3]-obj[:3,3])<.2
+
+
+def test_same_state_ablation_keeps_every_non_tau_observation_byte_and_valid_mask():
+    physical_task=np.arange(421,dtype=np.float32);hand=np.arange(33,dtype=np.float32).reshape(11,3)/100
+    future=np.broadcast_to(hand,(24,11,3)).copy()+.05
+    observed=[]
+    for zero in (False,True):
+        f,valid=clean_tau_future(future,hand,True,zero=zero)
+        observed.append(np.r_[physical_task,(f[:8]-hand).ravel(),float(valid)].astype(np.float32))
+    assert observed[0][:421].tobytes()==observed[1][:421].tobytes()
+    assert observed[0][-1:].tobytes()==observed[1][-1:].tobytes()
+    assert np.abs(observed[1][421:-1]).max()==0
+    assert np.abs(observed[0][421:-1]).max()>.04
