@@ -56,6 +56,30 @@ def bootstrap_contrasts(records,lookup,seed=188):
     return result
 
 
+def bootstrap_checkpoints(records,lookup,seed=188):
+    if not all(m in records for m in ('healthy4371','flow8500')):return {}
+    result={};rng=np.random.default_rng(seed)
+    common=set(records['healthy4371'])&set(records['flow8500'])
+    for panel in ('heldout_sequence','train_prefix','heldout_prefix_local_recipe'):
+        ids=sorted(k for k in common if lookup[k]['panel']==panel)
+        if not ids:continue
+        captures=sorted(set(lookup[k]['capture'] for k in ids));ci={c:i for i,c in enumerate(captures)}
+        total=np.zeros((len(captures),2,3,len(METRICS),2))
+        for k in ids:
+            for mi,model in enumerate(('healthy4371','flow8500')):total[ci[lookup[k]['capture']],mi]+=records[model][k][:,1,0]
+        draw=rng.multinomial(len(captures),np.ones(len(captures))/len(captures),size=500)
+        s=np.einsum('bc,cmgvs->bmgvs',draw,total);mean=s[...,0]/np.maximum(s[...,1],1e-20);goals={}
+        for gi,goal in enumerate(GOALS):
+            metrics={}
+            for name in ('hand_epe_mm','object_epe_mm','C_location_mm','GTobj_contact_distance_mm','ownobj_contact_distance_mm','object_rigid_residual_mm'):
+                j=METRICS.index(name);metrics[name]=dict(FM_minus_healthy95=np.percentile(mean[:,1,gi,j]-mean[:,0,gi,j],[2.5,97.5]).tolist())
+            tp,fp,fn=(METRICS.index('C_'+k) for k in ('tp','fp','fn'))
+            f1=2*s[:,:,:,tp,0]/np.maximum(2*s[:,:,:,tp,0]+s[:,:,:,fp,0]+s[:,:,:,fn,0],1e-20)
+            metrics['C_F1']=dict(FM_minus_healthy95=np.percentile(f1[:,1,gi]-f1[:,0,gi],[2.5,97.5]).tolist());goals[goal]=metrics
+        result[panel]=dict(windows=len(ids),captures=len(captures),goals=goals)
+    return result
+
+
 def main():
     p=argparse.ArgumentParser();p.add_argument('--output',type=Path,required=True);a=p.parse_args();out=a.output
     panel=read(out/'panels.json');rows=[r for r in panel['rows'] if r['evaluate']];lookup={tuple(r[k] for k in ('seq_id','slot','tick')):r for r in rows}
@@ -94,7 +118,7 @@ def main():
     complete=all(coverage.get(label,{})==dict(expected) for label in ('healthy4371','flow8500'))
     result=dict(status='COMPLETED' if complete else 'PARTIAL',work_version=VERSION,expected_windows=dict(expected),coverage=coverage,
         protocol='K-average sum/count per window,then pooled points;capture-cluster paired bootstrap500 seed188;not independent model seeds',
-        results=results,noise_sampling=seeds,paired_goal_intervals=bootstrap_contrasts(records,lookup))
+        results=results,noise_sampling=seeds,paired_goal_intervals=bootstrap_contrasts(records,lookup),paired_checkpoint_intervals=bootstrap_checkpoints(records,lookup))
     write(out/'large-summary.json',result)
     lines=['# Large goal intervention audit', '', 'Status: '+result['status'], 'Coverage: '+json.dumps(coverage),'',
            '|Model/panel|N|Oracle hand/object mm|Planner hand/object mm|Perturbed hand/object mm|C F1 Oracle/Planner/Perturbed|',
