@@ -37,7 +37,7 @@ def main():
     from wam_rl_policy_v3.physical_safety import physical_safety
     from wam_rl_policy_v3.tau_replay_contract import reference_tau,pd_targets
     from ptv3_shared_wam_v6.execution_contract import LiftHoldWitness,grasp_lift_task,encoder_domain_available
-    from ptv3_shared_wam_v6.online_runtime import OnlineV6Runtime,EncodingUnavailable
+    from ptv3_shared_wam_v6.online_runtime import OnlineV6Runtime
     from wam_rl_policy_v3.pose_consumer import (PoseConsumer,pose7,reduce_to_wrist_plan,object_relative_reference,live_reference_future,POSE_CONSUMER)
     from wam_rl_policy_v3.measured_reward_bridge import reward_features
     from ptv3_shared_wam_v6.staged_progress import StagedProgress,STAGE_CONTRACT

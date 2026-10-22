@@ -2,7 +2,7 @@
 
 本轮只改消费器、闭环GT、approach模式和S2c阶段接口；不新增历史审计、不重训v6、不跑RL。
 实验沿用已登记`P-20261022-single-tau-calibration`的probe195/196；本次run单独标识为
-`pose-consumer-improvement-20261022-r1`，不是之前校准或重复run，不新增学习更新。
+`pose-consumer-improvement-20261022-r2`，不是之前校准或重复run，不新增学习更新。
 
 ## 预注册的唯一改进批次（运行前冻结）
 
@@ -78,3 +78,6 @@ Torch2.0.1+cu118；GPU5模型、GPU6物理，4保留空闲；不碰0–3/7。
    task不变，禁止扩大margin。先在源两条上验证安全abort2/6→0/6、actualPD合同误差≤2e-5、
    合法动作无实质裁剪，并完整观察终态；之后才能回资格面板，不借窄任务阳性过门。
    source链不用τ，故这两类修复都不需要先改WAM。它们是方案，**本轮没有声称已修好**。
+
+运行前r1因冻结旧runtime无未使用的EncodingUnavailable导入而退出，0物理controls；
+移除该导入后以r2恢复同一个15回合预算，r1日志与failure.json保留。
