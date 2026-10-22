@@ -12,6 +12,9 @@ def main():
         ('gap-supplies-crossing','src/wam_rl_policy_v3/task_scheduler.py','if not path_ready:self.path.last_pose=None','if False:self.path.last_pose=None','test_task_scheduler.py::test_contact_gap_does_not_create_an_unobserved_milestone_crossing'),
         ('state-occupancy-is-not-duration','tools/audit/score_source_pd_positive_control.py','longest=max(longest,float(now-start))','longest=max(longest,float(now-start)+1/30)','test_source_pd.py::test_positive_control_duration_uses_seconds_not_thirty_state_occupancy'),
         ('continuous-target-not-unwrapped','src/wam_rl_policy_v3/source_pd.py','target[...,3:6]+=2*np.pi*np.round((q[...,3:6]-target[...,3:6])/(2*np.pi))','target[...,3:6]=target[...,3:6]','test_source_pd.py::test_source_pd_inverse_uses_nearest_equivalent_continuous_target'),
+        ('tau-includes-current','src/wam_rl_policy_v3/tau_replay_contract.py','np.arange(1,horizon+1)','np.arange(horizon)','test_tau_replay_contract.py::test_reference_delta_is_first_future_and_does_not_reanchor_on_live_hand'),
+        ('shifted-clock-accepted','src/wam_rl_policy_v3/tau_replay_contract.py','not np.array_equal(tick,np.arange(controls+1))','False','test_tau_replay_contract.py::test_saved_clock_rejects_shifted_post_action_state'),
+        ('pd-coupling-ratio-lost','src/wam_rl_policy_v3/tau_replay_contract.py','target[...,dst]=target[...,src]*ratio','target[...,dst]=target[...,src]','test_tau_replay_contract.py::test_pd_reconstruction_matches_independent_torch_native_contract'),
     ]
     results=[]
     for name,relative,old,new,test in cases:
