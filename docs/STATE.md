@@ -1,4 +1,4 @@
-## 2026-10-22 并行执行线程：GT-τ 执行资格未通过；三臂首批准备完成
+## 2026-10-22 并行执行线程：GT-τ 执行资格未通过；三臂科学首批 RUNNING
 
 本线程独立推进机器人闭环，不重复另线程的可辨识性/goal契约诊断。
 固定已适配τ的Scheduled686 step50000，同16个机器人DEV初态（相对其TRAIN名称/源路径
@@ -22,9 +22,17 @@ P1已先写设计，单Inspire、cubemedium/cylindermedium/mug，统一真实CAD
 14字段初态exact校验。B是受限几何优化候选，未达到完整碰撞约束IK强基线，不能据C>B宣称
 打败所有几何重定向。256环境真实工程容量A/B/C均2更新40optimizer/4096交互，错配/PD/
 logprob0；C batch64保留24帧、跳独立未用C头后实测26.921s/更新，改统一6h/run硬界。
-科学首批尚待启动，工程smoke不是学习曲线或成功率证据。P2仅公平训练设计，0运行。
+科学首批已于11:35前后由supervisor2708769脱离会话启动，frozen fe81b6b5，GPU1/2，
+run=`outputs/ptv3-shared-wam-v6/samples-efficiency-3arm-20261022-r1/`；receipt在同名tmp/launch.json。
+A/B已实际optimizer更新，首轮logprob误差0；尚无正式eval点，成功率/阈值步数/AUC均待定。
+所有9run和eval均从runtime-code快照读取实现、有限队列/共享6h每run/8GiB产物/20GiB磁盘底线。
+预计9个训练约17.7GPUh，含评估暂估13–17h wall，正式吞吐较容量更慢，ETA须随progress更新。
+首轮实际A约8.2s/update、B14.6s/update。结束自动生成sample-efficiency-summary.json与
+learning-curves.png/svg；缺seed/点记INCOMPLETE。中断多收集未更新rollout用native.steps成本账，
+不冒充完整预算。冻结smoke缺配置r1保留，r2已真实A/C checkpoint0评估及14字段配对/图表通过。
+工程smoke不是学习曲线或成功率证据。P2仅公平训练设计，0运行。
 
-本线程GPU2/3完成P0；原诊断后来使用0/2继而0/3，未干预。P1将用实测空闲1/2；
+本线程GPU2/3完成P0；原诊断后来使用0/2继而0/3，未干预。P1已用启动时实测空闲1/2；
 GPU4/5/6长训、7、凭据、GitHub push均未触碰。仅本地提交。整库verify受6张既有旧卡
 schema缺字段阻断；本线程3卡schema/seed检查PASS。
 

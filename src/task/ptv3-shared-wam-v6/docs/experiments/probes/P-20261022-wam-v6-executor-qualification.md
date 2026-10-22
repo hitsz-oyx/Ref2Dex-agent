@@ -177,3 +177,18 @@ exposure is unavailable. The older direct-full-action qualification plan remains
 untrained as such; these measurements concern the existing Scheduled686 bridge
 and do not fabricate a completed new executor.
 
+
+### Path attainment and timing details
+
+Final mean confirmed path progress over16 is replay0.28463, standardGT0, healthy0,
+FM0. Endpoint position failure (>5cm) among14uncensored cases is4/14,14/14,14/14,
+13/14 respectively; each has2UNKNOWN/censored. Arriving near an endpoint does not
+imply grasp or TaskController completion.
+
+P0 runtime inference amortized latency (full unused C head included) is healthy
+27.109ms/sample over4768 forecasts and FM57.992ms/sample over2268 forecasts. These
+use different active-batch schedules and GPU contention, so are workload records,
+not a controlled speed ranking. P1 has an independent batched latency logger.
+Trajectory-only path parity (`trajectory-only-parity.json`) is0 difference with
+same encoder activations for healthy andFM; fresh encoder repeats differ0.0381mm
+and0.000536mm. No bitwise end-to-end determinism or model-speed conclusion claimed.
