@@ -14,7 +14,7 @@ def main():
     p.add_argument('--wam',type=Path);p.add_argument('--stats',type=Path,required=True)
     a=p.parse_args();assert a.gpu in range(4) and a.native_gpu in range(4)
     a.output=a.output.resolve();a.output.mkdir(parents=True,exist_ok=False)
-    scratch=ROOT/'tmp'/('exqual-'+a.arm+'-'+a.output.parent.name);scratch.mkdir(parents=True,exist_ok=False)
+    scratch=ROOT/'tmp'/('exqual-'+a.arm+'-'+a.output.parent.name+'-'+str(os.getpid()));scratch.mkdir(parents=True,exist_ok=False)
     os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu),TMPDIR=str(scratch),OMP_NUM_THREADS='2',OPENBLAS_NUM_THREADS='2',PYTHONDONTWRITEBYTECODE='1')
     import numpy as np,torch
     from scipy.spatial.transform import Rotation
@@ -47,7 +47,7 @@ def main():
         points.append(pts);contexts.append(TaskController(TaskSpec.from_packet(json.loads((side/'task.json').read_text())),pts))
         with np.load(side/'admission.npz') as z:bounds.append(z['table_bounds'].copy())
     listener=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);listener.settimeout(300);listener.bind(str(sock));listener.listen(1)
-    native_out=ROOT/'outputs/wam-rl-policy-v3'/('executor-qualification-20261022-'+a.arm+'-'+a.output.parent.name)
+    native_out=ROOT/'outputs/wam-rl-policy-v3'/('executor-qualification-20261022-'+a.arm+'-'+a.output.parent.name+'-'+str(os.getpid()))
     cmd=['/home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train/bin/python',str(ROOT/'src/task/wam-rl-policy-v3/tools/run/inspire_physics_host.py'),
          '--cache',str(a.output.parent/'geometry'),'--output',str(native_out),'--socket',str(sock),
          '--server-pid',str(os.getpid()),'--envs',str(n),'--gpu',str(a.native_gpu),'--seed','185','--seconds',str(a.seconds),
@@ -58,7 +58,7 @@ def main():
         gt_contract='world(reference_hand[t+1:t+8] - live_measured_hand[t]); held last reference beyond end',
         adapter='v6 sparse11 observed in joint21; remaining joints/skin invalid; first8 of24 to frozen Scheduled686')
     write(a.output/'manifest.json',state);log=(a.output/'native.log').open('x');proc=subprocess.Popen(cmd,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
-    connection=None;trace=[];previous=np.zeros((n,12),np.float32);hist=[deque(maxlen=4) for _ in rows];hands=[deque(maxlen=4) for _ in rows]
+    connection=None;trace=[];workspace_failed=np.zeros(n,bool);workspace_first=np.full(n,-1,int);previous=np.zeros((n,12),np.float32);hist=[deque(maxlen=4) for _ in rows];hands=[deque(maxlen=4) for _ in rows]
     try:
         connection,_=listener.accept();connection.settimeout(300);hello=receive(connection);snapshot=unpack_state(hello['state'])
         if list(snapshot['sequences'])!=names:raise ValueError('native sequence ordering mismatch')
@@ -87,7 +87,15 @@ def main():
                     tick=int(np.asarray(snapshot['tick'])[i]);idx=np.minimum(tick+np.arange(1,9),len(ref['hand'])-1)
                     taus[i]=(InspireAdapter.canonical_hand(ref['hand'][idx])-hands[i][-1])[:,WAM_TO_NATIVE];valid[i]=True
             elif runtime and step>=3:
-                full=runtime.predict(np.asarray(hist),np.asarray(hands),np.asarray(goals),events,['dexplore/'+r['object'] for r in rows]);taus=full[:,:8,:, :][:,:,WAM_TO_NATIVE];valid[:]=True
+                objects4=np.asarray(hist);hands4=np.asarray(hands)
+                admissible=runtime.workspace_valid(objects4,hands4)
+                newly=~admissible & ~workspace_failed;workspace_first[newly]=step;workspace_failed|=~admissible
+                active=np.array([step<int(r['reference_controls']) for r in rows]) & ~workspace_failed
+                chosen=np.flatnonzero(active)
+                if len(chosen):
+                    full=runtime.predict(objects4[chosen],hands4[chosen],np.asarray(goals)[chosen],
+                        [events[i] for i in chosen],['dexplore/'+rows[i]['object'] for i in chosen])
+                    taus[chosen]=full[:,:8][:,:,WAM_TO_NATIVE];valid[chosen]=True
             if a.arm=='replay':
                 command=np.stack([r['action'][min(step,len(r['action'])-1),ACTIVE] for r in refs])
             else:
@@ -96,7 +104,7 @@ def main():
                     tau=torch.as_tensor(taus,device='cuda'),tau_valid=torch.as_tensor(valid,device='cuda')).clamp(-1,1).cpu().numpy()
             trace.append(dict(objects=np.asarray(snapshot['objects']).copy(),hand=np.asarray(snapshot['hand']).copy(),q=np.asarray(snapshot['q']).copy(),
                 contact=np.asarray(snapshot['contact_forces']).copy(),contact_force_valid=np.asarray(snapshot['contact_force_valid']).copy(),tick=np.asarray(snapshot['tick']).copy(),dq=np.asarray(snapshot['dq']).copy(),supported=np.asarray(supports),phase=np.asarray(phases),progress=np.asarray(progress),
-                complete=np.asarray(complete),tau=taus.copy(),tau_valid=valid.copy(),command=command.copy()))
+                complete=np.asarray(complete),tau=taus.copy(),tau_valid=valid.copy(),workspace_failed=workspace_failed.copy(),command=command.copy()))
             if step%30==0:
                 state.update(status='RUNNING',controls_completed=step,elapsed_s=time.monotonic()-start);write(a.output/'progress.json',state);print(json.dumps(dict(arm=a.arm,step=step,elapsed_s=state['elapsed_s'])),flush=True)
             if step==a.controls:break
@@ -106,9 +114,9 @@ def main():
             snapshot=next_snapshot
         send(connection,dict(op='close'));receive(connection);proc.wait(timeout=60)
         state.update(status='COMPLETED',controls_completed=a.controls,elapsed_s=time.monotonic()-start,
-            inference_seconds=runtime.seconds if runtime else 0,inference_samples=runtime.samples if runtime else 0)
+            workspace_failure_first_tick=workspace_first.tolist(),inference_seconds=runtime.seconds if runtime else 0,inference_samples=runtime.samples if runtime else 0)
     except BaseException as e:
-        state.update(status='FAILED',error=repr(e),elapsed_s=time.monotonic()-start);raise
+        state.update(status='FAILED',error=repr(e),controls_completed=max(0,len(trace)-1),workspace_failure_first_tick=workspace_first.tolist(),elapsed_s=time.monotonic()-start);raise
     finally:
         if trace:np.savez_compressed(a.output/'trajectory.npz',**{k:np.stack([r[k] for r in trace]) for k in trace[0]})
         write(a.output/'manifest.json',state)

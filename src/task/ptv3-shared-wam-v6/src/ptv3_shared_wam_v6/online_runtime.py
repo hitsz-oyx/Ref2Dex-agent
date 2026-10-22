@@ -50,6 +50,14 @@ class OnlineV6Runtime:
                 self.geometries[row["key"]]={k:z[k].copy() for k in z.files}
         self.calls=0;self.seconds=0.;self.samples=0
 
+    def workspace_valid(self, objects, hands):
+        from scipy.spatial.transform import Rotation
+        objects=np.asarray(objects);hands=np.asarray(hands)
+        rotation=Rotation.from_quat(objects[:,-1,3:7]).as_matrix()
+        local=np.einsum("bhki,bij->bhkj",hands-objects[:,-1,None,None,:3],rotation)
+        grid=np.floor((local[:,-1]-np.asarray(self.config["voxel_origin_m"]))/self.config["voxel_m"])
+        return np.isfinite(grid).all((1,2)) & (grid>=0).all((1,2)) & (grid<=65535).all((1,2))
+
     def predict(self, objects, hands, goals, events, object_codes):
         from scipy.spatial.transform import Rotation
         objects=np.asarray(objects);hands=np.asarray(hands);goals=np.asarray(goals)
