@@ -38,16 +38,40 @@ learning-curves.png/svg；缺seed/点记INCOMPLETE。中断多收集未更新rol
 GPU4/5/6长训、7、凭据、GitHub push均未触碰。仅本地提交。整库verify受6张既有旧卡
 schema缺字段阻断；本线程3卡schema/seed检查PASS。
 
-## 2026-10-22 大规模 goal 契约诊断进行中
+## 2026-10-22 大规模 WAM goal / 可辨识性诊断完成（本轮无新训练）
 
-本轮仅用既有健康4371与FM8500，未启动训练/扩容/加数据。全DEV3356、TRAIN5241/1064序列、
-本地未覆盖前缀905；FM K8，GPU95–99%。GPU2被并发作业占用后仅迁移本轮自己的诊断到3，
-另一worker用0；4/5/6长训与7及其他作业未动。调度器是spatial_path_waypoint且endpoint_time=None，
-训练是实际t24终点，语义不同。健康全DEV前8手/物EPE Oracle15.80/14.72→Planner21.12/25.55mm，
-C F1 .686→.620；FM全量尚待完成，不拿部分面板混比。DEV约69.85% Oracle目标超调度器单次边界。
-事件对齐方差扩大候选与CAD占用复核正在做；executor三条件只写设计，不执行。
+固定健康4371与FM8500，严格FP32；DEV3356窗口/113缓存序列/112原生录制，TRAIN5241/
+1064/1063，本地未覆盖前缀905。TRAIN和DEV原生录制交集0；完整28帧支持排重，DEV另报
+847不重叠核心集；祖先训练窗口未知，本地未覆盖前缀不宣称终身未见。FM K8种子172、181–187，
+候选选择181/182/183，capture/group bootstrap188。未启动训练、改loss、扩模型/数据或push。
+
+独立核到goal语义错配：调度器spatial_path_waypoint、endpoint_time=None；训练实际t24终点。
+DEV约69.85% Oracle终点超调度器50mm/.35rad/50mm单步预算。原部署路径子模块逐序列回放
+（已知录制路径作oracle reference；完整TaskScheduler缺实测抓稳/释放/支撑反馈，未伪造）。
+全DEV前8手/物EPE：健康Oracle15.80/14.72→Planner21.12/25.55mm；FM17.37/16.21→22.79/27.60。
+Oracle C头F1健康.686→FM.709，几何GT物接触F1却.507→.484，GT τ参照.971。
+FM DEV手/物增量95%CI[1.449,1.701]/[1.334,1.658]mm；TRAIN前8改善10.56/7.55→9.95/6.43。
+
+可辨识性仍待定：两种子TRAIN候选31619/31576、均覆盖1064序列；事件内候选19672/19747。
+50mm事件分组14/11组、69/57录制，手8原始→相位对齐方差1610→709mm²（种子182）。
+控制相位与相同窗口后，加接触区域手8下降−4.56%/＋4.53%，95%CI均跨0；宽邻域表面收益
+受样本剔除影响。不能据此断言τ不可辨识或网络架构差。
+
+自一致：Oracle预测手接触距离GT/自己物体健康14.71/10.54、FM15.05/10.57mm；Planner
+FM23.53/11.62，绝对误差更大而相对距离仍较小。t8共同平移诊断N3354：FM Planner手/物
+49.09/58.60→减去事后GT拟合共同平移后41.02/25.18mm，共同项44.97mm；非部署校正。
+CAD复核覆盖2944窗口/92录制，每draw128手皮肤采样点；FM Oracle对GT物体>1mm穿透3.115%
+（93893/3014656 vertex-draws），Planner1.818%但最小signed clearance均值12.62→31.54mm，
+穿透少伴随分离增大，不能当质量更好。其他412窗口CAD资产未映射；物体为预测32点的affine
+CAD扩展，手为观测皮肤运输代理，均已标明局限。
+
+GPU2后被占，只迁移本轮诊断到3；另一worker用0。4/5/6长训与7及其他作业未动；本轮GPU
+作业全部结束并释放GPU；随后其他用户占用0/3约3.1GiB/卡，未干预。新增诊断产物约2.405GiB，文件系统剩余约146.03GiB，未清理原数据。
+9项针对性测试通过；全仓verify仍有6张既有trajectory-policy实验卡schema错误。
+Executor三条件比较只完成设计，尚未执行，待机主确认；不新增self-consistency loss。
 卡片：`src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261022-wam-v6-goal-chain-audit.md`。
-产物：`outputs/ptv3-shared-wam-v6/goal-chain-audit-20261022-r1/`。
+数值/命令/日志：`outputs/ptv3-shared-wam-v6/goal-chain-audit-20261022-r1/audit-report.md`、
+`large-summary.json`、`decision-metrics.csv`、`launch-*.json`。
 
 ## 2026-10-22 第一阶段现有checkpoint诊断完成，无新训练/扩容/加数据
 

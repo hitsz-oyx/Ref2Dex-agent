@@ -921,7 +921,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261022-wam-v6-goal-chain-audit](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261022-wam-v6-goal-chain-audit.md) | Goal contract intervention and scaled existing-weight diagnostics | 见原卡 | does the learned prior improve executable task success versus the | probes/RUNNING |
+| [P-20261022-wam-v6-goal-chain-audit](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261022-wam-v6-goal-chain-audit.md) | Goal contract, event-aligned identifiability and deployment-path consistency | COMPLETED. FullDEV3356/K8: healthy OracleH/O15.80/14.72mm versus FM17.37/16.21; Planner21.12/25.55 versus22.79/27.60. Goal semantics mismatc | prioritize clarifying the spatial-goal/time contract and sequence generalization before scaling. Do not directly relabel t24 supervision wit | probes/COMPLETED |
 
 ## HF-v6-gt-object-contact
 
