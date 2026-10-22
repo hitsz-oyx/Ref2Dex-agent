@@ -1,0 +1,31 @@
+{
+  "schema": "ref2dex.tau-curated-training-plan.v1",
+  "status": "HOLD_UNTIL_SCHEDULER_CACHE_IDENTITIES",
+  "task": "ptv3-shared-wam-v6",
+  "manifest": "outputs/ptv3-shared-wam-v6/tau-curated-20261023-r7/curated-manifest.json",
+  "architecture": "unchanged-v6-shared-wam",
+  "loss": "unchanged-v6-trajectory-scene-contact-event",
+  "precision": "strict-fp32",
+  "window": {"history": 4, "horizon": 24, "hand_points": 21, "surface_points": 778, "object_queries": 2048},
+  "sampler": {
+    "implementation": "ptv3_shared_wam_v6.curated_sampling.CuratedTauSampler",
+    "source": "uniform among sources with admitted rows",
+    "sequence": "uniform among admitted sequences within source",
+    "phase": "uniform among approach/close/contact/hold phases present in sequence",
+    "unknown_phase": "fallback only when a sequence has no named phase; retained for audit",
+    "max_windows_per_sequence_per_batch": 8,
+    "object_identity_rule": "none",
+    "seed": 170
+  },
+  "goal_contract": {
+    "required_before_training": true,
+    "training_condition": "scheduler-conditioned cache identities and repaired waypoint condition",
+    "remove_hardcoded_object_goal_valid": true,
+    "weights_only_initialization": true
+  },
+  "devices": [4, 5, 6, 7],
+  "launch": {
+    "audit_only": "python3 src/task/ptv3-shared-wam-v6/tools/audit/curate_tau_training_set.py --output outputs/ptv3-shared-wam-v6/tau-curated-20261023-r1/curated-manifest.json",
+    "training": "blocked until goal contract tests and scheduler-conditioned cache identities pass"
+  }
+}
