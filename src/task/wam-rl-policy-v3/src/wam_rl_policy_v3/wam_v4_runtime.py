@@ -40,6 +40,64 @@ DENSE_SCHEMAS = ("ref2dex.wam-v4-dense-surface.v1", "ref2dex.wam-v4-dense-surfac
 HAND_SLOTS = ("right", "left")
 SUMMARY_DIM = 2304
 
+# Goal conditioning is shared by the offline/training input builder and the
+# online executor.  A measured t+24 endpoint is a label, not an executable
+# task instruction; passing one here would recreate the train/infer shift.
+GOAL_SEMANTICS = "spatial_path_waypoint"
+GOAL_CONTRACT = (
+    "WAM-v4 goal contract: both training and inference consume the scheduler's "
+    "same-ID spatial_path_waypoint in the current-object frame over 24 steps at "
+    "30 Hz.  An observed future t+24 endpoint is not an accepted conditioning "
+    "semantic; callers must convert it to the scheduler waypoint before building "
+    "a sample.  Goal availability is per flow query in object_goal_valid."
+)
+
+
+def _prepare_goal_inputs(flow, centers, rotations, *, goal_delta=None,
+                         goal_world=None, goal_semantics=GOAL_SEMANTICS):
+    """Return sanitized goal deltas and a truthful per-query availability mask.
+
+    Missing goals and non-finite goal values are represented by zero padding and
+    ``False`` validity, so the v4 model's existing mask contract can cleanly
+    ignore them.  Shape errors remain hard contract errors because they cannot be
+    interpreted as a batch of per-query missing values.
+    """
+    if goal_semantics != GOAL_SEMANTICS:
+        raise ValueError(
+            "goal semantics must be spatial_path_waypoint for both training and inference"
+        )
+    flow = np.asarray(flow, dtype=np.float64)
+    centers = np.asarray(centers, dtype=np.float64)
+    rotations = np.asarray(rotations, dtype=np.float64)
+    if (flow.ndim != 3 or flow.shape[1:] != (FLOW_POINTS, 3)
+            or centers.shape != (len(flow), 3)
+            or rotations.shape != (len(flow), 3, 3)):
+        raise ValueError("goal geometry requires Bx32x3 flow, Bx3 centers and Bx3x3 rotations")
+    if goal_delta is not None and goal_world is not None:
+        raise ValueError("provide exactly one of goal_delta or goal_world")
+    flow_valid = np.isfinite(flow).all(axis=-1)
+    if goal_delta is None and goal_world is None:
+        return np.zeros_like(flow, dtype=np.float32), np.zeros_like(flow_valid, dtype=bool)
+    if goal_delta is not None:
+        raw = np.asarray(goal_delta, dtype=np.float64)
+        if raw.shape != flow.shape:
+            raise ValueError("goal_delta must be Bx32x3 and finite where available")
+        valid = np.isfinite(raw).all(axis=-1) & flow_valid
+        sanitized = np.where(valid[..., None], raw, 0.)
+        return sanitized.astype(np.float32), valid.astype(bool)
+    raw = np.asarray(goal_world, dtype=np.float64)
+    if raw.shape != (len(flow), 3):
+        raise ValueError("goal_world must be Bx3 and finite where available")
+    row_valid = np.isfinite(raw).all(axis=-1)
+    # Replace invalid rows before transforming so NaNs cannot leak into the
+    # padded goal tensor; their row mask remains false below.
+    safe_world = np.where(row_valid[:, None], raw, centers)
+    delta = np.einsum("bi,bij->bj", safe_world - centers, rotations)
+    valid = row_valid[:, None] & flow_valid
+    sanitized = np.broadcast_to(delta[:, None, :], flow.shape).copy()
+    sanitized[~valid] = 0.
+    return sanitized.astype(np.float32), valid.astype(bool)
+
 
 @contextmanager
 def shared_tf32_math(model, enabled):
@@ -179,7 +237,8 @@ def load_geometry(cache, env_objects, dense_manifest=None, dense_sha256=None):
     return prepared
 
 
-def v4_online_samples(objects, hands, geometries, *, goal_delta=None, goal_world=None):
+def v4_online_samples(objects, hands, geometries, *, goal_delta=None, goal_world=None,
+                      goal_semantics=GOAL_SEMANTICS):
     """Build target-only v4 samples from the observed 30 Hz H4 snapshot.
 
     ``objects`` is ``B x 4 x 7`` and ``hands`` is ``B x 4 x 11 x 3`` in the
@@ -187,7 +246,8 @@ def v4_online_samples(objects, hands, geometries, *, goal_delta=None, goal_world
     ``(surface, normals, flow, interaction, interaction_normals)`` tuple per
     environment.  ``goal_delta`` is the scheduler's same-ID point displacement
     in the current object frame; ``goal_world`` is the position-only task goal
-    used by the existing online path.
+    used by the existing online path.  Missing or non-finite goals are padded
+    and marked unavailable rather than being asserted valid.
     """
     objects = np.asarray(objects, dtype=np.float64)
     hands = np.asarray(hands, dtype=np.float64)
@@ -203,17 +263,10 @@ def v4_online_samples(objects, hands, geometries, *, goal_delta=None, goal_world
     local_hand = np.einsum("bhki,bij->bhkj", hands - center[:, None, None], rotation)
     relative = np.einsum("bij,bhjk->bhik", np.linalg.inv(now), poses)
     hand_dynamics = _dynamics(local_hand)
-    if goal_delta is None:
-        if goal_world is None:
-            raise ValueError("v4 online input requires goal_delta or goal_world")
-        goal_world = np.asarray(goal_world, dtype=np.float64)
-        if goal_world.shape != (len(objects), 3) or not np.isfinite(goal_world).all():
-            raise ValueError("goal_world must be Bx3 and finite")
-        delta = np.einsum("bi,bij->bj", goal_world - center, rotation)
-    else:
-        delta = np.asarray(goal_delta, dtype=np.float64)
-        if delta.shape != (len(objects), FLOW_POINTS, 3) or not np.isfinite(delta).all():
-            raise ValueError("goal_delta must be Bx32x3 and finite")
+    flow_values = np.stack([np.asarray(geometry[2]) for geometry in geometries])
+    goal_values, goal_valid = _prepare_goal_inputs(
+        flow_values, center, rotation, goal_delta=goal_delta,
+        goal_world=goal_world, goal_semantics=goal_semantics)
     samples = []
     for env, (surface, normals, flow, interaction, interaction_normals) in enumerate(geometries):
         if surface.shape != (SURFACE_POINTS, 3) or normals.shape != surface.shape:
@@ -231,14 +284,14 @@ def v4_online_samples(objects, hands, geometries, *, goal_delta=None, goal_world
         start_history[0] = hand_dynamics[env]
         start_valid = np.zeros((2, 11), bool)
         start_valid[0] = True
-        goal = np.broadcast_to(delta[env], flow.shape).astype(np.float32)
+        goal = goal_values[env]
         sample = dict(
             xyz=moved[-1].astype(np.float32), features=features,
             scene_object=np.zeros(SURFACE_POINTS, np.int64),
             point_valid=np.ones(SURFACE_POINTS, bool), object_valid=np.ones(1, bool),
             scene_points=flow[None].astype(np.float32),
             start_object_points=flow.astype(np.float32),
-            goal_object_delta=goal.copy(), object_goal_valid=np.ones(FLOW_POINTS, bool),
+            goal_object_delta=goal.copy(), object_goal_valid=goal_valid[env].copy(),
             start_hand=start_hand, start_hand_history=start_history,
             start_hand_valid=start_valid,
             interaction_points=interaction[None].astype(np.float32),
@@ -246,6 +299,8 @@ def v4_online_samples(objects, hands, geometries, *, goal_delta=None, goal_world
             interaction_query_valid=np.ones((1, INTERACTION_POINTS), bool),
         )
         for key, value in sample.items():
+            if key == 'object_goal_valid':
+                continue
             if not np.isfinite(value).all():
                 raise ValueError("nonfinite online v4 field: " + key)
         samples.append(sample)
@@ -323,10 +378,12 @@ class V4Runtime:
             config_sha256=value_digest(self.config),stats_sha256=value_digest(self.stats))
         self.geometry_bindings = geometry_bindings(env_objects,self.geometry)
 
-    def batch(self, objects, hands, *, goal_delta=None, goal_world=None):
+    def batch(self, objects, hands, *, goal_delta=None, goal_world=None,
+              goal_semantics=GOAL_SEMANTICS):
         samples = v4_online_samples(np.asarray(objects, dtype=np.float64),
                                     np.asarray(hands, dtype=np.float64),
-                                    self.geometry, goal_delta=goal_delta, goal_world=goal_world)
+                                    self.geometry, goal_delta=goal_delta,
+                                    goal_world=goal_world, goal_semantics=goal_semantics)
         return {key: value.to(self.device) for key, value in collate_v4(samples).items()}
 
     def workspace_valid(self, samples):

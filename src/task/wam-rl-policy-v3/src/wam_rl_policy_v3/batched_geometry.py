@@ -1,7 +1,8 @@
 """Device-resident WAM feature and tau construction; fixed 30/60Hz contract."""
 import numpy as np
 import torch
-from .wam_v4_runtime import object_poses, STATIC_THRESHOLD_M
+from .wam_v4_runtime import (GOAL_SEMANTICS, STATIC_THRESHOLD_M,
+                             _prepare_goal_inputs, object_poses)
 
 
 def native_tau(trajectory, rotation):
@@ -16,13 +17,24 @@ def _dynamics(x):
     return torch.cat(((x[:,-1]-x[:,-2])*30,(x[:,-1]-2*x[:,-2]+x[:,-3])*900,x[:,-1]-x[:,0]),-1)
 
 
-def online_batch(objects,hands,geometries,goal_delta,device):
-    """Vectorized equivalent of v4_online_samples; float64 geometric arithmetic."""
-    poses=torch.as_tensor(object_poses(np.asarray(objects,np.float64)),device=device,dtype=torch.float64)
+def online_batch(objects,hands,geometries,goal_delta=None,device='cpu',*,
+                 goal_world=None,goal_semantics=GOAL_SEMANTICS):
+    """Vectorized equivalent of v4_online_samples; float64 geometric arithmetic.
+
+    Goal values and ``object_goal_valid`` are produced by the same shared
+    contract helper as the reference/training builder.
+    """
+    objects_np=np.asarray(objects,np.float64)
+    poses_np=object_poses(objects_np)
+    poses=torch.as_tensor(poses_np,device=device,dtype=torch.float64)
     hand=torch.as_tensor(hands,device=device,dtype=torch.float64)
     now=poses[:,-1];rotation=now[:,:3,:3];center=now[:,:3,3]
     local_hand=torch.einsum('bhki,bij->bhkj',hand-center[:,None,None],rotation)
     relative=torch.linalg.inv(now)[:,None] @ poses
+    flow_np=np.stack([np.asarray(geometry[2]) for geometry in geometries])
+    goal_np,goal_valid_np=_prepare_goal_inputs(
+        flow_np,poses_np[:,-1,:3,3],poses_np[:,-1,:3,:3],goal_delta=goal_delta,
+        goal_world=goal_world,goal_semantics=goal_semantics)
     surface,normals,flow,interaction,interaction_normals=[torch.as_tensor(np.stack(values),device=device) for values in zip(*geometries)]
     moved=torch.einsum('bhij,bpj->bhpi',relative[:,:,:3,:3],surface.double())+relative[:,:,None,:3,3]
     n=len(objects);features=torch.zeros(n,512,18,device=device)
@@ -36,8 +48,8 @@ def online_batch(objects,hands,geometries,goal_delta,device):
     valid=torch.zeros(n,2,11,device=device,dtype=torch.bool);valid[:,0]=True
     return dict(xyz=moved[:,-1].float(),features=features,scene_object=torch.zeros(n,512,device=device,dtype=torch.long),
         point_valid=torch.ones(n,512,device=device,dtype=torch.bool),object_valid=torch.ones(n,1,device=device,dtype=torch.bool),
-        scene_points=flow[:,None].float(),start_object_points=flow.float(),goal_object_delta=torch.as_tensor(goal_delta,device=device,dtype=torch.float32),
-        object_goal_valid=torch.ones(n,32,device=device,dtype=torch.bool),start_hand=start_hand,start_hand_history=history,start_hand_valid=valid,
+        scene_points=flow[:,None].float(),start_object_points=flow.float(),goal_object_delta=torch.as_tensor(goal_np,device=device,dtype=torch.float32),
+        object_goal_valid=torch.as_tensor(goal_valid_np,device=device,dtype=torch.bool),start_hand=start_hand,start_hand_history=history,start_hand_valid=valid,
         interaction_points=interaction[:,None].float(),interaction_normals=interaction_normals[:,None].float(),
         interaction_query_valid=torch.ones(n,1,128,device=device,dtype=torch.bool))
 

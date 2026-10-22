@@ -5,7 +5,7 @@ import torch
 from scipy.spatial.transform import Rotation
 from wam_rl_policy_v3.batched_geometry import native_tau,online_batch,workspace_valid
 from wam_rl_policy_v3.tau_contract import v4_trajectory_to_student
-from wam_rl_policy_v3.wam_v4_runtime import v4_online_samples,collate_v4
+from wam_rl_policy_v3.wam_v4_runtime import GOAL_SEMANTICS,v4_online_samples,collate_v4
 from wam_rl_policy_v3.goal_scheduler import OrderedGoalScheduler,update_schedulers
 
 
@@ -34,6 +34,46 @@ def test_device_features_match_reference(device):
     assert workspace_valid(new,config).all()
     new['start_hand'][0,0,0,0]=-2.06
     assert workspace_valid(new,config).tolist()==[False]+[True]*7
+
+
+def test_train_and_infer_goal_tensors_match_bitwise_including_validity():
+    objects,hands,geometries,goals=fixture(3)
+    reference=collate_v4(v4_online_samples(
+        objects,hands,geometries,goal_delta=goals,
+        goal_semantics=GOAL_SEMANTICS))
+    batched=online_batch(objects,hands,geometries,goals,'cpu',
+                         goal_semantics=GOAL_SEMANTICS)
+    assert torch.equal(reference['goal_object_delta'],batched['goal_object_delta'])
+    assert torch.equal(reference['object_goal_valid'],batched['object_goal_valid'])
+    assert reference['object_goal_valid'].all()
+
+
+def test_invalid_or_missing_goal_is_masked_and_zero_padded():
+    objects,hands,geometries,goals=fixture(2)
+    goals[0,3,1]=np.nan
+    reference=collate_v4(v4_online_samples(objects,hands,geometries,goal_delta=goals))
+    batched=online_batch(objects,hands,geometries,goals,'cpu')
+    for batch in (reference,batched):
+        assert not bool(batch['object_goal_valid'][0,3])
+        assert int(batch['object_goal_valid'][0].sum()) == 31
+        assert torch.isfinite(batch['goal_object_delta']).all()
+        assert torch.equal(batch['goal_object_delta'][0,3],torch.zeros(3))
+    missing=collate_v4(v4_online_samples(objects,hands,geometries))
+    missing_batched=online_batch(objects,hands,geometries,None,'cpu')
+    assert not missing['object_goal_valid'].any()
+    assert not missing_batched['object_goal_valid'].any()
+    assert not missing['goal_object_delta'].any()
+    assert not missing_batched['goal_object_delta'].any()
+
+
+def test_future_endpoint_semantics_are_rejected_by_both_paths():
+    objects,hands,geometries,goals=fixture(1)
+    with pytest.raises(ValueError,match='goal semantics'):
+        v4_online_samples(objects,hands,geometries,goal_delta=goals,
+                          goal_semantics='observed_future_endpoint_24_at_30hz')
+    with pytest.raises(ValueError,match='goal semantics'):
+        online_batch(objects,hands,geometries,goals,'cpu',
+                     goal_semantics='observed_future_endpoint_24_at_30hz')
 
 
 @pytest.mark.parametrize('device',['cpu']+(['cuda'] if os.environ.get('REF2DEX_TEST_CUDA')=='1' else []))
