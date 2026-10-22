@@ -5,7 +5,9 @@ from pathlib import Path
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--run',type=Path,required=True);a=p.parse_args();groups=collections.defaultdict(lambda:dict(n=0,strict=0,hold=0,joint=0,other_abort=0));workers=[]
-    for name in ('g4-resume','g5-resume','g6-resume'):
+    receipt=a.run/'launch-detached.json'
+    names=[Path(w['output']).name for w in json.loads(receipt.read_text())['workers']] if receipt.exists() else ['g4-resume','g5-resume','g6-resume']
+    for name in names:
         file=a.run/name/'manifest.json'
         if not file.exists():workers.append(dict(worker=name,status='LOADING'));continue
         m=json.loads(file.read_text());workers.append(dict(worker=name,status=m['status'],done=len(m['runs']),planned=m['planned_episodes'],active=m.get('active_episode'),controls=m['environment_controls'],error=m.get('error')))

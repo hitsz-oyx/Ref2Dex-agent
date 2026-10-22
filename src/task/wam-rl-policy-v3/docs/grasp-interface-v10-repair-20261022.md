@@ -85,3 +85,5 @@ $PY src/task/wam-rl-policy-v3/tools/audit/run_grasp_repair_mutants.py --output o
 期望回归故障注入6/6被拒绝；测试数以本轮最终日志的passed/failed/skipped全量为准。PhysX接触过程非逐位确定，冻结seed/初态不保证独立复跑计数逐位相等，故保留n40及CI。
 
 无法自证/边界：实测力与支持是现有引擎与observer合同，未获得外部真实接触标签；几何候选不保证任意物体力闭合；本轮原未见面板已用于开发；完整RELEASE和GTτ上界未由本轮建立。三臂RL仍HOLD。若独立复跑与此报告不同，保留原始记录并列为待裁决，不修改过去结果。
+
+第二次技术中断（21:19）：三个policy进程均消失、manifest停在RUNNING；native分别明确记录`Connection reset by peer`/`IPC peer closed`，不是物理安全中止。原始进程退出原因无回执，不能断言是GPU被抢或OOM。39个完成回合全部保留；没有遗漏的完成result。三个未完成回合原始轨迹未落盘，但native错误回执记录精确161/510/210控制，共881控制。仅这三个固定初态/seed需从reset重试，不计为物理失败、不补抽。技术开销明确额外881，原有效验证上限96000控制不变，总执行上界96881；0updates。`prepare_interrupted_grasp_carry.py`保留原RUNNING/FAILED文件并生成独立carry收据，完成记录不重跑。改由关闭stdio/独立session的detached launcher续跑，避免依赖短会话exec句柄。
