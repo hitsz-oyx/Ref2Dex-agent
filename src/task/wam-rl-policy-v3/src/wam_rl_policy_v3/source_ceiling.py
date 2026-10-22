@@ -14,7 +14,7 @@ from .tau_replay_contract import pd_targets
 from .interaction_state import InteractionConfig
 from .task_feedback import FeedbackObserver
 
-SOURCE_CEILING_CONTRACT = 'source.keygrasp.contact-latched-close.v7'
+SOURCE_CEILING_CONTRACT = 'source.measured-motion.full-PD-intent.v8'
 
 
 def object_anchored_source_target(target,reference_q,reference_palm,reference_object,
@@ -112,17 +112,52 @@ class SourceGraspReference:
         if command.shape==(18,):command=command[list(ACTIVE)]
         self.closure=pd_targets(command,reference['q'][self.command_frame,0],offset,scale)[FINGER_ACTIVE]
         self.measured_grasp_q=np.asarray(reference['q'][frame,0,FINGER_ACTIVE]).copy()
+        self.motion_cursor=0;self.motion_enabled=False
+        self.motion_local=np.array([np.linalg.inv(pose7(o[0]))@pose7(p[0]) for o,p in zip(reference['objects'][:frame+1],reference['palm_pose'][:frame+1])])
+        self.motion_pd=[];self.motion_fingers=[]
+        for t in range(frame+1):
+            ci=min(t,len(reference['action'])-1);action=reference['action'][ci]
+            if action.shape==(18,):action=action[list(ACTIVE)]
+            desired=pd_targets(action,reference['q'][ci,0],offset,scale)
+            palm=pose7(reference['palm_pose'][ci,0]);source_q=reference['q'][ci,0]
+            mount=Rotation.from_euler('XYZ',source_q[3:6]).as_matrix().T@palm[:3,:3]
+            target=palm.copy();target[:3,3]+=desired[:3]-source_q[:3]
+            target[:3,:3]=Rotation.from_euler('XYZ',desired[3:6]).as_matrix()@mount
+            self.motion_pd.append(np.linalg.inv(pose7(reference['objects'][ci,0]))@target)
+            self.motion_fingers.append(desired[FINGER_ACTIVE].copy())
+        # The key state was produced by action[f-1]. Preserve all six wrist PD
+        # targets as well as finger preload; do not confuse measured deflection
+        # or motion lag with the command. This is not an estimate of contact force.
+        qi=reference['q'][frame,0];palm=pose7(reference['palm_pose'][frame,0])
+        source_command=reference['action'][self.command_frame]
+        if source_command.shape==(18,):source_command=source_command[list(ACTIVE)]
+        desired=pd_targets(source_command,reference['q'][self.command_frame,0],offset,scale)
+        mount=Rotation.from_euler('XYZ',qi[3:6]).as_matrix().T@palm[:3,:3]
+        target=palm.copy();target[:3,3]+=desired[:3]-qi[:3]
+        target[:3,:3]=Rotation.from_euler('XYZ',desired[3:6]).as_matrix()@mount
+        self.pd_grasp=np.linalg.inv(pose7(reference['objects'][frame,0]))@target
 
-    def intent(self,object_goal):
-        return GraspIntent(self.grasp.copy(),self.grasp.copy(),self.preshape.copy(),self.closure.copy(),
-                           np.asarray(object_goal).copy(),'source-keygrasp',False,True)
+    def intent(self,object_goal,*,live_object=None,live_palm=None):
+        if live_object is None or live_palm is None:
+            return GraspIntent(self.grasp.copy(),self.grasp.copy(),self.preshape.copy(),self.closure.copy(),
+                               np.asarray(object_goal).copy(),'source-keygrasp',False,True)
+        self.motion_enabled=True
+        live=np.linalg.inv(live_object)@live_palm
+        candidates=range(self.motion_cursor,min(self.motion_cursor+9,len(self.motion_local)))
+        def error(t):
+            reference=self.motion_local[t]
+            return float(np.linalg.norm(reference[:3,3]-live[:3,3])+.05*np.linalg.norm(Rotation.from_matrix(reference[:3,:3]@live[:3,:3].T).as_rotvec()))
+        self.motion_cursor=min(candidates,key=error)
+        return GraspIntent(self.motion_pd[self.motion_cursor].copy(),self.pd_grasp.copy(),
+            self.motion_fingers[self.motion_cursor].copy(),self.closure.copy(),
+            np.asarray(object_goal).copy(),'source-measured-motion-PD',False,True)
 
     def manifest(self):
-        return dict(kind='source_keygrasp',evidence=self.evidence,contact_frame=self.contact_frame,
+        return dict(kind='source_measured_motion_PD',motion_cursor=self.motion_cursor,evidence=self.evidence,contact_frame=self.contact_frame,
                     grasp_frame=self.grasp_frame,preshape_frame=self.preshape_frame,
                     raw_force_contact_frames=self.raw_force_contact_frames,object_contact_frames=self.object_contact_frames,
                     source_coupled_lift_frames=self.source_coupled_lift_frames,
-                    consumes_source_actions=True,source_action_mode='one_predecessor_closure_command_no_replay',
+                    consumes_source_actions=True,source_action_mode='measured_state_PD_path_and_predecessor_grasp_command' if self.motion_enabled else 'one_predecessor_closure_command_no_replay',
                     closure_command_frame=self.command_frame,closure_has_predecessor=self.grasp_frame>0,
                     measured_grasp_q=self.measured_grasp_q.tolist(),closure_pd_target_q=self.closure.tolist(),
                     consumes_R=False,source_contact_is_live_success=False)

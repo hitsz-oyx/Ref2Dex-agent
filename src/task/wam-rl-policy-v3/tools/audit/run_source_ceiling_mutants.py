@@ -1,4 +1,4 @@
-"""Execute regressions against four deliberately broken in-memory controllers."""
+"""Execute regressions against deliberately broken in-memory controllers."""
 import importlib.util,json,sys,dataclasses
 import numpy as np
 from pathlib import Path
@@ -49,6 +49,13 @@ def main():
     def chasing_close_goal(self,**args):
         self.closing_goal=None
         return original(self,**args)
+    def drop_motion(self,goal,**kwargs):return key_intent(self,goal)
+    def drop_wrist_preload(self,goal,**kwargs):
+        self.pd_grasp=self.grasp.copy()
+        return key_intent(self,goal,**kwargs)
+    def tick_motion(self,goal,**kwargs):
+        self.motion_cursor=min(self.motion_cursor+1,self.grasp_frame)
+        return key_intent(self,goal,**kwargs)
     cases=[('ignore-measured-pressure',patch.object(SourceCeilingConsumer,'force_limit_n',float('inf')),tests.test_measured_pressure_unloads_at_actual_approach_close_step),
         ('unlimited-finger-target-jump',patch.object(SourceCeilingConsumer,'finger_rate_radps',100.),tests.test_approach_finger_target_does_not_jump_to_reference),
         ('omit-target-margin',patch.object(MarginAdmission,'__init__',JointAdmission.__init__),tests.test_nominally_legal_near_limit_target_is_rejected_before_candidate_ranking),
@@ -71,7 +78,10 @@ def main():
         ('miss-intermediate-link-contact',patch.object(SourceCeilingConsumer,'contact_geometry','tip'),tests.test_intermediate_link_contact_can_start_closure_before_tip_contact),
         ('use-initial-touch-instead-of-completed-grasp',patch.object(controller_module,'FeedbackObserver',lambda points:SimpleNamespace(update=lambda *args,**kwargs:SimpleNamespace(grasp_established=False))),tests.test_source_key_prefers_completed_coupled_lift_over_initial_touch),
         ('chase-live-object-during-closing',patch.object(SourceCeilingConsumer,'step',chasing_close_goal),tests.test_closing_reference_does_not_chase_object_after_real_contact),
-        ('keep-stale-goal-after-contact-loss',patch.object(SourceCeilingConsumer,'contact_loss_dwell_s',float('inf')),tests.test_contact_loss_releases_captured_goal_and_returns_to_approach)]
+        ('keep-stale-goal-after-contact-loss',patch.object(SourceCeilingConsumer,'contact_loss_dwell_s',float('inf')),tests.test_contact_loss_releases_captured_goal_and_returns_to_approach),
+        ('discard-source-PD-motion',patch.object(SourceGraspReference,'intent',drop_motion),tests.test_source_approach_preserves_recorded_pd_motion_and_uses_measured_progress),
+        ('discard-source-wrist-PD-preload',patch.object(SourceGraspReference,'intent',drop_wrist_preload),tests.test_source_key_wrist_preserves_predecessor_pd_preload_as_well_as_fingers),
+        ('drive-source-path-by-wall-ticks',patch.object(SourceGraspReference,'intent',tick_motion),tests.test_source_approach_preserves_recorded_pd_motion_and_uses_measured_progress)]
     result=[]
     for name,mutation,check in cases:
         check() # First prove the unmutated check passes.

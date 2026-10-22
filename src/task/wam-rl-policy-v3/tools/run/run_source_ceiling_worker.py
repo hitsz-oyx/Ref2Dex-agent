@@ -208,7 +208,7 @@ def main():
                         if safe['abort'] or t==reg['horizon_controls']:break
                         with torch.inference_mode():adapter=model.actor(torch.tensor(observation[None],device='cuda')).cpu().numpy()
                         actor_calls+=1;adapter_clipped+=int((np.abs(adapter)>1+1e-6).any())
-                        intent=source_grasp.intent(target.object_path[-1])
+                        intent=source_grasp.intent(target.object_path[-1],live_object=pose,live_palm=palm)
                         if residual is not None:
                             residual_input=residual_observation(observation,intent)
                             with torch.no_grad():

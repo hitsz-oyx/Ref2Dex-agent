@@ -14,7 +14,7 @@ seeds: [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 11
 decision_changed_if_positive: qualify source-only controller on the same forty development initials before comparing WAM
 decision_changed_if_negative: retain all failures and repair measured approach or closure without relaxing physical gates
 status: RUNNING
-run_id: source-ceiling-20261023-r7
+run_id: source-ceiling-20261023-r8
 ---
 
 ## 结果解读表
@@ -110,4 +110,16 @@ export TMPDIR="$PWD/tmp"
 PY=/home2/wyy/miniconda3/envs/graspenv/bin/python
 $PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r7 --prepare --predecessor outputs/wam-rl-policy-v3/source-ceiling-20261023-r6
 $PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r7 --detached
+```
+
+## R8运行前修订：恢复source接近路径与完整腕PD目标
+
+R7已有≥9个完整失败，32门槛不可能达到，但仍跑完整40。静态source key重写的各版均退步，不能继续把它称原source-PD天花板。R8恢复原始source PD路径，用实测object-local腕位姿在前方9个录制状态中找最近单调游标，消费该状态的真实PD动作；不按墙钟前进、不回放参考离开/释放，接近上限为source闭合完成帧。接触后沿用R7世界抓姿锁定。
+另一处明确的信息丢失：R6保留手指PD目标却拿实测腕当指令，40条的腕位置PD-minus-measured范数中位67.037mm、p90 153.097mm、最大358.156mm；角差中位0.1142rad。这包含运动前馈/受力偏差，不能称纯接触力。R8闭合腕目标同样来自产生该状态的前驱action[f-1]，映射当前物体，受同一限速/内余量/卸载保护，不放松物理gate。
+Blocker目的：恢复被本轮改写丢失的source动作信息，而非为τ归因另加对照。预注册同40初态/24000控制/0updates/20秒；R3–R8累计最多144000控制。source目标≥32/40、预抓限位≤2；未知能否达到。若仍不提升，继续修而不比WAM。新红测试为两项实际输出不一致（不是import/缺参数失败），R7/motion-red.log；软件验收30专项、26故意错误，原抓后伺服/评分/gate不变。
+```bash
+export TMPDIR="$PWD/tmp"
+PY=/home2/wyy/miniconda3/envs/graspenv/bin/python
+$PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r8 --prepare --predecessor outputs/wam-rl-policy-v3/source-ceiling-20261023-r7
+$PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r8 --detached
 ```

@@ -322,3 +322,39 @@ def test_contact_loss_releases_captured_goal_and_returns_to_approach():
     for t in range(1,6):
         args['now']=t/30;_,info=c.step(**args)
     assert c.phase=='approach' and c.closing_goal is None and info['source_ceiling']['regrasp_requested']
+
+
+def test_source_approach_preserves_recorded_pd_motion_and_uses_measured_progress():
+    from wam_rl_policy_v3.source_ceiling import SourceGraspReference
+    from wam_rl_policy_v3.pose_consumer import pose7
+    ref,points=key_reference()
+    ref['q'][:,:,:3]=ref['palm_pose'][:,:,:3]
+    ref['action'][:,:3]=.03
+    key=SourceGraspReference(ref,points,np.zeros(18),np.ones(18))
+    obj=pose7(ref['objects'][0,0]);palm=pose7(ref['palm_pose'][0,0])
+    try:intent=key.intent(np.eye(4),live_object=obj,live_palm=palm)
+    except TypeError:intent=key.intent(np.eye(4)) # Exercise the old production semantics too.
+    expected=palm.copy();expected[:3,3]+=.03
+    np.testing.assert_allclose(obj@intent.approach_pose_object,expected,atol=1e-7)
+    assert key.manifest()['motion_cursor']==0
+    for _ in range(10):key.intent(np.eye(4),live_object=obj,live_palm=palm)
+    assert key.manifest()['motion_cursor']==0, 'Wall ticks cannot outrun a stationary measured wrist'
+    palm=pose7(ref['palm_pose'][4,0]);key.intent(np.eye(4),live_object=obj,live_palm=palm)
+    assert 0<key.manifest()['motion_cursor']<=key.grasp_frame
+
+
+def test_source_key_wrist_preserves_predecessor_pd_preload_as_well_as_fingers():
+    from wam_rl_policy_v3.source_ceiling import SourceGraspReference
+    from wam_rl_policy_v3.pose_consumer import pose7
+    from scipy.spatial.transform import Rotation
+    ref,points=key_reference();ref['q'][:,:,:3]=ref['palm_pose'][:,:,:3]
+    ref['q'][:,:,3:6]=0.;ref['palm_pose'][:,:,3:7]=[0,0,0,1]
+    ref['action'][7,:6]=[.04,0,.06,0,0,.1]
+    key=SourceGraspReference(ref,points,np.zeros(18),np.ones(18))
+    obj=pose7(ref['objects'][8,0]);palm=pose7(ref['palm_pose'][8,0])
+    try:intent=key.intent(np.eye(4),live_object=obj,live_palm=palm)
+    except TypeError:intent=key.intent(np.eye(4)) # Exercise the old production semantics too.
+    target=pd_targets(ref['action'][7],ref['q'][7,0],np.zeros(18),np.ones(18))
+    expected=palm.copy();expected[:3,3]+=target[:3]-ref['q'][8,0,:3]
+    expected[:3,:3]=Rotation.from_euler('XYZ',target[3:6]).as_matrix()
+    np.testing.assert_allclose(obj@intent.grasp_pose_object,expected,atol=1e-7)
