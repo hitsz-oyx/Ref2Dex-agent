@@ -71,6 +71,11 @@ def main():
             if path.suffix not in {'.py','.yaml','.yml','.json','.cpp','.cu','.h','.hpp','.so'}:continue
             destination=frozen/path.relative_to(ROOT);destination.parent.mkdir(parents=True,exist_ok=True)
             shutil.copy2(path,destination);copied.append(str(path.relative_to(ROOT)))
+    # DExplore data/cfg is an input symlink; freeze its selected small training
+    # config explicitly while all meshes/data remain read-only original inputs.
+    relative=Path('third_party/DExplore/dexplore/data/cfg/train/rlg/inspire.yaml')
+    destination=frozen/relative;destination.parent.mkdir(parents=True,exist_ok=True)
+    shutil.copy2((ROOT/relative).resolve(),destination);copied.append(str(relative))
     # This historical import helper binds code to REF2DEX_RUN_ROOT. In the
     # snapshot only, keep code local while that variable still names real data.
     helper=frozen/'src/task/wam-rl-policy-v3/src/wam_rl_policy_v3/wam_v4_runtime.py'

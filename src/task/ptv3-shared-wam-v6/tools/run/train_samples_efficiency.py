@@ -41,7 +41,7 @@ def main():
  commit=os.environ.get('REF2DEX_CODE_COMMIT') or subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
  state=dict(status='WAITING_NATIVE',experiment_id='P-20261022-wam-v6-samples-efficiency-3arm',arm=a.arm,run_id=a.output.parent.name,git_commit=commit,python=sys.executable,torch=torch.__version__,gpu=a.gpu,rank=a.rank,world_size=a.world_size,bc=str(a.bc.resolve()),bc_step=packet['step'],source_manifest=str(a.audit_manifest.resolve()),optimizer_steps=0,iteration=0,
   ppo_engine='pinned UniDexGrasp2 official; actual-KL/global advantage/gradient adapters reused from Shadow',observation_dim=846,work_version='samples-efficiency-v1',cad_encoder='frozen BC encoder, part of checkpoint',reset_contract='step in source episode; terminal reward then eager indexed reset before next sampling',reset_probe=a.reset_probe)
- write(a.output/'manifest.json',state);print('READY',flush=True);connection=None;env=None;ppo=None;started=time.monotonic()
+ write(a.output/'manifest.json',state);print('READY',flush=True);connection=None;env=None;ppo=None;base_environment_steps=0;started=time.monotonic()
  try:
   connection,_=listener.accept();connection.settimeout(600);hello=receive(connection);state['native_peer_pid']=peer_pid(connection)
   if not hello['audit'].get('extended_state') or hello['audit'].get('state_transport')!='packed':raise ValueError('native measured packed state required')
