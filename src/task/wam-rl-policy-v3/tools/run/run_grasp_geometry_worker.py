@@ -6,6 +6,7 @@ from types import SimpleNamespace
 ROOT=Path(__file__).resolve().parents[5];TASK=ROOT/'src/task/wam-rl-policy-v3'
 sys.path.insert(0,str(TASK/'tools/audit'))
 from repeat_frozen_tau_chains import freeze,write
+from freeze_grasp_geometry import copy_geometry_runtime
 
 
 def control_counts(infos,actions):
@@ -60,11 +61,8 @@ def main():
     gpu=subprocess.check_output(['nvidia-smi','-i',str(a.gpu),'--query-gpu=index,memory.used,utilization.gpu','--format=csv,noheader,nounits'],text=True)
     if int(gpu.split(',')[1])>64:raise RuntimeError('GPU occupied, queue this worker: '+gpu)
     out.mkdir(parents=True);oldrun=ROOT/'outputs/ptv3-shared-wam-v6/single-tau-calibration-20261022-r1';frozen=freeze(out,oldrun)
-    for name in ('pose_consumer','evaluation_sources','geometry_tau','stage_evaluation','grasp_repair','grasp_geometry','intent_residual'):
-        shutil.copyfile(TASK/'src/wam_rl_policy_v3'/(name+'.py'),frozen/'src/task/wam-rl-policy-v3/src/wam_rl_policy_v3'/(name+'.py'))
-    shutil.copyfile(ROOT/'src/task/ptv3-shared-wam-v6/src/ptv3_shared_wam_v6/staged_progress.py',frozen/'src/task/ptv3-shared-wam-v6/src/ptv3_shared_wam_v6/staged_progress.py')
+    copy_geometry_runtime(frozen)
     shutil.copyfile(TASK/'tools/audit/measure_s2d_controls.py',out/'s2d_mapping.py');shutil.copyfile(Path(__file__),out/'runner.py');shutil.copyfile(a.registration,out/'registration.json')
-    shutil.copyfile(TASK/'tools/run/inspire_physics_host.py',frozen/'src/task/wam-rl-policy-v3/tools/run/inspire_physics_host.py')
     private=Path(tempfile.mkdtemp(prefix='gv10-',dir=str(ROOT/'tmp')))
     os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu),REF2DEX_RUN_ROOT=str(ROOT),REF2DEX_V6_V5_CODE_ROOT=str(frozen),REF2DEX_V5_BASE_CODE_ROOT=str(frozen),TMPDIR=str(private),PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='2',OPENBLAS_NUM_THREADS='2')
     sys.path[:0]=[str(out),str(frozen/'src/task/wam-rl-policy-v3/src'),str(frozen/'src/task/trajectory-policy/src'),str(frozen/'src/task/ptv3-shared-wam-v6/src')]

@@ -65,3 +65,5 @@ $PY src/task/wam-rl-policy-v3/tools/audit/classify_measured_grasp_deaths.py --ma
 并发`g4/5/6-resume2`正在续v10，已核consumer/pose/stage与原冻结快照字节相同；不重复启动。其技术预算按3×600=1800保守预留，native退出收据实际记录161+510+210=881额外控制；最终同时报告保守预算和可核实实际数，不混进160个完成回合的分母。
 
 分类器防错：把真实`held_but_off_goal`的`final_success`故意翻为True，完整CLI以`published outcome disagrees with saved physical endpoint`拒绝；正常80条A1记录通过。原正式数据未改。故障副本与日志在`tmp/v11-classification-mutant/`，收据`.../grasp-v10-stat40-20261022-r1/classification-mutant.json`。分类器从消费日志读取真实postgrasp目标，不重新假设初态+8cm；仅适用于v9/v10冻结15mm协议。
+
+后续打包阻塞已修：geometry worker直接导入`source_pd`，但它不在legacy基线快照，也未在新复制清单。实际隔离旧包导入报ModuleNotFoundError。提取`freeze_grasp_geometry.py::copy_geometry_runtime`供真实worker调用，补该依赖；隔离包回归先1 failed（真实缺项），修后通过，再故意删该模块仍被拒绝。只补打包，不改几何/伺服常数。运行中v10不依赖这次改动。
