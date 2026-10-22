@@ -254,3 +254,19 @@ object prefix8 EPE19.441/20.013mm；未显示持续DEV改善，不能当作成�
 `dev-curve.csv`、`training-curves.png/svg`。关联扫描覆盖本项目outputs2396个权重路径，
 没有发现11020 payload；未知位置/任意改名的外部export仍不能排除，不宣称全世界不存在。
 本次只CPU审计、不建CUDA context、不改原权重/训练manifest，不写STATE、不做Git操作。
+
+## 2026-10-23 scale and continuation correction
+
+The local data used by this probe is not the full nine-source recipe. The
+prepared cache remains 1,177 sequences (GRAB 1,132 plus 45 from the other
+sources), with 33,672 TRAIN and 3,356 DEV windows. The expanded recipe reused
+those caches and changed only GRAB TRAIN window sampling (to 207,579). The
+registered 38,349 remaining sequences are still unprepared.
+
+The receipt's `target_updates=30000`, `max_cumulative_training_seconds=43200`,
+and `expected_final_step=12205` describe the bounded run and its forecast. The
+last log was step 11,380 and the latest durable checkpoint was step 11,000.
+This run is stopped. It is not evidence of a full-data run and is not resumed
+until the `object_goal_valid` hard-code and train/inference goal semantics are
+fixed and verified. The storage estimate and the two post-fix scale choices are
+recorded in [the local-scale correction](../research/2026-10-23-local-scale-correction.md).

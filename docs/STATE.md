@@ -5058,3 +5058,21 @@ scene membership、joints、sleep timer 或 hidden solver state；RepX/object se
 因此 strict Gate1 blocker 已从“可能遗漏 Python wrapper”收窄为当前 runtime 没有可调用
 的 hidden-state 执行合同；不重复 group/serial/CUDA/CPU/host，也不启动 evaluator 或
 PointWorld，等待新 runtime/API 合同或明确的 claim Decision Checkpoint。
+## 2026-10-23 WAM local-data scale correction; no full retraining commitment
+
+The current WAM-v6 local recipe is **1,177 sequences** (GRAB 1,132 plus 45
+from the other eight sources), with **33,672 TRAIN / 3,356 DEV** windows. The
+expanded local recipe only reuses these caches and raises GRAB TRAIN windows to
+207,579; it is not the registered 38,349-sequence nine-source recipe. The
+prepared cache is 5.62 GiB, about 4.89 MiB per sequence. `/home2` currently has
+141 GiB free, while a linear 38,349-sequence estimate is 183.0 GiB total and
+177.4 GiB additional, before temporary peak and the 20 GiB safety floor. See
+the [full scale correction](../src/task/ptv3-shared-wam-v6/docs/research/2026-10-23-local-scale-correction.md).
+
+The stopped flow-matching run was bounded at 30,000 updates or 43,200 seconds;
+its log reached 11,380 and its newest durable checkpoint is step 11,000.
+`expected_final_step=12,205` is a forecast, not a saved step. No full-data
+retraining is promised. Training stays HOLD until the `object_goal_valid`
+hard-code and train/inference goal-semantic alignment are repaired and
+verified. Afterwards the bounded choices are 24–48 h on the same subset or
+owner-approved disk reclamation followed by a declared expansion target.

@@ -655,3 +655,23 @@ outputs/three-gpu-continuation-controller-20261020-r1/report.json (transition an
 outputs/ptv3-shared-wam-v6/three-gpu-recovery-20261020-r1/ (completed8updates),
 outputs/ptv3-shared-wam-v6/pretrain-nine-v6-events-threegpu-20261020-r2/ (active).
 Local small receipts:outputs/ptv3-shared-wam-v6/three-gpu-recovery-20261020-r1/.
+## 2026-10-23 Local-data scale correction; training HOLD pending goal contract
+
+The local WAM-v6 data is a fixed **1,177-sequence** cache (GRAB 1,132 plus 45
+from the other eight sources), with **33,672 TRAIN / 3,356 DEV** windows. The
+local-expanded recipe only reuses those caches and expands GRAB TRAIN windows
+to **207,579**; it does not prepare the registered **38,349**-sequence full
+recipe. The prepared cache is 6,031,884,656 bytes (5.62 GiB), about 4.89 MiB
+per sequence. With 141 GiB free on `/home2`, a linear full-recipe estimate is
+183.0 GiB total / 177.4 GiB additional, before temporary peak and the 20 GiB
+free-space floor. The detailed table and assumptions are in
+[the scale-correction note](research/2026-10-23-local-scale-correction.md).
+
+The flow-matching receipt was bounded at 30,000 updates or 43,200 cumulative
+seconds. Its log reached step 11,380 and its latest durable checkpoint is
+step 11,000; `expected_final_step=12,205` is only the receipt forecast. The run
+is stopped. No full-data retraining is promised. After the `object_goal_valid`
+and train/inference goal-semantic fixes are verified, the only scale choices
+are longer training on the same subset (24–48 h) or owner-approved expansion
+after reclaiming disk space. Until then, training and new cache preparation are
+HOLD.
