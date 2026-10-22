@@ -25,6 +25,13 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261023-tau-execution-ab:
+    seed_pool: probe
+    native_seeds: {ranges: [[100, 119]]}
+    inference_seeds: {ranges: [[180, 199]]}
+    initialization_seed: 196
+    reuse_reason: exact first20 existing coverage40 jobs, checkpoint-only paired reset intervention; no fresh sample or validation claim
+
   P-20261023-tau-checkpoint-execution-ab:
     seed_pool: probe
     native_seeds: {ranges: [[100, 119]]}
