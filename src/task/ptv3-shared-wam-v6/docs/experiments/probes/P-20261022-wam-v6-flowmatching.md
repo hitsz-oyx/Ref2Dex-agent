@@ -269,4 +269,4 @@ last log was step 11,380 and the latest durable checkpoint was step 11,000.
 This run is stopped. It is not evidence of a full-data run and is not resumed
 until the `object_goal_valid` hard-code and train/inference goal semantics are
 fixed and verified. The storage estimate and the two post-fix scale choices are
-recorded in [the local-scale correction](../research/2026-10-23-local-scale-correction.md).
+recorded in [the local-scale correction](../../research/2026-10-23-local-scale-correction.md).

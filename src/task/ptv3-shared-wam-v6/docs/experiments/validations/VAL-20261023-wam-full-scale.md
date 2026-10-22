@@ -56,9 +56,9 @@ normalizer 和 source split 合同不同。把这五根接入必须先做一个�
 
 ## 规模方案与当前阻塞
 
-已留下 [data-audit.json](../../../../../outputs/ptv3-shared-wam-v6/full-scale-20261023-r1/data-audit.json)、
-[launch-config.json](../../../../../outputs/ptv3-shared-wam-v6/full-scale-20261023-r1/launch-config.json)、
-完整的 [config-b96-w4.json](../../../../../outputs/ptv3-shared-wam-v6/full-scale-20261023-r1/config-b96-w4.json)
+已留下 [data-audit.json](../../../../../../outputs/ptv3-shared-wam-v6/full-scale-20261023-r1/data-audit.json)、
+[launch-config.json](../../../../../../outputs/ptv3-shared-wam-v6/full-scale-20261023-r1/launch-config.json)、
+完整的 [config-b96-w4.json](../../../../../../outputs/ptv3-shared-wam-v6/full-scale-20261023-r1/config-b96-w4.json)
 （路径以仓库根为准；实际文件名见同目录）和复现命令草案。目标是沿用 step011000 的结构/损失，
 4 卡 `[4,5,6,7]`、每卡 batch 96、global batch 384、seed 170、至少 20k、目标 40k 更新，
 每 500 步保存并保留最近两个 checkpoint。
