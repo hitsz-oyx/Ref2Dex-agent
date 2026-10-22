@@ -8,7 +8,7 @@
 | 提升但<32/40 | 修复不够，不能拿WAM解释数据量 | 按余下死因继续修source |
 | 不提升或实际限位仍多 | 当前方案未解决物理瓶颈 | 保留全部失败和gate，继续修；不训练v6 |
 
-当前状态：**原source14/40；R3–R7各完整0/40；R8至少30失败仍跑完40；未修好，不能称改善。** R9在0子进程/0控制时因实际step红测试取消；fresh R10保留闭合修复并拆开目标内余量/实测危险。source未达32前不比WAM。
+当前状态：**原source14/40；R3–R8各完整0/40；未修好，不能称改善。** R9为0控制取消；R10在3/40完成时被manifest读取竞态技术中断，2494控制保留，不报成0/40。R11修腕PD限速和manifest竞态，按同40重新冻结；仍不比WAM。
 ## 修复、可证伪预测与复现
 
 R3历史定位（以提交99875f23核对；均以`src/task/wam-rl-policy-v3/`为前缀）：
@@ -169,3 +169,10 @@ R9仅在R8≥9完整失败后排队启动；仍不终止R7/R8原40、不改评�
 
 实际step红测试R9/margin-replan-red.log为1 failed/32 deselected：q=.01在名义0界内、未达实测危险−.05，父Geometry却因目标margin .04而换抓姿。`grasp_geometry.py`只增加可选admission.measured_pressure两行钩子；source MarginAdmission将真实危险按原名义边界±.05且向外速度>0.2预警。PD候选仍须目标inner bounds，physical_safety±.10不动，普通控制器无hook保持旧行为。预期不必要的重规划1→0；卸载和真实gate仍有效。
 冻结prepare对v11 baseline仅注入同两行，不整份copy当前geometry，确保postservo/评分不被并行改动带入。R9 supervisor在QUEUED且pids/commands均空时被本线程取消，记录CANCELLED_PRESTART/0controls；从R8作为前序启动fresh R10，同40/24000/0updates，目标32。复现命令见实验卡R10；33专项/29mutants/全量309 passed/0 failed/0 skipped，20.85s、2 warnings。红测试与mutant都在真实step读reachability标记，非import失败。
+
+## R11：腕PD命令限速、技术中断及补救
+
+R10 supervisor.log明确JSONDecodeError发生于读前序manifest，随后两个本批client被终止。已完成3/40均失败；3个完整1624控制+2个partial870=2494，35未开始；保留所有记录，不挤掉失败或冒充40。R11 fresh同40，以R8为前序，不能等FAILED的R10。
+`run_source_ceiling_worker.py::write`改原子替换；supervisor `read_manifest/ancestors_released`对瞬时空/截断文件返回pending，保留排队超时，不把pending当完成或致命错误。CPU三个queue回归抓住故意“空文件当完成”和“非原子直接覆盖”，不是物理成功证明。
+`SourceCeilingConsumer.step`腕限速改相邻最终PD命令SE3之间，而非永久限制相对实测q的跟踪偏移；红测试六拍旧目标=.025m，新=.150m，每拍仍≤.025m。跟踪偏移与命令步长分字段记录；卸载/有界probe以实测锚点优先，抓后原伺服不改。mutant恢复相对实测限速会被实际step断言抓住。
+复现命令/预算见实验卡R11节。全部版本已实耗141276（含R10中断），本版≤24000后≤165276，0updates，目标32/40仍未证实。全仓verify本次被并行v6卡P-20261023-tau-fixed-panel-metric缺claim_id/hypothesis_family/probe_index_in_family阻断，未修改对方文件，不报PASS。最初frozen preflight误读launch覆盖层缺inspire_contract，不能当测试通过；已在R10真实完整runtime复跑33/33，见frozen-preflight.json。

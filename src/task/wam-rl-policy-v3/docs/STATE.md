@@ -438,3 +438,5 @@ R7已≥9完整失败，仍完成40；R8预注册恢复source PD接近路径（�
 R9条件预注册（R8≥9失败才启动）：首次接触锁实测腕、停止继续插入；探测保持source闭合目标，不提前转微弱持握调节。同40/24000/0updates，仍需32/40，不比WAM/不RL/不重训。
 
 R9在0子进程/0控制时取消：新step红测试发现目标inner margin被父类当成实测碰撞压力。R10 fresh预注册（前序R8），同40/24000/0updates，保留闭合修复，加可选measured_pressure钩子，目标仍inner准入/实际gate不动。全v3 309 passed/0 failed；33专项、29mutants。R7完整0/40/22073控制/0jointabort，R8≥30完整失败仍跑满。未达32/40，不比WAM。
+
+R8完整0/40/23387控制/0jointabort；R10在3/40完成时被前序manifest写入竞态中断，2494控制（完整1624/partial870）保留，不报0/40。R11 fresh同40/24000/0updates，修worker原子写/reader瞬时不可读pending，腕部限速改相邻PD命令而非限制跟踪偏移；六拍.025→.150m且每拍≤.025。累计旧141276+新≤24000=≤165276，不比WAM，RL HOLD/不重训。

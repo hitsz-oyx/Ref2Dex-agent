@@ -384,3 +384,15 @@ def test_inner_target_margin_is_not_a_measured_collision_or_replanning_gate():
     _,info=c.step(**args)
     assert not info['reachability']['filter_active'], 'A safe compliant state outside the TARGET margin must not replace the source wrist with another grasp'
     assert info['source_ceiling']['inner_target_admitted']
+
+
+def test_wrist_command_slew_accumulates_pd_tracking_offset_while_measured_hand_lags():
+    c,args=approaching();c.phase='approach';args['near_fingers']=0;args['fingertip_gap_m']=1.
+    args['intent'].approach_pose_object[0,3]+=.4;args['intent'].grasp_pose_object[0,3]+=.4
+    targets=[]
+    for i in range(6):
+        args['now']=i/30;command,_=c.step(**args)
+        targets.append(pd_targets(command,args['q'],c.offset,c.scale)[:3])
+    np.testing.assert_allclose(targets[-1]-args['q'][:3],[.15,0,0],atol=1e-6,
+        err_msg='A .75m/s command ramp is NOT a permanent .025m tracking-error clamp')
+    assert np.linalg.norm(np.diff(np.array([args['q'][:3]]+targets),axis=0),axis=-1).max()<=.025+1e-6

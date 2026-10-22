@@ -14,7 +14,7 @@ seeds: [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 11
 decision_changed_if_positive: qualify source-only controller on the same forty development initials before comparing WAM
 decision_changed_if_negative: retain all failures and repair measured approach or closure without relaxing physical gates
 status: RUNNING
-run_id: source-ceiling-20261023-r10
+run_id: source-ceiling-20261023-r11
 ---
 
 ## 结果解读表
@@ -147,4 +147,19 @@ export TMPDIR="$PWD/tmp"
 PY=/home2/wyy/miniconda3/envs/graspenv/bin/python
 $PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r10 --prepare --predecessor outputs/wam-rl-policy-v3/source-ceiling-20261023-r8
 $PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r10 --detached
+```
+
+## R10技术中断 / R11预注册：腕命令限速与manifest竞态
+
+R8已完整0/40、23387控制、0jointabort。R10在3/40完成（0成功）时因读取R8正在重写的空manifest触发JSONDecodeError，supervisor终止自身两个worker；GPU4组未开始。R10实际2494控制：1624属于3个完整回合，870属于2个中断回合，35回合未开始；保留全部partial，不把它写0/40或计算完整n40比较。该错误不涉及他人进程；两客户端finally关闭各自native。
+R11修race：worker JSON用临时文件原子替换；reader对旧writer的空/截断manifest按pending处理，不释放卡、不终止正在运行的其他本批worker；queue超时仍有效。三项CPU队列回归含“空文件当COMPLETED”和“直接覆盖原manifest”故意错误。
+同时修腕限速真实缺陷：旧代码把“每秒.75m”实现为每tick相对**实测腕**永久截断PD偏移.025m，而非相邻**命令**的位移限速，削掉native PD跟踪/运动前馈。新命令以先前最终PD目标作SE3限速参考，阻挡q不动时六拍目标.025→.150m、每拍仍≤.025；实测卸载/最大10mm候选探测仍保留实测安全锚点。原抓后伺服/评分/物理gate不变。
+同40初态/24000控制/0updates/20秒，直接以前序完整R8为队列前提（不能等永远FAILED的R10）。R3–R8实际138782，加R10中断2494=141276控制，本版后≤165276，未突破此前168000的总上限。预期source≥32/40/预抓限位≤2；CPU通过不代表达到。红测试R10/wrist-slew-red.log实际.025 vs期望.150，非缺参数失败。
+```bash
+export TMPDIR="$PWD/tmp"
+PY=/home2/wyy/miniconda3/envs/graspenv/bin/python
+$PY -m pytest -q src/task/wam-rl-policy-v3/tests/test_source_ceiling.py src/task/wam-rl-policy-v3/tests/test_source_ceiling_queue.py --basetemp=tmp/pytest-source-independent-final
+$PY src/task/wam-rl-policy-v3/tools/audit/run_source_ceiling_mutants.py
+$PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r11 --prepare --predecessor outputs/wam-rl-policy-v3/source-ceiling-20261023-r8
+$PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r11 --detached
 ```

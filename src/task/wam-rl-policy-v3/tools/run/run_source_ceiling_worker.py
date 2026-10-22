@@ -9,6 +9,12 @@ from repeat_frozen_tau_chains import freeze,write
 from freeze_grasp_geometry import copy_geometry_runtime
 
 
+def write(path,value):
+    temporary=path.with_name(path.name+'.new')
+    temporary.write_text(json.dumps(value,indent=2)+'\n')
+    temporary.replace(path)
+
+
 def control_counts(infos,actions):
     """JSON-native integers even when NumPy comparisons enter Python sum."""
     return dict(reach_filter_controls=int(sum(bool(i['reachability'] and i['reachability']['filter_active']) for i in infos)),

@@ -64,6 +64,9 @@ def main():
     def target_margin_as_pressure(self,q,dq):
         projected=np.asarray(q)+np.asarray(dq)/30
         return bool((self.mask&((projected<self.lower)|(projected>self.upper))).any())
+    def anchor_wrist_slew_to_measurement(self,**args):
+        self.wrist_command=np.asarray(args['palm']).copy()
+        return original(self,**args)
     cases=[('ignore-measured-pressure',patch.object(SourceCeilingConsumer,'force_limit_n',float('inf')),tests.test_measured_pressure_unloads_at_actual_approach_close_step),
         ('unlimited-finger-target-jump',patch.object(SourceCeilingConsumer,'finger_rate_radps',100.),tests.test_approach_finger_target_does_not_jump_to_reference),
         ('omit-target-margin',patch.object(MarginAdmission,'__init__',JointAdmission.__init__),tests.test_nominally_legal_near_limit_target_is_rejected_before_candidate_ranking),
@@ -92,7 +95,8 @@ def main():
         ('drive-source-path-by-wall-ticks',patch.object(SourceGraspReference,'intent',tick_motion),tests.test_source_approach_preserves_recorded_pd_motion_and_uses_measured_progress),
         ('continue-inserting-after-measured-contact',patch.object(SourceCeilingConsumer,'step',chasing_close_goal),tests.test_first_measured_contact_stops_insertion_and_closes_fingers_at_measured_wrist),
         ('freeze-closure-at-provisional-candidate',patch.object(SourceCeilingConsumer,'step',freeze_probe_closure),tests.test_acquisition_probe_does_not_freeze_partly_completed_finger_closure),
-        ('use-target-margin-as-measured-collision',patch.object(MarginAdmission,'measured_pressure',target_margin_as_pressure),tests.test_inner_target_margin_is_not_a_measured_collision_or_replanning_gate)]
+        ('use-target-margin-as-measured-collision',patch.object(MarginAdmission,'measured_pressure',target_margin_as_pressure),tests.test_inner_target_margin_is_not_a_measured_collision_or_replanning_gate),
+        ('limit-PD-error-instead-of-command-velocity',patch.object(SourceCeilingConsumer,'step',anchor_wrist_slew_to_measurement),tests.test_wrist_command_slew_accumulates_pd_tracking_offset_while_measured_hand_lags)]
     result=[]
     for name,mutation,check in cases:
         check() # First prove the unmutated check passes.

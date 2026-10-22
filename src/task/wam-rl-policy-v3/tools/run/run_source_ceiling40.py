@@ -9,6 +9,21 @@ def write(path,obj):
     temporary=path.with_suffix('.new');temporary.write_text(json.dumps(obj,indent=2)+'\n');temporary.replace(path)
 
 
+def read_manifest(path):
+    # Prior workers can still use the legacy truncating writer. An in-progress
+    # JSON file means pending, never release or kill already running clients.
+    try:return json.loads(path.read_text())
+    except (FileNotFoundError,json.JSONDecodeError):return None
+
+
+def ancestors_released(ancestor,gpu):
+    while ancestor:
+        ancestor=Path(ancestor);data=read_manifest(ancestor/('g%d'%gpu)/'manifest.json')
+        if data is None or data.get('status')!='COMPLETED':return False
+        ancestor=json.loads((ancestor/'registration.json').read_text()).get('predecessor')
+    return True
+
+
 def prepare(out,predecessor=None):
     if (out/'registration.json').exists():raise ValueError('already registered; no overwrite')
     out.mkdir(parents=True,exist_ok=True)
@@ -27,7 +42,7 @@ def prepare(out,predecessor=None):
     worker=(TASK/'tools/run/run_source_ceiling_worker.py').read_text().replace("ROOT=Path(__file__).resolve().parents[5];TASK=ROOT/'src/task/wam-rl-policy-v3'", "ROOT=Path(%r);TASK=Path(%r)"%(str(ROOT),str(launch/'src/task/wam-rl-policy-v3')))
     (out/'worker.py').write_text(worker)
     reg=json.loads((BASELINE/'registration.json').read_text())
-    reg.update(protocol='source.measured-motion.contact-stop.physical-warning.n40.v10',experiment_id='P-20261023-source-controller-ceiling',
+    reg.update(protocol='source.measured-motion.command-slew.atomic-manifest.n40.v11',experiment_id='P-20261023-source-controller-ceiling',
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         arms=['A0'],subsets=['development_same_v11'],maximum_controls=24000,worker_wall_s=14400,queue_wall_s=14400,learning_updates=0,ppo_authorized=False,
         worker_source=str(out/'worker.py'),runtime_source=str(launch),baseline=str(BASELINE),
@@ -35,7 +50,7 @@ def prepare(out,predecessor=None):
         source_clock='measured nearest forward-state cursor, window9; no wall-clock increment; cap at source grasp key',
         source_geometry='source PD approach path follows measured SE3 nearest forward state (window9, no tick advance); key wrist and fingers preserve predecessor PD command; R unused; not GT-tau/R',
         closing_geometry='capture measured world wrist at first measured matched contact; stop insertion while closing; no chasing; release capture after .12s measured contact loss/unload',
-        approach_rate=dict(far_linear_mps=.75,far_angular_radps=2.4,near_linear_mps=.3,near_angular_radps=1.2,near_surface_m=.06),
+        approach_rate=dict(far_linear_mps=.75,far_angular_radps=2.4,near_linear_mps=.3,near_angular_radps=1.2,near_surface_m=.06,reference='consecutive_commanded_pose_not_PD_tracking_offset'),
         acquisition_probe=dict(maximum_m=.01,rate_mps=.06,trigger='existing measured force-valid grasp_candidate; does not certify acquisition or success'),
         predecessor=str(predecessor.resolve()) if predecessor else None,
         control_geometry_delta='baseline plus optional measured_pressure hook; default controllers unchanged; source admission uses physical warning, not inner target margin',
@@ -64,7 +79,8 @@ def main():
             if reg.get('predecessor') and not children:
                 prior=[]
                 for manifest in Path(reg['predecessor']).glob('g[456]/manifest.json'):
-                    prior.extend(json.loads(manifest.read_text())['runs'])
+                    data=read_manifest(manifest)
+                    if data is not None:prior.extend(data['runs'])
                 failures=sum(not r['final_success'] for r in prior)
                 receipt['predecessor_progress']=dict(completed=len(prior),failures=failures,
                     maximum_possible_successes=40-failures)
@@ -78,12 +94,7 @@ def main():
             memory={int(r.split(',')[0]):int(r.split(',')[1]) for r in reading.splitlines()}
             receipt.update(gpu_latest=reading,last_check=time.time());write(path,receipt)
             for gpu,worker in list(pending.items()):
-                ancestor=reg.get('predecessor');released=True
-                while ancestor:
-                    ancestor=Path(ancestor);m=ancestor/('g%d'%gpu)/'manifest.json'
-                    if not m.exists() or json.loads(m.read_text())['status']!='COMPLETED':released=False;break
-                    ancestor=json.loads((ancestor/'registration.json').read_text()).get('predecessor')
-                if not released:continue
+                if not ancestors_released(reg.get('predecessor'),gpu):continue
                 if memory.get(gpu,999999)>64:continue
                 command=[sys.executable,'-u',reg['worker_source'],'--registration',str(out/'registration.json'),'--worker',str(worker),'--gpu',str(gpu),'--output',str(out/('g%d'%gpu))]
                 handle=(out/('g%d.log'%gpu)).open('x');handles.append(handle)

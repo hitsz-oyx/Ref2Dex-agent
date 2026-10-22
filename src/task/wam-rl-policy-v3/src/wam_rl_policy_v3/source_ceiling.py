@@ -14,7 +14,7 @@ from .tau_replay_contract import pd_targets
 from .interaction_state import InteractionConfig
 from .task_feedback import FeedbackObserver
 
-SOURCE_CEILING_CONTRACT = 'source.measured-motion.contact-stop.physical-warning.v10'
+SOURCE_CEILING_CONTRACT = 'source.measured-motion.command-slew.v11'
 
 
 def object_anchored_source_target(target,reference_q,reference_palm,reference_object,
@@ -216,6 +216,7 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
         self.acquire_anchor=None
         self.object_tree=cKDTree(self.points)
         initial=np.asarray(args[0] if args else kwargs['q'])
+        self.wrist_command=np.asarray(args[1] if len(args)>1 else kwargs['palm']).copy()
         self.finger_target=self.inner_admission.fingers(initial[FINGER_ACTIVE])
         self.unload_fingers=self.finger_target.copy()
         self.closing_goal=None;self.closing_lost_since=None;self.regrasp_pending=False
@@ -228,7 +229,9 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
             self.acquire_anchor=None
             self.closing_goal=None;self.closing_lost_since=None
             command,info=super().step(**args)
-            self.finger_target=pd_targets(command,args['q'],self.offset,self.scale)[FINGER_ACTIVE].copy()
+            applied=pd_targets(command,args['q'],self.offset,self.scale)
+            self.finger_target=applied[FINGER_ACTIVE].copy()
+            self.wrist_command=np.asarray(info['wrist_target']).copy()
             info['source_ceiling']=dict(contract=SOURCE_CEILING_CONTRACT,active=False,source_paused=False)
             return command,info
         self.admission=self.inner_admission
@@ -328,13 +331,18 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
         if unloading:
             proposal=palm.copy();proposal[:3,3]+=self.unload_direction*self.reaching_linear_rate_mps/30
         # Pre-limit the source too, not just replacement geometry candidates.
-        delta=proposal[:3,3]-palm[:3,3]
+        # PD target offset is not velocity. Slew consecutive commanded poses,
+        # retaining the tracking/feed-forward offset required by native PD.
+        # A pressure retreat or bounded acquisition probe keeps its measured
+        # anchor and safety displacement instead of preserving old preload.
+        base=palm if unloading or probing else self.wrist_command
+        delta=proposal[:3,3]-base[:3,3]
         linear_step=self.acquisition_rate_mps/30 if probing else linear_rate/30
         delta*=min(1.,linear_step/max(np.linalg.norm(delta),1e-12))
-        proposal[:3,3]=palm[:3,3]+delta
-        rotation=Rotation.from_matrix(proposal[:3,:3]@palm[:3,:3].T).as_rotvec()
+        proposal[:3,3]=base[:3,3]+delta
+        rotation=Rotation.from_matrix(proposal[:3,:3]@base[:3,:3].T).as_rotvec()
         rotation*=min(1.,angular_rate/30/max(np.linalg.norm(rotation),1e-12))
-        proposal[:3,:3]=Rotation.from_rotvec(rotation).as_matrix()@palm[:3,:3]
+        proposal[:3,:3]=Rotation.from_rotvec(rotation).as_matrix()@base[:3,:3]
         mount=Rotation.from_euler('XYZ',q[3:6]).as_matrix().T@palm[:3,:3]
         changed=replace(intent,approach_pose_object=np.linalg.inv(args['object_pose'])@proposal,
                         preshape_q=fingers,closure_q=closure,approach_joint_angles=closest_wrist_angles(proposal[:3,:3],q[3:6],mount))
@@ -350,8 +358,18 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
         if self.phase in ('approach','close'):
             # Apply slew limits AFTER geometry selection too. Candidate rotation
             # and target admission cannot bypass the approach control budget.
-            command[:3]*=min(1.,linear_rate/30/max(np.linalg.norm(command[:3]*self.scale[:3]),1e-12))
-            command[3:6]*=min(1.,angular_rate/30/max(np.linalg.norm(command[3:6]*self.scale[3:6]),1e-12))
+            target=pd_targets(command,q,self.offset,self.scale)
+            candidate=palm.copy();candidate[:3,3]+=target[:3]-q[:3]
+            candidate[:3,:3]=Rotation.from_euler('XYZ',target[3:6]).as_matrix()@mount
+            delta=candidate[:3,3]-base[:3,3]
+            delta*=min(1.,linear_rate/30/max(np.linalg.norm(delta),1e-12))
+            candidate[:3,3]=base[:3,3]+delta
+            turn=Rotation.from_matrix(candidate[:3,:3]@base[:3,:3].T).as_rotvec()
+            turn*=min(1.,angular_rate/30/max(np.linalg.norm(turn),1e-12))
+            candidate[:3,:3]=Rotation.from_rotvec(turn).as_matrix()@base[:3,:3]
+            command[:3]=(candidate[:3,3]-palm[:3,3]-self.offset[:3])/self.scale[:3]
+            command[3:6]=(closest_wrist_angles(candidate[:3,:3],q[3:6],mount)-q[3:6]-self.offset[3:6])/self.scale[3:6]
+            command=self.admission.bound_action(command,q)
         if unloading and self.phase in ('approach','close'):
             # A new candidate must not overwrite this tick's measured retreat.
             command[:3]=(proposal[:3,3]-palm[:3,3]-self.offset[:3])/self.scale[:3]
@@ -385,7 +403,11 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
             finger_target_step_rad=finger_step,finger_tracking_error_rad=finger_error,
             finger_emergency_slew_override=bool(finger_step>self.finger_rate_radps/30+1e-6),
             measured_warning_margin=self.measured_warning_margin,physical_abort_margin_unchanged=.10,
+            wrist_target_step_m=float(np.linalg.norm(executed_pose[:3,3]-self.wrist_command[:3,3])),
+            wrist_tracking_offset_m=float(np.linalg.norm(executed_pose[:3,3]-palm[:3,3])),
+            wrist_slew_reference='previous_command_except_measured_retreat_or_bounded_probe',
             finger_rate_radps=self.finger_rate_radps,retreat_direction=None if not unloading else self.unload_direction.tolist())
         self.last_info=info
         self.finger_target=applied[FINGER_ACTIVE].copy()
+        self.wrist_command=executed_pose.copy()
         return command,info
