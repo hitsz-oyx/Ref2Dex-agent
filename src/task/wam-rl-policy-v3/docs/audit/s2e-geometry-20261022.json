@@ -1,0 +1,875 @@
+{
+  "status": "PASS",
+  "experiment_id": "P-20261022-s2e-geometry-tau",
+  "run_id": "s2e-geometry-20261022-r1",
+  "git_commit": "4ce9b0f35a461db37e5c120aa76855526c8c13ef",
+  "protocol": "s2e.v7.same-consumer.wam-vs-geometry.clock24.v1",
+  "consumer": "grasp-intent.pose-preshape-closure-objectgoal.measured.v2",
+  "environment": {
+    "python": "3.8.20 (default, Oct  3 2024, 15:24:27) \n[GCC 11.2.0]",
+    "executable": "/home2/wyy/miniconda3/envs/graspenv/bin/python",
+    "torch": "2.4.1+cu121",
+    "cuda": "12.1",
+    "numpy": "1.24.4",
+    "native_executable": "/home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train/bin/python",
+    "native_torch": "2.0.1+cu118"
+  },
+  "elapsed_s": 207.84356683585793,
+  "learning_updates": 0,
+  "environment_controls": 1941,
+  "maximum_actual_pd_error": 2.8880405977815826e-07,
+  "maximum_visible_initial_error": 0.0,
+  "wam_minus_geometry_successes": 1,
+  "chains": {
+    "wam": {
+      "n": 5,
+      "longest_hold_s": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "ever_successes": 1,
+      "final_successes": 1,
+      "controls": 1114,
+      "clipped_controls": 0,
+      "adapter_clipped_controls": 0,
+      "joint_limit_episodes": 2,
+      "other_abort_episodes": 0,
+      "valid_forecast_controls": 1070,
+      "measured_grasp_handoffs": 1,
+      "final_object_goal_errors_m": [
+        0.10079304767243567,
+        0.08198655807420384,
+        0.08198655699270156,
+        0.08198655813567153,
+        0.8736263171502734
+      ]
+    },
+    "geometry": {
+      "n": 5,
+      "longest_hold_s": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "ever_successes": 0,
+      "final_successes": 0,
+      "controls": 827,
+      "clipped_controls": 0,
+      "adapter_clipped_controls": 5,
+      "joint_limit_episodes": 4,
+      "other_abort_episodes": 0,
+      "valid_forecast_controls": 658,
+      "measured_grasp_handoffs": 0,
+      "final_object_goal_errors_m": [
+        0.08198668206139337,
+        0.08198655699270156,
+        0.08198655814852152,
+        0.08198655699270156,
+        0.08198668199936245
+      ]
+    }
+  },
+  "records": [
+    {
+      "label": "block0-wam",
+      "chain": "wam",
+      "block": 0,
+      "order_position": 0,
+      "controls": 103,
+      "ever_success": true,
+      "final_success": true,
+      "longest_hold_elapsed_s": 1.0,
+      "physical_safety_abort": null,
+      "encoder_covered_controls": 71,
+      "clipped_controls": 0,
+      "source_clipped_controls": 0,
+      "adapter_clipped_controls": 0,
+      "initial_max_errors": {},
+      "old_reference_initial_max_errors": {
+        "q": 0.0,
+        "dq": 0.0,
+        "hand": 0.0,
+        "objects": 0.0,
+        "physical": 0.0,
+        "tick": 0.0,
+        "table_pose": 0.0,
+        "contact_force_valid": 0.0,
+        "dof_force_valid": 0.0
+      },
+      "terminal_tick": 103,
+      "wam_calls": 71,
+      "phase_switch_time_s": 2.433333333333333,
+      "final_stage": {
+        "contract": "v6.approach-contact-lift5cm-hold1s-release.v1",
+        "current": {
+          "approach": false,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "achieved": {
+          "approach": true,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "first_time_s": {
+          "approach": 1.8666666666666667,
+          "contact": null,
+          "lift": null,
+          "hold": null,
+          "release": null
+        },
+        "longest_hold_s": 0.0,
+        "continuous_hold_s": 0.0
+      },
+      "final_object_goal_error_m": 0.10079304767243567,
+      "phase_counts": {
+        "approach": 48,
+        "close": 25,
+        "lift": 30,
+        "hold": 0
+      },
+      "independent_longest_hold_s": 1.0,
+      "pd_error": 1.6922474088687522e-07,
+      "geometric_target_max_error": 0.0,
+      "geometric_tau_max_error": 0.0,
+      "changed_hand_target_reconstruction_error": 0.0,
+      "first_lift5cm_tick": 65,
+      "hold_intervals": [
+        {
+          "first_tick": 73,
+          "last_tick": 103,
+          "elapsed_s": 1.0
+        }
+      ]
+    },
+    {
+      "label": "block0-geometry",
+      "chain": "geometry",
+      "block": 0,
+      "order_position": 1,
+      "controls": 106,
+      "ever_success": false,
+      "final_success": false,
+      "longest_hold_elapsed_s": 0.0,
+      "physical_safety_abort": "physical_joint_limit",
+      "encoder_covered_controls": 103,
+      "clipped_controls": 0,
+      "source_clipped_controls": 0,
+      "adapter_clipped_controls": 0,
+      "initial_max_errors": {
+        "q": 0.0,
+        "dq": 0.0,
+        "hand": 0.0,
+        "objects": 0.0,
+        "physical": 0.0,
+        "tick": 0.0,
+        "table_pose": 0.0,
+        "contact_force_valid": 0.0,
+        "dof_force_valid": 0.0
+      },
+      "old_reference_initial_max_errors": {
+        "q": 0.0,
+        "dq": 0.0,
+        "hand": 0.0,
+        "objects": 0.0,
+        "physical": 0.0,
+        "tick": 0.0,
+        "table_pose": 0.0,
+        "contact_force_valid": 0.0,
+        "dof_force_valid": 0.0
+      },
+      "terminal_tick": 106,
+      "wam_calls": 0,
+      "phase_switch_time_s": null,
+      "final_stage": {
+        "contract": "v6.approach-contact-lift5cm-hold1s-release.v1",
+        "current": {
+          "approach": false,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "achieved": {
+          "approach": false,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "first_time_s": {
+          "approach": null,
+          "contact": null,
+          "lift": null,
+          "hold": null,
+          "release": null
+        },
+        "longest_hold_s": 0.0,
+        "continuous_hold_s": 0.0
+      },
+      "final_object_goal_error_m": 0.08198668206139337,
+      "phase_counts": {
+        "approach": 106,
+        "close": 0,
+        "lift": 0,
+        "hold": 0
+      },
+      "independent_longest_hold_s": 0.0,
+      "pd_error": 2.3852607355934197e-07,
+      "geometric_target_max_error": 5.9591745538156715e-08,
+      "geometric_tau_max_error": 5.960464477539063e-08,
+      "changed_hand_target_reconstruction_error": 5.551115123125783e-17,
+      "first_lift5cm_tick": null,
+      "hold_intervals": []
+    },
+    {
+      "label": "block1-geometry",
+      "chain": "geometry",
+      "block": 1,
+      "order_position": 0,
+      "controls": 156,
+      "ever_success": false,
+      "final_success": false,
+      "longest_hold_elapsed_s": 0.0,
+      "physical_safety_abort": "physical_joint_limit",
+      "encoder_covered_controls": 153,
+      "clipped_controls": 0,
+      "source_clipped_controls": 0,
+      "adapter_clipped_controls": 0,
+      "initial_max_errors": {
+        "q": 0.0,
+        "dq": 0.0,
+        "hand": 0.0,
+        "objects": 0.0,
+        "physical": 0.0,
+        "tick": 0.0,
+        "table_pose": 0.0,
+        "contact_force_valid": 0.0,
+        "dof_force_valid": 0.0
+      },
+      "old_reference_initial_max_errors": {
+        "q": 0.0,
+        "dq": 0.0,
+        "hand": 0.0,
+        "objects": 0.0,
+        "physical": 0.0,
+        "tick": 0.0,
+        "table_pose": 0.0,
+        "contact_force_valid": 0.0,
+        "dof_force_valid": 0.0
+      },
+      "terminal_tick": 156,
+      "wam_calls": 0,
+      "phase_switch_time_s": null,
+      "final_stage": {
+        "contract": "v6.approach-contact-lift5cm-hold1s-release.v1",
+        "current": {
+          "approach": false,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "achieved": {
+          "approach": false,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "first_time_s": {
+          "approach": null,
+          "contact": null,
+          "lift": null,
+          "hold": null,
+          "release": null
+        },
+        "longest_hold_s": 0.0,
+        "continuous_hold_s": 0.0
+      },
+      "final_object_goal_error_m": 0.08198655699270156,
+      "phase_counts": {
+        "approach": 156,
+        "close": 0,
+        "lift": 0,
+        "hold": 0
+      },
+      "independent_longest_hold_s": 0.0,
+      "pd_error": 2.413760693542599e-07,
+      "geometric_target_max_error": 8.303524023922648e-08,
+      "geometric_tau_max_error": 5.960464477539063e-08,
+      "changed_hand_target_reconstruction_error": 5.551115123125783e-17,
+      "first_lift5cm_tick": null,
+      "hold_intervals": []
+    },
+    {
+      "label": "block1-wam",
+      "chain": "wam",
+      "block": 1,
+      "order_position": 1,
+      "controls": 232,
+      "ever_success": false,
+      "final_success": false,
+      "longest_hold_elapsed_s": 0.0,
+      "physical_safety_abort": "physical_joint_limit",
+      "encoder_covered_controls": 229,
+      "clipped_controls": 0,
+      "source_clipped_controls": 0,
+      "adapter_clipped_controls": 0,
+      "initial_max_errors": {
+        "q": 0.0,
+        "dq": 0.0,
+        "hand": 0.0,
+        "objects": 0.0,
+        "physical": 0.0,
+        "tick": 0.0,
+        "table_pose": 0.0,
+        "contact_force_valid": 0.0,
+        "dof_force_valid": 0.0
+      },
+      "old_reference_initial_max_errors": {
+        "q": 0.0,
+        "dq": 0.0,
+        "hand": 0.0,
+        "objects": 0.0,
+        "physical": 0.0,
+        "tick": 0.0,
+        "table_pose": 0.0,
+        "contact_force_valid": 0.0,
+        "dof_force_valid": 0.0
+      },
+      "terminal_tick": 232,
+      "wam_calls": 230,
+      "phase_switch_time_s": null,
+      "final_stage": {
+        "contract": "v6.approach-contact-lift5cm-hold1s-release.v1",
+        "current": {
+          "approach": false,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "achieved": {
+          "approach": false,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "first_time_s": {
+          "approach": null,
+          "contact": null,
+          "lift": null,
+          "hold": null,
+          "release": null
+        },
+        "longest_hold_s": 0.0,
+        "continuous_hold_s": 0.0
+      },
+      "final_object_goal_error_m": 0.08198655807420384,
+      "phase_counts": {
+        "approach": 232,
+        "close": 0,
+        "lift": 0,
+        "hold": 0
+      },
+      "independent_longest_hold_s": 0.0,
+      "pd_error": 2.8880405977815826e-07,
+      "geometric_target_max_error": 0.0,
+      "geometric_tau_max_error": 0.0,
+      "changed_hand_target_reconstruction_error": 0.0,
+      "first_lift5cm_tick": null,
+      "hold_intervals": []
+    },
+    {
+      "label": "block2-wam",
+      "chain": "wam",
+      "block": 2,
+      "order_position": 0,
+      "controls": 179,
+      "ever_success": false,
+      "final_success": false,
+      "longest_hold_elapsed_s": 0.0,
+      "physical_safety_abort": "physical_joint_limit",
+      "encoder_covered_controls": 176,
+      "clipped_controls": 0,
+      "source_clipped_controls": 0,
+      "adapter_clipped_controls": 0,
+      "initial_max_errors": {
+        "q": 0.0,
+        "dq": 0.0,
+        "hand": 0.0,
+        "objects": 0.0,
+        "physical": 0.0,
+        "tick": 0.0,
+        "table_pose": 0.0,
+        "contact_force_valid": 0.0,
+        "dof_force_valid": 0.0
+      },
+      "old_reference_initial_max_errors": {
+        "q": 0.0,
+        "dq": 0.0,
+        "hand": 0.0,
+        "objects": 0.0,
+        "physical": 0.0,
+        "tick": 0.0,
+        "table_pose": 0.0,
+        "contact_force_valid": 0.0,
+        "dof_force_valid": 0.0
+      },
+      "terminal_tick": 179,
+      "wam_calls": 177,
+      "phase_switch_time_s": null,
+      "final_stage": {
+        "contract": "v6.approach-contact-lift5cm-hold1s-release.v1",
+        "current": {
+          "approach": false,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "achieved": {
+          "approach": false,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "first_time_s": {
+          "approach": null,
+          "contact": null,
+          "lift": null,
+          "hold": null,
+          "release": null
+        },
+        "longest_hold_s": 0.0,
+        "continuous_hold_s": 0.0
+      },
+      "final_object_goal_error_m": 0.08198655699270156,
+      "phase_counts": {
+        "approach": 179,
+        "close": 0,
+        "lift": 0,
+        "hold": 0
+      },
+      "independent_longest_hold_s": 0.0,
+      "pd_error": 2.80687537212998e-07,
+      "geometric_target_max_error": 0.0,
+      "geometric_tau_max_error": 0.0,
+      "changed_hand_target_reconstruction_error": 0.0,
+      "first_lift5cm_tick": null,
+      "hold_intervals": []
+    },
+    {
+      "label": "block2-geometry",
+      "chain": "geometry",
+      "block": 2,
+      "order_position": 1,
+      "controls": 300,
+      "ever_success": false,
+      "final_success": false,
+      "longest_hold_elapsed_s": 0.0,
+      "physical_safety_abort": null,
+      "encoder_covered_controls": 143,
+      "clipped_controls": 0,
+      "source_clipped_controls": 0,
+      "adapter_clipped_controls": 5,
+      "initial_max_errors": {
+        "q": 0.0,
+        "dq": 0.0,
+        "hand": 0.0,
+        "objects": 0.0,
+        "physical": 0.0,
+        "tick": 0.0,
+        "table_pose": 0.0,
+        "contact_force_valid": 0.0,
+        "dof_force_valid": 0.0
+      },
+      "old_reference_initial_max_errors": {
+        "q": 0.0,
+        "dq": 0.0,
+        "hand": 0.0,
+        "objects": 0.0,
+        "physical": 0.0,
+        "tick": 0.0,
+        "table_pose": 0.0,
+        "contact_force_valid": 0.0,
+        "dof_force_valid": 0.0
+      },
+      "terminal_tick": 300,
+      "wam_calls": 0,
+      "phase_switch_time_s": null,
+      "final_stage": {
+        "contract": "v6.approach-contact-lift5cm-hold1s-release.v1",
+        "current": {
+          "approach": false,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "achieved": {
+          "approach": false,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "first_time_s": {
+          "approach": null,
+          "contact": null,
+          "lift": null,
+          "hold": null,
+          "release": null
+        },
+        "longest_hold_s": 0.0,
+        "continuous_hold_s": 0.0
+      },
+      "final_object_goal_error_m": 0.08198655814852152,
+      "phase_counts": {
+        "approach": 300,
+        "close": 0,
+        "lift": 0,
+        "hold": 0
+      },
+      "independent_longest_hold_s": 0.0,
+      "pd_error": 2.726267283037487e-07,
+      "geometric_target_max_error": 8.852017319149752e-08,
+      "geometric_tau_max_error": 2.384185791015625e-07,
+      "changed_hand_target_reconstruction_error": 2.220446049250313e-16,
+      "first_lift5cm_tick": null,
+      "hold_intervals": []
+    },
+    {
+      "label": "block3-geometry",
+      "chain": "geometry",
+      "block": 3,
+      "order_position": 0,
+      "controls": 141,
+      "ever_success": false,
+      "final_success": false,
+      "longest_hold_elapsed_s": 0.0,
+      "physical_safety_abort": "physical_joint_limit",
+      "encoder_covered_controls": 138,
+      "clipped_controls": 0,
+      "source_clipped_controls": 0,
+      "adapter_clipped_controls": 0,
+      "initial_max_errors": {
+        "q": 0.0,
+        "dq": 0.0,
+        "hand": 0.0,
+        "objects": 0.0,
+        "physical": 0.0,
+        "tick": 0.0,
+        "table_pose": 0.0,
+        "contact_force_valid": 0.0,
+        "dof_force_valid": 0.0
+      },
+      "old_reference_initial_max_errors": {
+        "q": 0.0,
+        "dq": 0.0,
+        "hand": 0.0,
+        "objects": 0.0,
+        "physical": 0.0,
+        "tick": 0.0,
+        "table_pose": 0.0,
+        "contact_force_valid": 0.0,
+        "dof_force_valid": 0.0
+      },
+      "terminal_tick": 141,
+      "wam_calls": 0,
+      "phase_switch_time_s": null,
+      "final_stage": {
+        "contract": "v6.approach-contact-lift5cm-hold1s-release.v1",
+        "current": {
+          "approach": false,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "achieved": {
+          "approach": false,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "first_time_s": {
+          "approach": null,
+          "contact": null,
+          "lift": null,
+          "hold": null,
+          "release": null
+        },
+        "longest_hold_s": 0.0,
+        "continuous_hold_s": 0.0
+      },
+      "final_object_goal_error_m": 0.08198655699270156,
+      "phase_counts": {
+        "approach": 141,
+        "close": 0,
+        "lift": 0,
+        "hold": 0
+      },
+      "independent_longest_hold_s": 0.0,
+      "pd_error": 2.4429144929172253e-07,
+      "geometric_target_max_error": 6.976588928786498e-08,
+      "geometric_tau_max_error": 5.960464477539063e-08,
+      "changed_hand_target_reconstruction_error": 5.551115123125783e-17,
+      "first_lift5cm_tick": null,
+      "hold_intervals": []
+    },
+    {
+      "label": "block3-wam",
+      "chain": "wam",
+      "block": 3,
+      "order_position": 1,
+      "controls": 300,
+      "ever_success": false,
+      "final_success": false,
+      "longest_hold_elapsed_s": 0.0,
+      "physical_safety_abort": null,
+      "encoder_covered_controls": 297,
+      "clipped_controls": 0,
+      "source_clipped_controls": 0,
+      "adapter_clipped_controls": 0,
+      "initial_max_errors": {
+        "q": 0.0,
+        "dq": 0.0,
+        "hand": 0.0,
+        "objects": 0.0,
+        "physical": 0.0,
+        "tick": 0.0,
+        "table_pose": 0.0,
+        "contact_force_valid": 0.0,
+        "dof_force_valid": 0.0
+      },
+      "old_reference_initial_max_errors": {
+        "q": 0.0,
+        "dq": 0.0,
+        "hand": 0.0,
+        "objects": 0.0,
+        "physical": 0.0,
+        "tick": 0.0,
+        "table_pose": 0.0,
+        "contact_force_valid": 0.0,
+        "dof_force_valid": 0.0
+      },
+      "terminal_tick": 300,
+      "wam_calls": 298,
+      "phase_switch_time_s": null,
+      "final_stage": {
+        "contract": "v6.approach-contact-lift5cm-hold1s-release.v1",
+        "current": {
+          "approach": false,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "achieved": {
+          "approach": false,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "first_time_s": {
+          "approach": null,
+          "contact": null,
+          "lift": null,
+          "hold": null,
+          "release": null
+        },
+        "longest_hold_s": 0.0,
+        "continuous_hold_s": 0.0
+      },
+      "final_object_goal_error_m": 0.08198655813567153,
+      "phase_counts": {
+        "approach": 300,
+        "close": 0,
+        "lift": 0,
+        "hold": 0
+      },
+      "independent_longest_hold_s": 0.0,
+      "pd_error": 2.1183393483781288e-07,
+      "geometric_target_max_error": 0.0,
+      "geometric_tau_max_error": 0.0,
+      "changed_hand_target_reconstruction_error": 0.0,
+      "first_lift5cm_tick": null,
+      "hold_intervals": []
+    },
+    {
+      "label": "block4-wam",
+      "chain": "wam",
+      "block": 4,
+      "order_position": 0,
+      "controls": 300,
+      "ever_success": false,
+      "final_success": false,
+      "longest_hold_elapsed_s": 0.0,
+      "physical_safety_abort": null,
+      "encoder_covered_controls": 297,
+      "clipped_controls": 0,
+      "source_clipped_controls": 0,
+      "adapter_clipped_controls": 0,
+      "initial_max_errors": {
+        "q": 0.0,
+        "dq": 0.0,
+        "hand": 0.0,
+        "objects": 0.0,
+        "physical": 0.0,
+        "tick": 0.0,
+        "table_pose": 0.0,
+        "contact_force_valid": 0.0,
+        "dof_force_valid": 0.0
+      },
+      "old_reference_initial_max_errors": {
+        "q": 0.0,
+        "dq": 0.0,
+        "hand": 0.0,
+        "objects": 0.0,
+        "physical": 0.0,
+        "tick": 0.0,
+        "table_pose": 0.0,
+        "contact_force_valid": 0.0,
+        "dof_force_valid": 0.0
+      },
+      "terminal_tick": 300,
+      "wam_calls": 298,
+      "phase_switch_time_s": null,
+      "final_stage": {
+        "contract": "v6.approach-contact-lift5cm-hold1s-release.v1",
+        "current": {
+          "approach": false,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "achieved": {
+          "approach": false,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "first_time_s": {
+          "approach": null,
+          "contact": null,
+          "lift": null,
+          "hold": null,
+          "release": null
+        },
+        "longest_hold_s": 0.0,
+        "continuous_hold_s": 0.0
+      },
+      "final_object_goal_error_m": 0.8736263171502734,
+      "phase_counts": {
+        "approach": 135,
+        "close": 165,
+        "lift": 0,
+        "hold": 0
+      },
+      "independent_longest_hold_s": 0.0,
+      "pd_error": 2.3565666040781252e-07,
+      "geometric_target_max_error": 0.0,
+      "geometric_tau_max_error": 0.0,
+      "changed_hand_target_reconstruction_error": 0.0,
+      "first_lift5cm_tick": null,
+      "hold_intervals": []
+    },
+    {
+      "label": "block4-geometry",
+      "chain": "geometry",
+      "block": 4,
+      "order_position": 1,
+      "controls": 124,
+      "ever_success": false,
+      "final_success": false,
+      "longest_hold_elapsed_s": 0.0,
+      "physical_safety_abort": "physical_joint_limit",
+      "encoder_covered_controls": 121,
+      "clipped_controls": 0,
+      "source_clipped_controls": 0,
+      "adapter_clipped_controls": 0,
+      "initial_max_errors": {
+        "q": 0.0,
+        "dq": 0.0,
+        "hand": 0.0,
+        "objects": 0.0,
+        "physical": 0.0,
+        "tick": 0.0,
+        "table_pose": 0.0,
+        "contact_force_valid": 0.0,
+        "dof_force_valid": 0.0
+      },
+      "old_reference_initial_max_errors": {
+        "q": 0.0,
+        "dq": 0.0,
+        "hand": 0.0,
+        "objects": 0.0,
+        "physical": 0.0,
+        "tick": 0.0,
+        "table_pose": 0.0,
+        "contact_force_valid": 0.0,
+        "dof_force_valid": 0.0
+      },
+      "terminal_tick": 124,
+      "wam_calls": 0,
+      "phase_switch_time_s": null,
+      "final_stage": {
+        "contract": "v6.approach-contact-lift5cm-hold1s-release.v1",
+        "current": {
+          "approach": false,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "achieved": {
+          "approach": false,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "first_time_s": {
+          "approach": null,
+          "contact": null,
+          "lift": null,
+          "hold": null,
+          "release": null
+        },
+        "longest_hold_s": 0.0,
+        "continuous_hold_s": 0.0
+      },
+      "final_object_goal_error_m": 0.08198668199936245,
+      "phase_counts": {
+        "approach": 124,
+        "close": 0,
+        "lift": 0,
+        "hold": 0
+      },
+      "independent_longest_hold_s": 0.0,
+      "pd_error": 2.568789021495377e-07,
+      "geometric_target_max_error": 6.041171607407136e-08,
+      "geometric_tau_max_error": 5.960464477539063e-08,
+      "changed_hand_target_reconstruction_error": 5.551115123125783e-17,
+      "first_lift5cm_tick": null,
+      "hold_intervals": []
+    }
+  ]
+}

@@ -67,3 +67,12 @@ REF2DEX_ASSET_ROOT=/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent \
 不依赖实测接触；WAM则使用live H4与task goal，比较的是这两个具体τ来源。相位错误仍
 可能损害geometry；消费器未资格时，共同失败不能证明两种未来具有同等信息量。
 历史WAM2/5不与本批合并；同期匹配WAM为比较基准。完整任务、独立初态与RL在future evidence。
+
+## Result / closeout
+
+单批COMPLETED，实际执行提交`4ce9b0f35a461db37e5c120aa76855526c8c13ef`；
+1941controls/207.844s/0updates。WAM与几何ever/final=1/5 vs 0/5，差1/5，未达≥2/5优势门。
+最长持握WAM[1,0,0,0,0]s、几何[0,0,0,0,0]s；最终输出clip均0，几何内部R clip5；
+关节安全中止2/5 vs 4/5。合同重算10/10一致，13项语义测试通过。
+[结论页、逐回合指标、diff/命令/期望与边界](../../audit/s2e-geometry-20261022.md)。
+后续不追加跟踪筛选或v6训练；共同执行资格仍未满足，RL效率/泛化价值留待验证。
