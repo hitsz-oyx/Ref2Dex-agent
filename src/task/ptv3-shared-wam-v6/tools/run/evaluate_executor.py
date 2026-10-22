@@ -37,7 +37,7 @@ def main():
         model=MeasuredInspirePolicy(with_tau=True).cuda().eval();model.load_state_dict(saved['model'],strict=True)
         tauweights=model.state_dict()['actor.net.0.weight'] if 'actor.net.0.weight' in model.state_dict() else None
     if a.arm in ('healthy','flow'):
-        runtime=OnlineV6Runtime(a.wam,a.stats,ROOT/'outputs/wam-rl-policy-v2/inspire-shadow-parity-20261019-r1/cache')
+        runtime=OnlineV6Runtime(a.wam,a.stats,a.output.parent/'geometry')
     contexts=[];points=[];bounds=[];refs=[]
     manifest=Path(panel['source_manifest'])
     for row in rows:
@@ -49,7 +49,7 @@ def main():
     listener=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);listener.settimeout(300);listener.bind(str(sock));listener.listen(1)
     native_out=ROOT/'outputs/wam-rl-policy-v3'/('executor-qualification-20261022-'+a.arm+'-'+a.output.parent.name)
     cmd=['/home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train/bin/python',str(ROOT/'src/task/wam-rl-policy-v3/tools/run/inspire_physics_host.py'),
-         '--cache',str(ROOT/'outputs/wam-rl-policy-v2/inspire-shadow-parity-20261019-r1/cache'),'--output',str(native_out),'--socket',str(sock),
+         '--cache',str(a.output.parent/'geometry'),'--output',str(native_out),'--socket',str(sock),
          '--server-pid',str(os.getpid()),'--envs',str(n),'--gpu',str(a.native_gpu),'--seed','185','--seconds',str(a.seconds),
          '--fixed-motions-json',str(fixed),'--extended-state','--state-transport','packed','--synchronize-setters']
     start=time.monotonic();state=dict(status='STARTING',arm=a.arm,python=sys.executable,torch=torch.__version__,numpy=np.__version__,seed=185,
@@ -95,7 +95,7 @@ def main():
                     torch.as_tensor(np.asarray(tasks),dtype=torch.float32,device='cuda'),torch.as_tensor(np.asarray(points),dtype=torch.float32,device='cuda'),
                     tau=torch.as_tensor(taus,device='cuda'),tau_valid=torch.as_tensor(valid,device='cuda')).clamp(-1,1).cpu().numpy()
             trace.append(dict(objects=np.asarray(snapshot['objects']).copy(),hand=np.asarray(snapshot['hand']).copy(),q=np.asarray(snapshot['q']).copy(),
-                contact=np.asarray(snapshot['contact_forces']).copy(),supported=np.asarray(supports),phase=np.asarray(phases),progress=np.asarray(progress),
+                contact=np.asarray(snapshot['contact_forces']).copy(),contact_force_valid=np.asarray(snapshot['contact_force_valid']).copy(),tick=np.asarray(snapshot['tick']).copy(),dq=np.asarray(snapshot['dq']).copy(),supported=np.asarray(supports),phase=np.asarray(phases),progress=np.asarray(progress),
                 complete=np.asarray(complete),tau=taus.copy(),tau_valid=valid.copy(),command=command.copy()))
             if step%30==0:
                 state.update(status='RUNNING',controls_completed=step,elapsed_s=time.monotonic()-start);write(a.output/'progress.json',state);print(json.dumps(dict(arm=a.arm,step=step,elapsed_s=state['elapsed_s'])),flush=True)
