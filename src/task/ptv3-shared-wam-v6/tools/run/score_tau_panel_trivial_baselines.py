@@ -22,6 +22,7 @@ from evaluate_tau_fixed_panel import Accumulator, fixed_indices, read, sha256, v
 TASK = Path(__file__).resolve().parents[2]
 ROOT = TASK.parents[2]
 sys.path.insert(0, str(TASK / "src"))
+from ptv3_shared_wam_v6.panel_uncertainty import cluster_median_ci
 
 
 def bootstrap_median_ci(values, seed, repeats=2000):
@@ -44,7 +45,7 @@ def bootstrap_median_ci(values, seed, repeats=2000):
     }
 
 
-def paired_summary(b1, b0, valid, seed):
+def paired_summary(b1, b0, valid, seed, *, sequence_ids):
     """Return strict win rate and paired B1-B0 frame difference statistics."""
     valid = np.asarray(valid, dtype=bool)
     diff = np.asarray(b1, dtype=np.float64)[valid] - np.asarray(b0, dtype=np.float64)[valid]
@@ -62,7 +63,10 @@ def paired_summary(b1, b0, valid, seed):
         "mean_paired_difference_mm_b1_minus_b0a": float(np.mean(diff)) if len(diff) else None,
         "p95_paired_difference_mm_b1_minus_b0a": float(np.percentile(diff, 95)) if len(diff) else None,
     }
-    result["paired_difference_median_bootstrap"] = bootstrap_median_ci(diff, seed)
+    result["paired_difference_median_frame_bootstrap"] = bootstrap_median_ci(diff, seed)
+    groups = np.broadcast_to(np.asarray(sequence_ids)[:, None], valid.shape)[valid]
+    result["paired_difference_median_bootstrap"] = cluster_median_ci(
+        diff, groups, cluster_universe=sequence_ids, seed=seed)
     return result
 
 
@@ -222,11 +226,12 @@ def main(argv=None):
                                     (batch["contact_target"].float() > threshold)).any(dim=(1, 3)).numpy())
     subset_valid["contact_window"] = frame_valid & contact_mask
     pairwise = {}
+    sequence_ids = np.array([row['sequence_id'] for row in rows])
     for name, valid in subset_valid.items():
-        pairwise[name] = paired_summary(b1_frame, b0a_frame, valid, 172000 + len(name))
+        pairwise[name] = paired_summary(b1_frame, b0a_frame, valid, 172000 + len(name), sequence_ids=sequence_ids)
     for phase in sorted(set(row["phase"] for row in rows)):
         valid = frame_valid & np.asarray([[row["phase"] == phase] * 24 for row in rows], dtype=bool)
-        pairwise["phase/" + phase] = paired_summary(b1_frame, b0a_frame, valid, 173000 + len(phase))
+        pairwise["phase/" + phase] = paired_summary(b1_frame, b0a_frame, valid, 173000 + len(phase), sequence_ids=sequence_ids)
 
     metrics = {method: finish_metrics(totals[method]) for method in totals}
     metrics["B1"]["phases"] = finish_metrics(phase_totals["B1"])
@@ -239,7 +244,7 @@ def main(argv=None):
             "B1_minus_B0b_mm": metrics["B1"][name]["mean_mm"] - metrics["B0b"][name]["mean_mm"],
         }
     report = {
-        "schema": "ref2dex.tau-fixed-panel-trivial-baselines.v1",
+        "schema": "ref2dex.tau-fixed-panel-trivial-baselines.v2",
         "status": "COMPLETED",
         "experiment_id": panel["experiment_id"],
         "run_id": output.name,
@@ -280,6 +285,11 @@ def main(argv=None):
         "scope": "fixed TRAIN anchor prediction quality; no validation/generalization or executor claim",
     }
     output.mkdir(parents=True, exist_ok=False)
+    np.savez_compressed(output/'paired-frame-records.npz', b1_error_mm=b1_frame,
+        b0a_error_mm=b0a_frame, b0b_error_mm=b0b_frame, frame_valid=frame_valid,
+        contact_frame=contact_mask, sequence_id=sequence_ids,
+        phase=np.array([row['phase'] for row in rows]),
+        slot=np.array([row['slot'] for row in rows]), tick=np.array([row['tick'] for row in rows]))
     (output / "baseline-b0.json").write_text(json.dumps(report, indent=2, allow_nan=False) + "\n")
     print(json.dumps({"output": str(output / "baseline-b0.json"),
                       "elapsed_s": report["timing"]["elapsed_s"],
