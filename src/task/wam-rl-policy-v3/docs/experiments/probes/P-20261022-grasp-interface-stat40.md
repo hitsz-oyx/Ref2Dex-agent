@@ -171,3 +171,13 @@ Diff定位：`stage_evaluation.py:12`掌部几何、`:43`严格末态；`binary_
 `:175`禁止成功即停；`register_large_grasp.py:7`冻结80个配对trial；
 `summarize_large_grasp.py:10`分子集聚合并阻断n未齐；`rescore_large_grasp.py:10`从原状态
 另算终点/阶段/PD；路径均相对本Task的`src/wam_rl_policy_v3`或`tools/run`。
+
+
+九字段配对初态核验（`tools/run/verify_large_initials.py:9`；首批38/38配对一致，故意手点平移mutant被拒绝）：
+
+```bash
+$PY $TOOLS/verify_large_initials.py --manifest outputs/wam-rl-policy-v3/grasp-v9-stat40-20261022-r1/g4/manifest.json --manifest outputs/wam-rl-policy-v3/grasp-v9-stat40-20261022-r1/g5/manifest.json --manifest outputs/wam-rl-policy-v3/grasp-v9-stat40-20261022-r1/g6/manifest.json --output outputs/wam-rl-policy-v3/grasp-v9-stat40-20261022-r1/initial-parity.json
+```
+
+完整时预期80/80配对通过，九字段最大误差≤2e-6。它不认证隐藏solver真值，fresh-native程序用于消除前回合历史。
+完整单元/合同测试已更新为237 passed/0 failed/0 skipped（19.54s），实际运行代码仍冻结`07d4db08`。
