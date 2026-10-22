@@ -707,3 +707,20 @@ HOLD.
 完成 Decision Probe [P-20261023-tau-fixed-panel-metric](experiments/probes/P-20261023-tau-fixed-panel-metric.md)。查重确认阶段进度、执行器面板、单轨迹校准和六回合 staged panel 都不等价；唯一新增打分器是 `tools/run/evaluate_tau_fixed_panel.py`，复用冻结 `outputs/ptv3-shared-wam-v6/tau-curated-20261023-r2/train-anchor.json` 的512行、seed170、v6 H4/K24 reader/collate、事件dropout关闭和flow seed172。GPU7确定性模式下对 `flowmatching-overnight-20261022-r2/training/step011000.pt` 完成64批/17.5s，无训练/物理回放/优化器更新，确定性重复检查PASS，新增输出约12KiB。
 
 基线 hand endpoint EPE：全板 **23.409973mm**（467208 valid values），前8帧 **9.357826mm**（156135），接触窗口 **19.834665mm**（288960；7416/12288 sample-frames）；phase approach/close/contact/hold/unknown 分别 **29.897741/21.873276/22.194105/19.982422/22.469606mm**。JSON receipt 在 `outputs/ptv3-shared-wam-v6/tau-fixed-panel-baseline-20261023-r1/baseline.json`，一行摘要在同目录 `summary.txt`。后续 checkpoint 只有全面板、前8帧、接触窗口同向改善才可判为 τ 整体改进；单 phase 变化按局部结果报告。训练门槛与 `tau_curated_data_only_v1.json` 的 HOLD 状态不变。
+## 2026-10-23 Scheduler-conditioned cache identity gate remains blocked
+
+The current r7 curated TRAIN manifest has 6,000 admitted rows but no planned
+scheduler reference path or waypoint payload. The v5 reader still constructs
+`goal_object_delta` from the observed `rel[4:]` trajectory endpoint
+(`src/task/ptv3-shared-wam-v5/src/ptv3_shared_wam_v5/data.py:44-61`), so these
+rows are realized t+24 endpoint conditions. A bounded CPU/IO receipt explicitly
+excluded all 6,000 rows rather than treating observed poses as scheduler input:
+`outputs/ptv3-shared-wam-v6/tau-curated-20261023-r8/scheduler-cache-identity-receipt.json`.
+
+New identity/replay code is in `src/task/ptv3-shared-wam-v6/src/ptv3_shared_wam_v6/scheduler_cache_identity.py`
+and `tools/run/verify_scheduler_cache_identities.py`. It uses the inference
+`OrderedGoalScheduler` + `update_schedulers` path, hashes exact float32 32x3
+conditions, and keys identities by `(source_id, sample_id, window_start_frame,
+goal_semantics, condition_sha256)`. The equivalence tests pass, but scheduler
+coverage is 0% until a separate planned reference path is supplied. No training
+or checkpoint write was started.
