@@ -32,6 +32,7 @@ def freeze(out,oldrun):
     native_source=native.read_text()
     old_native="NATIVE=ROOT/'third_party/DExplore/dexplore'"
     if old_native not in native_source:raise ValueError('native input anchor missing')
+    native_source=native_source.replace("cfg=ROOT/", "cfg=Path(os.environ.get('REF2DEX_ASSET_ROOT',ROOT))/")
     native.write_text(native_source.replace(old_native,"NATIVE=Path(os.environ.get('REF2DEX_ASSET_ROOT',ROOT))/'third_party/DExplore/dexplore'"))
     shutil.copyfile(Path(__file__),out/'runner.py')
     write(out/'snapshot.json',dict(base_commit=BASE,recorded_source_diff=str(oldrun/'source.diff'),restored_original_files=originals,
