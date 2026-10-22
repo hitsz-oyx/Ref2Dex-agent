@@ -401,9 +401,28 @@ def evaluate(a):
     dump(out/(('complete-smoke-worker' if a.limit else 'complete-worker')+str(a.shard)+'.json'),dict(status='COMPLETED',elapsed_s=time.monotonic()-started,windows=len(rows)))
 
 
+def reference(a):
+    """No neural inference: GT tau/scene calibrate transported-skin geometry."""
+    if os.environ.get('CUDA_VISIBLE_DEVICES') not in ('0','1','2','3'):raise ValueError('authorized idle GPU only')
+    torch.set_num_threads(2);out=a.output;started=time.monotonic()
+    torch.cuda.set_per_process_memory_fraction(12*2**30/torch.cuda.get_device_properties(0).total_memory)
+    rows=[r for r in load(out/'panels.json')['rows'] if r['evaluate'] and r['panel']=='heldout_sequence']
+    data=V6Windows(MANIFEST,'train',geometry_gt_object=True);total=np.zeros((4,6,len(METRICS),2));valid=np.zeros(total.shape[:-1],int)
+    for first in range(0,len(rows),64):
+        check(out,started,900);selected=rows[first:first+64]
+        if torch.cuda.mem_get_info()[0]<2*2**30:raise RuntimeError('GT reference yields below2GiB headroom')
+        batch={k:v.cuda() for k,v in collate([old.window(data,r) for r in selected]).items()}
+        with torch.inference_mode():
+            pred=dict(trajectory=batch['trajectory_target'],scene=batch['scene_target'],interaction=batch['contact_target'][...,None])
+            value=reduce_metrics(pred,batch,selected);total+=value.sum(0);valid+=(value[...,1]>0).sum(0)
+        dump(out/'GT-reference-progress.json',dict(status='RUNNING',done=first+len(selected),total=len(rows),elapsed_s=time.monotonic()-started))
+    dump(out/'GT-reference.json',dict(status='COMPLETED',windows=len(rows),elapsed_s=time.monotonic()-started,bands=BANDS,phases=PHASES,metrics=METRICS,
+        sum_count=total.tolist(),valid_windows=valid.tolist(),scope='GT tau and GT scene,existing observation-only bone-skin transport;no learned prediction,not a physical contact oracle'))
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True)
-    p.add_argument('--phase',choices=('prepare','bank','evaluate'),required=True)
+    p.add_argument('--phase',choices=('prepare','bank','evaluate','reference'),required=True)
     p.add_argument('--workers',type=int,default=6);p.add_argument('--seed',type=int,default=181)
     p.add_argument('--shard',type=int,default=0);p.add_argument('--shards',type=int,default=2)
     p.add_argument('--k',type=int,default=8);p.add_argument('--batch-size',type=int,default=4)
@@ -413,6 +432,7 @@ def main():
     if not 1<=a.k<=8:raise ValueError('fixed K1..8; no hidden best-of-K')
     if a.phase=='prepare':prepare(a)
     elif a.phase=='bank':bank(a)
+    elif a.phase=='reference':reference(a)
     else:evaluate(a)
 
 
