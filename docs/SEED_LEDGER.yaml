@@ -680,3 +680,12 @@ allocations:
     panel_and_bank_seed: 178
     capture_bootstrap_permutation_seed: 180
     reuse_reason: fixed descriptive GRAB bank and checkpoint-paired panels; no model fit or independent validation
+  P-20261022-wam-v6-executor-qualification:
+    seed_pool: probe
+    evaluation_seed: 185
+    reuse_reason: paired frozen executor and replay oracle use identical native initial states; exploratory not formal validation
+  P-20261022-wam-v6-samples-efficiency-3arm:
+    seed_pool: probe
+    training_seeds: [191, 192, 193]
+    common_evaluation_seed: 194
+    reuse_reason: three independently seeded matched A/B/C runs with common evaluation initial states; exploratory first batch
