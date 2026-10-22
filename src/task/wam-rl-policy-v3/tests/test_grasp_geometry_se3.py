@@ -114,3 +114,11 @@ def test_relative_servo_still_corrects_measured_object_slip_after_wrist_arrived(
     obj[0,3]=.02
     target,_,_=servo.step(goal,obj,palm,np.zeros(18),np.zeros(18),np.eye(3),1/30,True)
     assert target[0,3]<palm[0,3]-.001, 'Measured object drift must remain in feedback after the captured wrist goal is reached'
+
+
+def test_pose_integrator_tracks_final_admitted_translation_for_antiwindup():
+    from wam_rl_policy_v3.grasp_geometry import RelativePoseServo
+    servo=RelativePoseServo();goal=np.eye(4);goal[:3,3]=1.
+    servo.step(goal,np.eye(4),np.eye(4),np.zeros(18),np.zeros(18),np.eye(3),0.,True)
+    requested=servo.requested_delta.copy();servo.applied_translation(np.zeros(3))
+    np.testing.assert_allclose(servo.translation.integral,-requested)

@@ -138,6 +138,11 @@ class RelativePoseServo:
         self.linear_rate=linear_rate_mps;self.angular_rate=angular_rate_radps;self.reset()
     def reset(self):
         self.translation=GoalServo();self.grasp_relative=None;self.object_rotation=None;self.previous_time=None
+    def applied_translation(self,delta):
+        # Tracking anti-windup sees the FINAL admitted command, including the
+        # norm limiter, canonical saturation and native position projection.
+        self.translation.integral=np.clip(self.translation.integral+np.asarray(delta)-self.requested_delta,-.025,.025)
+
     def step(self,goal,obj,palm,q,dq,mount,now,position_only):
         if self.grasp_relative is None:
             self.grasp_relative=np.linalg.inv(obj)@palm;self.object_rotation=obj[:3,:3].copy()
@@ -150,6 +155,7 @@ class RelativePoseServo:
         dt=1/30 if self.previous_time is None else now-self.previous_time
         if dt<=0 or dt>1/30+1e-8:raise ValueError('continuous pose-servo clock required')
         delta=self.translation.step(desired[:3,3],palm[:3,3],dq[:3],now)
+        self.requested_delta=delta.copy()
         delta*=min(1.,self.linear_rate*dt/max(np.linalg.norm(delta),1e-12))
         rotvec=Rotation.from_matrix(desired[:3,:3]@palm[:3,:3].T).as_rotvec()
         angular=.5*rotvec-.006*np.asarray(dq[3:6]);angular*=min(1.,self.angular_rate*dt/max(np.linalg.norm(angular),1e-12))
@@ -212,6 +218,9 @@ class GeometryGraspConsumer(MeasuredGraspConsumer):
             info.update(phase=self.phase,wrist_target=target.tolist(),relative_pose_servo=servo_info);self.servo_active=True
         elif self.servo_active:self.servo.reset();self.servo_active=False
         command=self.admission.bound_action(command,q)
+        if self.phase in ('lift','hold'):
+            self.servo.applied_translation(self.offset[:3]+self.scale[:3]*command[:3])
+            info['relative_pose_servo']['integral_m']=self.servo.translation.integral.tolist()
         info.update(reachability=reach_info,repair_contract=GEOMETRY_CONTRACT,geometry=self.geometry.manifest(),native_target_admitted=self.admission.check(command,q)[0])
         self.last_info=info
         return command,info

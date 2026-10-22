@@ -46,7 +46,7 @@ def prepare(run,out):
 
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--run',type=Path);p.add_argument('--output',type=Path,required=True);p.add_argument('--dataset',type=Path);p.add_argument('--prepare-only',action='store_true');p.add_argument('--gpu',type=int,choices=[4,5,6],default=4);a=p.parse_args();out=a.output.resolve();out.mkdir(parents=True,exist_ok=False)
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--run',type=Path);p.add_argument('--output',type=Path,required=True);p.add_argument('--dataset',type=Path);p.add_argument('--prepare-only',action='store_true');p.add_argument('--gpu',type=int,choices=[4,5,6],default=4);a=p.parse_args();out=a.output.resolve();out.mkdir(parents=True,exist_ok=False);os.environ['TMPDIR']=str(ROOT/'tmp')
     if a.dataset is None:
         if a.run is None:raise ValueError('recorded run required')
         prepare(a.run.resolve(),out);dataset=out/'dataset.npz'
@@ -63,7 +63,7 @@ def main():
     def metrics():
         with torch.no_grad():prediction=policy(x)[0].tanh();loss=(prediction-y).square().mean(-1)
         return dict(train_mse=float(loss[~dev].mean()),dev_mse=float(loss[dev].mean()),maximum_normalized_residual=float(prediction.abs().max()))
-    initial=metrics();train=torch.flatnonzero(~dev);start=time.monotonic();curves=[];gpu_samples=[]
+    initial=metrics();train=torch.nonzero(~dev,as_tuple=False).flatten();start=time.monotonic();curves=[];gpu_samples=[]
     for update in range(400):
         if time.monotonic()-start>300:break
         ids=train[torch.randint(len(train),(min(128,len(train)),),device='cuda')];mean,_=policy(x[ids]);loss=(mean.tanh()-y[ids]).square().mean();optimizer.zero_grad();loss.backward();optimizer.step()

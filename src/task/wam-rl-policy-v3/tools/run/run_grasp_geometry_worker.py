@@ -244,7 +244,9 @@ def main():
                         if not safe['abort'] and not row['final_success']:
                             # The 20s evaluation horizon is a time limit, not a
                             # physical terminal. Bootstrap with its observed state.
-                            terminal_intent=grasp_intent_from_retargeter(np.asarray(state['q'])[0],palm,pose,target.object_path[-1],np.clip(adapter[0],-1,1),offset,scale,plan=plan,tau_valid=valid)
+                            with torch.no_grad():terminal_adapter=model.actor(torch.tensor(observation[None],device='cuda')).cpu().numpy()
+                            row['bootstrap_R_calls']=1
+                            terminal_intent=grasp_intent_from_retargeter(np.asarray(state['q'])[0],palm,pose,target.object_path[-1],np.clip(terminal_adapter[0],-1,1),offset,scale,plan=plan,tau_valid=valid)
                             with torch.no_grad():_,terminal_value=residual(torch.tensor(residual_observation(observation,terminal_intent)[None],device='cuda'))
                             bootstrap=float(terminal_value[0])
                         update_started=time.monotonic();update=ppo_update(residual,optimizer,bootstrap=bootstrap,**rollout);update['wall_s']=time.monotonic()-update_started;update['cuda_peak_bytes']=torch.cuda.max_memory_allocated();row['ppo_update']=update;report['learning_updates']+=update['optimizer_updates']
