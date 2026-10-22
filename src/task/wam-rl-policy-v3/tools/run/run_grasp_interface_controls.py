@@ -42,7 +42,7 @@ def main():
     from wam_rl_policy_v3.measured_execution import online_support
     from wam_rl_policy_v3.executor_contract import task_condition
     from wam_rl_policy_v3.physical_safety import physical_safety
-    from wam_rl_policy_v3.tau_replay_contract import reference_tau,pd_targets
+    from wam_rl_policy_v3.tau_replay_contract import reference_tau,pd_targets,require_saved_clock
     from ptv3_shared_wam_v6.execution_contract import LiftHoldWitness,grasp_lift_task,encoder_domain_available
     from ptv3_shared_wam_v6.online_runtime import OnlineV6Runtime
     from wam_rl_policy_v3.pose_consumer import (MeasuredGraspConsumer,pose7,reduce_to_wrist_plan,grasp_intent_from_retargeter,GRASP_INTERFACE)
@@ -60,6 +60,7 @@ def main():
     with np.load(source/'canonical.npz') as z:points=z['points'].copy()
     reference_path=ROOT/'src/task/ptv3-shared-wam-v6/outputs/s2b-reference-r2/reference.npz'
     with np.load(reference_path) as z:reference={k:z[k].copy() for k in z.files}
+    require_saved_clock(reference)
     if name==original['source_sequence']:
         with np.load(oldrun/'source-pd/trajectory.npz') as z:reference_initial={k:z[k][0].copy() for k in ('q','dq','hand','objects','physical','tick','table_pose','contact_force_valid','dof_force_valid')}
     else:

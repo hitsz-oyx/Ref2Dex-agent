@@ -56,3 +56,14 @@ def test_gt_reuses_s2d_24step_mapping_and_roundtrip_matches_first_eight_world_de
     hand=np.ones((11,3))*.3;tau=(future[:8]-hand).astype(np.float32)
     np.testing.assert_allclose(tau+hand,future[:8],atol=1e-7)
     assert not gt_future(actual,ref,26,live,True)[1]
+
+
+def test_elapsed_time_check_kills_intentional_accumulated_progress_mutant():
+    import inspect
+    source=inspect.getsource(continuous_hold)
+    assert source.count('longest=max(longest,last)')==1
+    namespace={'np':np}
+    exec(source.replace('longest=max(longest,last)','longest+=1/30'),namespace)
+    held=np.r_[np.ones(20,bool),False,np.ones(22,bool)];times=np.arange(43)/30
+    assert not continuous_hold(times,held)['ever_success']
+    assert namespace['continuous_hold'](times,held)['ever_success']

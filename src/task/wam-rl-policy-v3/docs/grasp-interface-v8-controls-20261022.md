@@ -37,3 +37,52 @@ r1 在7个完整回合后，block1/WAM tick3 因 catalog `record` 被上一回�
 ```bash
 $PY -u $RUN --suite ablation --carry-run outputs/wam-rl-policy-v3/grasp-v8-ablation-20261022-r1 --output outputs/wam-rl-policy-v3/grasp-v8-ablation-20261022-r2 --native-gpu 6 --model-gpu 5
 ```
+
+## 消融实测（r2包含r1已完成回合；不是挑选最好单例）
+
+执行实现：r1=`a1302e639fc58c728808282305899ab6475140d4`，r2=`f307b0b06b2a6ef8fa1af509b468ec205b68afc9`。消费器未改。r2 正常退出，4483/6000 controls（含partial3）、292.542/1800执行秒，0updates。
+
+| 臂，n=5，block0→4 | 最长连续持握秒 | ever/final | controls分布 | R上游clip分布 | 最终clip | 关节中止数 |
+|---|---|---|---|---|---:|---:|
+| WAM |[1,1,0,0,0]|2/5；2/5|[100,101,300,227,300]|[0,0,2,0,0]|0|1/5|
+| 零τ/valid按域可用 |[0,0,0,0,0]|0/5；0/5|[300,300,66,125,66]|[0,1,2,0,1]|0|3/5|
+| 无τ/valid=false |[0,0,0,0,0]|0/5；0/5|[300,203,223,300,69]|[0,0,0,1,0]|0|3/5|
+| 固定几何模板 |[0,0,0,0,0]|0/5；0/5|[300,300,300,300,300]|[0,0,0,0,0]|0|0/5|
+
+上游clip=R原始12维输出任一维超过±1+1e-6；最终clip=消费器原始输出到实际clip后相差>1e-6。两者不混报。所有20回合均计入；物理安全中止按失败保留。9可见初态字段最大差0，actual-PD独立重构最大误差3.371e-7。WAM调用分布[68,69,298,225,298]，两个零输入臂均0次；模板WAM/R均0/0。
+
+**判断：新5/5不能视作稳定保证，本轮WAM只有2/5，未达到预期≥4/5；不能宣称窄任务稳定资格已保住。** 在冻结R/消费器下，移除τ的两种方式均0/5，提供局部输入贡献证据；未证明普遍效益，n小、依赖已训练输入分布，且不是公平重训无τ策略的样本效率对比。固定模板0/5仅否定这一个冻结模板，不能否定经优化几何控制器。此前5/5作为真实旧run观察保留，撤回把它直接归因为τ或稳定成功率的解读。
+
+20/20轨迹的独立连续held重算与online ever/final/longest完全一致。故意把区间改为累计的mutant被拒绝：生产最长0.7秒/ever=false，mutant1.4秒/ever=true；不把测试通过当作外部接触真值认证。v7/v8实际使用的是原LiftHoldWitness；S2c stage另行只读，不能拿stage累计achieved冒充success。
+
+产物：`outputs/wam-rl-policy-v3/grasp-v8-ablation-20261022-r{1,2}/`；全量向量与每回合路径：`outputs/wam-rl-policy-v3/grasp-v8-summary-20261022/ablation.json`。
+
+```bash
+$PY src/task/wam-rl-policy-v3/tools/run/summarize_grasp_controls.py --run outputs/wam-rl-policy-v3/grasp-v8-ablation-20261022-r2 --output outputs/wam-rl-policy-v3/grasp-v8-summary-20261022/ablation.json
+```
+
+## 五个新机器人初态实测
+
+冻结面板5/5已跑完，**ever/final=0/5；最长持握[0,0,0,0,0]s**，未达预期≥4/5。没有替换失败样本。实际实现`eb6e562e`。
+
+| 新初态（各n=1） | controls | R上游clip | 最终clip | 关节安全中止 | 初始腕位置距v7 / mm |
+|---|---:|---:|---:|---|---:|
+| airplane |67|0|0|是|72.681|
+| apple |300|见全量summary|0|否|87.510|
+| cubelarge |300|见全量summary|0|否|89.992|
+| duck |53|0|0|是|48.955|
+| mug |300|见全量summary|0|否|104.418|
+
+原始q/dq与同步reset一致，hand FK仅浮点舍入误差（完整误差在每回合`result.json`）。面板初态与v7的手点RMS差72.7..105.0mm，初始腕位差49.0..104.4mm，确实换了机器人初态，不再是同一初态重复。
+
+**泛化边界**：旧机器人BC catalog五例均为val，未用于v7调参；但核对WAM当前recipe实际TRAIN索引，人类源序列airplane/cubelarge/duck分别有77/102/92个TRAIN windows；apple为DEV32 windows/TRAIN0；mug未找到精确源序列，更早谱系未核。故本轮只回答**新机器人初态稳健性失败**，不声称严格WAM未见源序列或未见物体泛化。产物`registered-initials.json`、`wam-sequence-membership.json`与五个run的manifest可核对，不将BC val冒充所有预训练阶段未见。
+
+完整产物`outputs/wam-rl-policy-v3/grasp-v8-robust-20261022-s10_{airplane,apple,cubelarge,duck,mug}_pass_1/`。下一项继续预注册GT同协议检验，不依据这些失败调整消费器/模板/预算。
+
+## 原始物理状态独立复算命令
+
+```bash
+CUDA_VISIBLE_DEVICES='' $PY src/task/wam-rl-policy-v3/tools/run/rescore_grasp_controls.py --run outputs/wam-rl-policy-v3/grasp-v8-ablation-20261022-r2 --output outputs/wam-rl-policy-v3/grasp-v8-summary-20261022/ablation-physical-rescore.json
+```
+
+期望`PASS n=20 matched=20`；此入口从每个run冻结的observer与原始物理状态重算，不能由stage/reward累计分数冒充。新测试文件6 passed/0 failed，含故意累计持握mutant。GT参考预检查还要求205个consecutive state ticks对应204个actions，τ/valid各205份；第一帧未来仍为t+1，不用当前时刻冒充。
