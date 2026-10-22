@@ -76,7 +76,7 @@ def measure(a):
     import pysdf
     import trimesh
     torch.set_num_threads(2);out=a.output;rows=load(out/'panels.json')['rows'];lookup={tuple(r[k] for k in ('seq_id','slot','tick')):r for r in rows}
-    data=V6Windows(MANIFEST,'train');cache={};summary={};skipped=Counter();records=[];gt_calibration={}
+    data=V6Windows(MANIFEST,'train');cache={};summary={};skipped=Counter();records=[];gt_calibration={};common=defaultdict(list)
     cube=trimesh.creation.box(extents=(1.,1.,1.));sdf=pysdf.SDF(np.asarray(cube.vertices,np.float32),np.asarray(cube.faces,np.uint32))
     control=sdf(np.array([[0,0,0],[1,0,0],[.4,.4,.4]],np.float32),n_threads=2)
     if not np.allclose(control,[.5,-.5,.1],atol=1e-6):raise AssertionError('signed mesh cube control failed')
@@ -87,13 +87,27 @@ def measure(a):
                 with np.load(path) as z:ids=z['ids'];endpoints=z['endpoints']
                 for identity,ep in zip(ids,endpoints):
                     key=tuple(map(int,identity));r=lookup[key];label=modeldir.name
+                    s=old.window(data,r)
+                    hv=s['trajectory_valid'][7]&s['start_hand_valid']
+                    if hv.any():
+                        for gi,goal in enumerate(GOALS):
+                            he=ep[gi,:,:126].reshape(-1,2,21,3)-s['trajectory_target'][None,7]
+                            oe=ep[gi,:,126:].reshape(-1,32,3)-s['scene_target'][None,0,7]
+                            hm=he[:,hv].mean(1);om=oe.mean(1);shift=(hm+om)/2
+                            hn=np.linalg.norm(hm,axis=-1);on=np.linalg.norm(om,axis=-1);known=(hn>.001)&(on>.001)
+                            cosine=(hm*om).sum(-1)/np.maximum(hn*on,1e-12)
+                            values=[np.linalg.norm(he[:,hv],axis=-1).mean()*1000,np.linalg.norm(oe,axis=-1).mean()*1000,
+                                np.linalg.norm(he[:,hv]-shift[:,None],axis=-1).mean()*1000,np.linalg.norm(oe-shift[:,None],axis=-1).mean()*1000,
+                                np.linalg.norm(shift,axis=-1).mean()*1000,np.linalg.norm(hm-om,axis=-1).mean()*1000,
+                                float(cosine[known].sum()),int(known.sum()),int(((cosine>0)&known).sum())]
+                            for source in ('all',str(r['source_id'])):common[(label,goal,source)].append(values)
                     if r['source_id']!=1:skipped[label+'/non_GRAB_asset_unmapped']+=1;continue
                     name=r['object'][5:];meshpath=meshroot/(name+'.ply')
                     if name not in cache:
                         mesh=trimesh.load(meshpath,process=False,force='mesh');cache[name]=dict(watertight=bool(mesh.is_watertight),sdf=pysdf.SDF(np.asarray(mesh.vertices,np.float32),np.asarray(mesh.faces,np.uint32)))
                     asset=cache[name]
                     if not asset['watertight']:skipped[label+'/non_watertight']+=1;continue
-                    s=old.window(data,r);b=collate([s]);att=skin_attachment(b['start_hand'],b['dense_hand'],b['start_hand_valid'],b['dense_hand_valid'])
+                    b=collate([s]);att=skin_attachment(b['start_hand'],b['dense_hand'],b['start_hand_valid'],b['dense_hand_valid'])
                     present=(b['start_hand_valid']&b['trajectory_valid'][:,7]).all(-1)[0].numpy()
                     verts=np.linspace(0,777,64,dtype=int);valid=b['dense_hand_valid'][0].numpy()[:,verts]&present[:,None]
                     valid&=att[3][0].numpy()[:,verts]
@@ -135,7 +149,14 @@ def measure(a):
         v['captures']=len(v['captures']);v['inside_fraction']=v['inside']/max(v['vertices'],1)
         v['mean_depth_lower_mm']=v['depth_lower_sum_mm']/max(v['vertices'],1);v['mean_depth_upper_mm']=v['depth_upper_sum_mm']/max(v['vertices'],1)
         result['/'.join(key)]=v
-    dump(out/'large-mesh-penetration.json',dict(status='COMPLETED',tick=8,hand_vertices_per_hand=64,cube_control_m=control.tolist(),
+    drift={}
+    for k,values in common.items():
+        v=np.asarray(values);means=v[:,:6].mean(0);total=v[:,6:].sum(0)
+        drift['/'.join(k)]=dict(windows=len(v),hand_object_EPE_before_mm=means[:2].tolist(),hand_object_EPE_after_posthoc_common_shift_mm=means[2:4].tolist(),
+            mean_common_shift_mm=float(means[4]),mean_hand_minus_object_centroid_error_mm=float(means[5]),valid_direction_draws=int(total[1]),
+            mean_error_direction_cosine=float(total[0]/total[1]) if total[1] else None,positive_cosine_fraction=float(total[2]/total[1]) if total[1] else None)
+    dump(out/'large-mesh-penetration.json',dict(status='COMPLETED',tick=8,hand_vertices_per_hand=64,cube_control_m=control.tolist(),common_translation_diagnostic=drift,
+        common_translation_caveat='GT-fitted shared translation removes the equal-anchor mean hand/object error at t8;diagnostic only,not a causal correction or deployment policy.',
         results=result,skipped=dict(skipped),CAD_registration_controls=gt_calibration,records=records,
         interpretation='Watertight CAD inside test on128 sampled transported hand-skin vertices per draw;t8 only. Exact affine containment,world penetration depth bounded by canonical positive SDF times min/max singular values. Singular maps excluded/count reported;not full robot hand geometry.'))
     print(json.dumps(result,indent=2),flush=True)
