@@ -80,7 +80,7 @@ python3 tools/verify.py --changed
 # 显式核对文档范围，不包含并行会话的代码改动：
 git diff --check -- docs/STATE.md 'src/task/*/docs/experiments/probes/*.md' 'docs/audit/*hygiene*'
 # 提交后可复现完整本轮diff（从git log找到本报告所在提交）：
-git log -1 --format='%H %s' -- docs/audit/historical-card-hygiene-20261022.md
+git log -1 --format='%H %s' --grep='docs: bound historical probe conclusions and repair metadata'
 # 将上一步SHA设为 card_hygiene_commit，再执行：
 git show --format=fuller --stat "$card_hygiene_commit"
 git show "$card_hygiene_commit" -- docs/STATE.md 'src/task/*/docs/experiments/probes/*.md' 'docs/audit/*hygiene*'
@@ -104,6 +104,8 @@ PYTHONDONTWRITEBYTECODE=1 TMPDIR="$PWD/docs/audit/hygiene-verify-tmp-20261022" P
 # 以上在19文件stage后执行，返回VERIFY PASS；pytest由verify按文档变更自动选择。
 # 提交之后，在隔离的文档工作树同步：
 git worktree add --detach --no-checkout docs/audit/hygiene-sync-20261022 HEAD
+# 此机Git需先建立新worktree的info目录，否则sparse-checkout.lock父目录不存在：
+mkdir -p "$(git -C docs/audit/hygiene-sync-20261022 rev-parse --absolute-git-dir)/info"
 git -C docs/audit/hygiene-sync-20261022 sparse-checkout set --no-cone '/docs/STATE.md' '/docs/audit/*hygiene*' '/src/task/*/docs/experiments/probes/*.md'
 git -C docs/audit/hygiene-sync-20261022 pull --rebase origin main
 git -C docs/audit/hygiene-sync-20261022 rev-parse HEAD
@@ -137,3 +139,6 @@ index 42f0db11..09b67d92 100644
  task: trajectory-policy
  branch: main
 ```
+
+首个文档实现提交为`c2b1921cff8bf1c4e5dfe88845a973b9b35f2d0d`，19文件、407行新增、0删除；
+该提交已推送并核对远端一致。随后仅补本报告中的Git兼容性复现步骤；最新HEAD/远端SHA见最终交付回执。
