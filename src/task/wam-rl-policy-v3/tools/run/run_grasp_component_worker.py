@@ -82,7 +82,7 @@ def main():
     from wam_rl_policy_v3.physical_safety import physical_safety
     from wam_rl_policy_v3.tau_replay_contract import pd_targets
     from wam_rl_policy_v3.pose_consumer import pose7,reduce_to_wrist_plan,grasp_intent_from_retargeter,live_reference_future
-    from wam_rl_policy_v3.intent_components import swap_components,source_contact_frame,latch_predicted_close
+    from wam_rl_policy_v3.intent_components import swap_components,source_contact_frame,latch_predicted_close,source_grasp_frame,closed_loop_gt_future
     from wam_rl_policy_v3.grasp_repair import RepairedGraspConsumer,clean_tau_future,support_plane
     from wam_rl_policy_v3.evaluation_sources import freeze_template,template_intent,gt_future
     from wam_rl_policy_v3.geometry_tau import object_local_hand,geometry_future
@@ -150,7 +150,7 @@ def main():
                     initial={k:np.asarray(state[k]).copy() for k in ('q','dq','hand','objects','physical','tick','table_pose','contact_force_valid','dof_force_valid')};np.savez_compressed(folder/'initial.npz',**initial)
                     pose=pose7(np.asarray(state['objects'])[0]);target=grasp_lift_task(pose);context=TaskController(target,points,scheduler_config=TaskSchedulerConfig(episode_timeout_s=30.),path_config=SchedulerConfig(stall_timeout_s=60.))
                     consumer=RepairedGraspConsumer(np.asarray(state['q'])[0],pose7(np.asarray(state['palm_pose'])[0]),offset,scale,plane=support_plane(np.asarray(state['table_pose'])[0],bounds),palm_vertices=palm_surface.vertices[::32],table_geometry=(pose7(np.asarray(state['table_pose'])[0]),bounds),object_points=points);stages=StagedProgress(pose[2,3]);history=[];hands=[];decision=None
-                    wam_calls=actor_calls=covered=final_clipped=adapter_clipped=0;ever_primary=False;gt_cursor=0;gt_contact=source_contact_frame(reference);physical_abort=None;lastsafe=None;errors_m=[];drop_after_hold=False
+                    wam_calls=actor_calls=covered=final_clipped=adapter_clipped=0;ever_primary=False;gt_cursor=0;gt_contact=source_contact_frame(reference);gt_cap=source_grasp_frame(reference,points) if arm=='A4' else None;physical_abort=None;lastsafe=None;errors_m=[];drop_after_hold=False
                     if arm=='TIME':consumer.predicted_close_at=float('inf')
                     for t in range(reg['horizon_controls']+1):
                         report['active_episode']['tick']=t
@@ -179,7 +179,7 @@ def main():
                                 future=np.asarray(state['hand'])[0][None]+prediction;valid=True;wam_calls+=1
                             elif arm=='A3':future,valid=geometry_future(reference_local,t,pose)
                             elif arm=='A4':
-                                future,gt_cursor=live_reference_future(reference_local,np.asarray(state['hand'])[0],pose,contact_frame=gt_contact,cursor=gt_cursor);valid=True
+                                future,gt_cursor,gt_cap=closed_loop_gt_future(reference_local,reference,np.asarray(state['hand'])[0],pose,points,cursor=gt_cursor,phase_cap=gt_cap);valid=True
                         future,valid=clean_tau_future(future,np.asarray(state['hand'])[0],valid,zero=arm=='A2')
                         if future is not None:
                             future=np.asarray(future,np.float32);tau=(future[:8]-np.asarray(state['hand'])[0]).astype(np.float32)
@@ -198,7 +198,7 @@ def main():
                         close_at=latch_predicted_close(consumer,plan,t/30) if arm=='TIME' else None
                         evidence=context.observer.last_evidence
                         raw,info=consumer.step(hand=np.asarray(state['hand'])[0],q=np.asarray(state['q'])[0],dq=np.asarray(state['dq'])[0],palm=palm,object_pose=pose,object_velocity=obj[7:13],forces=forces,feedback=feedback,near_fingers=evidence['near_fingers'],fingertip_gap_m=evidence['fingertip_gap_m'],intent=intent,now=t/30)
-                        info.update(component_arm=arm,predicted_close_at_s=close_at,gt_cursor=gt_cursor if arm=='A4' else None,gt_contact_frame=gt_contact if arm=='A4' else None,predicted_contact_index=None if plan is None else plan.contact_index,contact_eta_s=None if plan is None else plan.eta_s,grasp_candidate_object=intent.grasp_pose_object.tolist(),unmodified_R_action=adapter[0].tolist())
+                        info.update(component_arm=arm,predicted_close_at_s=close_at,gt_cursor=gt_cursor if arm=='A4' else None,gt_contact_frame=gt_contact if arm=='A4' else None,gt_phase_cap_frame=gt_cap if arm=='A4' else None,predicted_contact_index=None if plan is None else plan.contact_index,contact_eta_s=None if plan is None else plan.eta_s,grasp_candidate_object=intent.grasp_pose_object.tolist(),unmodified_R_action=adapter[0].tolist())
                         action=np.clip(raw[None],-1,1).astype(np.float32);final_clipped+=int((np.abs(raw-action[0])>1e-6).any());full=expand_action(action)
                         predicted=pd_targets(action,np.asarray(state['q']),offset,scale);before=list(state['episodes']);tick=np.asarray(state['tick']).copy()
                         send(native.connection,dict(op='step',action=full.tolist(),episodes=before,return_pd=True));reply=receive(native.connection);report['environment_controls']+=1;nextstate=unpack_state(reply['state']);actual=np.asarray(reply['pd_targets'])

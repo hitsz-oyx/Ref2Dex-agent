@@ -29,6 +29,13 @@ def main():
         with np.load(job['reference']) as z:reference={k:z[k].copy() for k in z.files}
         rotations=np.stack([pose7(v)[:3,:3] for v in reference['objects'][:,0]]);local=np.einsum('tki,tij->tkj',reference['hand'][:,0]-reference['objects'][:,0,None,:3],rotations);cursor=0
         forces=np.linalg.norm(reference['contact_forces'][:,0],axis=-1);contact=int(np.flatnonzero(np.asarray(reference['contact_force_valid']).reshape(len(forces),-1)[:,0]&((forces>=.25).sum(-1)>=2))[0]);rigid=[0,1,3,5,7,9]
+        phase_cap=contact;full_native_phase=bool(r['arm']=='A4' and 'gt_phase_cap_frame' in infos[0])
+        if full_native_phase:
+            source_observer=FeedbackObserver(points);phase_cap=None
+            for st,so in enumerate(reference['objects'][:,0]):
+                sf=source_observer.update(pose7(so),reference['hand'][st,0,NATIVE_TO_WAM],so[7:13],st/30,contact_forces=reference['contact_forces'][st,0],force_valid=bool(reference['contact_force_valid'][st,0]),workspace_ok=True)
+                if sf.force_valid and sf.contact_observed and sf.grasp_established:phase_cap=st;break
+            if phase_cap is None:raise ValueError('GT reference lacks measured acquisition')
         c=RepairedGraspConsumer(data['q'][0,0],pose7(data['palm_pose'][0,0]),offset,scale,plane=support_plane(data['table_pose'][0,0],bounds),palm_vertices=surface.vertices[::32],table_geometry=(pose7(data['table_pose'][0,0]),bounds),object_points=points);observer=FeedbackObserver(points);command_error=keypose_error=future_error=tau_error=0.;phase_errors=0;deadline=None
         if r['arm']=='TIME':c.predicted_close_at=float('inf')
         for tick in range(r['controls']):
@@ -39,8 +46,9 @@ def main():
             if r['arm'] in ('A3','A4') and valid:
                 if r['arm']=='A3':indices=tick+np.arange(1,25)
                 else:
-                    lh=(hand-pose[:3,3])@pose[:3,:3];errors=np.mean(np.linalg.norm(local[cursor:contact+1,rigid]-lh[rigid],axis=-1),axis=-1);cursor+=int(np.argmin(errors));indices=np.minimum(cursor+np.arange(1,25),len(local)-1)
+                    lh=(hand-pose[:3,3])@pose[:3,:3];errors=np.mean(np.linalg.norm(local[cursor:phase_cap+1]-lh,axis=-1),axis=-1) if full_native_phase else np.mean(np.linalg.norm(local[cursor:contact+1,rigid]-lh[rigid],axis=-1),axis=-1);cursor+=int(np.argmin(errors));indices=np.minimum(cursor+np.arange(1,25),len(local)-1)
                 expected=local[indices]@pose[:3,:3].T+pose[:3,3];future_error=max(future_error,float(np.abs(expected-future).max()))
+            if full_native_phase and infos[tick]['gt_phase_cap_frame']!=phase_cap:raise ValueError('GT acquisition cap mismatch')
             if r['arm']=='A4' and (cursor!=infos[tick]['gt_cursor'] or contact!=infos[tick]['gt_contact_frame']):raise ValueError('closed-loop GT source phase mismatch')
             intent=grasp_intent_from_retargeter(state['q'][0],palm,pose,np.asarray(infos[tick]['postgrasp_object_pose']),np.clip(data['adapter_raw_action'][tick],-1,1),offset,scale,plan=plan,tau_valid=valid)
             if r['arm'] in ('WRIST','FINGER','TIME','T0'):

@@ -26,3 +26,28 @@ def latch_predicted_close(consumer,plan,now):
     if not np.isfinite(consumer.predicted_close_at) and plan is not None and plan.contact_index is not None:
         consumer.predicted_close_at=float(now+(plan.contact_index+1)/30)
     return None if not np.isfinite(consumer.predicted_close_at) else consumer.predicted_close_at
+
+
+def source_grasp_frame(reference,points):
+    """First source acquisition with the SAME measured observer, not a tuned frame."""
+    from .task_feedback import FeedbackObserver
+    from .inspire_contract import NATIVE_TO_WAM
+    from .pose_consumer import pose7
+    observer=FeedbackObserver(points)
+    for tick,obj in enumerate(reference['objects'][:,0]):
+        feedback=observer.update(pose7(obj),reference['hand'][tick,0,NATIVE_TO_WAM],obj[7:13],tick/30,
+            contact_forces=reference['contact_forces'][tick,0],force_valid=bool(reference['contact_force_valid'][tick,0]),workspace_ok=True)
+        if feedback.force_valid and feedback.contact_observed and feedback.grasp_established:return tick
+    raise ValueError('source has no force-qualified measured grasp acquisition')
+
+
+def closed_loop_gt_future(local,reference,hand,object_pose,points,*,cursor=0,phase_cap=None):
+    """Match native robot wrist AND fingers through acquisition; never rewind R8."""
+    cap=source_grasp_frame(reference,points) if phase_cap is None else int(phase_cap)
+    local=np.asarray(local);hand=np.asarray(hand);pose=np.asarray(object_pose)
+    if cap+24>=len(local):raise ValueError('source acquisition needs a genuine full24 future')
+    if not 0<=cursor<=cap or hand.shape!=(11,3) or pose.shape!=(4,4):raise ValueError('native11 live phase required')
+    measured=(hand-pose[:3,3])@pose[:3,:3]
+    errors=np.mean(np.linalg.norm(local[cursor:cap+1]-measured,axis=-1),axis=-1)
+    phase=cursor+int(np.argmin(errors));indices=phase+np.arange(1,25)
+    return local[indices]@pose[:3,:3].T+pose[:3,3],phase,cap

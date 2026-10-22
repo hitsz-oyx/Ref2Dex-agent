@@ -176,3 +176,23 @@ python3 src/task/wam-rl-policy-v3/tools/audit/replay_v13_actor.py --worker outpu
 GPU5的52回合/31174步R复算同样PASS，最大误差9.537e−7，零τ敏感性最大0.3636。GPU6全52回合/31200步独立干预重放PASS，保存的R非零、每步调用、τ、关键姿与实际命令/阶段均匹配。
 
 运行性能只读检查：同样1688步，OpenBLAS2线程13.54s、64线程13.49s，命令和阶段差均0。未见墙钟收益，故不改正在执行或后续批量的物理控制配置；记录在 `replay-threads2.time` / `replay-threads64.time`。
+
+## GT抓取相位资格修订（正式对照重跑前固定）
+
+**结果解读表仍按开头预注册，不改变成功判据或物理常数。** 新增资格反馈：真实源第49帧已接触但尚未建立抓取（第50帧才建立），旧A4接触cap=30，使R的8帧窗口最多看到38。预接触腕姿接口的截断被误用于需要持续合手的R接口。`GT-acquisition-red.log` 可复现失败，不依赖当前对照成功率。修复后原生11点同时匹配腕和手指，相位单调推进到源首次“有效力+近物接触+运动耦合抓取”；不使用单个初态的帧常数。
+
+9条源序列均PASS：抓取cap分别50/55/61/65/51/54/54/54/82；在每条源的cap−1状态均匹配到cap−1，R8包含后续抓取，完整24帧全为真实源数据。`GT-acquisition-qualification.json`。新增实际源回归测试先红后绿，另用“腕姿相同、只有指尖变化”的合成例防止退回只匹配基座。
+
+检查与排队存在并发：零回合守卫发现对照已启动，拒绝按空队列处理；随后仅停止自有supervisor与自有worker（SIGINT触发保存/清理）。旧provider保留9个已完成回合和1个部分回合，确认3668个控制步，至多再有1个在途步；原路径 `grasp-v13-mechanism-20261022-r1/comparators/` 全部保留，未选择性替换同一统计中的失败。详见 `GT-preflight-interruption.json`。这些是未通过资格的工程数据，不与修后正式对照合并。
+
+机制160回合/95620步和原始重评分160/160 PASS保持冻结；6臂初态40对PASS；机制三worker全部干预重放与R权重复算PASS。修复后对照另用 `grasp-v13-comparators-20261023-r2`，同一固定80初态×A3/A4，共160回合，无新seed、无调参，仍同v10 R/consumer/15mm/20s。正式总样本仍320；包括旧工程在途步的本轮物理上限为95620+3669+96000=195289 controls，0updates。
+
+修后确切命令：
+
+```sh
+python3 src/task/wam-rl-policy-v3/tools/run/run_grasp_components.py --comparators-only --mechanism-run outputs/wam-rl-policy-v3/grasp-v13-mechanism-20261022-r1 --output outputs/wam-rl-policy-v3/grasp-v13-comparators-20261023-r2 --queue-wall-s 14400 --detached
+```
+
+Hermes普通新重复仍可用同一runner、不加`--comparators-only`，在全新目录一次跑完整两阶段，使用修后GT来源。r2的`summary-final.json`将读取r1机制与旧v10A1/A2，明确列出两次执行及旧工程控制开销。
+
+来源：Hermes指出旧GT未进入close；外部审计要求先排除实现/准入问题；当前回放确认并修复的是相位回退，不声称“源示范GT”是干预后的真实未来或最优策略上界。
