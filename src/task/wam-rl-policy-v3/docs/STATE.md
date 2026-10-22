@@ -1,3 +1,13 @@
+# 2026-10-22 v6指令：位姿消费原型未达效果目标，保留原R
+
+[本轮实现、固定预算和结果](pose-consumption-improvement-20261022.md)：实现object-local
+precontact wrist pose消费、live物体/测量相位GT、显式approach mode/ETA/方向，以及S2c
+只读阶段信号对接。本轮唯一3链×5回合，3849controls/402.318s/0updates；a原R+WAM
+3/5，b位姿WAM0/5，c闭环GT1/5。b未达≥4/5，不替换默认原R；c也未稳定资格，不能
+据此判定参考质量或排除τ问题。b全approach、新b/c测量contact切换0/10，接触后保持
+分支尚无运行见证。211 passed/0 failed/0 skipped不代替效果门。未追加重复/训练/审计，
+两项完整任务阻塞修法写在报告但未声称已修，三臂RL继续HOLD。GPU5/6已释放。
+
 # 2026-10-22 v5：clipping全量复核，零裁剪仅限source见证
 
 [v5定义/逐block/复现](audit/action-clipping-review-20261022.md)：此前0/0只属于六例生产
