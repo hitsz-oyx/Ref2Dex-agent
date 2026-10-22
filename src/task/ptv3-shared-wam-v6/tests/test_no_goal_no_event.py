@@ -41,3 +41,22 @@ def test_online_goal_and_event_do_not_change_any_final_input():
 
 def test_invalid_policy_is_rejected():
     with pytest.raises(ValueError):apply_goal_input_policy({},'invented-goal')
+
+
+def test_actual_objective_masks_and_weighted_denominators_do_not_use_goal_validity():
+    from ptv3_shared_wam_v6.objectives import loss_components
+    class Normalizer:
+        def normalize(self,name,value):return value
+    torch.manual_seed(37)
+    b=dict(goal_object_delta=torch.ones(2,32,3),goal_object_points=torch.ones(2,32,3),object_goal_valid=torch.ones(2,32,dtype=torch.bool),
+        trajectory_valid=torch.rand(2,24,2,21)>.2,start_hand_valid=torch.rand(2,2,21)>.2,trajectory_target=torch.rand(2,24,2,21,3),
+        scene_valid=torch.rand(2,1,24,32)>.2,object_valid=torch.ones(2,1,dtype=torch.bool),scene_target=torch.rand(2,1,24,32,3),
+        interaction_valid=torch.rand(2,1,24,4)>.2,contact_target=torch.rand(2,1,24,4),part_target=torch.zeros(2,1,24,4,dtype=torch.long))
+    pred=dict(trajectory_normalized=torch.zeros_like(b['trajectory_target']),scene_normalized=torch.zeros_like(b['scene_target']),interaction_prediction_valid=torch.ones(2,1,24,4,dtype=torch.bool),interaction_logits=torch.zeros(2,1,24,4,17),
+        flow_hand_velocity=torch.zeros_like(b['trajectory_target']),flow_hand_target_velocity=torch.ones_like(b['trajectory_target']),flow_scene_velocity=torch.zeros_like(b['scene_target']),flow_scene_target_velocity=torch.ones_like(b['scene_target']))
+    c=dict(motion_floor=.1,motion_tau_m=.002,geometry_consistency=False,flow_matching=True)
+    old=loss_components(pred,b,c,Normalizer());new=loss_components(pred,apply_goal_input_policy(b,UNKNOWN_GOAL_POLICY),c,Normalizer())
+    assert set(old)=={'hand','scene','contact','part','flow_hand','flow_scene'}
+    for key in old:
+        assert torch.equal(old[key][0],new[key][0]) and torch.equal(old[key][1],new[key][1])
+        assert new[key][1]>0
