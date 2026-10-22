@@ -23,12 +23,12 @@ run_id: drift-intent-residual-20261022-r1
 
 | 结果 | 结论 | 下一步 | 来源 |
 |---|---|---|---|
-| BC DEV误差下降，闭环没有改善 | 只拟合了恢复标签，几何teacher或闭环分布仍不足 | 不扩PPO预算，保持R，DAgger后置 | Hermes 的BC目标重定位 |
+| BC训练误差下降但DEV/闭环不改善 | 恢复标签过拟合，未建立泛化 | 不晋升BC；仅完成已注册PPO技术pilot，不扩预算，DAgger后置 | Hermes 的BC目标重定位 |
 | DEV与配对物理均改善 | 有限初态的候选方向；非样本效率/泛化证据 | 提议独立冻结评估，禁止自动三臂 | Hermes 有条件残差PPO |
 | reward/PD/残差合同失败 | 工程失败，不能否定方法 | 保存partial，修合同后另run | 外部审计复现要求 |
 | 有限PPO零成功或比BC差 | 仅否决当前小预算配方，不能否定v6/RL | 不追加本轮训练 | 尚未与两方独立复跑一致 |
 
-Result: pending; 195 measured drift states prepared, train135/DEV60 separated by sequence.
+Result: BC400 updates, train MSE.422871→.0910735 but DEV.386376→.460369; no recovery-generalization evidence. Physical before/after pilot pending.
 Decision: continue BC on bounded recovery intent, then only a registered residual PPO feasibility pilot; three-arm RL HOLD.
 
 分类 Decision。区分“当前R无法把漂移状态带回抓取意图”与“小残差/当前几何teacher也无法恢复”。
@@ -59,3 +59,8 @@ GPU只在4/5/6空闲后使用；不重训v6、不启动正式三臂、不做完�
 
 具名边界：Hermes允许上述有条件启动，外部审计要求区分接口与任务；目前两方尚未独立复跑。
 195状态来自9条已用于v10开发的序列，DEV隔离只能约束离线拟合，不能称全新对象泛化。
+
+BC实测：seed292、400updates、1.181861s、GPU4 345–347MiB、Torch峰值20,727,808bytes；
+采样GPU利用率1/12/14%，195状态使计算很短。训练/DEV均为归一化意图残差MSE；
+训练降78.46%，DEV升19.15%，保留固定400步终态，不按DEV事后挑checkpoint。
+BC权重只供本次有界技术pilot，不晋升或扩训。环境与所有展开命令在run内bc/manifest.json及父manifest.json。

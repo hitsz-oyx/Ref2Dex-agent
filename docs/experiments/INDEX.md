@@ -154,7 +154,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261022-drift-intent-residual](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261022-drift-intent-residual.md) | 漂移恢复 BC 与有界意图残差 PPO | pending; 195 measured drift states prepared, train135/DEV60 separated by sequence. | continue BC on bounded recovery intent, then only a registered residual PPO feasibility pilot; three-arm RL HOLD. | probes/RUNNING |
+| [P-20261022-drift-intent-residual](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261022-drift-intent-residual.md) | 漂移恢复 BC 与有界意图残差 PPO | BC400 updates, train MSE.422871→.0910735 but DEV.386376→.460369; no recovery-generalization evidence. Physical before/after pilot pending. | continue BC on bounded recovery intent, then only a registered residual PPO feasibility pilot; three-arm RL HOLD. | probes/RUNNING |
 
 ## HF-egodex-shared-track-admission
 
@@ -311,13 +311,13 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261022-grasp-coverage40](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261022-grasp-coverage40.md) | v11 扩大初态覆盖：每链40个接口未见初态 | registered 40 distinct initials /20 unexposed objects x3 arms=120 episodes; supervisor PID3603938 QUEUED behind existing GPU456 work, 0 upda | n12 engineering coverage remains separate; use n40 per chain and retain every physical failure. | probes/RUNNING |
+| [P-20261022-grasp-coverage40](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261022-grasp-coverage40.md) | v11 扩大初态覆盖：每链40个接口未见初态 | registered 40 distinct initials /20 unexposed objects x3 arms=120 episodes; resource queue starts GPU5/6 after preceding COVERAGE, GPU4 afte | n12 engineering coverage remains separate; use n40 per chain and retain every physical failure. | probes/RUNNING |
 
 ## HF-grasp-geometry-coverage
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261022-grasp-geometry-coverage](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261022-grasp-geometry-coverage.md) | 尺寸几何与新增初态覆盖 | pending fixed 36-episode coverage; recorded reference geometry contract attainable for 2.000s hold. | preserve all results and distinguish interface failure from unqualified positive control; three-arm RL HOLD. | probes/RUNNING |
+| [P-20261022-grasp-geometry-coverage](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261022-grasp-geometry-coverage.md) | 尺寸几何与新增初态覆盖 | 36/36 completed and raw-matched; new-object A1=2/8 A2=0/8 A0=2/8, new-sequence A1=0/4 A2=0/4 A0=2/4; three-arm initials12/12 matched. | three source-only strict witnesses localize a reference/intent/execution bottleneck; do not promote global geometry qualification or retrain | probes/COMPLETED |
 
 ## HF-grasp-interface-repair
 
