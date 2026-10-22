@@ -152,6 +152,8 @@ def main():
             env=create();task=env.task
             properties=task.gym.get_actor_dof_properties(task.envs[0],task.humanoid_handles[0])
             require_continuous_wrist_dofs(task.gym.get_actor_dof_names(task.envs[0],task.humanoid_handles[0]),properties['hasLimits'])
+            audit['native_dof_names']=task.gym.get_actor_dof_names(task.envs[0],task.humanoid_handles[0])
+            audit['native_pd_properties']={k:properties[k].tolist() for k in ('stiffness','damping','effort','velocity')}
             audit['physical_joint_limits']=dict(has_limits=properties['hasLimits'].tolist(),lower=properties['lower'].tolist(),upper=properties['upper'].tolist())
             if a.physics_backend!='gpu':
                 # Upstream motion loading hardcodes CUDA even with a CPU sim.
