@@ -1,3 +1,14 @@
+# 2026-10-23 v13已完成：联合输出依赖成立，泛化与GT执行上界未建立
+
+| 结果解读 | 结论 | 下一步决定 | 来源 |
+|---|---|---|---|
+| 旧seen A1 35/40，WRIST/FINGER/TIME/T0各0/40 | 固定链依赖腕指联合输出；TIME无预测接触帧 | 保留联合接口，不宣称三项独立τ机制 | Hermes分解；本轮实测 |
+| A3/A4两子集各0/40，全部未close | 源GT构造资格已过，R/执行器上界未过；WAM训练源兼容性未排除 | 先资格化接近/闭合，不宣称WAM独有信息 | Hermes对照；外审实现资格；信息解释未一致 |
+| 17中止=9门槛跨越+7完全桌下重入+1边缘重入 | 12 approach/5 close；不是统一压穿原因 | 逐例支撑/掉落诊断，无“其他”合桶 | Hermes逐例；外审几何/形状 |
+| 原unseen3/40且8序列均R TRAIN；另v11 A1/source=3/14 | 未证明训练未见或宽覆盖；部分任务有另一链见证 | 三臂RL HOLD、不训v6、不做完整RELEASE | 外审可推广性要求 |
+
+[完整结果、17例与一条重复命令](grasp-v13-mechanism-20261022.md)；[卡](experiments/probes/P-20261022-grasp-intent-mechanism.md)。新增正式320回合147811controls；含工程实际153675–153677，0updates。raw/干预重放/R权重重算各320 PASS，初态40+80组、9源构造资格PASS；最终回归316 passed。最终产物 `outputs/wam-rl-policy-v3/grasp-v13-comparators-20261023-r3/summary-final.json` 与 `delivery-audit.json`。以下为并行路线与历史状态，不覆盖其证据边界。
+
 # 2026-10-23 source 门控/引用离线分诊：先修接口，不开 R6 全批
 
 审计报告与可复跑工具见 [`source-gate-triage-20261023.md`](audit/source-gate-triage-20261023.md) 和

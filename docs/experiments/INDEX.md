@@ -323,7 +323,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261022-grasp-intent-mechanism](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261022-grasp-intent-mechanism.md) | 成分消融与同接口 A3/A4 | 见原卡 | 见原卡 | probes/REGISTERED |
+| [P-20261022-grasp-intent-mechanism](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261022-grasp-intent-mechanism.md) | 成分消融与同接口 A3/A4 | 320 formal episodes; seen A1 35/40 versus each component/A3/A4 0/40; GT never close; 17 aborts fully classified | retain conditional wrist+finger interface; qualify source-to-R/executor; no generalization or WAM-unique-information claim; three-arm RL HOL | probes/COMPLETED |
 
 ## HF-grasp-interface-repair
 

@@ -1,5 +1,59 @@
 # v13：机制分解、同接口几何/GT 和 17 例中止审计
 
+## 结果解读表（最终交付；下文保留运行前登记）
+
+| 实测结果 | 可支持的结论与边界 | 下一步决定 | 来源与一致性 |
+|---|---|---|---|
+| 完整 A1 35/40；腕姿、手指、时机单项及模板各0/40 | 在当前固定R/模板/消费链中，腕姿与手指联合输出有效；TIME没有预测接触帧，不能否决有效时钟 | 保留腕指联合接口，不宣称三种独立τ语义或三阶交互 | Hermes成分分解；本轮实测；“三项合起来”解释仍不一致 |
+| A3/A4在两子集各0/40，160例均未进入close | 源GT构造已修正并通过恒等性资格；R/执行器仍未取得GT上界资格。R训练源兼容性未排除 | 不由A3低直接推出WAM独有物理信息；优先资格化接近/闭合链 | Hermes同接口要求；外审实现资格；信息独有性仍未裁决 |
+| 17例=9投影内跨门槛+7完全桌下重入+1边缘重入；approach12/close5 | 接近/闭合中的支撑与掉落问题，不能统一解释为压穿；没有lift/hold中止 | 逐例几何定位；不再使用“其他”作为归因 | Hermes逐例要求；外审阶段/形状检查；本轮原轨迹复核 |
+| 原“unseen”A1 3/40；这些序列均在R TRAIN；另面板A1 3/40、source14/40 | 未建立训练未见或广覆盖泛化；部分相同初态有另一执行链物理见证 | 三臂RL HOLD、不重训v6；先修并资格化执行链 | 外审覆盖要求；Hermes两问；本轮与独立v11证据边界一致 |
+
+**给机主两问的当前答案**：尚不能宣称这套路线可推广。已知成功依赖当前WAM条件R的腕姿与手指联合输出及实测阶段消费；不能归为“只找对抓点”，也尚不能证明WAM拥有几何/源GT没有的信息。成分实验交换的是R后的输出字段，保留逐步R调用及真实τ；这检验闭环输出依赖，并未把潜在τ分解成三种独立信息。R仍保持原12维语义（腕6+指6），没有从零学习动作。
+
+## 完整数字（固定v10消费器与15mm/20s协议）
+
+| 臂 | seen严格成功/40 | 原“unseen”严格成功/40 | seen进入close | seen实测contact / lift / hold |
+|---|---:|---:|---:|---:|
+| A1：完整WAM条件R、实测阶段（复用v10） | 35 | 3 | 见原v10轨迹 | 见原v10阶段评分 |
+| A2：同R、仅τ清零（复用v10） | 0 | 0 | 见原v10轨迹 | 见原v10阶段评分 |
+| WRIST：仅R腕姿、模板手指 | 0 | 未运行 | 18 | 15 / 0 / 0 |
+| FINGER：仅R手指、模板腕姿 | 0 | 未运行 | 0 | 0 / 0 / 0 |
+| TIME：仅预测时机、模板位姿/手指 | 0 | 未运行 | 0 | 0 / 0 / 0 |
+| T0：固定模板、实测阶段 | 0 | 未运行 | 0 | 0 / 0 / 0 |
+| A3：几何重定向τ→同R | 0 | 0 | 0 | 0 / 0 / 0 |
+| A4：闭环匹配完整源未来τ→同R | 0 | 0 | 0 | 0 / 0 / 0 |
+
+A1 seen Wilson95=[.738879,.945405]；每个0/40 Wilson95=[0,.087622]。A1 vs A2 Fisher双侧 **2.2728875847395208e−17**，配对35:0 McNemar **5.820766091346741e−11**；seen各新零成功臂对A1的原始p相同。三项单臂各对T0 Fisher/Holm均1，不能用它们互不显著证明等效。原“unseen”A1 vs A2/A3/A4 Fisher=.2405063、配对p=.25，不显著。完整A1本来就是腕+指+实测阶段，未使用预测接触时钟；TIME 40/40没有预测接触帧、没有时钟闭合，不可写成“准确接触时机也没用”。WRIST消费器曾发lift命令2例，但S2c物理lift0；两种指标分别保留。
+
+A3/A4所有回合均有有效τ，不能归为全程无输入。seen A3/A4实际关节限位中止15/5，原“unseen”30/35；其余超时，全部停留approach。源GT两处构造错误已经修正：接触cap截断后续合手、逐未来帧锚定抹掉物体运动；9条源的原状态未来恒等性/SE3等变性均PASS（最大误差5.55e−16m）。但有效源未来不等于新干预/新目标的因果未来或最优策略。冻结R训练用WAM-v4 step80000预测缓存，A1现用v6 step11000；不能把源替换失败排他归因于信息不足。
+
+旧8条“unseen”均在R TRAIN，窄seen序列在DEV，40个seen重复seed仍只有一个窄初态。此处seen/unseen仅指旧接口开发暴露，均已成为诊断集。另一个v11新几何20物体×2序列面板：A1=3/40、A2=0/40、source接近→同后段=14/40；同初态source独成功12、A1独成功1、共同成功2。它证明部分任务有另一执行链见证；阈值不同，不能与本轮池化，也不认证训练未见泛化。详见[独立覆盖报告](grasp-v11-coverage40-results-20261022.md)。
+
+## Hermes可直接调用的确切重复命令
+
+在本仓库根目录运行，输出目录必须是新路径；不覆盖本次产物。以下重跑全部320个新增正式回合，旧v10 A1/A2作为冻结对照复用，先机制160、后A3/A4 160；继承原registration的seed100–179、各臂40、单回合最多600 controls/20s、0神经网络更新，只排队使用空闲物理GPU4/5/6，每阶段worker与排队上限各14400s。
+
+```sh
+/usr/bin/python3 src/task/wam-rl-policy-v3/tools/run/run_grasp_components.py --output outputs/wam-rl-policy-v3/grasp-v13-hermes-repeat1 --queue-wall-s 14400 --detached
+```
+
+重复输出：`outputs/wam-rl-policy-v3/grasp-v13-hermes-repeat1/`；独立supervisor日志：`outputs/wam-rl-policy-v3/grasp-v13-hermes-repeat1-supervisor.log`。需要本机已有v10数据、模型、reference及r1冻结runtime-code，非可脱离产物的纯代码复现。Python `/usr/bin/python3`、Torch2.4.1+cu121/CUDA12.1，native仿真环境 `/home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train/bin/python`；worker manifest记录实测环境、GPU和启动提交。
+
+本次最终数据：机制 `outputs/wam-rl-policy-v3/grasp-v13-mechanism-20261022-r1/`，对照 `outputs/wam-rl-policy-v3/grasp-v13-comparators-20261023-r3/`。最终对照确切续跑命令（含按时间首次完成规则复用15个未变A3、不按成功筛选）在下方“完整源未来恒等性修订”登记；145回合新执行。最终对照启动提交 `cb45015a495cf35da7b4f14b0c6a7d85f99e5743`，机制worker提交 `928436e23e6d7b4f2719d988613872e9b64f3792`，冻结消费器源自v10 `bdf580a7`。
+
+## 交付核对与实际预算
+
+正式新增320回合、147811 controls（机制95620+对照52191，后者含4510个复用A3控制）；另有工程变体/重复/中断5864–5866 controls，**本轮实际物理总数153675–153677**，低于修订上限192996。旧A1/A2复用，不算本轮新物理。所有旧变体/中断留档，不混作完整GT，不换seed补失败；0updates、不重训v6、不做完整RELEASE、三臂RL继续HOLD。
+
+原始严格评分320/320、独立意图/命令/阶段重放320/320、保存观测上的R权重复算320/320均PASS；40组六臂机制初态与80组四臂对照初态（9字段）一致。R重算最大误差1.430512e−6，阈值2e−5；未重新生成WAM预测或shape embedding。干预重放覆盖147811 controls，并有keypose及初态突变拒绝检查；原始评分文件中的publication-label mutant标记为false，不能把它说成该突变已覆盖。最终回归 **316 passed、4 warnings、0 failed**（21.22s，包含同期source实现）。
+
+仓库文档门 `python3 tools/verify.py --changed` 本轮仍FAIL：另一Task同期 `P-20261023-tau-fixed-panel-metric.md` 缺3项v2元数据/正整数索引，`P-20261023-scheduler-cache-identities.md` 有3条缺失目标链接，共7条错误；不修改这些并行任务文件。本轮改动的Markdown链接和Python编译另行通过，不能将316个pytest通过写成全仓库验证通过。
+
+所有证据以最终对照目录中的 `summary-final.json`、`delivery-audit.json`、`phases-final.json`、`initial-parity-final.json`、`GT-full-source-qualification.json`、`engineering-overhead.json`、`R-training-provenance.json` 为准。机制目录保留 `abort17-final.json`（17例完整五指/候选/12关节/形状量）及下图；表格与逐例原轨迹链接在下文。此处完成Hermes的三项诊断，不将上界未资格化改写成WAM或RL方法否决。
+
+## 运行前登记与实施记录（历史，保留原表）
+
 ## 结果解读表（运行前固定）
 
 | 结果（Hermes 指定） | 结论 | 下一步决定 |
@@ -47,7 +101,7 @@ A3 沿用每一源未来帧的物体局部手形，通过当前物体姿态重�
 
 ## 17 例审计结果（原轨迹，无新增物理步）
 
-17/17 都触发原协议的 `physical_table_penetration` 安全门，阶段为 approach12 / close5 / lift0 / hold0。但此安全门是**采样物体点低于桌面20mm且质心投影回到桌面范围**的保守代理，并非精确网格碰撞。细分后：
+17/17 都触发原协议的 `physical_table_penetration` 安全门，阶段为 approach12 / close5 / lift0 / hold0。但此安全门是**采样物体点低于桌面20mm且采样点几何中心投影回到桌面范围**的保守代理，并非精确网格碰撞。细分后：
 
 | 近端事件 | approach | close | 合计 | 结论 |
 |---|---:|---:|---:|---|
