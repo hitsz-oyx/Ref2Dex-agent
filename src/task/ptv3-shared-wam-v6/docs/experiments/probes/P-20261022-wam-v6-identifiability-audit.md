@@ -5,7 +5,7 @@ experiment_id: P-20261022-wam-v6-identifiability-audit
 date: 2026-10-22
 task: ptv3-shared-wam-v6
 branch: main
-git_commit: pending
+git_commit: f44f243c7a5f03d638dc721788306da5d442f905
 claim_id: C1
 hypothesis_family: HF-v6-identifiability-prefix-self-consistency
 probe_index_in_family: 1
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [178,180]
 decision_changed_if_positive: prioritize causally supplied contact intentions or predicted-object coupling if supported matched dispersion or consistency gaps justify them
 decision_changed_if_negative: inspect supervision and generalization rather than assume more conditions or model scale are the blocker
-status: PREPARING
+status: RUNNING
 run_id: identifiability-audit-20261022-r1
 ---
 
@@ -112,3 +112,25 @@ one3090,batch2,3600s wall,3GiB artifacts including pinned checkpoint,20GiB disk
 floor. All outputs/cache/temp under project. Detached nohup/new session launch,
 environment allowlist,no credentials. Exact command,code and results appended
 after run. Existing user `docs/PROJECT_MEMORY.md` remains untouched.
+
+## Resource change and admission corrections
+
+10:11 GPU0 was claimed by another user's VLN evaluation after our09:56 free
+check. Initial all-stage run2548726 completed bank/variance,then safely failed
+CUDA OOM while loading the first forecaster; no other process was signaled.
+Do not reuse its incomplete evaluator output. Geometry-only identity/translation
+smoke onGPU1 PASS: GT affine max1.18e-5mm,matched-anchor gap3.05e-5mm; a
+17.320508mm object translation measured17.320501mm and leaves GT-anchor
+distances bitwise unchanged. Smoke codef89b6a47.
+
+GPU0 regained spare headroom; model evaluation under7223bfb9 uses batch1 and
+1.25GiB allocator bound, saving partial records every8windows. It yields below
+2GiB free. Healthy TRAIN and sequence panels finished; later local-prefix
+processing yielded as another job's memory grew. Resume only on an authorized
+0–3 card with>=3.5GiB free/util<=50%,one card at a time; never touch4/5/6/7 or
+other jobs. Dedicated inference-only controller bounds retry/wait to30min.
+Bank4096,panels96 each (TRAIN95 captures,sequence66,local-prefix93),seed178.
+Raw GRAB TRAIN1040/DEV92 captures,zero overlap;26147 unadmitted disjoint local
+prefix candidates across902TRAIN captures. Gate20/50/100mm yields15/197/1045
+distinct-capture pairs; strict gate support is limited,especially after matching
+E_next time within3frames (2/34/117pairs). Precise results will follow.
