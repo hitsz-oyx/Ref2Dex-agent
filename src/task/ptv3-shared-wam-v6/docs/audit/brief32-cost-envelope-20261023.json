@@ -1,0 +1,59 @@
+{
+  "schema": "ref2dex.brief32.recording-cost-envelope.v1",
+  "measured": {
+    "inventory_wall_seconds": 142.0752154327929,
+    "inventory_mothers": 1064,
+    "recording_layers": 4232,
+    "pilot_mothers": 30,
+    "pilot_windows": 409,
+    "pilot_state_machine_calls": 0,
+    "legal_replay_cpu_seconds": null,
+    "legal_export_bytes": null
+  },
+  "exact_current_record_reexport": {
+    "feasible": false,
+    "full_6000_window_replay_cpu_hours": null,
+    "reason": "no complete legal replay observations; extrapolating a rejection-check time would be invalid",
+    "gpu_needed_for_offline_state_machine": false
+  },
+  "new_recording_scale": {
+    "mother_rollouts": 1064,
+    "object_streams": 1067,
+    "mother_ticks": 260526,
+    "object_ticks": 261720,
+    "aggregate_mother_stream_hours_at30": 2.412277777777778,
+    "aggregate_object_stream_hours_at30": 2.4233333333333333,
+    "minimal_raw_payload_bytes_512_per_object_tick": 134000640,
+    "expanded_raw_payload_bytes_2048_per_object_tick": 536002560,
+    "event_only_bytes_7_per_object_tick": 1832040,
+    "event_only_bytes_16_aligned_per_object_tick": 4187520,
+    "instruction_snapshots_geometry_overhead": "additional; raw payload only, not a total storage guarantee"
+  },
+  "future_replay_formula": {
+    "cpu_hours": "261720 * observed_milliseconds_per_object_tick / 3600000",
+    "observed_milliseconds_per_object_tick": null
+  },
+  "serial_new_rollout_wall_scenarios": {
+    "formula": "aggregate mother-stream hours / real_time_factor + 1064 * reset_seconds / 3600",
+    "optimistic_assumption": {
+      "real_time_factor": 10,
+      "reset_seconds": 2,
+      "hours": 0.832338888888889
+    },
+    "slow_assumption": {
+      "real_time_factor": 1,
+      "reset_seconds": 10,
+      "hours": 5.3678333333333335
+    },
+    "measured": false,
+    "excludes": [
+      "failed/retried rollouts",
+      "task/asset conversion",
+      "queue and setup",
+      "controller qualification"
+    ],
+    "caveat": "same-scale reference envelope only; new robot trajectories need not reproduce human clocks or yield 6000 admitted windows"
+  },
+  "training_updates": 0,
+  "new_rollout_launched": false
+}
