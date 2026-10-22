@@ -17,6 +17,20 @@ decision_changed_if_negative: keep the checkpoint from being reported as an over
 
 # P-20261023-tau-fixed-panel-metric
 
+## 2026-10-23 CI 修正与 event 合同补审
+
+主 CI 已改为124母序列整组重采样2000次；原帧级 CI 留作对照。overall、first8、
+contact-window 的 B1−B0a 配对帧中位差聚类95% CI分别为
+`[-50.816599,-35.525611]`、`[-21.198197,-13.684390]`、`[-36.579623,-26.001958]`mm。
+8个子集两种口径均不跨0，旧TRAIN面板优势未反转；下方历史 bootstrap 表为帧级口径。
+
+新增实际入口审计证明训练 E_next 的 type/delta/validity 来自未来 proximity teacher，
+部署 TaskScheduler 使用已知任务计划与当前反馈，合同仍未统一。此前“优先买覆盖”
+的建议须服从此阻塞，不是训练放行依据，也不能据旧面板宣称部署优势。
+实现9eeb3fac；完整字段来源、主CI及采样选择项见
+[报告](../../audit/tau-event-contract-ci-sampling-20261023.md)，产物
+`outputs/ptv3-shared-wam-v6/tau-contract-20261023-r1/`。没有训练、config状态变更或新基线。
+
 | 可能结果 | 含义 | 会改变哪个决定 |
 |---|---|---|
 | 新 checkpoint 在全面板前进、但接触窗口/前 8 帧退步 | 指标掩盖了关键相位 | 判为**未改进**，别报喜 |

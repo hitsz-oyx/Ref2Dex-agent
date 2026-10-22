@@ -1,3 +1,19 @@
+## 2026-10-23 τ event contract also ununified; cluster CI primary; no training
+
+当前 TRAIN207,579 窗口中 event raw-valid207,561，CONTACT19,740/RELEASE185,439，
+130,740 条有效事件在 K24 之外。真实同前缀反例证明 type/delta/validity 依赖未来
+teacher；实际 Steps→DataLoader→collate35字段逐位一致，32条批次26valid/6dropout。
+部署 TaskScheduler 使用事前 TaskSpec 与测量反馈生成事件/倒计时，事件合同亦未统一，
+不能因 goal 修好就放行训练。config status不变、0训练、0checkpoint。
+
+固定512锚点/124母序列的2000次聚类bootstrap，overall/first8/contact-window的
+B1−B0a中位差CI分别[-50.817,-35.526]/[-21.198,-13.684]/[-36.580,-26.002]mm。
+8/8子集仍不跨0，但只是旧条件下TRAIN面板证据；主scorer已切聚类CI并保留帧级对照。
+采样索引设计可把每批母序列55.68→288、同批时间近重复75.96%→0，但母序列/物体池
+仍1064/61，source比例会大改，故只留机主选择项，不接入或重排。
+[完整结果解读表、字段证据与复现](audit/tau-event-contract-ci-sampling-20261023.md)；
+代码9eeb3fac，产物`tau-contract-20261023-r1/`，合计163,972bytes。
+
 ## 2026-10-23 τ r9 causal scheduler replay remains BLOCKED
 
 6,000 curated 窗口、1,067 sequence/slot 组完成实际输入字段盘点：缺部署前已知任务意图
