@@ -119,6 +119,24 @@ export HTTPS_PROXY=http://127.0.0.1:7897
 
 不要 reset、覆盖或删除用户已有修改。
 
+**默认：提交完就推送。** 每完成一步工作就 `git add`（只加你这轮改的文件）→ `git commit` → `git push origin main`，并在回答里报出 commit sha 与推送结果；只有机主当轮明确说"先不要推送"才停。推送后用 `git ls-remote origin main` 核对远端 sha 与自己的 `git rev-parse HEAD` 一致，两个 sha 都写进回答。
+
+**推送凭据（2026-10-22 由 Hermes 建好，机主授权）：**
+- 服务器上**默认没有任何 credential.helper**，`~/.netrc` 里只有 wandb 的 token，VS Code 的 GitHub 凭据在本机客户端、不在服务器 —— 所以裸 SSH 里直接 push 会报 `fatal: could not read Username for 'https://github.com': terminal prompts disabled`（不是网络问题：`curl https://github.com` 返回 200）。
+- 本仓库已配好**仓库级**凭据助手：
+  - 脚本：`/home2/wyy/.local/bin/gh-git-credential.sh`（权限 700；内部现取现用 `~/.config/gh/hosts.yml` 的 oauth_token，**不复制、不打印**）
+  - 配置：`git -C <repo> config credential.helper '/home2/wyy/.local/bin/gh-git-credential.sh'`
+  - 用法：直接 `git push origin main`，非交互也 OK。
+- 兜底（换机器/换 home/助手丢了）：临时 askpass 再推，用完立即删除：
+  ```sh
+  printf '#!/bin/sh\ncase "$1" in\n  Username*) printf "hitsz-oyx\\n" ;;\n  Password*) grep -m1 "oauth_token:" ~/.config/gh/hosts.yml | sed "s/.*oauth_token: *//" | tr -d " \\r" ;;\nesac\n' > /tmp/gh_askpass.sh
+  chmod 700 /tmp/gh_askpass.sh
+  GIT_ASKPASS=/tmp/gh_askpass.sh GIT_TERMINAL_PROMPT=0 git push origin main
+  rm -f /tmp/gh_askpass.sh
+  ```
+- 代理（旧建议，网络受限时再试）：`export http_proxy=http://127.0.0.1:7897` / `https_proxy` / `HTTP_PROXY` / `HTTPS_PROXY`。
+- **禁止**：打印/复制/提交任何 token 或凭据文件；`push --force`；把与本轮无关的改动一起 commit；推送失败时假称成功（如实报错并说明卡在哪一步）。
+
 ---
 
 ## 6. 身份与版本
