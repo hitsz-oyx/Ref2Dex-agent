@@ -1,14 +1,23 @@
-# 2026-10-22 v9：四臂seen40/unseen40，三卡正式运行中
+# 2026-10-22 v9：320回合完成，seen局部收益成立、unseen及GT资格失败
 
-[预注册、diff和复现](experiments/probes/P-20261022-grasp-interface-stat40.md)：每臂每子集40，
-共320episode/192000controls上限，GPU4/5/6三worker并行，每episode重建native以隔离旧solver。
-固定20s、S2c末态hold≥1s且目标≤15mm为主，不成功即停；HOLD任务release另报不适用。
-纠正stage palm测量用腕原点的角色错误：改为实测SE3下真实URDF掌部碰撞mesh间距，S2c阈值
-不变；同S2b源S2c四阶段0→全通过、最长2s。并未改v6或控制器/安全gate。
-seen一族40seed、unseen8新接口物体各5seed；不冒充40物体或WAM预训练未见。主Fisher+Wilson
-不重叠联合门按子集分别判定，n未齐禁止发布；A4失败不归因WAM。P1 RL HOLD，不重训v6。
-原始状态重算首批9/9一致、发布标签mutant拒绝；正式最终统计等待全量，旧n5不并入。
-产物`outputs/wam-rl-policy-v3/grasp-v9-stat40-20261022-r1/`。预检236 passed/0 failed/0 skipped。
+[预注册、diff、统计与复现](experiments/probes/P-20261022-grasp-interface-stat40.md)：每臂每子集40，
+seen/unseen分开。固定20s+S2c末态hold≥1s+物体目标≤15mm；seen A1=15/40，Wilson95
+[.24223,.52968]，A2/A3/A4各0/40，[0,.08762]；A1对三臂Fisher p均1.21236e-5，
+CI不重叠，达到seen局部门槛。A1末态hold31/40、最长连续持握中位17.233s，精确目标15/40；
+不能把抓得住等同到位。unseen八个新接口物体各5seed，四臂各0/40，全部比较p=1；
+A1新物体40/40关节限位中止，lift0。未见稳健性不成立，不把8物体说成40独立物体或预训练未见。
+A4两子集均0/40、未建立上界，未触发重训条件；不能按WAM>GT排序解释τ质量。A2旁路R、
+A3保留R但参考条件不同，现证据只限参考消费链局部收益，同R无τ的大样本因果隔离仍缺。
+原型是HOLD，release不适用；不声称完整RELEASE成功率。P1 RL仍HOLD，不重训v6。
+修正stage palm测量角色：实际URDF掌部mesh代替腕原点，S2c阈值不变；同真实S2b源四阶段
+全拒绝→全通过、最长仍2s。仅stage测量适配，R/控制器/安全gate未改。正式代码冻结07d4db08。
+三卡完成108+108+104=320，原始状态独立重算320/320，80/80配对九字段最大差0，实际PD
+重构最大3.11642e-7；手点平移及发布标签完整CLI故障注入均被拒绝。237 passed/0 failed/
+0 skipped。101570/192000controls、0updates，三worker评估wall之和9225.165s（2.563GPU·h），
+最长53.49min（不含模型初次载入），无技术失败/partial/补抽。GPU4/5/6全部释放至2MiB。
+全量`outputs/wam-rl-policy-v3/grasp-v9-stat40-20261022-r1/summary.json`含阶段、误差全向量/
+分位数、12个Fisher、Wilson、配对补充与原始路径。下一步先修未见R/PD有限关节动态合同、
+验收A4，再谈WAM；seen同时需补目标精度，不能由显著p值宣布稳定工程资格。
 
 # 2026-10-22 v8：消融完成；5/5未稳定复现，资格退回HOLD
 

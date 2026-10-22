@@ -301,6 +301,12 @@
 | [P-20261013-goal-point-wam-visited-joint-anchor](../../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-visited-joint-anchor.md) | Joint actor/R update with a GT-tau action anchor | COMPLETED 3000 updates in 609s on GPU2. No checkpoint passed the | Stop this clocked joint update. Do not deploy the pair. The next | probes/UNPROMISING |
 | [P-20261013-goal-point-wam-visited-realign](../../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-visited-realign.md) | Current visited-state coverage and fixed-R actor realignment | 27 actual takeovers collected;19 successful recovery queries admitted;R repaired/GT-qualified;actor realignment running. | Complete one collect/qualify/align/rollout loop, without larger models. | probes/RUNNING |
 
+## HF-grasp-interface-stat40
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261022-grasp-interface-stat40](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261022-grasp-interface-stat40.md) | v9：四臂，每臂seen40/unseen40，三卡并行（预注册） | seen A1 15/40 vs A2/A3/A4 0/40, Fisher p=1.21e-5 and nonoverlap Wilson; unseen all0/40; GT upper bound unqualified. | keep RL HOLD; fix unseen finite-joint execution and endpoint precision before any WAM retraining. | probes/COMPLETED |
+
 ## HF-gt-consequence-sufficiency
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
@@ -1356,4 +1362,5 @@
 | [P-20261020-inspire-scheduled686-cache](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-inspire-scheduled686-cache.md) | P-20261020-inspire-scheduled686-cache | 见原卡 | 见原卡 | probes/见原卡 |
 | [P-20261020-inspire-scheduled686-closed-loop](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-inspire-scheduled686-closed-loop.md) | P-20261020-inspire-scheduled686-closed-loop | 见原卡 | 见原卡 | probes/见原卡 |
 | [P-20261020-inspire-task-reward-bridge](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-inspire-task-reward-bridge.md) | P-20261020-inspire-task-reward-bridge | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261022-s2e-geometry-tau](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261022-s2e-geometry-tau.md) | P-20261022-s2e-geometry-tau | 见原卡 | 见原卡 | probes/见原卡 |
 | [VAL-20260923-CM-EFFECT-PPO](validations/VAL-20260923-CM-EFFECT-PPO.md) | Validation: 动作条件 Cm 效应排序能否稳定改善 PPO？ | 见原卡 | 见原卡 | validations/见原卡 |
