@@ -14,7 +14,7 @@ seeds: [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 11
 decision_changed_if_positive: qualify source-only controller on the same forty development initials before comparing WAM
 decision_changed_if_negative: retain all failures and repair measured approach or closure without relaxing physical gates
 status: RUNNING
-run_id: source-ceiling-20261023-r16
+run_id: source-ceiling-20261023-r17
 ---
 
 ## 结果解读表
@@ -233,4 +233,18 @@ PY=/home2/wyy/miniconda3/envs/graspenv/bin/python
 $PY -m pytest -q src/task/wam-rl-policy-v3/tests/test_source_pd_reference.py src/task/wam-rl-policy-v3/tests/test_source_ceiling.py src/task/wam-rl-policy-v3/tests/test_source_ceiling_queue.py --basetemp=tmp/pytest-source-reference-independent
 $PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r16 --prepare --predecessor outputs/wam-rl-policy-v3/source-ceiling-20261023-r15
 $PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r16 --detached
+```
+
+## R17运行前修订：按实测腕/object几何及离桌阶段选参考
+
+R16未达32，仍完整40。hand/camera失败末态无触力，live腕相对对应source实测腕仍差93.7/109.0mm；追上PD motion-feedforward终点不等于抵达真实抓姿。R17不改Guard/S2c成功判据，用实测object-local腕SE3及object-table gap匹配记录状态，只有当前离桌阶段允许的source状态可选，再取最多2个记录帧（原30Hz中66.7ms）的前瞻action。参考允许随漂移回退，GT frame不冒充真实elapsed时间；finger命令未就绪/卸载仍不向前跳。完整源数据保持原状。
+参考phase上界用live table gap+既有geometry.position_tolerance_m，拒绝source object已抬升而live仍在桌面的过早姿态；无phase候选时显式phase_admission_missing并选最近gap参考，不删该回合、不宣称候选有效。匹配转角乘实测手点到腕的杠杆长度，全部误差为m，无物体/初态ID常数。
+同时控制器入口只允许“原measured coupling +明确unsupported”才进入lift；桌面推着object移动不等于可持握。仅复制controller feedback把established压低，绝不改原TaskController/评分的force、contact或成功，不把False升True，正常held后段不改。源轨迹的真实抬升动作提供起动，不新增假tau/强制物体运动。
+预期live supported时选择的source gap不越过现有尺寸容差（无候选例外明报），接近参考不再按墙钟推进到错误抓姿；supported/unknown时controller grasp-established=0。几何平移/旋转共变、phase边界、supported推物三种故意错误均被回归抓住。目标source≥32/40及pregrasp jointabort≤2仍待物理。
+同40/24k/0updates/20秒，前序R16，累计上限明确追加24k至298430；不比WAM/不RL/不重训。源码/测试不把PASS当物理通过。
+```bash
+export TMPDIR="$PWD/tmp"
+PY=/home2/wyy/miniconda3/envs/graspenv/bin/python
+$PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r17 --prepare --predecessor outputs/wam-rl-policy-v3/source-ceiling-20261023-r16
+$PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r17 --detached
 ```

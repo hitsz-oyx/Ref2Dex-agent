@@ -209,3 +209,9 @@ source_native_targets是生产worker实际入口：原source action/ref-q先变r
 CPU3项生产helper回归分别抓住故意丢弃位移映射、丢弃旋转映射、使用完整postgrasp/release长度；红为3 failed（数值断言），见R15/reference-contract-red.log。预期50mm对象平移→50mm native目标平移；.4rad对象旋转→同腕旋转；hand案例188的reference不再越过51，而不是声明source frame52已在live成功。
 SourcePDGuard同时把实测丢持后的第一拍按恢复处理；原Phase仍hold并不代表要继续绕过motor guard。数字红为400mm动作/应≤10mm，修后guard active且原正常held命令逐位同base。新增mutant重放旧首拍绕过行为会被数值断言抓住，不只检查metadata。
 复现命令见R16实验卡及测试目录，完整计数见R16/tests-ready-all.log（须passed/failed全量）；9个production Guard step回归/12mutants与35个legacy/32mutants分开；queue/reference另有注错。物理目标32/40仍未证实；同40/24k/0updates，不比WAM。
+
+## R17：参考推进看真实几何/离桌相位，不看PD终点/墙钟
+
+R16 hand/camera末态力=0，腕相对source实测腕仍差93.7/109mm。select_source_reference用source object-local腕SE3与actual wrist、actual table gap匹配；phase未允许就不消费post-lift源姿态，2帧受phase限制的前瞻是控制参数，不改时间标签。允许回退并记录signed frame_delta/matched_state_frame/action_frame/phase_admission_missing；motor未就绪仍阻塞forward选择。无候选显式fallback、不删样本，不谎报完整source已可执行。
+acquisition_feedback只在controller入口屏蔽supported/unknown时的grasp_established，防止桌面推物直接触发lift；原测量和评分反馈不动，实际unsupported仍用原coupling。新三项数值红在R16/measured-phase-red.log，3 failed；修后reference测试新增phase过滤、几何共变、supported接触三种注错，实际常态held算法不改。
+预期supported状态的source参考不越过当前尺寸phase容差（缺候选例外明报）、controller不得仅凭supported推物就进入lift。物理≥32仍未知；同40/24k/0updates，预算上限298430，前序完整R16，不比WAM。

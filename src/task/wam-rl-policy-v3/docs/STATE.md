@@ -450,3 +450,5 @@ R12完整2/40/23795控制/1jointabort；R13完整12/40（Wilson18.075–45.430%�
 R14≥17完整失败仍跑满；p000停reference36（source接触42）满600，柔顺近区限制与“先contact才推进”的clock形成死锁。R15只让同一实测接近区允许reference手形推进，手指带宽/卸载/投影仍阻塞，绝不改接触/成功标签；同40/24k/0updates，累计上限≤250430。Guard身份改稳定schema v1，与run r15分离；未过32不比WAM、不RL/不重训。
 
 R15≥17完整失败仍跑满；hand无持握却source frame188越过source抓取52。R16 fresh同40/24k/0updates：源PD腕目标按live物体SE3映射，ACQUIRE参考止于前驱抓取命令（原录制/TaskSpec不删改），live耦合才进原后段；失持首拍即启Guard（原400mm/应≤10mm红已复现）。生产helper3项/3注错，物理32门仍未过；累计上限274430，不比WAM、不RL/不重训。
+
+R17 fresh同40/24k/0updates：source参考按实测object-local腕与table gap匹配及phase受限2帧前瞻，可回退、不按GT帧冒充实际时间；controller入口屏蔽supported/unknown时grasp-established，原评分不变。R16 hand/camera无触力且腕仍偏GT93.7/109mm，说明PD终点不等于抓姿；新3项数值红已复现/注错可抓。预算上限298430，未过32不比WAM、不RL/不重训。

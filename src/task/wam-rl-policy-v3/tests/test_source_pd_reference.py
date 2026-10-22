@@ -68,3 +68,51 @@ def test_live_acquisition_reference_cannot_run_into_recorded_postgrasp_or_releas
     with patch.object(worker,'source_pregrasp_length',lambda ref,key:len(ref['action'])):
         with pytest.raises(AssertionError):check()
     with pytest.raises(ValueError):worker.source_pregrasp_length(ref,SimpleNamespace(command_frame=100))
+
+
+def pose_phase_reference():
+    poses=np.tile(np.eye(4),(6,1,1));poses[:,0,3]=[1.,.8,.6,.4,.2,.15]
+    gaps=np.array([0.,0.,0.,0.,.05,.06]);obj=np.eye(4);palm=np.eye(4);palm[0,3]=.2
+    return poses,gaps,obj,palm
+
+
+def test_reference_phase_cannot_enter_recorded_lift_while_live_object_is_supported():
+    worker=worker_module();poses,gaps,obj,palm=pose_phase_reference();original=worker.select_source_reference
+    def check():
+        result=worker.select_source_reference(poses,gaps,obj,palm,0.,.005,.15,3)
+        assert result['action_frame']==3 and result['matched_state_frame']==3
+        assert not result['phase_admission_missing']
+    check()
+    with patch.object(worker,'select_source_reference',lambda poses,gaps,*args:original(poses,np.zeros_like(gaps),*args)):
+        with pytest.raises(AssertionError):check()
+
+
+def test_reference_selection_follows_measured_geometry_and_is_world_frame_covariant():
+    worker=worker_module();poses,gaps,obj,palm=pose_phase_reference();original=worker.select_source_reference
+    def check():
+        lifted=palm.copy();lifted[0,3]=.15
+        result=worker.select_source_reference(poses,gaps,obj,lifted,.06,.005,.15,0)
+        assert result['matched_state_frame']==5 and result['action_frame']==5
+        world=np.eye(4);world[:3,:3]=Rotation.from_euler('z',.4).as_matrix();world[:3,3]=[.1,.2,0]
+        changed=worker.select_source_reference(poses,gaps,world@obj,world@lifted,.06,.005,.15,0)
+        assert changed['action_frame']==result['action_frame'] and changed['matched_state_frame']==5
+    check()
+    with patch.object(worker,'select_source_reference',lambda *args,**kwargs:dict(action_frame=1,matched_state_frame=0,phase_admission_missing=False)):
+        with pytest.raises(AssertionError):check()
+
+
+def test_supported_object_motion_cannot_promote_control_to_lift():
+    from wam_rl_policy_v3.task_feedback import InteractionFeedback
+    worker=worker_module();feedback=InteractionFeedback(grasp_established=True,force_valid=True,contact_observed=True,supported=True)
+    def check():
+        value=worker.acquisition_feedback(feedback)
+        assert not value.grasp_established and feedback.grasp_established
+        assert value.contact_observed and value.force_valid
+    check()
+    with patch.object(worker,'acquisition_feedback',lambda value:value):
+        with pytest.raises(AssertionError):check()
+    from dataclasses import replace
+    unsupported=replace(feedback,supported=np.bool_(False))
+    assert worker.acquisition_feedback(unsupported).grasp_established
+    unknown=replace(feedback,supported=None)
+    assert not worker.acquisition_feedback(unknown).grasp_established

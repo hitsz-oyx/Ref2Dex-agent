@@ -42,12 +42,12 @@ def prepare(out,predecessor=None):
     worker=(TASK/'tools/run/run_source_ceiling_worker.py').read_text().replace("ROOT=Path(__file__).resolve().parents[5];TASK=ROOT/'src/task/wam-rl-policy-v3'", "ROOT=Path(%r);TASK=Path(%r)"%(str(ROOT),str(launch/'src/task/wam-rl-policy-v3')))
     (out/'worker.py').write_text(worker)
     reg=json.loads((BASELINE/'registration.json').read_text())
-    reg.update(protocol='source-PD-guard.live-object-acquisition-reference.n40.v1',experiment_id='P-20261023-source-controller-ceiling',
+    reg.update(protocol='source-PD-guard.measured-pose-phase-reference.n40.v1',experiment_id='P-20261023-source-controller-ceiling',
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         arms=['A0'],subsets=['development_same_v11'],maximum_controls=24000,worker_wall_s=14400,queue_wall_s=14400,learning_updates=0,ppo_authorized=False,
         worker_source=str(out/'worker.py'),runtime_source=str(launch),baseline=str(BASELINE),
         target_successes=32,target_pregrasp_joint_abort_max=2,
-        source_clock='command-paced native PD reference; pause on unload/finger bandwidth; root tracking-bound pause unless measured approach by the same production InteractionConfig bound or measured contact; freeze while held; all physics 30Hz',
+        source_clock='measured object-local wrist pose plus table-support phase select source state; 2-frame lookahead within admissible source phase; may rewind on physical drift; pause pending fingers/unload; held freeze; all real physics 30Hz',
         source_geometry='recorded robot PD wrist intent mapped by live_object @ inverse(recorded_object), preserving finger PD targets; actual native wrist mount; cap acquisition reference at predecessor grasp command; full raw record retained',
         closing_geometry='original production MeasuredGraspConsumer phase and source continuous wrist/finger PD commands; no new freezing or keypose replacement',
         approach_rate=dict(finger_driver_radps=1.2,native_wrist_joint_norm_radps=2.4,far_position_command_mps=.75,near_position_command_mps=.3,far_PD_tracking_offset_m=.075,near_PD_tracking_offset='existing geometry.wrist_gap_m; force/compliance bound, not velocity',emergency_retreats_can_override=True),
