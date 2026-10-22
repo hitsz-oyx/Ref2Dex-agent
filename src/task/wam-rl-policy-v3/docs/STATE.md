@@ -1,3 +1,20 @@
+# 2026-10-22 v8：消融完成；5/5未稳定复现，资格退回HOLD
+
+[完整diff/预注册/复现/全量结果](grasp-interface-v8-controls-20261022.md)。同一冻结v7消费器，
+消融WAM2/5（hold[1,1,0,0,0]s）、零τ/无τ/固定几何模板各0/5；不把此局部差异当普遍τ
+贡献或样本效率证明。旧5/5保留为真实旧run观察，撤回“稳定≥4/5”的工程资格判断。
+新机器人初态airplane/apple/cubelarge/duck/mug为0/5、2例关节中止；五例是旧机器人BC val
+且未用于v7调参，3例同源人类序列仍在WAM TRAIN，不能称严格未见WAM序列/物体泛化。
+复用S2d整段live-object锚定、S2b205实测状态真实窄成功源（最长2s），同R/30Hz/阶段机/PD：
+GT0/5，同批WAM1/5；未建立GT上界，不按排序推断τ质量。GT全approach，关节中止2/5，
+两例在参考有效时退出。source-PD动作未当GT正控制回放。
+35/35完整回合从原始物理状态重算连续持握一致；累计短区间的故意mutant被拒绝。
+7579/10500controls（含KeyError中断partial3）、729.079执行秒、0updates；230 passed/
+0 failed/0 skipped。代码入口已修元数据同名覆盖，r2携带原7例只补剩余13例，未筛失败。
+GPU5/6已释放，4未用；三臂RL继续HOLD，不重训v6。下一步先修接近抓姿/预形与有限关节
+可执行合同，验收同τ通道GT稳定正见证；当前不追加实验。最终全量summary在
+`outputs/wam-rl-policy-v3/grasp-v8-summary-20261022/final.json`。
+
 # 2026-10-22 v7：三项意图+测量相位，窄任务5/5
 
 [最终接口、diff与复现](grasp-interface-v7-20261022.md)：保留腕抓姿、手指预形/闭合目标、

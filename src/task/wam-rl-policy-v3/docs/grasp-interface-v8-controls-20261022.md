@@ -1,6 +1,6 @@
 # V8 冻结消费接口：τ 贡献与新初态（预注册）
 
-状态：REGISTERED，尚无本轮物理结果。task=`wam-rl-policy-v3`，branch=`main`；experiment_id=`P-20261022-single-tau-calibration` 的工程资格后续；本轮不训练，RL HOLD。
+状态：COMPLETED。结论：τ输入有局部依赖证据，原5/5未稳定复现；新初态0/5，GT同接口0/5，物理资格与RL仍HOLD。task=`wam-rl-policy-v3`，branch=`main`；experiment_id=`P-20261022-single-tau-calibration` 的工程资格后续；本轮不训练，RL HOLD。
 
 决策：新接口原 WAM 5/5 是否也能由无未来输入实现？最便宜的方法是在完全相同的消费器/初态/预算下替换输入，先跑消融，再跑新初态，最后同接口 GT。若无 τ 也是 5/5，撤回对 τ 贡献的归因。若明显较差，仅支持此局部条件下的贡献；不凭 n=5 宣称普遍收益。
 
@@ -68,10 +68,10 @@ $PY src/task/wam-rl-policy-v3/tools/run/summarize_grasp_controls.py --run output
 | 新初态（各n=1） | controls | R上游clip | 最终clip | 关节安全中止 | 初始腕位置距v7 / mm |
 |---|---:|---:|---:|---|---:|
 | airplane |67|0|0|是|72.681|
-| apple |300|见全量summary|0|否|87.510|
-| cubelarge |300|见全量summary|0|否|89.992|
+| apple |300|0|0|否|87.510|
+| cubelarge |300|0|0|否|89.992|
 | duck |53|0|0|是|48.955|
-| mug |300|见全量summary|0|否|104.418|
+| mug |300|2|0|否|104.418|
 
 原始q/dq与同步reset一致，hand FK仅浮点舍入误差（完整误差在每回合`result.json`）。面板初态与v7的手点RMS差72.7..105.0mm，初始腕位差49.0..104.4mm，确实换了机器人初态，不再是同一初态重复。
 
@@ -86,3 +86,59 @@ CUDA_VISIBLE_DEVICES='' $PY src/task/wam-rl-policy-v3/tools/run/rescore_grasp_co
 ```
 
 期望`PASS n=20 matched=20`；此入口从每个run冻结的observer与原始物理状态重算，不能由stage/reward累计分数冒充。新测试文件6 passed/0 failed，含故意累计持握mutant。GT参考预检查还要求205个consecutive state ticks对应204个actions，τ/valid各205份；第一帧未来仍为t+1，不用当前时刻冒充。
+
+
+## Diff定位与外部复核入口
+
+| 改动 | 文件:行号 | 复现入口 | 期望/验收 |
+|---|---|---|---|
+| 两种无未来输入（只改τ内容/有效位） | `src/wam_rl_policy_v3/evaluation_sources.py:23`、`tools/run/run_grasp_interface_controls.py:165` | 上文`--suite ablation` | 两臂WAM调用0，τ逐元素0；各n5全部保留；成功率不预设 |
+| 固定对象相对抓姿、手指预形/闭合模板 | `src/wam_rl_policy_v3/evaluation_sources.py:36`、`:46`；runner`:174` | 同上 | 模板5例WAM/R调用0/0，消费器/PD/目标闭环不变；不调模板来追成功 |
+| 真成功参考、live物体重锚定、30Hz未来 | `src/wam_rl_policy_v3/evaluation_sources.py:61`；runner`:63`、`:162` | 上文`--suite gt` | 205状态/204控制时钟，float32 native11×24，与WAM相同前8步编码；第一未来t+1；目标≥4/5待检验 |
+| 新初态与预算/初态核验 | runner`:59`、`:76`，reset后逐项比较 | 上文五个`--suite robust` | n5不筛选，q/dq误差0、hand<2e-6；≥4/5实际未达到 |
+| 原始物理状态连续重算 | `src/wam_rl_policy_v3/evaluation_sources.py:8`；`tools/run/rescore_grasp_controls.py:9`；runner`:199` | 上文rescore | 每例ever/final/longest一致，不能累加分段进展；累计mutant必须被拒绝 |
+| 中断元数据覆盖修复 | runner`:59`独立`catalog_record` | r2 resume命令 | 完成剩余13个注册回合，无KeyError，partial3步记预算 |
+
+行号相对本Task根目录；可用`git show a1302e63`、`git show f307b0b0`、`git show eb6e562e`、`git show eee3e697`逐项复核。源码与本轮实际运行快照均保留，不修改原消费器。无法自证：native隐藏接触solver状态/硬件数值确定性、接触observer的外部真值，以及所有祖先预训练阶段的序列排他；已明确限制结论，不由单元测试PASS替代。
+
+
+## 最后批次：闭环GT与同批WAM（均n=5）
+
+执行代码`eee3e697`，run=`grasp-v8-gt-20261022-r1`；2076/3000 controls、183.763/1800执行秒、0updates，native退出0。消费器与前述消融完全相同。
+
+| 链，block0→4 | 最长持握elapsed秒 | ever/final | controls分布 | R上游clip分布 | 最终clip | 关节中止 |
+|---|---|---|---|---|---:|---:|
+| 同批WAM |[1,0,0,0,0]|1/5；1/5|[101,155,183,288,190]|[0,3,0,4,4]|0|4/5|
+| live-object GT |[0,0,0,0,0]|0/5；0/5|[300,119,140,300,300]|[0,0,0,0,0]|0|2/5|
+
+GT五例均未由实测接近进入close，合计1159个approach controls，持握交接0/5；GT有效控制步[178,116,137,178,178]。长度205的真实参考并非无限，t=181起24帧未来不全则invalid；不会用padding/假τ延长。不能把末端参考不足当作所有失败的解释：两次关节中止在119/140，仍有完整GT未来。物体锚定**没有**把GT→R成功能力修到目标≥4/5，本轮没有建立合格上界；也不能由WAM1/5>GT0/5推论轨迹质量排序。
+
+GT四项合同实现核对：
+
+1. **实际成功来源**：S2b205实测状态独立重算连续最长2.0s、ever=true；末帧已不持握，final=false。它包含窄任务真实成功片段，**不声称完整RELEASE或整段末态成功**。只用手/物体/腕/手指几何，不执行源action/PD。
+2. **同表示与时间**：与WAM一致的float32 native11×24世界未来点，前8帧减当前实测手得到原R的8×11×3输入；t+1/30s是首未来，无补当前帧。测试核对实际S2d函数horizon24、第一未来索引与往返；源205状态对应204动作/ticks0..204。
+3. **live重锚定**：逐tick复用S2d `object_anchored_targets`，整段未来统一`T_obj_live @ inv(T_obj_ref[t])`，不按未来逐帧逆变换消掉抬升，也不把live hand偷偷对齐成GT。
+4. **同执行链**：同原R、30Hz、实测阶段机、PD映射/安全gate、goal和1s witness；未执行source-PD作为这个正控制。
+
+同批WAM1/5、消融批WAM2/5分别保留，**不混分母**；它们均未复现旧v7的5/5。可见初态一致不保证native隐藏接触solver/数值完全确定；本轮没有用额外实验归因这种漂移。
+
+## 收口：实际变化与下一步
+
+- 原v7报告的5/5作为该次已见初态观察保留，撤回“稳定≥4/5资格”与“这个5/5由τ改善证明”的解释。本轮预注册消融WAM2/5 vs 零τ/无τ/模板各0/5，足以否定所测盲控制器轻易同样5/5；尚不足证明普遍τ收益或预训练样本效率。
+- 新机器人初态0/5，未达到≥4/5；严格未见WAM序列/物体泛化未证明。GT同链0/5，未达到≥4/5；消费/条件/可达性上界仍待修，不将失败归因于生成τ质量。
+- 全部**35个完整回合**均从原始物理状态独立重算一致（20消融+5新初态+10GT对照），长持握严格按连续秒；没有累计部分进展制造成功。重算共享接触observer，只验证该评分合同，不等价外部视觉/触觉真值。
+- 预算**7579/10500 controls**（7576完整回合+中断partial3）、**729.079执行秒**（各进程实际执行时长之和，非总人时）、0训练更新；7个最终run均COMPLETED/退出0，初次r1失败保留。actual-PD重构最大3.371e-7；最终动作裁剪0不等于R上游裁剪0，逐block均列出。GPU4未使用，GPU5/6已释放至2MiB；未碰其他训练/未重训v6。
+- 最便宜的后续修复应先落在**接近阶段真实抓姿/手指目标与有限关节的可执行合同**，验收一条同接口GT可稳定闭合持握再推广；**三臂RL继续HOLD**。这只是下一步建议，本轮未追加实验或调参。
+
+最终回归：**230 passed / 0 failed / 0 skipped，18.03s**（日志`outputs/wam-rl-policy-v3/grasp-v8-summary-20261022/final-tests.log`）。单元/合同PASS不能替代本轮物理失败结果。
+
+全量向量、每回合路径与预算：`outputs/wam-rl-policy-v3/grasp-v8-summary-20261022/final.json`。
+
+```bash
+CUDA_VISIBLE_DEVICES='' $PY src/task/wam-rl-policy-v3/tools/run/rescore_grasp_controls.py --run outputs/wam-rl-policy-v3/grasp-v8-gt-20261022-r1 --output outputs/wam-rl-policy-v3/grasp-v8-summary-20261022/gt-physical-rescore.json
+$PY src/task/wam-rl-policy-v3/tools/run/summarize_grasp_controls.py --run outputs/wam-rl-policy-v3/grasp-v8-ablation-20261022-r2 --run outputs/wam-rl-policy-v3/grasp-v8-robust-20261022-s10_airplane_pass_1 --run outputs/wam-rl-policy-v3/grasp-v8-robust-20261022-s10_apple_pass_1 --run outputs/wam-rl-policy-v3/grasp-v8-robust-20261022-s10_cubelarge_pass_1 --run outputs/wam-rl-policy-v3/grasp-v8-robust-20261022-s10_duck_pass_1 --run outputs/wam-rl-policy-v3/grasp-v8-robust-20261022-s10_mug_pass_1 --run outputs/wam-rl-policy-v3/grasp-v8-gt-20261022-r1 --output outputs/wam-rl-policy-v3/grasp-v8-summary-20261022/final.json
+CUDA_VISIBLE_DEVICES='' PYTHONDONTWRITEBYTECODE=1 $PY -m pytest -q -p no:cacheprovider --basetemp=tmp/v8-final-all-tests src/task/wam-rl-policy-v3/tests
+python3 tools/verify.py --changed
+```
+
+GT rescore期望PASS n=10 matched=10；summary期望7组完整向量、35完整回合/7579含partial步预算，不能重复纳入r1已携带结果。几何模板与无τ消融复跑用新run_id，以免覆盖旧数据。三方待裁决：隐藏physics确定性、observer物理真值、为何同接口GT不能进入close，均未由本轮单元测试解决；若独立复跑不同，不静默合并或改标签。
