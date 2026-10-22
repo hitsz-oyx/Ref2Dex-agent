@@ -10,7 +10,7 @@ claim_id: C1
 hypothesis_family: HF-grasp-coverage40
 probe_index_in_family: 1
 seed_pool: probe
-seeds: [100, 139, 180, 196, 219]
+seeds: [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219]
 decision_changed_if_positive: retain geometry and SE3 repair on new interface initials and budget drift recovery residual separately
 decision_changed_if_negative: repair approach or qualify physical witness before attributing failure to WAM
 status: RUNNING
