@@ -22,6 +22,25 @@ def control_counts(infos,actions):
         goal_servo_saturated_controls=int(sum(i['phase'] in ('lift','hold') and np.abs(ac[:3]).max()>=.024999 for i,ac in zip(infos,actions))))
 
 
+def source_native_targets(reference,frame,offset,scale,live_q,live_palm,live_object):
+    from wam_rl_policy_v3.tau_replay_contract import pd_targets
+    from wam_rl_policy_v3.inspire_contract import ACTIVE
+    action=reference['action'][frame]
+    if action.shape==(18,):action=action[list(ACTIVE)]
+    recorded=pd_targets(action,reference['q'][frame,0],offset,scale)
+    from wam_rl_policy_v3.source_ceiling import object_anchored_source_target
+    from wam_rl_policy_v3.pose_consumer import pose7
+    mapped=object_anchored_source_target(recorded,reference['q'][frame,0],
+        pose7(reference['palm_pose'][frame,0]),pose7(reference['objects'][frame,0]),
+        live_q,live_palm,live_object)
+    return recorded,mapped
+
+
+def source_pregrasp_length(reference,key):
+    if not 0<=key.command_frame<len(reference['action']):raise ValueError('source acquisition horizon outside recording')
+    return key.command_frame+1
+
+
 def advance_source_reference(cursor,length,pregrasp,guard,contact_observed,*,fingertip_gap_m=None,approach_distance_m=None):
     measured_approach=False
     if fingertip_gap_m is not None:
@@ -182,6 +201,7 @@ def main():
                     pose=pose7(np.asarray(state['objects'])[0]);target=grasp_lift_task(pose);geometry=GraspGeometry.from_points(points);context=TaskController(target,points,scheduler_config=TaskSchedulerConfig(episode_timeout_s=30.),path_config=SchedulerConfig(stall_timeout_s=60.))
                     consumer=GeometryGraspConsumer(np.asarray(state['q'])[0],pose7(np.asarray(state['palm_pose'])[0]),offset,scale,plane=support_plane(np.asarray(state['table_pose'])[0],bounds),palm_vertices=palm_surface.vertices[::32],table_geometry=(pose7(np.asarray(state['table_pose'])[0]),bounds),object_points=points,joint_limits=limits);stages=StagedProgress(pose[2,3],geometry=geometry);rewarder=None;rollout=dict(observations=[],latents=[],old_logp=[],rewards=[],values=[]);reward_parts=[];history=[];hands=[];decision=None;source_cursor=0
                     source_grasp=SourceGraspReference(reference,points,offset,scale,plane=consumer.plane)
+                    source_length=source_pregrasp_length(reference,source_grasp)
                     wam_calls=actor_calls=covered=final_clipped=adapter_clipped=source_failures=source_R_consumed=source_frame=0;ever_primary=False;physical_abort=None;lastsafe=None;errors_m=[];drop_after_hold=False
                     for t in range(reg['horizon_controls']+1):
                         report['active_episode']['tick']=t
@@ -229,10 +249,9 @@ def main():
                         with torch.inference_mode():adapter=model.actor(torch.tensor(observation[None],device='cuda')).cpu().numpy()
                         actor_calls+=1;adapter_clipped+=int((np.abs(adapter)>1+1e-6).any())
                         source_pre=consumer.phase in ('approach','close')
-                        ref_t=min(source_frame,len(reference['action'])-1)
-                        source_action=reference['action'][ref_t]
-                        if source_action.shape==(18,):source_action=source_action[list(ACTIVE)]
-                        source_target=pd_targets(source_action,reference['q'][ref_t,0],offset,scale)
+                        ref_t=min(source_frame,source_length-1)
+                        recorded_source_target,source_target=source_native_targets(reference,ref_t,offset,scale,
+                            np.asarray(state['q'])[0],palm,pose)
                         rejection=None
                         try:control_adapter=source_pd_action(source_target,np.asarray(state['q'])[0],offset,scale)[0]
                         except ValueError as error:
@@ -253,12 +272,13 @@ def main():
                         raw,info=consumer.step(hand=np.asarray(state['hand'])[0],q=np.asarray(state['q'])[0],dq=np.asarray(state['dq'])[0],palm=palm,object_pose=pose,object_velocity=obj[7:13],forces=forces,feedback=feedback,near_fingers=evidence['near_fingers'],fingertip_gap_m=evidence['fingertip_gap_m'],intent=intent,now=t/30)
                         if rejection is not None and info['phase'] in ('approach','close'):source_R_consumed+=1
                         info['source_reference']=dict(source_grasp.manifest(),kind='source_native_PD_guard',
-                            source_action_mode='original_recorded_PD_target_with_measured_guard_pause',
-                            source_grasp_key_is_metadata_only=True,motion_cursor=ref_t,source_reference_frame=ref_t,
+                            source_action_mode='recorded_PD_target_object_anchored_to_live_with_acquisition_horizon',
+                            source_grasp_key_is_metadata_only=False,source_grasp_key_use='pregrasp horizon only; no keypose replacement',motion_cursor=ref_t,source_reference_frame=ref_t,
+                            raw_recorded_controls=len(reference['action']),acquisition_reference_controls=source_length,recorded_PD_target=recorded_source_target.tolist(),
                             reference_PD_target=source_target.tolist(),source_admission_rejection=rejection,
                             R_fallback_selected=rejection is not None,consumes_R=rejection is not None,
-                            wrist_reference_frame='original_native_world_q; same registered initial state')
-                        next_source_frame=advance_source_reference(source_frame,len(reference['action']),source_pre,info['source_ceiling'],feedback.contact_observed,
+                            wrist_reference_frame='recorded robot palm intent relative to source object, mapped through current measured object pose and live native mount')
+                        next_source_frame=advance_source_reference(source_frame,source_length,source_pre,info['source_ceiling'],feedback.contact_observed,
                             fingertip_gap_m=evidence['fingertip_gap_m'],approach_distance_m=approach_distance_m)
                         info['source_reference']['measured_progress_gate']=dict(fingertip_gap_m=evidence['fingertip_gap_m'],approach_distance_m=approach_distance_m,contact_observed=feedback.contact_observed)
                         info['source_reference']['advanced']=next_source_frame!=source_frame

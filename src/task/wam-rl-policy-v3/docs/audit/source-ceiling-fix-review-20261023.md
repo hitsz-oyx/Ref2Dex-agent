@@ -202,3 +202,10 @@ R14启动前补充：真实step红测试handover-clock-red.log抓住unused closu
 
 R14/p000在t180–599、reference36/source contact42、0卸载、root受限且手已接近，满20秒无持握。reference gate现接收生产同一InteractionConfig的实测finger gap；近物体可推进下一手形，不要求先多指力接触。手指指令带宽/卸载/投影仍阻塞，评分与物理接触布尔量原封不动。红测试实际返回36而非37；新增queue注入故意丢弃接近测量会被同一断言抓住，非import/TypeError冒充kill。
 Guard动作算法沿R14，仅标签规范为schema force-margin-bandwidth.v1；clock协议schema measured-approach-paced.n40.v1，与run_id r15分开。预期root受限且实测40mm近物时36→37，远离仍停；真实force/coupling/lift/hold/目标误差不改。新同40/24k/0updates，前序R14，累计上限≤250430，目标32仍未知；不比WAM。
+
+## R16：live对象参考 + 原始抓取阶段边界 + 首拍恢复保护
+
+source_native_targets是生产worker实际入口：原source action/ref-q先变raw target，再用source palm/object同帧及live palm/object/native mount做SE3映射。记录recorded_PD_target与reference_PD_target两份，不能把raw/feedforward/mapped混报。source_pregrasp_length只限制ACQUIRE控制参考到已保存的前驱抓取command，不裁掉完整录制、不改TaskSpec/任务分母或标签；末端仍继续真实20秒物理，进入后段只靠原live反馈。
+CPU3项生产helper回归分别抓住故意丢弃位移映射、丢弃旋转映射、使用完整postgrasp/release长度；红为3 failed（数值断言），见R15/reference-contract-red.log。预期50mm对象平移→50mm native目标平移；.4rad对象旋转→同腕旋转；hand案例188的reference不再越过51，而不是声明source frame52已在live成功。
+SourcePDGuard同时把实测丢持后的第一拍按恢复处理；原Phase仍hold并不代表要继续绕过motor guard。数字红为400mm动作/应≤10mm，修后guard active且原正常held命令逐位同base。新增mutant重放旧首拍绕过行为会被数值断言抓住，不只检查metadata。
+复现命令见R16实验卡及测试目录，完整计数见R16/tests-ready-all.log（须passed/failed全量）；9个production Guard step回归/12mutants与35个legacy/32mutants分开；queue/reference另有注错。物理目标32/40仍未证实；同40/24k/0updates，不比WAM。

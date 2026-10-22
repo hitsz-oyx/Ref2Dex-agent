@@ -503,3 +503,14 @@ def test_guard_handover_limits_actual_finger_target_without_blocking_preshape():
     assert np.max(np.abs(target-args['q'][FINGER_ACTIVE]))<=.04+1e-6
     assert not info['source_ceiling']['finger_bandwidth_limited']
     assert info['source_ceiling']['closure_handover_limited'] and not info['source_ceiling']['preserves_source_PD_intent']
+
+
+def test_guard_applies_on_first_recovery_control_after_lost_hold():
+    from wam_rl_policy_v3.source_ceiling import SourcePDGuard
+    c,args=approaching(SourcePDGuard);c.phase='hold'
+    args['feedback'].grasp_lost=True;args['feedback'].contact_observed=False
+    args['intent'].approach_pose_object[0,3]+=.4
+    command,info=c.step(**args)
+    assert c.phase=='close'
+    assert np.linalg.norm(command[:3]*c.scale[:3])<=c.geometry.wrist_gap_m+1e-6
+    assert info['source_ceiling']['active'], 'Classify the command after measured hold loss, not only the old phase'

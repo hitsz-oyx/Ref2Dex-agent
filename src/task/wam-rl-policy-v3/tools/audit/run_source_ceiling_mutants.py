@@ -86,6 +86,13 @@ def main():
         if self.phase in ('lift','hold'):
             command[6:]=2*(args['intent'].closure_q-self.offset[[6,8,10,12,14,15]])/self.scale[[6,8,10,12,14,15]]-1
         return command,info
+    def omit_first_recovery_guard(self,**args):
+        recovering=self.phase in ('lift','hold') and (not args['feedback'].contact_observed or args['feedback'].grasp_lost)
+        command,info=guard_step(self,**args)
+        if recovering:
+            target=args['object_pose']@args['intent'].approach_pose_object
+            command[:3]=(target[:3,3]-args['palm'][:3,3]-self.offset[:3])/self.scale[:3]
+        return command,info
     cases=[('ignore-measured-pressure',patch.object(SourceCeilingConsumer,'force_limit_n',float('inf')),tests.test_measured_pressure_unloads_at_actual_approach_close_step),
         ('unlimited-finger-target-jump',patch.object(SourceCeilingConsumer,'finger_rate_radps',100.),tests.test_approach_finger_target_does_not_jump_to_reference),
         ('omit-target-margin',patch.object(MarginAdmission,'__init__',JointAdmission.__init__),tests.test_nominally_legal_near_limit_target_is_rejected_before_candidate_ranking),
@@ -128,7 +135,8 @@ def main():
         ('omit-native-wrist-joint-command-rate',patch.object(SourcePDGuard,'wrist_joint_rate_radps',100.),tests.test_guard_bounds_native_wrist_joint_command_rate_and_tracking_offset),
         ('omit-native-wrist-joint-tracking-bound',patch.object(SourcePDGuard,'far_angular_offset_rad',float('inf')),tests.test_guard_bounds_native_wrist_joint_command_rate_and_tracking_offset),
         ('freeze-clock-on-unused-handover-target',patch.object(SourcePDGuard,'step',freeze_on_unused_closure),tests.test_guard_unused_handover_closure_cannot_block_executed_preshape_clock),
-        ('jump-source-guard-handover-to-full-closure',patch.object(SourcePDGuard,'step',jump_guard_handover),tests.test_guard_handover_limits_actual_finger_target_without_blocking_preshape)]
+        ('jump-source-guard-handover-to-full-closure',patch.object(SourcePDGuard,'step',jump_guard_handover),tests.test_guard_handover_limits_actual_finger_target_without_blocking_preshape),
+        ('bypass-motor-guard-on-first-lost-hold-control',patch.object(SourcePDGuard,'step',omit_first_recovery_guard),tests.test_guard_applies_on_first_recovery_control_after_lost_hold)]
     result=[]
     for name,mutation,check in cases:
         check() # First prove the unmutated check passes.

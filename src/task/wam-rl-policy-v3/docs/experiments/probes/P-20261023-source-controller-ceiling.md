@@ -14,7 +14,7 @@ seeds: [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 11
 decision_changed_if_positive: qualify source-only controller on the same forty development initials before comparing WAM
 decision_changed_if_negative: retain all failures and repair measured approach or closure without relaxing physical gates
 status: RUNNING
-run_id: source-ceiling-20261023-r15
+run_id: source-ceiling-20261023-r16
 ---
 
 ## 结果解读表
@@ -218,4 +218,19 @@ export TMPDIR="$PWD/tmp"
 PY=/home2/wyy/miniconda3/envs/graspenv/bin/python
 $PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r15 --prepare --predecessor outputs/wam-rl-policy-v3/source-ceiling-20261023-r14
 $PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r15 --detached
+```
+
+## R16运行前修订：源参考绑定live物体，ACQUIRE不越过抓取参考
+
+R15已有≥17完整失败，32不可达但仍完成40。hand案例无live持握却把reference推进到188（source闭合完成52），继续回放GT抓后移动；旧world-q参考亦不随live物体漂移。R16沿同一已测试的native mount/SE3公式，把原PD腕目标经live_object @ inverse(recorded_object)映射，再严格逆回live native q；手指PD目标不变。参考只推进到产生source闭合完成状态的前驱command_frame，之后继续真实物理控制直到live耦合进入原后段。完整录制/TaskSpec/标签不删不改，绝不把source接触当live成功。
+新增生产helper接口测试：live对象平移50mm，腕目标应0→50mm；对象旋转.4rad，实际native mount下腕姿态同旋转，手指不变；live acquisition最多到command_frame，不能走入已录制postgrasp/release，原12动作/13状态仍完整保存。旧生产world/full-horizon语义3项实际断言失败，见R15/reference-contract-red.log，不是缺函数或import错误。三种故意回退各被测试抓住。
+另修“从held失持的第一拍”仍沿旧phase绕过Guard：红测试实际移动目标400mm/预期≤10mm；现在按实测失持先进入恢复保护，正常held后段不改。见R16/recovery-command-red.log；不声称这解释全部掉落。Guard schema v1不与实验run编号混用。
+目标source≥32/40、pregrasp jointabort≤2；测试不是物理通过。source direct Guard新增9个step回归/12mutants，legacy兼容35/32分列；reference helper3项带3种注错，queue5项带4种注错。
+同40/24k/0updates/20秒，前序R15；累计预算明确追加24k，上限274430（结算报实际）。不比WAM、不RL、不重训v6。
+```bash
+export TMPDIR="$PWD/tmp"
+PY=/home2/wyy/miniconda3/envs/graspenv/bin/python
+$PY -m pytest -q src/task/wam-rl-policy-v3/tests/test_source_pd_reference.py src/task/wam-rl-policy-v3/tests/test_source_ceiling.py src/task/wam-rl-policy-v3/tests/test_source_ceiling_queue.py --basetemp=tmp/pytest-source-reference-independent
+$PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r16 --prepare --predecessor outputs/wam-rl-policy-v3/source-ceiling-20261023-r15
+$PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r16 --detached
 ```

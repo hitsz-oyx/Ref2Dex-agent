@@ -466,7 +466,8 @@ class SourcePDGuard(GeometryGraspConsumer):
         return result
 
     def step(self,**args):
-        pre=self.phase in ('approach','close')
+        recovery=self.phase in ('lift','hold') and (not args['feedback'].contact_observed or args['feedback'].grasp_lost)
+        pre=self.phase in ('approach','close') or recovery
         self.admission=self.inner_admission if pre else self.outer_admission
         q=np.asarray(args['q']);dq=np.asarray(args['dq']);palm=np.asarray(args['palm'])
         now=float(args['now']);intent=args['intent'];valid=bool(args['feedback'].force_valid)
