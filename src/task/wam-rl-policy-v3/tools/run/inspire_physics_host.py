@@ -78,15 +78,15 @@ def main():
     torch.set_num_threads(2);torch.manual_seed(a.seed);np.random.seed(a.seed)
     meta=json.loads((a.cache/'manifest.json').read_text());records=[r for r in meta['sequences'] if r['split']=='train']
     if a.admission_manifest:
-        admission=json.loads(a.admission_manifest.read_text())
-        if admission.get('schema')!='ref2dex.teacher-measured-rollout-admission.v2' or admission.get('status')!='COMPLETED':
-            raise ValueError('corrected completed admission required')
-        allowed={r['sequence'] for r in admission['records'] if r['split']=='train' and r['engineering']=='PASS' and r['training_prefix_commands']>0}
-        records=[r for r in records if r['sequence'] in allowed]
-        if {r['sequence'] for r in records}!=allowed:raise ValueError('native geometry does not cover admitted TRAIN')
+        from wam_rl_policy_v3.task_admission import admitted_native_records
+        records,task_admission=admitted_native_records(records,a.admission_manifest)
+        (a.output/'task-admission.json').write_text(json.dumps(task_admission,indent=2)+'\n')
+        if not records:raise ValueError('no executable TRAIN tasks: all eligible tasks UNKNOWN or empty')
     if a.fixed_motions_json:
         names=json.loads(a.fixed_motions_json.read_text())['sequences'];by_name={r['sequence']:r for r in meta['sequences']}
         if len(names)!=a.envs or len(set(names))!=len(names):raise ValueError('fixed replay needs one motion per environment')
+        if a.admission_manifest and not set(names)<={r['sequence'] for r in records}:
+            raise ValueError('fixed replay requested tasks outside executable admission')
         records=[by_name[name] for name in names]
         if a.sequence or a.object_manifest:raise ValueError('fixed replay cannot use policy sampling flags')
     if a.sequence:
@@ -134,6 +134,7 @@ def main():
         native_ref_reward_used=False,native_ref_termination_used=False,source_sequences=len(files),
         source_sequence_names=[r['sequence'] for r in records],source_object_names=sorted({r['object'] for r in records}),
         state_transport=a.state_transport,
+        task_admission_file=str(a.output/'task-admission.json') if a.admission_manifest else None,
         reset_submission='logical_FK_now_once_indexed_setters_before_simulate.v1',
         indexed_resets=0,steps=0,episode_action_mismatches=0,maximum_pd_error=0.,extended_state=a.extended_state,synchronize_setters=a.synchronize_setters,physics_backend=a.physics_backend)
     def save():

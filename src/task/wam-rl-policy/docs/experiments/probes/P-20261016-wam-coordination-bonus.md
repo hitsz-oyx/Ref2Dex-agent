@@ -160,3 +160,9 @@ root选择停止本接法的权重和时长搜索，保留能抓取的共同起�
 本轮训练监督器墙钟none/geometry/WAM为271.9/271.9/523.8s，显存约2.8/2.8/6.8GiB，
 WAM推理期间利用率可达100%。基线+smoke+训练+DEV总产物892.6MiB，低于1GiB。
 所有进程正常结束，GPU已释放，无额外外部授权边界。
+
+## 2026-10-22 负结果 CPU 审计：结论范围修订
+
+28/26/23/25对应BC/none/geometry/WAM的goal-position保持代理：连续60帧位于目标5cm内且lift10cm，不是接触/force持握认证。正式4b82bd84是shadow旧v3-step80000 WAM副本+冻结BC，不是v6或BC-free。保留同初态DEV下本bonus接法未达+5且不退BC的gate、弱WAM特异信号与部分行为退步；单seed且参考/观测/bonus一起变化，不能证明WAM一般无效或隔离纯reward因果。
+
+本追加不改变原始数字、gate或运行产物；完整身份、版本边界与排除项见[逐卡证据审计](../../../../../../src/task/ptv3-shared-wam-v6/docs/audit/negative-result-card-audit-20261022.md)。

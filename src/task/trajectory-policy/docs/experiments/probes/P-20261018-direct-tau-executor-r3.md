@@ -92,3 +92,9 @@ interpreting the old invalid 0/8 as evidence against tau semantics, but not enou
 to spend PPO budget or close the tau-plan hypothesis. Before any online training,
 the next comparison should use a demonstrably stronger closed-loop executor or a
 proper current-state interaction oracle while preserving the repaired tau contract.
+
+## 2026-10-22 负结果 CPU 审计：结论范围修订
+
+修复后的reference τ与有时间顺序的encoder对应新合同，不能倒灌洗白旧run。实际BC/执行manifest为5f04a758；3774db68是随后卡中声明的归档提交，二者不混称唯一运行身份。teacher hold45=8/8但placement=5/8，实际runner仍将teacher placement≥6/8写入完整gate；故保留learner0/8 hold45这个局部负现象，不宣称完整placement正控制已通过，不否决τ/缺C/v6。40序列与八个同seed环境不是多seed独立验证。
+
+本追加不改变原始数字、gate或运行产物；完整身份、版本边界与排除项见[逐卡证据审计](../../../../../../src/task/ptv3-shared-wam-v6/docs/audit/negative-result-card-audit-20261022.md)。

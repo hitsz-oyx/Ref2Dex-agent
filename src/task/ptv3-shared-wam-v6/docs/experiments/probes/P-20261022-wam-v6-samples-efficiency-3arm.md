@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [191, 192, 193, 194]
 decision_changed_if_positive: retain WAM pretraining if C reproducibly improves interaction efficiency over both A and geometric B
 decision_changed_if_negative: reject current sample-efficiency claim and prioritize executor or representation changes
-status: RUNNING
+status: HOLD
 run_id: samples-efficiency-3arm-20261022-r1
 ---
 
@@ -250,3 +250,21 @@ B-seed191迭代5、100optimizer steps、10240训练交互。source/behavior logp
 交接时独立读取正式progress：A-seed191=31 updates/63488交互，collection8.19s+learning0.15s，当前剩余ETA1.11h；B-seed191=16 updates/32768交互，collection16.37s+learning0.16s，当前剩余ETA2.28h。
 训练episode计数不等同独立共同初态评估，本轮尚无完成的科学评估panel或样本效率结论。
 独立supervisor将继续有界运行并自动生成最终JSON/PNG/SVG，不需要本对话持续轮询。
+
+## 2026-10-22 owner HOLD — negative-result audit
+
+Owner prioritizes task-success reachability and action/reset contracts before any RL sample-efficiency attribution. Root STOP requested for this owned finite queue; preserve partial checkpoints and physical-interaction costs. No further train/eval jobs authorized in this queue until audit resolves these blockers. Partial or missing seed/arm results are not a no-benefit conclusion.
+
+受控STOP已核对：A191 STOPPED139更新/284672已更新交互/286720实际物理交互；
+B191 STOPPED72/147456/149504，合计实际436224。两者各多采一个未更新rollout。
+C、其余训练seed与科学评估均未启动（0/45 panels）。没有阈值步数、AUC或三臂无收益结论。
+顶层FAILED是STOP后继续索取缺失milestone checkpoint的编排状态，不能算学习失败。
+此前“supervisor将继续”及RUNNING/ETA均为历史记录，已由本HOLD覆盖。
+物理同状态逐轴q/dq与原生双环境reset隔离尚未认证；CPU逻辑检查不能替代它们。
+完整原因与证据：[负结果审计](../../audit/negative-result-audit-20261022.md)。
+
+### 12:3x 修复后仍HOLD
+
+UNKNOWN准入、身份标识、scale防线与奖励统计已修；不代表真实成功路径与native动作/reset
+资格已经通过，不据部分A/B结果否决三臂。v6官方PPO未接线；独立CPU到PD的接口smoke
+不替代物理认证。[修复与下一验收](../../audit/negative-result-fixes-20261022.md)。

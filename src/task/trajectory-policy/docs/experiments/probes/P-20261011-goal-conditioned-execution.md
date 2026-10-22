@@ -89,3 +89,9 @@ training-eligible teacher corpus. The next route decision is a bounded
 goal-conditioned PPO/residual continuation or a fresh explicitly
 training-eligible teacher rollout; the failure does not refute REGRIND's
 measured-state residual-control principle.
+
+## 2026-10-22 负结果 CPU 审计：结论范围修订
+
+实际16×542完整运行的hold45与long-held均0可保留；注册long-held是433帧且终点held，不等同一般45帧或力持握。早期tracker校准是另一波，非本wave同初态teacher对照；audit PASS只排除其已验接线项，covariate shift/hidden state不是唯一原因认证。单motion/seed结果不能否决goal-policy、REGRIND或WAM路线。
+
+本追加不改变原始数字、gate或运行产物；完整身份、版本边界与排除项见[逐卡证据审计](../../../../../../src/task/ptv3-shared-wam-v6/docs/audit/negative-result-card-audit-20261022.md)。

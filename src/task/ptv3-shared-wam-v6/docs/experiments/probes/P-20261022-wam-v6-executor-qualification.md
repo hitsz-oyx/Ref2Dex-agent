@@ -192,3 +192,18 @@ not a controlled speed ranking. P1 has an independent batched latency logger.
 Trajectory-only path parity (`trajectory-only-parity.json`) is0 difference with
 same encoder activations for healthy andFM; fresh encoder repeats differ0.0381mm
 and0.000536mm. No bitwise end-to-end determinism or model-speed conclusion claimed.
+
+## 2026-10-22 负结果审计补充：正控制的指标范围
+
+15/16原动作回放仅是抓取/抬升/持握代理正控制；完整TaskController任务0/14未删失，
+另2例删失，不能认证完整任务执行资格。GTτ0/16与预测0/16、1/16保留为该v4训练执行器/
+v6适配桥的持握局部现象，不否决新direct executor或v6预训练。501历史档案复核也发现
+完整任务正控制不足，P1已HOLD。[审计证据](../../audit/negative-result-audit-20261022.md)。
+
+### 持握秒制边界修订（原始30样本代理不覆盖）
+
+原卡n/30秒是held-state occupancy；按首末观测真实elapsed=max(0,n−1)/30、至少1s重算，
+原动作15/16、标准GT0/16、healthy0/16不变，FM旧1/16应改解释为elapsed标准**0/16**。
+FM唯一持握bout30个连续状态，只跨度29/30=0.9667s。原始summary数字保留，不静默覆盖。
+elapsed最长持握均值动作2.05625s、标准GT0.052083s、healthy0.039583s、FM0.060417s。
+完整重算见审计产物`invariants.json/legacy_p0_timing`；执行资格未通过的判断不变。

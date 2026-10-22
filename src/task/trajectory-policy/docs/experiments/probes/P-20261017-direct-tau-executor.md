@@ -72,3 +72,9 @@ plan in general, but it does not justify starting PPO from this BC checkpoint
 or training WAM-C yet. The next useful route is to inspect sequence-normalized
 tau/state representation and, if retained, define a richer interaction oracle
 before any PPO budget is spent.
+
+## 2026-10-22 负结果 CPU 审计：结论范围修订
+
+原0/8是真实轨迹，但旧实现混用reference future与live-current手、mean-pool时间，且训练是单motion的多环境复制；不能否决独立参考τ语义或交互信息C。Oracle-C只是当前10维代理，0/8不证明C无用。实际manifest为5fb0c65b；完整gate还要求teacher placement≥6/8，而本波只有4/8或5/8，因此完整placement结论受校准不足限制，hold45的learner0/8对teacher8/8现象仍保留。
+
+本追加不改变原始数字、gate或运行产物；完整身份、版本边界与排除项见[逐卡证据审计](../../../../../../src/task/ptv3-shared-wam-v6/docs/audit/negative-result-card-audit-20261022.md)。

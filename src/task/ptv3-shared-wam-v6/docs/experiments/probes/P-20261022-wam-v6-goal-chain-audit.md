@@ -380,3 +380,9 @@ Pinned baseline/FМ identities and exact normalizer/finite checks are in the par
 run manifests, not strict new content-hash infrastructure. Shared-workspace unrelated
 modifications were preserved. Root verify retains6 pre-existing trajectory-policy card
 schema failures; no audit-card/seed failure. Targeted tests9PASS1.97s.
+
+## 2026-10-22 负结果 CPU 审计：结论范围修订
+
+保留completion绑定主推理c971bca6的离线goal语义差异、条件敏感性、DEV泛化差与几何诊断。此处Planner是有oracle录制参考的路径子模块，E_next仍固定录制标签，缺完整抓稳/释放/支撑反馈；不是完整部署闭环。healthy与FM训练步骤/目标不同，K8是同模型抽样而非8个独立训练seed。禁止由本卡推出v6控制失败、FM架构因果劣势或τ不可辨识；离线相对距离/皮肤运输proxy也不等于真实手无穿透。
+
+本追加不改变原始数字、gate或运行产物；完整身份、版本边界与排除项见[逐卡证据审计](../../../../../../src/task/ptv3-shared-wam-v6/docs/audit/negative-result-card-audit-20261022.md)。

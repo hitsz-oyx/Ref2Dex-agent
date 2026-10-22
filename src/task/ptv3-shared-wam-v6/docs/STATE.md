@@ -1,4 +1,65 @@
-## 2026-10-22 并行执行线程：GT-τ 执行资格未通过；三臂科学首批 RUNNING
+## 2026-10-22 12:3x 机主停止FM长训；确认缺陷已修、P1继续HOLD
+
+Hermes12:29 SIGINT由机主转达；独立确认目标11个PID已退出，GPU4/5/6各6MiB/0%，未重启。
+机主step11020观察后因后期收益趋平决定停止；实际最后日志11380，主阶段权重10500/11000
+真实存在，最新11000；11020有日志但无对应payload，至少380更新/109440次样本曝光未保存。
+8.711h step9000总loss.689010→10.713h step11000 .661275；±15min窗口总loss下降3.96%，
+contact仅0.73%、geometry_contact2.48%，固定DEV未持续改善。不是严格全程flat或FM架构否决。
+原process FAILED/SIGINT、progress残留RUNNING不回写；独立stop receipt记录实际已停。
+
+UNKNOWN采用显式拒绝：501 eligible→437 admitted/64 rejected，完整序列清单保存、不改标签。
+策略与native使用同一准入函数，握手检查旧native采样集合，TaskScheduler前置拒绝UNKNOWN；
+新resume身份绑定准入policy，不能用旧分布恢复伪装同实验。官方PPO仍v4，v6明确UNWIRED；
+仅完成1个真实H4经小随机v6/CPU geometry seam→实际BC→PD边界smoke，不冒充GPU/物理迁移。
+scale不存在请求已拒绝；新增reward/phase/controls/return统计和8MiB/rank episode日志，奖励不变。
+
+危害：1570 voxel27792/53174=52.2661%，最终27869/53347=52.2410%；更新预算16515072，
+native实际16527360，尾部12288未更新。UNKNOWN ended集合界6212–9314；同时排UNKNOWN/
+voxel后只能描述已发生训练子集0/N，N16164–25478，不是修复后的结果。精确时长/重叠缺日志，
+关联步数只能给宽界，不能拿回合比例当浪费率。UNKNOWN安全prefix候选2150/56418=3.81084%。
+P0旧状态4768个回放，两首越界均right wrist且距目标约2.2m；admission-only/每tick完整
+保留4800/4744 controls，主prefix均2316、完整任务均0/16；不证明去gate的动态效果。
+
+报告：`src/task/ptv3-shared-wam-v6/docs/audit/negative-result-fixes-20261022.md`；
+`negative-result-harm-20261022.md`、`v6-ppo-wiring-feasibility-20261022.md`、
+`flowmatching-stop-checkpoint-audit-20261022.md`。
+回归与smoke均为CPU，无新方法训练/物理；P1保持HOLD。下一步最便宜可证伪的是两环境
+HOLD/RELEASE真实原动作正控制（≤600交互）+逐帧评分/动作q/dq/native reset合同，未过不进RL。
+56项针对回归通过（6.39s），19项不变量/故意错误检测与CPU接口smoke通过；整库verify仍受6张旧卡metadata缺口阻断。
+本轮完整权限已解除上一轮git只读限制；审计与修复将统一提交推送，SHA以实际Git记录为准。
+以下所有同日RUNNING/未停止/只读未提交段落均为历史记录。
+
+## 2026-10-22 机主优先级更新：负结果审计；P1 HOLD（覆盖下方旧RUNNING状态）
+
+已受控停止本线程P1队列，保留A191139/B19172更新，实际物理交互286720/149504；
+C及其余seed未启动、科学评估0/45，禁止据此宣称三臂无收益。顶层FAILED源于STOP后
+索取缺失milestone checkpoint的编排问题，不是新的方法负结果。原flowmatching长训与GPU4–7未动。
+
+独立git show核实18769096与实际冻结3a0779f6的历史官方PPO均是V4Runtime/SharedWAMV4，
+24×2×11×3；53347训练结束回合0完整成功不是v6负证据，也不是独立评估成功率。
+501准入任务HOLD416/RELEASE21/UNKNOWN64（12.774%）；实际初始化UNKNOWN9314/56449
+（16.500%，不是已结束episode分母）。UNKNOWN没有成功分支，却未被准入排除。
+iteration1570 workspace27792/53174=52.266%，是PTv3 voxel index gate；旧首点信息未保存。
+奖励实际进入PPO storage/GAE；缺失的是runner return/phase日志，不能说PPO没reward。
+
+501真实档案CPU回放：安全prefix真实elapsed≥1s抬升251、持握代理245；TaskController
+完整成功0（499录制删失、2 path failure）；独立几何完整条件10，差异尚需定位。
+原参考不是已合格完整任务正控制，UNKNOWN子集也不能解释全部零成功。
+秒制复核另修订P0：30个held状态只跨度29/30s，FM旧1/16按elapsed≥1s为0/16；动作回放15/16、GT/healthy0/16不变，原数字保留legacy。
+19项CPU合同/19个故意错误检测均通过，另voxel首点1项含mutant；26项相关测试通过。
+12轴动作可到PD，16轨迹2316control PD重算误差0；受控扰动后实测q/dq与native隐藏reset
+仍未认证，P1保持HOLD。load_geometry缺请求scale静默fallback已修，未证实影响历史r3。
+
+19张历史卡已逐项审计并标注适用范围，保留真实局部负现象，排除模型错认/实现污染/
+正控制不足/统计单位错误产生的方法否决。主报告：
+`src/task/ptv3-shared-wam-v6/docs/audit/negative-result-audit-20261022.md`；
+协议`negative-result-hygiene.md`；CPU产物
+`outputs/ptv3-shared-wam-v6/negative-result-audit-20261022-r1/`。
+本轮没有新方法实验；修后首项应是明确HOLD/RELEASE真实成功参考、评分一致与动作/native
+reset工程资格验收，通过前不恢复三臂。下面同日RUNNING/继续supervisor等文字为历史启动记录。
+交付受当前sandbox只读.git阻断（index.lock创建失败），没有本轮commit/push；远端ls-remote网络失败，SHA读不到。
+
+## 2026-10-22 历史启动记录：GT-τ 执行资格未通过；三臂现已HOLD
 
 本线程独立推进机器人闭环，不重复另线程的可辨识性/goal契约诊断。
 固定已适配τ的Scheduled686 step50000，同16个机器人DEV初态（相对其TRAIN名称/源路径

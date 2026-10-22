@@ -73,3 +73,9 @@ positive result only supports retaining the fixed adapter for a new card; it is
 not evidence for generalization, REGRIND reproduction, Cm benefit, or a learned
 preload policy. A negative result closes this student route at the current
 budget.
+
+## 2026-10-22 负结果 CPU 审计：结论范围修订
+
+保留clipping降至.8187%及hold45 12/16、median79帧；long-held0/16使另一半gate失败。不能把标签UNPROMISING改写成完全不会抓持，也不能把clipping半gate通过写成完整通过。这个固定offset迁移仅约束当前特权nominal参考下的单motion学生，不否决残差控制。
+
+本追加不改变原始数字、gate或运行产物；完整身份、版本边界与排除项见[逐卡证据审计](../../../../../../src/task/ptv3-shared-wam-v6/docs/audit/negative-result-card-audit-20261022.md)。

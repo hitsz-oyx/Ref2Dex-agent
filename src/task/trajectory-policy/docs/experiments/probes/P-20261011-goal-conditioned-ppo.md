@@ -74,3 +74,9 @@ generalization, failure-bin sampling, matched Cm-on/off training, or the full
 REGRIND reference-tracking configuration. The frozen evaluation is recorded in
 `P-20261011-goal-conditioned-ppo-execution.md`; direct-action BC/PPO is closed
 for this motion if that gate also fails.
+
+## 2026-10-22 负结果 CPU 审计：结论范围修订
+
+保留d07b739b实际24更新/49152训练交互及actor变化；训练return不是成功率，也不是独立冻结评估。本卡UNCLEAR不应升级为PPO方法负结果；另卡r2确定性评估失败只约束这个短预算/单motion策略，不能推断预测预训练或从零RL无效。
+
+本追加不改变原始数字、gate或运行产物；完整身份、版本边界与排除项见[逐卡证据审计](../../../../../../src/task/ptv3-shared-wam-v6/docs/audit/negative-result-card-audit-20261022.md)。

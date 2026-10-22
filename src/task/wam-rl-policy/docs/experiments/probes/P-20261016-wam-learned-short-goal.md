@@ -115,3 +115,9 @@ WAM为42.54/44.58mm，提示条件手物协同信息在非oracle目标下仍有�
 相关方法边界见[运动先验到RL的一手文献审计](../../../../../../paper/point-motion-goal-policy/2026-10-16-motion-prior-rl-bridge.md)。
 Dream2Flow的flow-reward SAC支持无BC桥接的可行性，但不是通用小数据PPO证据；
 Track2Act的共享残差控制器依赖机器人示范BC，不能直接当作我们的既有执行桥。
+
+## 2026-10-22 负结果 CPU 审计：结论范围修订
+
+这是c85a1837的旧行为endpoint回归+冻结旧WAM预测诊断，没有新自主闭环/成功率评估，非v6执行失败。448held状态来自8物体且窗口相关；不等于448独立任务。保留endpoint门槛未过及部分hand/scene改善，不能由此否决未来预训练对RL的样本效率收益。预测旧行为未来不是任务最优目标或可达性认证。
+
+本追加不改变原始数字、gate或运行产物；完整身份、版本边界与排除项见[逐卡证据审计](../../../../../../src/task/ptv3-shared-wam-v6/docs/audit/negative-result-card-audit-20261022.md)。

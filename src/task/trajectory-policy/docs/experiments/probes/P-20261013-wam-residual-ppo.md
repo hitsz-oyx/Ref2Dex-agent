@@ -242,3 +242,9 @@ screen small fixed residual directions on this exact frozen WAM+R pair from
 frame0 and determine whether startup has a usable basin. Current measured
 saturation is low on average, so do not assume clipping alone is the blocker.
 No further experiment was started in this bug-fix task.
+
+## 2026-10-22 负结果 CPU 审计：结论范围修订
+
+r2–r5受bootstrap、reset H4/previous、lift基准与optimizer/KL回退等实现问题污染，移出清洁方法负证据；原轨迹可保留为故障现象。r6初始化前失败不算训练。r7真正执行版本a2f85d4b的20更新frame0无持握可以保留为局部短预算结果；phase62已持握reset主导训练held，不能当作起抓收益。修复也改变初始化分布，不把r5→r7当单变量因果对照。不是WAM v6/PPO路线的普遍否决。
+
+本追加不改变原始数字、gate或运行产物；完整身份、版本边界与排除项见[逐卡证据审计](../../../../../../src/task/ptv3-shared-wam-v6/docs/audit/negative-result-card-audit-20261022.md)。

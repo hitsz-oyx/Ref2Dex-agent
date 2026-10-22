@@ -88,3 +88,9 @@ future-trajectory DAgger. The result does not refute tau as a high-level plan, b
 it does not justify PPO yet. Before another training budget, inspect the direct
 action/PD target contract and whether the executor needs a richer interaction or
 phase input; retain this run as the current DAgger negative Probe.
+
+## 2026-10-22 负结果 CPU 审计：结论范围修订
+
+保留实际manifest44c8b7ea的一轮当前learner-state动作/PD查询与无干预执行：离线action L1改善而本序列hold45仍0/8。本波teacher placement7/8满足其完整校准，但仍仅一序列一轮拟合；query不是从离轨状态产生完整future τ的重规划。producer r1保存packet错误的失败不计作方法结果；同motion五env拟合/三env选择不是独立任务泛化。
+
+本追加不改变原始数字、gate或运行产物；完整身份、版本边界与排除项见[逐卡证据审计](../../../../../../src/task/ptv3-shared-wam-v6/docs/audit/negative-result-card-audit-20261022.md)。

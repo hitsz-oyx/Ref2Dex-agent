@@ -30,6 +30,10 @@ def main():
  from wam_rl_policy_v3.ppo import reduce
  from wam_rl_policy_v3.scheduled_ppo_loop import parameter_sync_error
  from wam_rl_policy_v3.checkpoint_retention import prune_checkpoints
+ from wam_rl_policy_v3.task_admission import load_executable_tasks,require_native_membership
+ _,task_admission=load_executable_tasks(a.audit_manifest.resolve())
+ write(a.output/'task-admission.json',task_admission)
+ if not task_admission['admitted_count']:raise ValueError('no executable TRAIN tasks: all eligible tasks UNKNOWN or empty')
  torch.set_num_threads(2);torch.cuda.set_device(0);torch.manual_seed(a.seed)
  if a.world_size>1:dist.init_process_group('nccl',init_method=a.rendezvous,rank=a.rank,world_size=a.world_size)
  packet=torch.load(a.bc.resolve(),map_location='cpu',weights_only=False)
@@ -38,15 +42,21 @@ def main():
  listener=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);listener.settimeout(300);listener.bind(str(a.socket));listener.listen(1)
  commit=os.environ.get('REF2DEX_CODE_COMMIT') or subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
  state=dict(status='WAITING_NATIVE',experiment_id='P-20261020-inspire-measured-official-ppo',run_id=a.output.parent.name,git_commit=commit,python=sys.executable,torch=torch.__version__,gpu=a.gpu,rank=a.rank,world_size=a.world_size,bc=str(a.bc.resolve()),bc_step=packet['step'],source_manifest=str(a.audit_manifest.resolve()),optimizer_steps=0,iteration=0,
-  ppo_engine='pinned UniDexGrasp2 official; actual-KL/global advantage/gradient adapters reused from Shadow',observation_dim=686,cad_encoder='frozen BC encoder, part of checkpoint',reset_contract='step in source episode; terminal reward then eager indexed reset before next sampling',reset_probe=a.reset_probe)
+  ppo_engine='pinned UniDexGrasp2 official; actual-KL/global advantage/gradient adapters reused from Shadow',observation_dim=686,cad_encoder='frozen BC encoder, part of checkpoint',reset_contract='step in source episode; terminal reward then eager indexed reset before next sampling',reset_probe=a.reset_probe,
+  task_admission=dict(schema=task_admission['schema'],admitted_count=task_admission['admitted_count'],rejected_count=task_admission['rejected_count'],file=str(a.output/'task-admission.json')),
+  wam_version='v4',wam_trajectory_shape=[24,2,11,3],v6_connection='UNWIRED in this PPO entrypoint')
  write(a.output/'manifest.json',state);print('READY',flush=True);connection=None;env=None;ppo=None;started=time.monotonic()
  try:
   connection,_=listener.accept();connection.settimeout(600);hello=receive(connection);state['native_peer_pid']=peer_pid(connection)
   if not hello['audit'].get('extended_state') or hello['audit'].get('state_transport')!='packed':raise ValueError('native measured packed state required')
+  require_native_membership(hello['audit'].get('source_sequence_names'),task_admission)
+  state['native_sampled_sequence_count']=len(hello['audit']['source_sequence_names'])
   state['status']='INITIALIZING_MODELS';write(a.output/'manifest.json',state)
   native=unpack_state(hello['state']);objects=[dict(object_code='dexplore/'+s.split('_')[1],scale=1.) for s in native['sequences']]
   runtime=V4Runtime(packet['config']['wam'],objects,a.geometry_cache.resolve(),dense_manifest=a.geometry_cache/'surface-manifest.json',allow_geometry_replacement=True,device='cuda:0')
   env=MeasuredOfficialEnv(connection,hello,a.audit_manifest.resolve(),runtime,model,reset_probe=a.reset_probe,batch=a.wam_batch,shared_tf32=a.shared_tf32)
+  from wam_rl_policy_v3.episode_logging import EpisodeLog
+  episode_log=EpisodeLog(a.output/'episodes.jsonl');env.episode_sink=episode_log.append
   official=prepare_official(ROOT,a.output,masked_resets=False,correct_distribution_kl=True);sys.path.insert(0,str(official))
   spec=importlib.util.spec_from_file_location('measured_official_process',official/'utils/process_sarl.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
   cfg=yaml.safe_load((official/'cfg/ppo/config.yaml').read_text());cfg['seed']=a.seed;cfg['policy'].update(backbone_type='pn',freeze_backbone=False,obs_dim=686)
@@ -56,7 +66,7 @@ def main():
   from wam_rl_policy_v3.bc_mlp import NormalizedCommandMLP
   actor=NormalizedCommandMLP(686,312,12).cuda();actor.load_state_dict(model.actor.state_dict(),strict=True);ppo.actor_critic.actor=actor
   ppo.optimizer=torch.optim.Adam(ppo.actor_critic.parameters(),lr=cfg['learn']['optim_stepsize'])
-  identity=dict(source=str(a.audit_manifest.resolve()),bc=str(a.bc.resolve()),wam=packet['config']['wam'],geometry=str(a.geometry_cache.resolve()),world_size=a.world_size,envs=env.num_envs,physics_backend=hello['audit'].get('physics_backend','gpu'),wam_batch=a.wam_batch,shared_tf32=a.shared_tf32)
+  identity=dict(source=str(a.audit_manifest.resolve()),bc=str(a.bc.resolve()),wam=packet['config']['wam'],geometry=str(a.geometry_cache.resolve()),world_size=a.world_size,envs=env.num_envs,physics_backend=hello['audit'].get('physics_backend','gpu'),wam_batch=a.wam_batch,shared_tf32=a.shared_tf32,task_admission_policy=task_admission['schema'])
   completed=0
   if a.resume:
    saved=torch.load(a.resume,map_location='cuda',weights_only=False)
@@ -96,6 +106,9 @@ def main():
   ppo.update=update;ppo.save=save
   def log(locs):
    counts=reduce(torch.tensor([env.completed_episodes,env.successes,env.workspace_failures,env.reset_count],device='cuda',dtype=torch.float64),'sum')
+   local_statistics=env.training_statistics();stat_keys=sorted(local_statistics)
+   global_statistics=reduce(torch.tensor([local_statistics[k] for k in stat_keys],device='cuda',dtype=torch.float64),'sum').cpu().tolist()
+   state.update(training_statistics=dict(zip(stat_keys,global_statistics)),episode_log=episode_log.summary())
    state.update(iteration=completed+locs['it']+1,elapsed_s=time.monotonic()-started,collection_s=locs['collection_time'],learning_s=locs['learn_time'],value_loss=float(locs['mean_value_loss']),surrogate_loss=float(locs['mean_surrogate_loss']),lr=ppo.step_size,completed_episodes=int(counts[0]),successes=int(counts[1]),workspace_failures=int(counts[2]),resets=int(counts[3]),reset_audits=env.reset_audits,source_mismatches=env.source_mismatches,
     tau_weight_norm=float(actor.net[0].weight[:,421:685].detach().norm()),task_weight_norm=float(actor.net[0].weight[:,411:421].detach().norm()),max_goal_error_m=env.max_goal_error,timings=env.timings,inference_audit=env.inference_audit,peak_cuda_mib=torch.cuda.max_memory_allocated()/2**20,
     eta_s=(locs['collection_time']+locs['learn_time'])*(a.updates-locs['it']-1))
@@ -116,7 +129,9 @@ def main():
    try:send(connection,dict(op='close'));receive(connection)
    except Exception:pass
    connection.close()
-  if env:state.update(reset_audits=env.reset_audits,source_mismatches=env.source_mismatches)
+  if env:
+   state.update(reset_audits=env.reset_audits,source_mismatches=env.source_mismatches,final_local_training_statistics=env.training_statistics())
+   if 'episode_log' in locals():state['episode_log']=episode_log.summary()
   write(a.output/'manifest.json',state);listener.close();a.socket.unlink(missing_ok=True)
   if a.world_size>1:dist.destroy_process_group()
 

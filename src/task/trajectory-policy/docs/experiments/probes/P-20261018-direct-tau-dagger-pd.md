@@ -74,3 +74,9 @@ loss alone does not recover the task. Do not spend PPO budget or interpret this
 as a tau-plan refutation. The next unresolved intervention is recovery-basin
 collection with bounded teacher intervention (for example beta 0.1--0.25), with
 phase/divergence masks retained for analysis.
+
+## 2026-10-22 负结果 CPU 审计：结论范围修订
+
+保留PD空间误差改善以及无干预learner0/8 hold45；40mm终点误差不等于抓持。fit实际manifest0dc48974、执行357e4a6d分别记录。本波teacher hold45=8/8但placement=4/8，实际共用runner要求teacher placement≥6/8，因而完整placement gate未得到合格校准；不能把UNPROMISING全部当作方法否决，更不能据此否定τ或证明只缺C。
+
+本追加不改变原始数字、gate或运行产物；完整身份、版本边界与排除项见[逐卡证据审计](../../../../../../src/task/ptv3-shared-wam-v6/docs/audit/negative-result-card-audit-20261022.md)。

@@ -143,9 +143,12 @@ def load_geometry(cache, env_objects, dense_manifest=None, dense_sha256=None):
             raise ValueError("no cached geometry for object: " + code)
         row = rows[0]
         if scale is not None:
-            matches = [r for r in rows if np.isclose(float(r.get("scale", scale)), scale)]
-            if matches:
-                row = matches[0]
+            matches = [r for r in rows if r.get("scale") is not None
+                       and np.isclose(float(r["scale"]), scale, rtol=1e-6, atol=1e-9)]
+            if not np.isfinite(scale) or not matches:
+                available = [r.get("scale") for r in rows]
+                raise ValueError(f"no cached geometry for requested scale {scale}: {code}; available={available}")
+            row = matches[0]
         key = code if "@" in code else f"{code}@{scale:g}" if scale is not None else code
         keys.append(key)
         if key in geometry:

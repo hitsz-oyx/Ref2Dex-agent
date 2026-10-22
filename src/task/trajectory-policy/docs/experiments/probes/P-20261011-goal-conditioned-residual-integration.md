@@ -110,3 +110,9 @@ authorized by this card. The result closes this student integration variant at
 the current budget while preserving the fixed residual basin as a control
 diagnostic; it does not refute measured-state residual control, REGRIND, or
 the later H/PointWAM route.
+
+## 2026-10-22 负结果 CPU 审计：结论范围修订
+
+UNPROMISING是组合门槛未过，不是不会持握：实际long-held10/16、hold45 15/16、median483帧；clipping6.6075%且未达12/16 long-held，placement全false须另报。nominal q/velocity来自特权geometry cache，不能算可部署无future-q planner。r1–r3 setup失败排除；有效r4的局部成败均保留，不据此关残差方法。
+
+本追加不改变原始数字、gate或运行产物；完整身份、版本边界与排除项见[逐卡证据审计](../../../../../../src/task/ptv3-shared-wam-v6/docs/audit/negative-result-card-audit-20261022.md)。

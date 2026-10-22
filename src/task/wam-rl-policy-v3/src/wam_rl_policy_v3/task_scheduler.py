@@ -54,6 +54,7 @@ class SchedulerDecision:
 
 class TaskScheduler:
     def __init__(self,spec:TaskSpec,object_points,*,config=None,path_config=None,interaction_points=None):
+        spec.require_success_path()
         self.spec=spec;self.config=config or TaskSchedulerConfig()
         self.path=OrderedGoalScheduler(spec.object_path,spec.source_frames/spec.source_fps,object_points,
             config=path_config or SchedulerConfig(),goal_type=spec.goal_type,interaction_points=interaction_points)

@@ -88,3 +88,9 @@ existing frozen tracker is recorded in `P-20261011-goal-conditioned-execution.md
 Offline success alone does not
 permit PPO or a grasp claim. The PointWAM-style high-level forecaster remains
 deferred until a low-level policy survives that physical gate.
+
+## 2026-10-22 负结果 CPU 审计：结论范围修订
+
+PROMISING仅指该单motion、环境留出的动作蒸馏误差；13008/4336行不是独立序列泛化，离线门槛不认证闭环。工程packet只供几何goal，不能把其training_allowed=false误写成所有动作label非法；实际label来自另一条自有tracker执行。保留低L1，闭环与方法收益由独立执行卡限定。
+
+本追加不改变原始数字、gate或运行产物；完整身份、版本边界与排除项见[逐卡证据审计](../../../../../../src/task/ptv3-shared-wam-v6/docs/audit/negative-result-card-audit-20261022.md)。

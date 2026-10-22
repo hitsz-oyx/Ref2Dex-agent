@@ -367,3 +367,19 @@ hold/path progress and termination reasons separately; compare sampled actions
 only if needed to isolate exploration. Restore reward/episode telemetry for
 future training records. No such new evaluation, logging deployment, reward
 change or training restart was performed during this audit/commit request.
+
+## 2026-10-22 负结果 CPU 审计：结论范围修订
+
+独立读取冻结3a0779f6981ee01ffb8e637abb9b7b3fea2437f3入口：导入V4Runtime，由BC config加载ptv3-shared-wam-v4/step80000-model.pt，严格v4 schema；本运行不是WAM v6 PPO。rank最终manifest STOPPED1575，53347结束训练回合/完整任务成功0/27869 workspace失败是一个同步模型的训练累计，不是53347条独立评估、不是抓取率为0；多个rank也不是多个独立训练seed。顶层旧RUNNING为陈旧状态。保留v4执行桥未观察完整任务完成，不能归因v6、解码质量或缺C。
+
+本追加不改变原始数字、gate或运行产物；完整身份、版本边界与排除项见[逐卡证据审计](../../../../../../src/task/ptv3-shared-wam-v6/docs/audit/negative-result-card-audit-20261022.md)。
+
+## 2026-10-22 12:3x 修复与危害量化（不倒灌旧运行）
+
+UNKNOWN显式拒绝后的准入为437/501，64序列完整记录且原标签不改；native/policy同集及握手、
+TaskScheduler前置断言已加回归，旧501分布checkpoint不能默默恢复为同一次437分布实验。
+新增有界episode日志及reward/phase/control/return统计，旧return仍无法回补。官方PPO仍v4，
+v6未接线。本轮未重新训练或宣称修复后成功率。
+最终UNKNOWN ended集合界6212–9314，voxel27869，排二者后已发生子集0/N且N16164–25478；
+更新预算16515072，不能把回合份额当预算损耗。完整影响表与测试见
+[修复报告](../../../../../../src/task/ptv3-shared-wam-v6/docs/audit/negative-result-fixes-20261022.md)。

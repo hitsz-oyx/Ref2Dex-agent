@@ -47,6 +47,10 @@ class TaskSpec:
     require_support:bool=True
     source_role:str='explicit_task_instruction'
 
+    def require_success_path(self):
+        if self.terminal_mode==TerminalMode.UNKNOWN:
+            raise ValueError('UNKNOWN task has no defined success path; reject at executable-task admission')
+
     def __post_init__(self):
         poses=_poses(self.object_path);frames=np.asarray(self.source_frames)
         if (len(poses)<2 or frames.shape!=(len(poses),) or frames.dtype.kind not in 'iu'

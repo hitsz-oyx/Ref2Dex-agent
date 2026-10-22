@@ -85,3 +85,9 @@ Stop adding DAgger rounds to this contract for now. The next informative branch
 is an executor with live replanning or explicit interaction context `C`, tested
 on a small matched probe; a longer PPO run is not justified by the current
 offline gate.
+
+## 2026-10-22 负结果 CPU 审计：结论范围修订
+
+没有自主物理执行结果。120步teacher warmup后β=.25的rollin实际干预比例46.11%，其8/8 hold45不能作为executor成功。最终fit实际manifest4d21a1fb；脚本状态门槛实际是normalized Huber<.2，原生xyz/rot/finger有数值但没有独立预注册阈值，因此“physical/native offline gate”应限定为原normalized筛选，不能包装成物理资格。保留离轨query误差仍大和该筛选未过，不否决绝对锚点或τ路线。
+
+本追加不改变原始数字、gate或运行产物；完整身份、版本边界与排除项见[逐卡证据审计](../../../../../../src/task/ptv3-shared-wam-v6/docs/audit/negative-result-card-audit-20261022.md)。

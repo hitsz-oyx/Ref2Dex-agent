@@ -85,3 +85,9 @@ This is a single-motion, single-seed privileged nominal-reference diagnostic.
 Even a positive result only retains the decomposition for a new card; it does
 not prove generalization, H-to-tau forecasting, Cm utility, or full REGRIND
 reproduction. A negative result closes this decomposition at the current budget.
+
+## 2026-10-22 负结果 CPU 审计：结论范围修订
+
+有效物理运行是r2（manifest b1f1883d），r1资源guard中断且无可审计轨迹应排除。保留hold45 7/16、long-held0/16、clipping13.5148%的混合现象；finger-only未恢复注册门槛不等于完全无持握或所有wrist/finger拆分无效。仍依赖特权nominal，单motion单seed。
+
+本追加不改变原始数字、gate或运行产物；完整身份、版本边界与排除项见[逐卡证据审计](../../../../../../src/task/ptv3-shared-wam-v6/docs/audit/negative-result-card-audit-20261022.md)。

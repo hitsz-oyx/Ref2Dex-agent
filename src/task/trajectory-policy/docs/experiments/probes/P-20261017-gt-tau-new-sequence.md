@@ -37,3 +37,9 @@ The coordinate-fixed teacher calibration completed on GPU0 with 32/32 hold45 and
 For the stated grasp/hold decision this is `UNPROMISING`: GT-tau loses the hold gate on a coordinate-valid new sequence even though teacher and source-PD both hold. The runner's conservative full-task label remains `UNCLEAR` solely because source-PD placement calibration was 5/8. Independent replay [audit](../../../../../../outputs/trajectory-policy/gt-tau-new-sequence-20261017-r4/gt-tau/audit.json) passes with zero error for actual PD, measured-state features, GT-tau features, model output, and requested PD.
 
 The earlier r1/r2 attempts are retained but excluded: r1 used a fixed 542-step runner on a 279-frame input and reset at the natural terminal frame; r2 used the non-DExplore-native `partial_filtered` tensor (object z 1.337 m versus 0.918 m in the coordinate-fixed conversion), so its 0/32 teacher result is invalid input evidence.
+
+## 2026-10-22 负结果 CPU 审计：结论范围修订
+
+仅保留坐标修正后的 r4：teacher/source-PD 的 hold45 都是8/8，而 GTτ/R 为0/8。完整placement校准的source-PD仅5/8，原runner UNCLEAR不能当成已认证完整任务负结果；抓持代理缺失仍可保留。r1固定长度/自然终止reset与r2错误partial_filtered坐标均移出方法比较。本卡是固定R资格，不能归为learned executor、WAM v6或PPO失败。实际执行manifest c0c85956与卡头886f481b分开保留。
+
+本追加不改变原始数字、gate或运行产物；完整身份、版本边界与排除项见[逐卡证据审计](../../../../../../src/task/ptv3-shared-wam-v6/docs/audit/negative-result-card-audit-20261022.md)。

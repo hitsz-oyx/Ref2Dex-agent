@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [170,171,172]
 decision_changed_if_positive: retain residual conditional flow if fixed held-out short-prefix errors improve stably
 decision_changed_if_negative: retain checkpoints and inspect generalization before scaling the flow branch
-status: RUNNING
+status: STOPPED
 run_id: flowmatching-overnight-20261022-r2
 ---
 
@@ -214,3 +214,43 @@ Operator stop: create root output `STOP`; supervisor asks only its active stage
 to save and exit. For normal completion it audits final model/optimizer/RNG
 and exact normalization, then records final status/checkpoint in `process.json`.
 No existing source checkpoints or user files were modified.
+
+## 2026-10-22 owner SIGINT stop：权重与曲线独立审计
+
+机主通过Hermes在12:29发SIGINT停止本轮；训练日志独立记录12:29:11.355672收到SIGINT，
+三个rank KeyboardInterrupt，torchrun退出1。此卡标STOPPED表示owner已停止探索；原
+`process.json`仍为FAILED、`training/progress.json`仍残留RUNNING，均保持原样，
+不能假称正常final-save退出。信号发送者身份来自owner转达，不是训练日志可认证的内容。
+
+CPU审计observed12:37:46+08：原supervisor/torchrun/三个main workers等11个已知PID均不存在，
+无该run的目标训练进程；GPU4/5/6各6MiB、0%，无对应compute app。未信号/重启其他作业。
+
+**主阶段确有权重，最新为11000，不是旧trial128。** 实际payload逐一CPU读取：
+`training/step010500.pt`于11:31:29、`training/step011000.pt`于12:04:02写成，均1,217,116,001字节；
+11000的schema v6、model626项/flow49项、optimizer617项、world3/RNG3。
+3个真实CPU sentinel均finite且不同于trial128（flow output weight RMS .002313→.018866），
+但本轮没有做全optimizer数值或恢复审计。`best.pt`指trial20、`trajectory-best.pt`指strict9，
+都是继承的selection，不能拿软链mtime或best别名充作latest权重。
+
+owner观察点11020有日志、无已发现权重；**最后日志实际到11380**（12:28:49，
+累计11.132684h、loss .66100058）。最新保留11000到最后确认更新至少差380updates，
+即global288下109440次样本曝光（不是环境交互或独立数据量）、1488.15s累计elapsed。
+raw SIGINT绕过冻结trainer第366行正常loop后的final-save/result路径，故没有11380 final权重。
+周期保存500/保留最近2份正常，不能据此说“主阶段从未保存”；后续信号安全保存修复只作建议，
+本轮没有修改训练源码或启动训练。
+
+曲线原观察可复核：step9000累计8.711117h/loss .68901015 → step11000累计10.713360h/
+loss .66127519；这两个batch的contact .243203→.252238、geometry_contact .289527→.294095。
+固定±15min窗口总loss均值 .684049→.656991，而contact .251234→.249398（约降.73%）、
+geometry_contact .300649→.293192（约降2.48%）；后期接触改善弱，不是严格完全flat。
+固定32-window GRAB DEV的geometry contact MAE在9000/11000为.148111/.148999，
+object prefix8 EPE19.441/20.013mm；未显示持续DEV改善，不能当作成功率或架构因果结论。
+
+完整八个原run普通权重、六个symlink、诊断保留8500 copy的payload/真实mtime、扫描边界、
+停止receipt、566条主训练日志/22次DEV曲线与保存路径定位见
+[停止与权重审计](../../audit/flowmatching-stop-checkpoint-audit-20261022.md)。
+产物 `outputs/ptv3-shared-wam-v6/flowmatching-stop-audit-20261022-r2/`：
+`stop-receipt.json`、`checkpoint-inventory.json`、`summary.json`、`train-curve.csv`、
+`dev-curve.csv`、`training-curves.png/svg`。关联扫描覆盖本项目outputs2396个权重路径，
+没有发现11020 payload；未知位置/任意改名的外部export仍不能排除，不宣称全世界不存在。
+本次只CPU审计、不建CUDA context、不改原权重/训练manifest，不写STATE、不做Git操作。

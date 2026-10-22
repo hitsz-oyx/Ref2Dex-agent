@@ -75,3 +75,9 @@ Direct native-action BC/PPO is closed for this motion under the fixed budget. Th
 next meaningful test is a nominal-goal plus bounded residual adapter or a fresh
 rollout marked `training_allowed=true`; high-level PointWAM/ACT forecasting
 remains deferred.
+
+## 2026-10-22 负结果 CPU 审计：结论范围修订
+
+有效可审计物理产物是r2（90e78dd5），卡头run_id的r1不能替代它；r1记录/归档不足归工程问题。保留r2 hold45/long-held均0的单motion现象和已验接线PASS；不否决PPO一般方法，更不证明WAM v6解码是瓶颈。
+
+本追加不改变原始数字、gate或运行产物；完整身份、版本边界与排除项见[逐卡证据审计](../../../../../../src/task/ptv3-shared-wam-v6/docs/audit/negative-result-card-audit-20261022.md)。
