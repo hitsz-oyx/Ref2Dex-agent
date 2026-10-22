@@ -2,6 +2,7 @@
 import numpy as np
 
 TASK_CONTRACT='synthetic-grasp-lift8cm-position-HOLD1s-timeout20s.v2'
+SOURCE_TASK_CONTRACT='source-declared-full-task.stage-observation-budget20s.v1'
 ENCODER_POLICY='voxel-input-mask-only.same-executor-zero-tau-valid-false.v2'
 FALLBACK_POLICY='same-executor-observed-state.tau-zero.valid-false.v1'
 ENCODER_CONFIG=dict(voxel_origin_m=[-2.,-2.,-2.],voxel_m=.005,max_grid=65535)

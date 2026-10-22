@@ -1,5 +1,10 @@
 # WAM v6 — object goal plus next CONTACT/RELEASE event
 
+S2c (2026-10-22): [阶段判据、bounded dense reward、固定初态评估与反例复现](docs/audit/s2c-staged-criteria-dense-reward-20261022.md)。
+v6 环境输出 approach/contact/lift5cm/continuous hold1s/release 的 current/ever/首次秒数，
+保留完整 task_success；新增 reward identity 禁止旧协议静默 resume。44项合同回归通过，
+仅CPU工程检查/历史档案复评分，无新物理、训练或 v6 重训。
+
 The user created this task to separate event-conditioned work from the v5
 baseline and make rollback a directory/checkpoint choice. The v6 package,
 model implementation, training launcher, data recipe and checkpoint schema

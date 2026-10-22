@@ -9,7 +9,7 @@ from dataclasses import replace
 from scipy.spatial.transform import Rotation
 from wam_rl_policy_v3.task_runtime import TaskController
 from wam_rl_policy_v3.task_spec import TaskSpec
-from wam_rl_policy_v3.measured_reward_bridge import MeasuredRewardTracker,reward_features
+from wam_rl_policy_v3.measured_reward_bridge import reward_features
 from wam_rl_policy_v3.measured_execution import online_support,task_wam_goal
 from wam_rl_policy_v3.robot_adapter import InspireAdapter
 from wam_rl_policy_v3.inspire_shadow import current_state,tau_world
@@ -17,8 +17,9 @@ from wam_rl_policy_v3.inspire_contract import expand_action
 from wam_rl_policy_v3.inspire_state_codec import unpack_state
 from wam_rl_policy_v3.wam_v4_runtime import v4_online_samples,collate_v4
 from wam_rl_policy_v3.physical_safety import physical_safety,PHYSICAL_SAFETY_POLICY
-from ptv3_shared_wam_v6.execution_contract import encoder_domain_available,grasp_lift_task,TASK_CONTRACT,FALLBACK_POLICY
+from ptv3_shared_wam_v6.execution_contract import encoder_domain_available,grasp_lift_task,TASK_CONTRACT,SOURCE_TASK_CONTRACT,FALLBACK_POLICY
 from ptv3_shared_wam_v6.online_runtime import EncodingUnavailable
+from ptv3_shared_wam_v6.staged_progress import StagedProgress,StagedDenseReward,REWARD_CONTRACT
 
 
 def check_indexed_reset(before,after,ids):
@@ -29,9 +30,11 @@ def check_indexed_reset(before,after,ids):
 
 
 class SampleEfficiencyEnv:
-    def __init__(self,connection,hello,manifest,runtime,model,*,reset_probe=False,batch=256,shared_tf32=False,arm="A",forecast=None,geometry_cache=None):
+    def __init__(self,connection,hello,manifest,runtime,model,*,reset_probe=False,batch=256,shared_tf32=False,arm="A",forecast=None,geometry_cache=None,task_mode='synthetic_hold'):
         from gym import spaces
         self.arm=arm;self.forecast=forecast
+        if task_mode not in ('synthetic_hold','source_declared'):raise ValueError('explicit supported task mode required')
+        self.task_mode=task_mode;self.task_contract=TASK_CONTRACT if task_mode=='synthetic_hold' else SOURCE_TASK_CONTRACT
         self.connection=connection;self.native=unpack_state(hello['state']);self.runtime=runtime;self.model=model
         self.device=runtime.device;self.num_envs=len(self.native['q']);self.num_environments=self.num_envs
         self.num_observations=846;self.num_actions=12;self.num_states=0;self.rl_device=str(self.device)
@@ -67,7 +70,7 @@ class SampleEfficiencyEnv:
                 part=keys[lo:lo+64];features=model.shape(torch.as_tensor(np.stack([self.records[k][1] for k in part]),device=self.device))
                 self.shape_features.update(zip(part,features.unbind()))
         n=self.num_envs
-        self.controllers=[None]*n;self.trackers=[None]*n;self.latest=[None]*n
+        self.controllers=[None]*n;self.trackers=[None]*n;self.latest=[None]*n;self.stages=[None]*n
         self.histories=[deque(maxlen=4) for _ in range(n)];self.hands=[deque(maxlen=4) for _ in range(n)]
         self.previous=np.zeros((n,12),np.float32);self.observations=torch.zeros((n,846),device=self.device)
         self.targets=[None]*n;self.episode_results=[];self.forecast_times=[]
@@ -105,10 +108,11 @@ class SampleEfficiencyEnv:
                 from wam_rl_policy_v3.task_scheduler import TaskSchedulerConfig
                 # A separate explicit task, never a replacement/relabeling of
                 # the source declaration retained in self.records.
-                self.targets[i]=grasp_lift_task(poses[i]);self.ever_success[i]=False
+                self.targets[i]=grasp_lift_task(poses[i]) if self.task_mode=='synthetic_hold' else spec
+                self.ever_success[i]=False
                 self.controllers[i]=TaskController(self.targets[i],points,scheduler_config=TaskSchedulerConfig(
                     acquire_timeout_s=15.,episode_timeout_s=20.,terminal_hold_s=1.))
-                self.trackers[i]=MeasuredRewardTracker()
+                self.stages[i]=StagedProgress(objects[i,2])
                 self.histories[i].clear();self.hands[i].clear();self.previous[i]=0
                 self.initial_z[i]=objects[i,2];self.max_lift[i]=0;self.streak[i]=0;self.longest[i]=0;self.returns[i]=0
             self.workspace[i]=False
@@ -118,8 +122,9 @@ class SampleEfficiencyEnv:
             self.safety[i]=physical_safety(native,i,points,bounds,self.joint_limits)
             self.physical_abort[i]=self.safety[i]['abort']
             if reset and self.physical_abort[i]:raise ValueError('unsafe physical initial state: '+str(self.safety[i]))
-            decision=self.controllers[i].observe(poses[i],hand[i],objects[i,7:13],float(native['tick'][i])/30,
-                contact_forces=contact,force_valid=contact_valid,supported=supported,workspace_ok=not self.physical_abort[i])['decision']
+            observed=self.controllers[i].observe(poses[i],hand[i],objects[i,7:13],float(native['tick'][i])/30,
+                contact_forces=contact,force_valid=contact_valid,supported=supported,workspace_ok=not self.physical_abort[i])
+            decision=observed['decision']
             if self.physical_abort[i]:decision=replace(decision,failure_reason=self.safety[i]['reason'])
             # The same independently packed task10 generates the WAM local goal.
             from wam_rl_policy_v3.executor_contract import task_condition
@@ -135,7 +140,13 @@ class SampleEfficiencyEnv:
                     goal=decision.local_goal_pose.copy(),event=decision.next_event.wam_condition(),
                     object_code='dexplore/'+obj,points=points,pose=poses[i].copy()))
             features=reward_features(poses[i],hand[i],points,decision,objects[i,7:13],contact)
-            if reset:self.trackers[i].initialize(decision,features)
+            # Stage evidence observes the same post-physics state; it cannot
+            # advance the task scheduler, change physics or authorize release.
+            from wam_rl_policy_v3.task_spec import Phase
+            self.stages[i].update(objects[i,2],float(native['tick'][i])/30,features,observed['feedback'],contact,
+                release_authorized=decision.phase==Phase.RELEASE or 'release_authorized' in self.controllers[i].scheduler.paid_events,
+                physical_abort=self.physical_abort[i])
+            if reset:self.trackers[i]=StagedDenseReward(self.stages[i])
             self.latest[i]=(decision,features)
             base=current_state(np.asarray(native['q'])[i:i+1],np.asarray(native['dq'])[i:i+1],np.asarray(native['physical'])[i:i+1],objects[i:i+1],self.targets[i].object_path[-1,:3,3][None],self.previous[i:i+1])[0]
             base=np.clip(base,-5,5)
@@ -192,16 +203,15 @@ class SampleEfficiencyEnv:
             self.source_mismatches+=1;raise ValueError('action executed in wrong episode or time')
         self.previous[:]=canonical;self._refresh(range(self.num_envs));self.steps+=1
         reward=np.zeros(self.num_envs,np.float32);done=np.zeros(self.num_envs,bool);post_success=np.zeros(self.num_envs,bool);results={}
+        reward_parts=[];stage_shaping=[]
         for i,(decision,features) in enumerate(self.latest):
-            r,_=self.trackers[i].step(decision,features,canonical[i]);reward[i]=r
             self.ever_success[i]|=bool(decision.task_complete and not self.physical_abort[i])
             done[i]=decision.terminated or self.physical_abort[i]
             forced=self.reset_probe and ((self.steps==2 and i==0) or (self.steps==4 and i==1))
             if forced:done[i]=True
-            if forced and not decision.terminated:
-                # External terminal must also zero the next potential, not bootstrap through reset.
-                from wam_rl_policy_v3.task_reward import potential
-                reward[i]-=self.trackers[i].gamma*potential(decision,features)+self.trackers[i].reward.failure_cost
+            r,parts,increments=self.trackers[i].step(self.stages[i],decision,canonical[i],terminal=done[i],
+                failed=bool(self.physical_abort[i] or forced))
+            reward[i]=r;reward_parts.append(parts);stage_shaping.append(increments)
             self.returns[i]+=reward[i]
             lift=float(self.native['objects'][i][2]-self.initial_z[i]);self.max_lift[i]=max(self.max_lift[i],lift)
             self.streak[i]=self.streak[i]+1 if lift>=.05 else 0;self.longest[i]=max(self.longest[i],self.streak[i])
@@ -210,20 +220,24 @@ class SampleEfficiencyEnv:
                 post_success[i]=success
                 source_spec=self.records[self.native['sequences'][i]][0]
                 result=dict(episode_id=source[i],sequence=self.native['sequences'][i],task_success=success,
-                    ever_success=bool(self.ever_success[i]),final_success=success,task_contract=TASK_CONTRACT,source_full_task_success=None,
+                    ever_success=bool(self.ever_success[i]),final_success=success,task_contract=self.task_contract,
+                    source_full_task_success=success if self.task_mode=='source_declared' else None,
                     source_terminal_mode=source_spec.terminal_mode.value,source_annotation_invalid=source_spec.annotation_invalid,
+                    stages=self.stages[i].snapshot(),reward_contract=REWARD_CONTRACT,reward_parts_sum=self.trackers[i].totals.copy(),
                     physical_safety_abort=bool(self.physical_abort[i]),physical_safety_evidence=self.safety[i],
                     failure_reason='engineering_reset' if forced else decision.failure_reason,
                     confirmed_progress=float(decision.path_progress),return_sum=float(self.returns[i]),controls=int(self.native['tick'][i]),max_lift_m=float(self.max_lift[i]),ever_lift5cm30=bool(self.longest[i]>=30))
                 results[i]=result;self.episode_results.append(result);self.completed_episodes+=1;self.successes+=int(result['task_success']);self.physical_safety_aborts+=int(self.physical_abort[i])
         terminal=self.observations.clone();terminal_episodes=list(self.native['episodes']);ids=np.flatnonzero(done)
         availability=self.encoder_available.copy();physical_abort=self.physical_abort.copy();ever_success=self.ever_success.copy()
+        stages=[s.snapshot() for s in self.stages]
         if len(ids):
             before=self.native;self.native=self.rpc('reset',ids=ids.tolist())['state'];check_indexed_reset(before,self.native,ids)
             self._refresh(ids,reset=True);self.reset_count+=len(ids)
             if len(self.reset_audits)<16:self.reset_audits.append(dict(step=self.steps,ids=ids.tolist(),execution_episode=terminal_episodes,next_observation_episode=list(self.native['episodes']),next_tick=np.asarray(self.native['tick']).tolist()))
         info=dict(episode_results=results,action_source_episode=source,execution_episode=terminal_episodes,next_observation_episode=list(self.native['episodes']),
             encoder_available=availability,physical_safety_abort=physical_abort,fallback_policy=FALLBACK_POLICY,
+            stages=stages,reward_parts=reward_parts,stage_shaping=stage_shaping,reward_contract=REWARD_CONTRACT,
             task_success=post_success,ever_success=ever_success,final_success=post_success.copy(),
             terminal_observation=terminal[ids],transition_valid=torch.ones(self.num_envs,dtype=torch.bool,device=self.device))
         self.timings['step_total_s']=time.perf_counter()-started

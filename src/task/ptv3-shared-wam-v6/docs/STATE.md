@@ -1,3 +1,13 @@
+## 2026-10-22 S2c：阶段化诊断与有界 dense reward 已接入
+
+[交付/公式/复现/反例](audit/s2c-staged-criteria-dense-reward-20261022.md)。仅修改v6，
+物理和v3 executor未改；无训练/新仿真。环境输出各阶段current/achieved/first_time_s、
+reward五项与累计和；lift必须在有效contact之后新增5cm，hold连续elapsed1s，release
+必须授权+有效零力+真实分离。进度上界增量限制重复刷分，新reward/task identity拒绝旧resume。
+合成6例阶段数6/4/3/2/1；固定历史六初态600controls档案为2/2/1/1/0，完整任务0/6。
+此严格新口径且首次terminal截断，不能与旧窄5/6直接比较，也不代表生产reset修后新执行。
+44项合同回归通过；dense reward学习收益与完整RELEASE新物理资格均未测，P1仍HOLD。
+
 ## 2026-10-22 S2b：参考时域补齐，物理 RELEASE 资格仍未通过
 
 [S2b diff/复现/期望与协议](audit/s2b-tau-reference-transfer-20261022.md)：同source-PD连续

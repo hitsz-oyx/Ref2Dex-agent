@@ -1,0 +1,356 @@
+{
+  "status": "PASS",
+  "mode": "archived_native_trace",
+  "stage_contract": "v6.approach-contact-lift5cm-hold1s-release.v1",
+  "reward_contract": "v6.staged-highwater-dense.existing-parts.v1",
+  "python": "/home2/wyy/miniconda3/envs/graspenv/bin/python",
+  "python_version": "3.8.20",
+  "numpy": "1.24.4",
+  "conda_prefix": null,
+  "gpu_allocated": false,
+  "optimizer_updates": 0,
+  "git_commit": "7a00fdca7a35c5ee74924a420e5fc299a89e8036",
+  "implementation_state": "S2c working tree at execution; implementation diff committed with this receipt",
+  "panel": {
+    "schema": "v6.staged-fixed-panel.v1",
+    "seed": 185,
+    "hz": 30,
+    "controls_per_episode": 600,
+    "sequence_order": [
+      "s1_cylindersmall_pass_1",
+      "s2_cubesmall_pass_1",
+      "s2_cup_pass_1",
+      "s7_airplane_lift_Retake",
+      "s7_cubemedium_pass_1",
+      "s9_cylindermedium_inspect_1"
+    ],
+    "initial_state_capture": "outputs/ptv3-shared-wam-v6/source-pd-upper-bound-validation-20261022-r1",
+    "geometry_source": "outputs/wam-rl-policy-v3/teacher-upper-bound-validation-20261022-r1",
+    "declarations": "outputs/wam-rl-policy-v3/inspire-teacher-rollout-audit-20261020-r3",
+    "initial_state_contract": "saved measured native arrays at tick0; hidden solver state not certified",
+    "budget_contract": "6 episodes, no retry, maximum 600 controls each, first task terminal censors later archive states",
+    "purpose": "archived source-PD stage diagnostic; not new physics or a post-reset-fix success rate"
+  },
+  "maximum_controls": 3600,
+  "new_physics_controls": 0,
+  "summary": {
+    "approach": {
+      "successes": 2,
+      "total": 6,
+      "not_observed": 4,
+      "first_passage_s": {
+        "n": 2,
+        "min": 1.0,
+        "p25": 1.95,
+        "median": 2.9,
+        "p75": 3.8499999999999996,
+        "max": 4.8
+      },
+      "from_previous_stage_s": {
+        "n": 2,
+        "min": 1.0,
+        "p25": 1.95,
+        "median": 2.9,
+        "p75": 3.8499999999999996,
+        "max": 4.8
+      }
+    },
+    "contact": {
+      "successes": 2,
+      "total": 6,
+      "not_observed": 4,
+      "first_passage_s": {
+        "n": 2,
+        "min": 1.0333333333333334,
+        "p25": 1.975,
+        "median": 2.9166666666666665,
+        "p75": 3.8583333333333334,
+        "max": 4.8
+      },
+      "from_previous_stage_s": {
+        "n": 2,
+        "min": 0.0,
+        "p25": 0.00833333333333336,
+        "median": 0.01666666666666672,
+        "p75": 0.025000000000000078,
+        "max": 0.03333333333333344
+      }
+    },
+    "lift": {
+      "successes": 1,
+      "total": 6,
+      "not_observed": 5,
+      "first_passage_s": {
+        "n": 1,
+        "min": 1.8,
+        "p25": 1.8,
+        "median": 1.8,
+        "p75": 1.8,
+        "max": 1.8
+      },
+      "from_previous_stage_s": {
+        "n": 1,
+        "min": 0.7666666666666666,
+        "p25": 0.7666666666666666,
+        "median": 0.7666666666666666,
+        "p75": 0.7666666666666666,
+        "max": 0.7666666666666666
+      }
+    },
+    "hold": {
+      "successes": 1,
+      "total": 6,
+      "not_observed": 5,
+      "first_passage_s": {
+        "n": 1,
+        "min": 3.7333333333333334,
+        "p25": 3.7333333333333334,
+        "median": 3.7333333333333334,
+        "p75": 3.7333333333333334,
+        "max": 3.7333333333333334
+      },
+      "from_previous_stage_s": {
+        "n": 1,
+        "min": 1.9333333333333333,
+        "p25": 1.9333333333333333,
+        "median": 1.9333333333333333,
+        "p75": 1.9333333333333333,
+        "max": 1.9333333333333333
+      }
+    },
+    "release": {
+      "successes": 0,
+      "total": 6,
+      "not_observed": 6,
+      "first_passage_s": {
+        "n": 0,
+        "min": null,
+        "p25": null,
+        "median": null,
+        "p75": null,
+        "max": null
+      },
+      "from_previous_stage_s": {
+        "n": 0,
+        "min": null,
+        "p25": null,
+        "median": null,
+        "p75": null,
+        "max": null
+      }
+    }
+  },
+  "records": [
+    {
+      "sequence": "s1_cylindersmall_pass_1",
+      "observed_controls": 568,
+      "stages": {
+        "contract": "v6.approach-contact-lift5cm-hold1s-release.v1",
+        "current": {
+          "approach": false,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "achieved": {
+          "approach": false,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "first_time_s": {
+          "approach": null,
+          "contact": null,
+          "lift": null,
+          "hold": null,
+          "release": null
+        },
+        "longest_hold_s": 0.0,
+        "continuous_hold_s": 0.0
+      },
+      "full_task_success": false,
+      "terminal_reason": "acquire_timeout",
+      "right_censored": false,
+      "post_terminal_archive_states_ignored": 32,
+      "reward_evaluated": false
+    },
+    {
+      "sequence": "s2_cubesmall_pass_1",
+      "observed_controls": 600,
+      "stages": {
+        "contract": "v6.approach-contact-lift5cm-hold1s-release.v1",
+        "current": {
+          "approach": false,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "achieved": {
+          "approach": false,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "first_time_s": {
+          "approach": null,
+          "contact": null,
+          "lift": null,
+          "hold": null,
+          "release": null
+        },
+        "longest_hold_s": 0.0,
+        "continuous_hold_s": 0.0
+      },
+      "full_task_success": false,
+      "terminal_reason": "episode_timeout",
+      "right_censored": false,
+      "post_terminal_archive_states_ignored": 0,
+      "reward_evaluated": false
+    },
+    {
+      "sequence": "s2_cup_pass_1",
+      "observed_controls": 600,
+      "stages": {
+        "contract": "v6.approach-contact-lift5cm-hold1s-release.v1",
+        "current": {
+          "approach": false,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "achieved": {
+          "approach": false,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "first_time_s": {
+          "approach": null,
+          "contact": null,
+          "lift": null,
+          "hold": null,
+          "release": null
+        },
+        "longest_hold_s": 0.0,
+        "continuous_hold_s": 0.0
+      },
+      "full_task_success": false,
+      "terminal_reason": "episode_timeout",
+      "right_censored": false,
+      "post_terminal_archive_states_ignored": 0,
+      "reward_evaluated": false
+    },
+    {
+      "sequence": "s7_airplane_lift_Retake",
+      "observed_controls": 342,
+      "stages": {
+        "contract": "v6.approach-contact-lift5cm-hold1s-release.v1",
+        "current": {
+          "approach": false,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "achieved": {
+          "approach": true,
+          "contact": true,
+          "lift": true,
+          "hold": true,
+          "release": false
+        },
+        "first_time_s": {
+          "approach": 1.0,
+          "contact": 1.0333333333333334,
+          "lift": 1.8,
+          "hold": 3.7333333333333334,
+          "release": null
+        },
+        "longest_hold_s": 1.1999999999999997,
+        "continuous_hold_s": 0.0
+      },
+      "full_task_success": false,
+      "terminal_reason": "path_no_confirmed_milestone",
+      "right_censored": false,
+      "post_terminal_archive_states_ignored": 258,
+      "reward_evaluated": false
+    },
+    {
+      "sequence": "s7_cubemedium_pass_1",
+      "observed_controls": 600,
+      "stages": {
+        "contract": "v6.approach-contact-lift5cm-hold1s-release.v1",
+        "current": {
+          "approach": false,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "achieved": {
+          "approach": true,
+          "contact": true,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "first_time_s": {
+          "approach": 4.8,
+          "contact": 4.8,
+          "lift": null,
+          "hold": null,
+          "release": null
+        },
+        "longest_hold_s": 0.0,
+        "continuous_hold_s": 0.0
+      },
+      "full_task_success": false,
+      "terminal_reason": "episode_timeout",
+      "right_censored": false,
+      "post_terminal_archive_states_ignored": 0,
+      "reward_evaluated": false
+    },
+    {
+      "sequence": "s9_cylindermedium_inspect_1",
+      "observed_controls": 589,
+      "stages": {
+        "contract": "v6.approach-contact-lift5cm-hold1s-release.v1",
+        "current": {
+          "approach": false,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "achieved": {
+          "approach": false,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "first_time_s": {
+          "approach": null,
+          "contact": null,
+          "lift": null,
+          "hold": null,
+          "release": null
+        },
+        "longest_hold_s": 0.0,
+        "continuous_hold_s": 0.0
+      },
+      "full_task_success": false,
+      "terminal_reason": "acquire_timeout",
+      "right_censored": false,
+      "post_terminal_archive_states_ignored": 11,
+      "reward_evaluated": false
+    }
+  ],
+  "limitation": "Engineering evidence only. Release stage is detachment after hold, not complete ordered path/placement success. Archive initial states predate the production reset fix; hidden native state and new policy success are not certified."
+}

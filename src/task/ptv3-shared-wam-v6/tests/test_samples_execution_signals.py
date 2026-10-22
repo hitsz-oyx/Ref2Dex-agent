@@ -11,7 +11,7 @@ spec=importlib.util.spec_from_file_location('samples_execution_env',ROOT/'src/ta
 module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
 
 
-def make_env(tmp_path,arm='C'):
+def make_env(tmp_path,arm='C',task_mode='synthetic_hold'):
     path=ROOT/'outputs/ptv3-shared-wam-v6/samples-efficiency-frozen-smoke-20261022-r2/A-seed191-eval0/policy/initial-state.npz'
     with np.load(path) as z:state={k:z[k][:2].copy() for k in z.files}
     state['episodes']=state['episodes'].tolist();state['sequences']=state['sequences'].tolist()
@@ -26,7 +26,7 @@ def make_env(tmp_path,arm='C'):
     forecast=Forecast();forecast.calls=[]
     model=SimpleNamespace(shape=lambda points:torch.zeros(len(points),64))
     env=module.SampleEfficiencyEnv(None,dict(state=state),manifest,SimpleNamespace(device=torch.device('cpu')),model,
-        arm=arm,forecast=forecast,geometry_cache=ROOT/'outputs/ptv3-shared-wam-v6/executor-qualification-20261022-r1/geometry')
+        arm=arm,forecast=forecast,geometry_cache=ROOT/'outputs/ptv3-shared-wam-v6/executor-qualification-20261022-r1/geometry',task_mode=task_mode)
     initial=copy.deepcopy(state)
     def rpc(op,**kwargs):
         state=copy.deepcopy(env.native)
@@ -111,3 +111,29 @@ def test_recoverable_encoder_error_continues_with_masked_state_only_mode(tmp_pat
     for _ in range(4):obs,_,done,info=env.step(torch.zeros(2,12))
     assert not done.any() and not obs[:,421:686].any()
     assert env.encoder_error_count>0 and env.physical_safety_aborts==0
+
+
+def test_stage_and_reward_outputs_belong_to_terminal_episode_before_reset(tmp_path):
+    env,_=make_env(tmp_path)
+    env.reset_probe=True
+    env.step(torch.zeros(2,12))
+    _,reward,done,info=env.step(torch.zeros(2,12))
+    assert done[0]
+    result=info['episode_results'][0]
+    assert result['stages']==info['stages'][0]
+    assert info['reward_parts'][0]['sparse']==-1.
+    assert float(reward[0])==pytest.approx(sum(info['reward_parts'][0].values()))
+    assert result['reward_parts_sum']['sparse']==-1.
+    assert env.stages[0].last_time==0. and info['stages'][0]['contract'].startswith('v6.approach')
+
+
+def test_source_task_mode_preserves_declaration_and_cannot_label_reset_success(tmp_path):
+    env,_=make_env(tmp_path,task_mode='source_declared')
+    for i,name in enumerate(env.native['sequences']):
+        assert env.targets[i].packet()==env.records[name][0].packet()
+    env.reset_probe=True
+    env.step(torch.zeros(2,12))
+    _,_,_,info=env.step(torch.zeros(2,12))
+    result=info['episode_results'][0]
+    assert result['source_full_task_success'] is False
+    assert result['task_contract'].startswith('source-declared-full-task')

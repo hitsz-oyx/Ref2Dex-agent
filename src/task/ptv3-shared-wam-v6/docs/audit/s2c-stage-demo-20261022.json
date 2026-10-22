@@ -1,0 +1,353 @@
+{
+  "status": "PASS",
+  "mode": "synthetic_injections",
+  "stage_contract": "v6.approach-contact-lift5cm-hold1s-release.v1",
+  "reward_contract": "v6.staged-highwater-dense.existing-parts.v1",
+  "python": "/home2/wyy/miniconda3/envs/graspenv/bin/python",
+  "python_version": "3.8.20",
+  "numpy": "1.24.4",
+  "conda_prefix": null,
+  "gpu_allocated": false,
+  "optimizer_updates": 0,
+  "git_commit": "7a00fdca7a35c5ee74924a420e5fc299a89e8036",
+  "implementation_state": "S2c working tree at execution; implementation diff committed with this receipt",
+  "panel": {
+    "episodes": 6,
+    "controls_per_episode": 150,
+    "hz": 30
+  },
+  "maximum_controls": 900,
+  "new_physics_controls": 0,
+  "summary": {
+    "approach": {
+      "successes": 6,
+      "total": 6,
+      "not_observed": 0,
+      "first_passage_s": {
+        "n": 6,
+        "min": 0.0,
+        "p25": 0.0,
+        "median": 0.0,
+        "p75": 0.0,
+        "max": 0.0
+      },
+      "from_previous_stage_s": {
+        "n": 6,
+        "min": 0.0,
+        "p25": 0.0,
+        "median": 0.0,
+        "p75": 0.0,
+        "max": 0.0
+      }
+    },
+    "contact": {
+      "successes": 4,
+      "total": 6,
+      "not_observed": 2,
+      "first_passage_s": {
+        "n": 4,
+        "min": 0.0,
+        "p25": 0.0,
+        "median": 0.0,
+        "p75": 0.008333333333333333,
+        "max": 0.03333333333333333
+      },
+      "from_previous_stage_s": {
+        "n": 4,
+        "min": 0.0,
+        "p25": 0.0,
+        "median": 0.0,
+        "p75": 0.008333333333333333,
+        "max": 0.03333333333333333
+      }
+    },
+    "lift": {
+      "successes": 3,
+      "total": 6,
+      "not_observed": 3,
+      "first_passage_s": {
+        "n": 3,
+        "min": 0.06666666666666667,
+        "p25": 0.06666666666666667,
+        "median": 0.06666666666666667,
+        "p75": 0.06666666666666667,
+        "max": 0.06666666666666667
+      },
+      "from_previous_stage_s": {
+        "n": 3,
+        "min": 0.03333333333333333,
+        "p25": 0.05,
+        "median": 0.06666666666666667,
+        "p75": 0.06666666666666667,
+        "max": 0.06666666666666667
+      }
+    },
+    "hold": {
+      "successes": 2,
+      "total": 6,
+      "not_observed": 4,
+      "first_passage_s": {
+        "n": 2,
+        "min": 1.0666666666666667,
+        "p25": 1.0666666666666667,
+        "median": 1.0666666666666667,
+        "p75": 1.0666666666666667,
+        "max": 1.0666666666666667
+      },
+      "from_previous_stage_s": {
+        "n": 2,
+        "min": 1.0,
+        "p25": 1.0,
+        "median": 1.0,
+        "p75": 1.0,
+        "max": 1.0
+      }
+    },
+    "release": {
+      "successes": 1,
+      "total": 6,
+      "not_observed": 5,
+      "first_passage_s": {
+        "n": 1,
+        "min": 1.4666666666666666,
+        "p25": 1.4666666666666666,
+        "median": 1.4666666666666666,
+        "p75": 1.4666666666666666,
+        "max": 1.4666666666666666
+      },
+      "from_previous_stage_s": {
+        "n": 1,
+        "min": 0.3999999999999999,
+        "p25": 0.3999999999999999,
+        "median": 0.3999999999999999,
+        "p75": 0.3999999999999999,
+        "max": 0.3999999999999999
+      }
+    }
+  },
+  "records": [
+    {
+      "sequence": "positive",
+      "observed_controls": 150,
+      "stages": {
+        "contract": "v6.approach-contact-lift5cm-hold1s-release.v1",
+        "current": {
+          "approach": true,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": true
+        },
+        "achieved": {
+          "approach": true,
+          "contact": true,
+          "lift": true,
+          "hold": true,
+          "release": true
+        },
+        "first_time_s": {
+          "approach": 0.0,
+          "contact": 0.0,
+          "lift": 0.06666666666666667,
+          "hold": 1.0666666666666667,
+          "release": 1.4666666666666666
+        },
+        "longest_hold_s": 1.2333333333333334,
+        "continuous_hold_s": 0.0
+      },
+      "reward_parts_sum": {
+        "shaping": 0.7499999999999996,
+        "event": 0.30000000000000004,
+        "sparse": 0.0,
+        "time": -0.04999999999999995,
+        "effort": 0.0
+      }
+    },
+    {
+      "sequence": "lift_without_contact",
+      "observed_controls": 150,
+      "stages": {
+        "contract": "v6.approach-contact-lift5cm-hold1s-release.v1",
+        "current": {
+          "approach": true,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "achieved": {
+          "approach": true,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "first_time_s": {
+          "approach": 0.0,
+          "contact": null,
+          "lift": null,
+          "hold": null,
+          "release": null
+        },
+        "longest_hold_s": 0.0,
+        "continuous_hold_s": 0.0
+      },
+      "reward_parts_sum": {
+        "shaping": 0.0,
+        "event": 0.0,
+        "sparse": 0.0,
+        "time": -0.04999999999999995,
+        "effort": 0.0
+      }
+    },
+    {
+      "sequence": "contact_without_lift",
+      "observed_controls": 150,
+      "stages": {
+        "contract": "v6.approach-contact-lift5cm-hold1s-release.v1",
+        "current": {
+          "approach": true,
+          "contact": true,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "achieved": {
+          "approach": true,
+          "contact": true,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "first_time_s": {
+          "approach": 0.0,
+          "contact": 0.0,
+          "lift": null,
+          "hold": null,
+          "release": null
+        },
+        "longest_hold_s": 0.0,
+        "continuous_hold_s": 0.0
+      },
+      "reward_parts_sum": {
+        "shaping": 0.0,
+        "event": 0.0,
+        "sparse": 0.0,
+        "time": -0.04999999999999995,
+        "effort": 0.0
+      }
+    },
+    {
+      "sequence": "intermittent_hold",
+      "observed_controls": 150,
+      "stages": {
+        "contract": "v6.approach-contact-lift5cm-hold1s-release.v1",
+        "current": {
+          "approach": true,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "achieved": {
+          "approach": true,
+          "contact": true,
+          "lift": true,
+          "hold": false,
+          "release": false
+        },
+        "first_time_s": {
+          "approach": 0.0,
+          "contact": 0.03333333333333333,
+          "lift": 0.06666666666666667,
+          "hold": null,
+          "release": null
+        },
+        "longest_hold_s": 0.43333333333333357,
+        "continuous_hold_s": 0.0
+      },
+      "reward_parts_sum": {
+        "shaping": 0.5083333333333333,
+        "event": 0.2,
+        "sparse": 0.0,
+        "time": -0.04999999999999995,
+        "effort": 0.0
+      }
+    },
+    {
+      "sequence": "false_release_attached",
+      "observed_controls": 150,
+      "stages": {
+        "contract": "v6.approach-contact-lift5cm-hold1s-release.v1",
+        "current": {
+          "approach": true,
+          "contact": true,
+          "lift": true,
+          "hold": true,
+          "release": false
+        },
+        "achieved": {
+          "approach": true,
+          "contact": true,
+          "lift": true,
+          "hold": true,
+          "release": false
+        },
+        "first_time_s": {
+          "approach": 0.0,
+          "contact": 0.0,
+          "lift": 0.06666666666666667,
+          "hold": 1.0666666666666667,
+          "release": null
+        },
+        "longest_hold_s": 4.933333333333334,
+        "continuous_hold_s": 4.933333333333334
+      },
+      "reward_parts_sum": {
+        "shaping": 0.4999999999999996,
+        "event": 0.2,
+        "sparse": 0.0,
+        "time": -0.04999999999999995,
+        "effort": 0.0
+      }
+    },
+    {
+      "sequence": "invalid_force",
+      "observed_controls": 150,
+      "stages": {
+        "contract": "v6.approach-contact-lift5cm-hold1s-release.v1",
+        "current": {
+          "approach": true,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "achieved": {
+          "approach": true,
+          "contact": false,
+          "lift": false,
+          "hold": false,
+          "release": false
+        },
+        "first_time_s": {
+          "approach": 0.0,
+          "contact": null,
+          "lift": null,
+          "hold": null,
+          "release": null
+        },
+        "longest_hold_s": 0.0,
+        "continuous_hold_s": 0.0
+      },
+      "reward_parts_sum": {
+        "shaping": 0.0,
+        "event": 0.0,
+        "sparse": 0.0,
+        "time": -0.04999999999999995,
+        "effort": 0.0
+      }
+    }
+  ],
+  "limitation": "Engineering evidence only. Release stage is detachment after hold, not complete ordered path/placement success. Archive initial states predate the production reset fix; hidden native state and new policy success are not certified."
+}

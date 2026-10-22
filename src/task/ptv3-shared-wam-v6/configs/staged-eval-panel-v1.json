@@ -1,0 +1,20 @@
+{
+  "schema": "v6.staged-fixed-panel.v1",
+  "seed": 185,
+  "hz": 30,
+  "controls_per_episode": 600,
+  "sequence_order": [
+    "s1_cylindersmall_pass_1",
+    "s2_cubesmall_pass_1",
+    "s2_cup_pass_1",
+    "s7_airplane_lift_Retake",
+    "s7_cubemedium_pass_1",
+    "s9_cylindermedium_inspect_1"
+  ],
+  "initial_state_capture": "outputs/ptv3-shared-wam-v6/source-pd-upper-bound-validation-20261022-r1",
+  "geometry_source": "outputs/wam-rl-policy-v3/teacher-upper-bound-validation-20261022-r1",
+  "declarations": "outputs/wam-rl-policy-v3/inspire-teacher-rollout-audit-20261020-r3",
+  "initial_state_contract": "saved measured native arrays at tick0; hidden solver state not certified",
+  "budget_contract": "6 episodes, no retry, maximum 600 controls each, first task terminal censors later archive states",
+  "purpose": "archived source-PD stage diagnostic; not new physics or a post-reset-fix success rate"
+}

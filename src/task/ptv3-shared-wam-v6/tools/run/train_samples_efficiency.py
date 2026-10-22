@@ -15,6 +15,7 @@ def main():
  p.add_argument('--gpu',type=int,required=True);p.add_argument('--rank',type=int,default=0);p.add_argument('--world-size',type=int,default=1);p.add_argument('--rendezvous')
  p.add_argument('--wam-batch',type=int,default=256);p.add_argument('--shared-tf32',action='store_true');p.add_argument('--updates',type=int,default=512);p.add_argument('--seconds',type=int,default=21600);p.add_argument('--seed',type=int,default=191);p.add_argument('--reset-probe',action='store_true');p.add_argument('--resume',type=Path)
  p.add_argument('--arm',choices=['A','B','C'],required=True);p.add_argument('--checkpoint',type=Path);p.add_argument('--stats',type=Path);p.add_argument('--evaluate-only',action='store_true')
+ p.add_argument('--task-mode',choices=['synthetic_hold','source_declared'],default='synthetic_hold')
  p.add_argument('--migrate-physics-backend',action='store_true',help='Explicit new experiment identity: allow only the physical backend to differ from --resume')
  p.add_argument('--qualification',type=Path,help='Required physical teacher/same-tau qualification for formal RL; not needed for frozen engineering evaluation')
  a=p.parse_args();a.output=a.output.resolve();a.socket=a.socket.resolve()
@@ -29,11 +30,13 @@ def main():
  from wam_rl_policy_v3.measured_policy import MeasuredInspirePolicy
  from samples_efficiency_env import SampleEfficiencyEnv
  from ptv3_shared_wam_v6.online_runtime import OnlineV6Runtime
- from ptv3_shared_wam_v6.execution_contract import TASK_CONTRACT,ENCODER_POLICY,FALLBACK_POLICY
+ from ptv3_shared_wam_v6.execution_contract import TASK_CONTRACT,SOURCE_TASK_CONTRACT,ENCODER_POLICY,FALLBACK_POLICY
+ from ptv3_shared_wam_v6.staged_progress import STAGE_CONTRACT,REWARD_CONTRACT
  from wam_rl_policy_v3.physical_safety import PHYSICAL_SAFETY_POLICY
  from wam_rl_policy_v3.executor_qualification import require_qualification,require_qualified_membership
  from wam_rl_policy_v3.continuous_wrist import RESET_ANGLE_POLICY
- qualification=None if a.evaluate_only else require_qualification(a.qualification,task_contract=TASK_CONTRACT,executor_checkpoint=a.bc,
+ task_contract=TASK_CONTRACT if a.task_mode=='synthetic_hold' else SOURCE_TASK_CONTRACT
+ qualification=None if a.evaluate_only else require_qualification(a.qualification,task_contract=task_contract,executor_checkpoint=a.bc,
   policies=dict(encoder_policy=ENCODER_POLICY,physical_safety_policy=PHYSICAL_SAFETY_POLICY,reset_angle_policy=RESET_ANGLE_POLICY))
  from wam_rl_policy_v3.official_bridge import prepare_official
  from wam_rl_policy_v3.ppo import reduce
@@ -47,7 +50,7 @@ def main():
  listener=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);listener.settimeout(300);listener.bind(str(a.socket));listener.listen(1)
  commit=os.environ.get('REF2DEX_CODE_COMMIT') or subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
  state=dict(status='WAITING_NATIVE',experiment_id='P-20261022-wam-v6-samples-efficiency-3arm',arm=a.arm,run_id=a.output.parent.name,git_commit=commit,python=sys.executable,torch=torch.__version__,gpu=a.gpu,rank=a.rank,world_size=a.world_size,bc=str(a.bc.resolve()),bc_step=packet['step'],source_manifest=str(a.audit_manifest.resolve()),optimizer_steps=0,iteration=0,
-  ppo_engine='pinned UniDexGrasp2 official; actual-KL/global advantage/gradient adapters reused from Shadow',observation_dim=846,work_version='samples-efficiency-signals-v2',task_contract=TASK_CONTRACT,source_full_task_evaluation=False,cad_encoder='frozen BC encoder, part of checkpoint',reset_contract='step in source episode; terminal reward then eager indexed reset before next sampling',reset_probe=a.reset_probe)
+  ppo_engine='pinned UniDexGrasp2 official; actual-KL/global advantage/gradient adapters reused from Shadow',observation_dim=846,work_version='samples-efficiency-staged-v3',task_contract=task_contract,source_full_task_evaluation=a.task_mode=='source_declared',cad_encoder='frozen BC encoder, part of checkpoint',reset_contract='step in source episode; terminal reward then eager indexed reset before next sampling',reset_probe=a.reset_probe)
  write(a.output/'manifest.json',state);print('READY',flush=True);connection=None;env=None;ppo=None;base_environment_steps=0;started=time.monotonic()
  try:
   connection,_=listener.accept();connection.settimeout(600);hello=receive(connection);state['native_peer_pid']=peer_pid(connection)
@@ -58,7 +61,7 @@ def main():
   native=unpack_state(hello['state']);objects=[dict(object_code='dexplore/'+s.split('_')[1],scale=1.) for s in native['sequences']]
   runtime=SimpleNamespace(device=torch.device('cuda:0'))
   forecast=OnlineV6Runtime(a.checkpoint,a.stats,a.geometry_cache.resolve(),device='cuda:0',seed=a.seed,inference_batch=64,forecast_only=True) if a.arm=='C' else None
-  env=SampleEfficiencyEnv(connection,hello,a.audit_manifest.resolve(),runtime,model,reset_probe=a.reset_probe,batch=a.wam_batch,shared_tf32=a.shared_tf32,arm=a.arm,forecast=forecast,geometry_cache=a.geometry_cache.resolve())
+  env=SampleEfficiencyEnv(connection,hello,a.audit_manifest.resolve(),runtime,model,reset_probe=a.reset_probe,batch=a.wam_batch,shared_tf32=a.shared_tf32,arm=a.arm,forecast=forecast,geometry_cache=a.geometry_cache.resolve(),task_mode=a.task_mode)
   official=prepare_official(CODE_ROOT,a.output,masked_resets=False,correct_distribution_kl=True);sys.path.insert(0,str(official))
   spec=importlib.util.spec_from_file_location('measured_official_process',official/'utils/process_sarl.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
   cfg=yaml.safe_load((official/'cfg/ppo/config.yaml').read_text());cfg['seed']=a.seed;cfg['policy'].update(backbone_type='pn',freeze_backbone=False,obs_dim=846)
@@ -76,8 +79,8 @@ def main():
   ppo.optimizer=torch.optim.Adam(ppo.actor_critic.parameters(),lr=cfg['learn']['optim_stepsize'])
   forecast_identity=str(a.checkpoint.resolve()) if a.arm=='C' else 'geometry-proximal-v1' if a.arm=='B' else 'no-tau-v1'
   identity=dict(source=str(a.audit_manifest.resolve()),bc=str(a.bc.resolve()),wam=forecast_identity,geometry=str(a.geometry_cache.resolve()),world_size=a.world_size,envs=env.num_envs,physics_backend=hello['audit'].get('physics_backend','gpu'),wam_batch=a.wam_batch,shared_tf32=a.shared_tf32,
-   arm=a.arm,observation_dim=846,history_contract='causal-H4-relative-world-positions-5cm-quaternion-current-sign.v1',
-   workspace=dict(voxel_origin_m=[-2.,-2.,-2.],voxel_m=.005,max_grid=65535),task_contract=TASK_CONTRACT,encoder_policy=ENCODER_POLICY,fallback_policy=FALLBACK_POLICY,physical_safety_policy=PHYSICAL_SAFETY_POLICY,reset_angle_policy=hello['audit'].get('reset_angle_policy'),inference_batch=64,forecast_only=True,forecast_rng_contract='fork_restore_cpu_and_cuda_policy_rng.v1')
+   arm=a.arm,observation_dim=846,stage_contract=STAGE_CONTRACT,reward_contract=REWARD_CONTRACT,history_contract='causal-H4-relative-world-positions-5cm-quaternion-current-sign.v1',
+   workspace=dict(voxel_origin_m=[-2.,-2.,-2.],voxel_m=.005,max_grid=65535),task_contract=task_contract,encoder_policy=ENCODER_POLICY,fallback_policy=FALLBACK_POLICY,physical_safety_policy=PHYSICAL_SAFETY_POLICY,reset_angle_policy=hello['audit'].get('reset_angle_policy'),inference_batch=64,forecast_only=True,forecast_rng_contract='fork_restore_cpu_and_cuda_policy_rng.v1')
   completed=0;base_environment_steps=0
   if a.resume:
    saved=torch.load(a.resume,map_location='cuda',weights_only=False)
