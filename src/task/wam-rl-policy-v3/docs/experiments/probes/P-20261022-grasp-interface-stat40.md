@@ -155,3 +155,19 @@ CUDA_VISIBLE_DEVICES='' PYTHONDONTWRITEBYTECODE=1 $PY $TOOLS/rescore_large_grasp
 
 期望`PASS matched=n`且`publication_label_mutant_killed=true`；g5/g6同理。
 统计入口额外回归：即使伪造5/5 vs0/5已显著，也必须因n<40阻断发布，不能偷跑停止规则。
+
+
+掌部测量正负控制可独立复现：
+
+```bash
+CUDA_VISIBLE_DEVICES='' PYTHONDONTWRITEBYTECODE=1 $PY $TOOLS/check_stage_palm_source.py --output outputs/wam-rl-policy-v3/grasp-v9-stat40-20261022-r1/palm-source-check.json
+```
+
+期望PASS：原点版approach/contact/lift/hold全false；CAD版全true、最长2s。它只核CPU测量
+合同，不是正式四臂样本、不把source-PD动作回放当A4控制。
+
+Diff定位：`stage_evaluation.py:12`掌部几何、`:43`严格末态；`binary_statistics.py:6` Wilson、
+`:13` Fisher联合门；`run_large_grasp_worker.py:10`每episode新native、`:113`固定jobs、
+`:175`禁止成功即停；`register_large_grasp.py:7`冻结80个配对trial；
+`summarize_large_grasp.py:10`分子集聚合并阻断n未齐；`rescore_large_grasp.py:10`从原状态
+另算终点/阶段/PD；路径均相对本Task的`src/wam_rl_policy_v3`或`tools/run`。
