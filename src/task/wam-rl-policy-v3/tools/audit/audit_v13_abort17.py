@@ -49,7 +49,7 @@ def audit(run):
     if len(records)!=17 or sum(denominator.values())!=40:raise ValueError('expected 17 aborts in 40 original unseen A1')
     byobject={}
     for o,n in sorted(denominator.items()):
-        seq=next(r['sequence'] for r in records if r['object']==o) if any(r['object']==o for r in records) else next(c['sequence'] for c in catalog if c['object']==o)
+        seq=next(r['sequence'] for r in records if r['object']==o) if any(r['object']==o for r in records) else next(j['sequence'] for j in json.loads((run/'registration.json').read_text())['jobs'] if j['subset']=='unseen' and j['object']==o)
         source=Path(next(c['source'] for c in catalog if c['sequence']==seq))
         with np.load(source/'canonical.npz') as z:pp=z['points'].copy()
         ee=np.sort(np.ptp((pp-pp.mean(0))@np.linalg.svd(pp-pp.mean(0),full_matrices=False)[2].T,axis=0))
