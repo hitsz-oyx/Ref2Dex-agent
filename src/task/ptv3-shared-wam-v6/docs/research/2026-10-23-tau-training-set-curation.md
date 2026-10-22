@@ -1,8 +1,8 @@
 # τ curated TRAIN 首批（2026-10-23）
 
-这轮只做 CPU/IO 审计和 manifest 生成，没有转换新序列，也没有启动训练。产物是
-[6,000-window curated manifest](../../../../../outputs/ptv3-shared-wam-v6/tau-curated-20261023-r2/curated-manifest.json)
-和 [固定 TRAIN 锚定样本](../../../../../outputs/ptv3-shared-wam-v6/tau-curated-20261023-r2/train-anchor.json)。
+这轮只做 CPU/IO 审计和 manifest 生成，没有转换新序列，也没有启动训练。最终产物是
+[6,000-window curated manifest](../../../../../outputs/ptv3-shared-wam-v6/tau-curated-20261023-r3/curated-manifest.json)
+和 [固定 TRAIN 锚定样本](../../../../../outputs/ptv3-shared-wam-v6/tau-curated-20261023-r3/train-anchor.json)。
 6,000 个窗口来自已有的 1,177 条本地序列；因此相对于当前本地 cache，**新增序列数为 0**。
 manifest 同时登记了完整配方中待转换的 6,000 条 sequence key，但它们指向未挂载的
 `/mnt/ugreen_nas`，状态是 `NOT_CONVERTED_SOURCE_PAYLOADS_UNAVAILABLE`，不能把这 6,000
@@ -81,5 +81,6 @@ curated TRAIN 恰为 6,000 个 admitted windows，覆盖 1,064 条已有序列�
 | 不变（近重复占多数） | 任意 | 1,177 条已有 cache 已被重复采样主导，先改采样/去重 |
 
 goal 契约（包括 `object_goal_valid` 硬编码以及训练/推理 goal 语义）仍未在本轮修复，
-manifest 状态为 `training_allowed=false`；因此不启动长训。待契约修复并通过合同测试后，
-才能用固定锚定样本、同一评估接口和新的环境 receipt 比较 checkpoint。
+manifest 状态为 `training_allowed=false`；因此不启动长训。待 v6 契约修复并通过合同测试后，
+才能用固定锚定样本、同一评估接口和新的环境 receipt 比较 checkpoint。v2 manifest 已由
+`curated_sampling.py` 兼容读取，但 sampler 只接受这一审计状态，不会把它当作可训练 recipe。
