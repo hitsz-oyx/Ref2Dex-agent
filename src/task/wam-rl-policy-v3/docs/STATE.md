@@ -452,3 +452,8 @@ R14≥17完整失败仍跑满；p000停reference36（source接触42）满600，�
 R15≥17完整失败仍跑满；hand无持握却source frame188越过source抓取52。R16 fresh同40/24k/0updates：源PD腕目标按live物体SE3映射，ACQUIRE参考止于前驱抓取命令（原录制/TaskSpec不删改），live耦合才进原后段；失持首拍即启Guard（原400mm/应≤10mm红已复现）。生产helper3项/3注错，物理32门仍未过；累计上限274430，不比WAM、不RL/不重训。
 
 R17 fresh同40/24k/0updates：source参考按实测object-local腕与table gap匹配及phase受限2帧前瞻，可回退、不按GT帧冒充实际时间；controller入口屏蔽supported/unknown时grasp-established，原评分不变。R16 hand/camera无触力且腕仍偏GT93.7/109mm，说明PD终点不等于抓姿；新3项数值红已复现/注错可抓。预算上限298430，未过32不比WAM、不RL/不重训。
+
+
+### v14 06:30 当前可信状态：修复尚未成功，R17资源排队
+
+完整R14/R15/R16=0/40、5/40、4/40；R16关节中止2/40但成功显著低于原14/40（Wilson3.958–23.052%，Fisher .01448），不把安全中止减少称成功改善。累计273278已确认控制/0训练更新。R17实测腕几何+支撑相位参考已冻结64356b6c，全量331 passed/0 failed、冻结入口6/6，尚0物理控制；GPU456被其他会话占用，supervisor331584按4小时预算排队，不停止其他任务。source32/40门未过，不比WAM/不RL/不重训；逐物体最新死因与可复现diff见source-ceiling-fix-review-20261023.md头部。

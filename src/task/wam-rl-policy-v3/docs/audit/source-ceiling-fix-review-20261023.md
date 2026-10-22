@@ -8,7 +8,79 @@
 | 提升但<32/40 | 修复不够，不能拿WAM解释数据量 | 按余下死因继续修source |
 | 不提升或实际限位仍多 | 当前方案未解决物理瓶颈 | 保留全部失败和gate，继续修；不训练v6 |
 
-当前状态：**原source14/40；R3–R8各0；R11 4/40、R12 2/40、R13 12/40；仍未修好。** R13有19/40关节中止，R14对正常PD命令带宽/跟踪偏移做准入并同步暂停参考，按同40冻结。R10技术中断单列；不比WAM、不RL/不重训。
+当前状态（2026-10-23 06:30 CST）：**没有修好。原source14/40，最新完整R16为4/40，目标32/40尚未达到。** R17代码已冻结于`64356b6cc8e6866057fdc6073ded74156e9f035e`，冻结入口6 passed/0 failed；GPU4/5/6被其他会话训练占用，supervisor 331584仅排队、0子worker/0控制，不停止任何现有进程。不能把排队写成运行成功。
+
+### 完整批次与成本（各版本独立，不合并成功率）
+
+| 批次 | 成功/n | Wilson95% | 控制数 | 关节中止 | 对原14/40 Fisher双侧p |
+|---|---|---|---|---|---|
+|原source|14/40|22.13–50.49%|16745|12|—|
+|R3|0/40|0.00–8.76%|23894|0|3.07753e-05|
+|R4|0/40|0.00–8.76%|24000|0|3.07753e-05|
+|R5|0/40|0.00–8.76%|23648|0|3.07753e-05|
+|R6|0/40|0.00–8.76%|21780|1|3.07753e-05|
+|R7|0/40|0.00–8.76%|22073|0|3.07753e-05|
+|R8|0/40|0.00–8.76%|23387|0|3.07753e-05|
+|R11|4/40|3.96–23.05%|23080|1|0.0144757|
+|R12|2/40|1.38–16.50%|23795|1|0.00146696|
+|R13|12/40|18.07–45.43%|14279|19|0.811647|
+|R14|0/40|0.00–8.76%|24000|0|3.07753e-05|
+|R15|5/40|5.46–26.11%|23408|2|0.0338902|
+|R16|4/40|3.96–23.05%|23440|2|0.0144757|
+
+累计12个完整物理批次480回合、270784控制；另R10技术中断2494个已确认控制（3完整+2 partial，另35未开始），合计**273278个已确认控制**。R10不是0/40；IPC中断是否另有最多2个未确认物理控制未独立排除。R1/R2/R9均0控制预启动取消。R17追加上限24000，累计上限297278（替代预注册的保守298430）。全部0训练更新，未跑WAM比较/三臂RL。
+
+R16：ever/final=5/40、4/40；末态持握7/40；仅目标≤15mm为5/40（不等于完整成功）；目标误差中位90.30mm/p90 369.45mm/max2608.21mm。最长持握分布：0秒×30，另[0.0333,0.5,5.8,7,7.1667,7.5333,7.9667,8.1,12.5333,12.5667]秒。最终canonical clipping=0/23440；source inner proposal投影1358/23440、卸载816/23440、R后备选择/实际预抓消费36/36控制，**零最终裁剪不代表无干预或无关节偏差**。
+
+R16死亡分类：成功4、接触认证未过13、接触后未抬升14、抬升未持续持握2、曾持握后丢失1、持握偏离目标3、真实关节中止2、桌面穿透中止1，共40。接触认证未过不等于真实没有接触；落到桌外的物体高度下降也不能冒称桌面穿透（有限桌面gate原样）。
+
+### R16逐物体（每物体2回合；精确q/dq/PD/几何见summary.json records）
+
+|物体|成功|死因|实际限位：阶段/关节/名义超界rad|末态目标误差mm（两回合）|
+|---|---|---|---|---|
+|bowl|1/2|success:1, held_off_goal:1|—|1.2, 44.7|
+|camera|0/2|contact_without_lift:2|—|82.6, 114.3|
+|cylinderlarge|0/2|held_then_lost:1, held_off_goal:1|—|663.5, 1909.6|
+|eyeglasses|0/2|contact_without_lift:1, lift_without_continuous_hold:1|—|91.9, 207.7|
+|fryingpan|0/2|stage_contact_not_certified:2|—|81.5, 154.0|
+|hand|0/2|contact_without_lift:1, stage_contact_not_certified:1|—|128.2, 139.4|
+|headphones|0/2|contact_without_lift:1, physical_table_penetration:1|—|49.0, 836.1|
+|knife|0/2|stage_contact_not_certified:2|—|6.6, 75.5|
+|lightbulb|0/2|contact_without_lift:1, held_off_goal:1|—|336.8, 78.9|
+|mouse|0/2|contact_without_lift:2|—|79.7, 80.2|
+|phone|0/2|stage_contact_not_certified:2|—|90.2, 85.1|
+|piggybank|0/2|contact_without_lift:1, lift_without_continuous_hold:1|—|130.7, 2608.2|
+|pyramidlarge|0/2|physical_joint_limit:2|close/thumb_intermediate_joint/0.1017; close/thumb_intermediate_joint/0.1015|76.2, 104.8|
+|pyramidmedium|1/2|success:1, contact_without_lift:1|—|91.1, 2.6|
+|pyramidsmall|0/2|stage_contact_not_certified:2|—|77.5, 109.0|
+|scissors|0/2|stage_contact_not_certified:2|—|75.2, 80.1|
+|spherelarge|0/2|contact_without_lift:2|—|118.4, 119.6|
+|spheremedium|1/2|contact_without_lift:1, success:1|—|2.9, 96.2|
+|spheresmall|1/2|stage_contact_not_certified:1, success:1|—|90.4, 1.1|
+|stamp|0/2|contact_without_lift:1, stage_contact_not_certified:1|—|76.2, 103.5|
+
+### 当前可复核diff/命令/预期
+
+- `src/wam_rl_policy_v3/source_ceiling.py:166`目标内余量/`:178`实际压力与目标margin分离；`:428`生产SourcePDGuard，`:451`指令带宽/PD柔顺，`:468`实测力卸载及失持首拍保护。`grasp_geometry.py:195`可选实测压力钩子，仅两行，不改原评分/后段。预期目标合法、12N触力会卸载、正常指令限速；**实际R16关节2/40但成功仅4/40，物理目标未达**。
+- `tools/run/run_source_ceiling_worker.py:25`live object映射、`:39`实测位姿/支撑相位选择、`:61`controller-only支撑防误切换、`:67`只限制ACQUIRE参考不裁原录制；实际调用`:283`–`:326`。预期50mm对象平移→50mm目标映射、源lift姿态不能越过实测支撑阶段、桌面推物不能触发controller lift；评分仍用原始feedback。R17物理最终成功期望≥32/40，**尚未测得**。
+- diff：`git show 64356b6c -- src/task/wam-rl-policy-v3`；完整本轮修改用`git diff 9d005b4e 64356b6c -- src/task/wam-rl-policy-v3/src/wam_rl_policy_v3/source_ceiling.py src/task/wam-rl-policy-v3/tools/run/run_source_ceiling_worker.py`。
+
+```bash
+export TMPDIR="$PWD/tmp"
+PY=/home2/wyy/miniconda3/envs/graspenv/bin/python
+$PY -m pytest -q src/task/wam-rl-policy-v3/tests --basetemp=tmp/pytest-source-review-fresh
+$PY src/task/wam-rl-policy-v3/tools/audit/run_source_ceiling_mutants.py
+# 新目录方可prepare；需要原v11 frozen-source/raw/reference、校准旧权重/native环境，缺一不可。
+$PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-review-fresh --prepare --predecessor outputs/wam-rl-policy-v3/source-ceiling-20261023-r16
+$PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-review-fresh --detached
+# 本次已排队，不重复启动；查看状态：
+cat outputs/wam-rl-policy-v3/source-ceiling-20261023-r17/supervisor.json
+```
+
+本次全量实际331 passed/0 failed、2 warnings、22.40秒（R17/tests-all.log）；Guard9项/legacy35项，mutants生产12/legacy32分别覆盖，合计44/44 killed，不把legacy当生产证明。reference6项包含6种故意错误，R17冻结worker实际入口6/6通过（frozen-reference-preflight.json）。后续并行代码变动后不保证全仓仍恰好331项；必须按实际全量报数。
+
+**无法自证/待裁决**：R17尚无物理结果；控制器屏蔽supported时的lift切换是否又形成起动死锁必须看真实trace；手指力只覆盖五个采样link，未证明全手接触无过载；候选余量不是全URDF扫掠/力闭合保证；35/40源录制有持握见证也不是live同协议上界。Hermes/GPT未独立复跑，不能称三方通过。所有20对象已用于开发，不再称泛化holdout。
+
 ## 修复、可证伪预测与复现
 
 R3历史定位（以提交99875f23核对；均以`src/task/wam-rl-policy-v3/`为前缀）：

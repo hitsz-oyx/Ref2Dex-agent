@@ -248,3 +248,10 @@ PY=/home2/wyy/miniconda3/envs/graspenv/bin/python
 $PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r17 --prepare --predecessor outputs/wam-rl-policy-v3/source-ceiling-20261023-r16
 $PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r17 --detached
 ```
+
+
+## 06:30完整结果与资源中断点
+
+R14/R15/R16完整分别0/40、5/40、4/40，控制24000/23408/23440；各自关节中止0/2/2。R16 Wilson[3.958%,23.052%]、相对原14/40 Fisher双侧p=.0144757444，明确退步；32/40未达。全部逐物体/q/dq/PD/阶段/几何见各run summary.json，报告头部汇总，未删除失败。累计已确认273278控制（含R10 partial）；R17新≤24000，总≤297278。
+
+R17冻结提交64356b6c，全量331 passed/0 failed；冻结reference入口6 passed/0 failed。supervisor pid331584处于QUEUED，0 worker/0控制；GPU4/5/6分别被外部会话训练占用约22.6/23.0/19.4GiB。只等空闲，不杀进程、不转用7或0–3；4小时队列预算，超时明确FAILED并保留现场。自动完成后按原40评分/raw重算/初态比对出summary.json，未达32仍不比WAM。
