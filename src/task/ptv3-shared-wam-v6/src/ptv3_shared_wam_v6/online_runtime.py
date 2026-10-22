@@ -11,6 +11,7 @@ from ptv3_shared_wam_v5.data import history, transform
 from ptv3_shared_wam_v5.contracts import SPARSE11_IN_21
 from .executor_bridge import full21_to_sparse11
 from .events import apply_event_input_policy, validate_event_input_policy
+from .goal_policy import apply_goal_input_policy, validate_goal_input_policy, UNKNOWN_GOAL_POLICY
 
 
 # This is the v6 package-local, deployment-safe equivalent of
@@ -133,7 +134,7 @@ class EncodingUnavailable(ValueError):
     """A state/forecast cannot be encoded; mask tau without judging physics."""
 
 def online(geo, poses, joints, dense, joint_valid, dense_valid, parts, goal,
-           event=None, *, goal_semantics=GOAL_SEMANTICS, event_input_policy=None):
+           event=None, *, goal_semantics=GOAL_SEMANTICS, event_input_policy=None, goal_input_policy=None):
     """Only H4 observed/generated geometry and instruction inputs; no future labels."""
     anchor = np.linalg.inv(poses[-1]); local = joints@anchor[:3,:3].T+anchor[:3,3]
     skin = dense@anchor[:3,:3].T+anchor[:3,3]
@@ -142,6 +143,9 @@ def online(geo, poses, joints, dense, joint_valid, dense_valid, parts, goal,
     features[:,:3]=geo['normals'];features[:,3:12]=history(cloud);features[:,12]=1
     features[:,13]=np.linalg.norm(features[:,9:12],axis=-1)<.002
     flow = np.asarray(geo['query'], dtype=np.float64)
+    validate_goal_input_policy(goal_input_policy)
+    if goal_input_policy == UNKNOWN_GOAL_POLICY:
+        goal = None
     goal_delta, goal_valid = _goal_from_pose(
         flow, anchor, goal, goal_semantics=goal_semantics)
     goal_delta, goal_valid = goal_delta[0], goal_valid[0]
@@ -162,7 +166,7 @@ def online(geo, poses, joints, dense, joint_valid, dense_valid, parts, goal,
     validate_event_input_policy(event_input_policy)
     if event and event_input_policy is None:
         sample.update({k:np.asarray(v,dtype=sample[k].dtype) for k,v in event.items()})
-    return apply_event_input_policy(sample,event_input_policy)
+    return apply_goal_input_policy(apply_event_input_policy(sample,event_input_policy),goal_input_policy)
 
 
 class OnlineV6Runtime:
@@ -172,6 +176,7 @@ class OnlineV6Runtime:
         if not 1<=self.inference_batch<=96:raise ValueError("bounded inference batch required")
         packet=torch.load(checkpoint,map_location="cpu",weights_only=False)
         self.config=packet["config"]; self.step=packet["step"]
+        validate_goal_input_policy(self.config.get('goal_input_policy'))
         voxel_config(self.config)
         self.model=SharedWAMV6(json.loads(Path(stats).read_text()),self.config).to(device).eval().requires_grad_(False)
         self.model.load_state_dict(packet["model"],strict=True)
@@ -188,6 +193,7 @@ class OnlineV6Runtime:
             torch.cuda.synchronize(self.device)
 
     def _trajectory(self, batch):
+        batch=apply_goal_input_policy(batch,self.config.get('goal_input_policy'))
         batch=apply_event_input_policy(batch,self.config.get('event_input_policy'))
         if not self.forecast_only:return self.model(batch)["trajectory"]
         # Exact hand path of forward(), omitting the unused independent C head.
@@ -253,7 +259,8 @@ class OnlineV6Runtime:
             valid=np.zeros((2,21),bool);valid[0,ids]=True
             sample=online(geo,poses,joints,np.zeros((4,2,778,3),np.float32),valid,
                 np.zeros((2,778),bool),np.zeros((2,778),np.int64),goals[i],events[i],
-                goal_semantics=goal_semantics,event_input_policy=self.config.get('event_input_policy'))
+                goal_semantics=goal_semantics,event_input_policy=self.config.get('event_input_policy'),
+                goal_input_policy=self.config.get('goal_input_policy'))
             xyz=np.r_[sample["xyz"],sample["start_hand"][valid]]
             grid=np.floor((xyz-origin)/size)
             if not np.isfinite(grid).all() or grid.min()<0 or grid.max()>65535:

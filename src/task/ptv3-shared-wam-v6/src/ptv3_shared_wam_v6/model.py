@@ -126,6 +126,8 @@ class SharedWAMV6(nn.Module):
 
     def encode(self, batch):
         from .events import apply_event_input_policy
+        from .goal_policy import apply_goal_input_policy
+        batch=apply_goal_input_policy(batch,self.config.get('goal_input_policy'))
         batch=apply_event_input_policy(batch,self.config.get('event_input_policy'))
         hand, hand_valid = self.encode_hand(batch)
         geometry_inputs = {key: batch[key] for key in

@@ -106,10 +106,11 @@ def main():
     p.add_argument('--resume',type=Path);p.add_argument('--initialize-from',type=Path)
     p.add_argument('--initialize-geometry-from',type=Path)
     p.add_argument('--initialize-flow-from',type=Path)
+    p.add_argument('--initialize-condition-from',type=Path)
     p.add_argument('--preserve-all-checkpoints',action='store_true')
     p.add_argument('--checkpoint-budget-gib',type=int,default=32)
     p.add_argument('--git-commit',required=True);a=p.parse_args()
-    if sum(bool(x) for x in (a.resume,a.initialize_from,a.initialize_geometry_from,a.initialize_flow_from))>1:
+    if sum(bool(x) for x in (a.resume,a.initialize_from,a.initialize_geometry_from,a.initialize_flow_from,a.initialize_condition_from))>1:
         raise ValueError('choose one resume/initialization source')
     config=read_json(a.config);stats=read_json(a.stats)
     if not 8<=a.checkpoint_budget_gib<=32:raise ValueError('checkpoint preservation budget must be8..32GiB')
@@ -123,7 +124,7 @@ def main():
     if config.get('event_dropout')!=recipe['event_dropout']:
         raise ValueError('config/dropout differs from admitted v6 recipe')
     reader_options=dict(geometry_gt_object=config.get('geometry_object_source')=='gt_dense2048',
-                        event_input_policy=config.get('event_input_policy'))
+                        event_input_policy=config.get('event_input_policy'),goal_input_policy=config.get('goal_input_policy'))
     curated_manifest=config.get('curated_manifest')
     if curated_manifest:
         reader_options['curated_manifest']=curated_manifest
@@ -146,7 +147,7 @@ def main():
     if last<1 or batch_size<1:raise ValueError('positive bounded steps/batch required')
     world=int(os.environ.get('WORLD_SIZE','1'));rank=int(os.environ.get('RANK','0'));local=int(os.environ.get('LOCAL_RANK','0'))
     validate_local_execution(config,recipe,world,last,batch_size)
-    if recipe.get('local_subset_scope') in LOCAL_SCOPES and not (a.resume or a.initialize_from or a.initialize_geometry_from or a.initialize_flow_from):
+    if recipe.get('local_subset_scope') in LOCAL_SCOPES and not (a.resume or a.initialize_from or a.initialize_geometry_from or a.initialize_flow_from or a.initialize_condition_from):
         raise ValueError('local subset requires admitted initialization or its own strict resume')
     if recipe.get('local_subset_scope') == EXPANDED_SCOPE and world==1 and not a.capacity_probe_updates:
         raise ValueError('expanded production training requires three GPUs; world1 only for capacity')
@@ -186,6 +187,29 @@ def main():
         initialization_binding=initialize_flow_weights(model,saved,a.initialize_flow_from,config,identity)
         if a.capacity_probe_updates is not None:last=min(last,a.capacity_probe_updates)
         del saved
+    if a.initialize_condition_from:
+        from ptv3_shared_wam_v6.goal_policy import UNKNOWN_GOAL_POLICY
+        from ptv3_shared_wam_v6.events import UNKNOWN_EVENT_POLICY
+        policy_path=Path(config['condition_recipe'])
+        policy=read_json(policy_path)
+        if (config.get('goal_input_policy')!=UNKNOWN_GOAL_POLICY or config.get('event_input_policy')!=UNKNOWN_EVENT_POLICY
+                or policy.get('training_allowed') is not True or policy.get('policy')!=UNKNOWN_GOAL_POLICY
+                or str(a.initialize_condition_from)!=policy['initialization']['checkpoint']
+                or config.get('condition_recipe_sha256')!=hashlib.sha256(policy_path.read_bytes()).hexdigest()):
+            raise ValueError('explicit frozen no-goal/no-event admission required')
+        saved=torch.load(a.initialize_condition_from,map_location='cpu',weights_only=False)
+        if saved.get('schema')!=SCHEMA or saved.get('step')!=11000 or saved.get('data_identity')!=identity:
+            raise ValueError('same-parent step11000 weights-only initialization required')
+        for key,value in model.normalizer.state_dict().items():
+            if not torch.equal(value.cpu(),saved['model']['normalizer.'+key].cpu()):
+                raise ValueError('condition recipe cannot change normalization')
+        if any(not torch.isfinite(v).all() for v in saved['model'].values() if v.is_floating_point()):
+            raise ValueError('nonfinite initialization')
+        model.load_state_dict(saved['model'],strict=True)
+        initialization_binding=dict(kind='weights-only-no-goal-no-event',checkpoint=str(a.initialize_condition_from.resolve()),
+            source_step=saved['step'],optimizer_restored=False,training_step_reset=True,
+            condition_recipe_sha256=config['condition_recipe_sha256'])
+        del saved
     if a.resume:
         saved=torch.load(a.resume,map_location='cpu',weights_only=False)
         if saved.get('schema')!=SCHEMA:raise ValueError('independent v6 checkpoint required')
@@ -222,7 +246,8 @@ def main():
         multiprocessing.current_process()._config['tempdir']=str(ipc)
     kwargs.update(loader_options(a.workers,a.loader_timeout,a.loader_context))
     loader=DataLoader(**kwargs)
-    dev=V6Windows(a.manifest,'dev',**reader_options) if rank==0 and not (a.smoke or a.capacity_probe_updates) else None
+    dev_options={k:v for k,v in reader_options.items() if k!='curated_manifest'}
+    dev=V6Windows(a.manifest,'dev',**dev_options) if rank==0 and not (a.smoke or a.capacity_probe_updates) else None
     if rank==0:
         write(a.output/'config.json',config)
         write(a.output/'run-manifest.json',dict(schema=SCHEMA,work_version=SCHEMA,git_commit=a.git_commit,
@@ -272,6 +297,8 @@ def main():
         last_saved=step
         if world>1:dist.barrier()
     if device.startswith('cuda'):torch.cuda.reset_peak_memory_stats()
+    if first==1 and config.get('save_initial_weights'):
+        save(0)
     if first==1 and config.get('validation_before_training') and not (a.smoke or a.capacity_probe_updates):
         if world>1:dist.barrier()
         if rank==0:
@@ -281,7 +308,7 @@ def main():
     wrapped.train()
     iterator=iter(loader);loader_failure=None
     for step in range(first,last+1):
-        stop=(a.output/'STOP').exists() or previous_elapsed+time.monotonic()-start>config['max_seconds'] or shutil.disk_usage(a.output).free<20*2**30
+        stop=(a.output/'STOP').exists() or previous_elapsed+time.monotonic()-start>config['max_seconds'] or shutil.disk_usage(a.output).free<20*2**30 or time.time()>=config.get('hard_stop_epoch',float('inf'))
         flag=torch.tensor(int(stop),device=device)
         if world>1:dist.all_reduce(flag,op=dist.ReduceOp.MAX)
         if flag.item():break
@@ -295,6 +322,13 @@ def main():
             break
         seen.update(map(int,batch['source_id'].tolist()));draws.update(map(int,batch['source_id'].tolist()))
         batch={k:v.to(device,non_blocking=True) for k,v in batch.items()}
+        if config.get('goal_input_policy'):
+            from ptv3_shared_wam_v6.goal_policy import assert_unknown_inputs
+            assert_unknown_inputs(batch)
+            if step==first:
+                keys=('goal_object_delta','goal_object_points','object_goal_valid','event_type','event_delta_steps','event_valid',
+                      'trajectory_valid','start_hand_valid','scene_valid','object_valid','interaction_valid','sample_id','source_id')
+                np.savez(a.output/f'model-input-rank{rank}.npz',**{k:batch[k].detach().cpu().numpy() for k in keys})
         optimizer.zero_grad(set_to_none=True)
         multiplier=min(1.,step/max(1,config.get('warmup_updates',0))) if not a.smoke else 1.
         optimizer.param_groups[0]['lr']=config['geometry_lr']*multiplier

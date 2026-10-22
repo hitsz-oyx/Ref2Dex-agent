@@ -1,0 +1,161 @@
+{
+  "schema": "ref2dex.tau-no-goal-no-event-policy.v1",
+  "policy_status": "FROZEN",
+  "execution_status": "REQUIRES_THREE_CHECKS_AND_PREFLIGHT_PASS",
+  "training_allowed": true,
+  "policy": "v6.no-goal.no-event.unknown-invalid.frame30.v1",
+  "experiment_id": "P-20261023-tau-no-goal-no-event",
+  "run_id": "tau-no-goal-no-event-20261023-r1",
+  "curated_manifest": "outputs/ptv3-shared-wam-v6/tau-curated-20261023-r7/curated-manifest.json",
+  "windows": 6000,
+  "window_tuple_schema": [
+    "source_id",
+    "sample_id=[sequence_id,slot,tick]",
+    "window_start_frame=tick"
+  ],
+  "window_order": "unchanged selection.train_window_rows order",
+  "event_inputs": {
+    "canonical_constructor": "ptv3_shared_wam_v6.events.event_packet('NONE', 0.0, False)",
+    "event_type": {
+      "dtype": "int64",
+      "value": 0
+    },
+    "event_delta_steps": {
+      "dtype": "float32",
+      "value": 0.0
+    },
+    "event_valid": {
+      "dtype": "bool",
+      "value": false
+    },
+    "event_hz": {
+      "dtype": "int64",
+      "value": 30
+    },
+    "known_NONE": false,
+    "recovery": "not a separate model tensor; scheduler control unchanged",
+    "release": "no valid RELEASE input; scheduler control unchanged",
+    "stochastic_event_dropout": false,
+    "model_mask_path": "events.event_features -> EventGoalResidual.forward",
+    "enforcement_required": "training and deployment, at every model invocation including forecast_only"
+  },
+  "goal_semantics": "invalid/unknown",
+  "goal_missing_policy": "owner brief37: honest deletion of goal conditioning; zero delta and points, object_goal_valid=False; no inferred plan",
+  "supervision": {
+    "hand_trajectory": "unchanged",
+    "object_trajectory": "unchanged",
+    "contact_geometry_loss": "unchanged",
+    "contact_prediction_targets": "unchanged"
+  },
+  "architecture": "unchanged-v6-shared-wam",
+  "executor_interface": "unchanged",
+  "sampler": "unchanged CuratedTauSampler from tau_curated_data_only_v1.json; production wiring required",
+  "initialization": {
+    "checkpoint": "outputs/ptv3-shared-wam-v6/flowmatching-overnight-20261022-r2/training/step011000.pt",
+    "mode": "weights-only",
+    "restore_optimizer": false
+  },
+  "budget_ceiling": {
+    "optimizer_updates": 6000,
+    "max_seconds": 4800,
+    "global_batch": 288,
+    "world_size": 3,
+    "local_batch": 96,
+    "precision": "strict-fp32",
+    "validation_interval": 500,
+    "validation_initial_step": 20,
+    "validation_probe_step": 128,
+    "checkpoint_interval": 1000,
+    "save_first_step": true,
+    "preserve_all_checkpoints": true,
+    "artifact_alarm_bytes": 34359738368,
+    "disk_warning_free_bytes": 32212254720,
+    "disk_stop_free_bytes": 21474836480,
+    "hard_stop_beijing": "2026-10-23T07:15:00+08:00"
+  },
+  "budget_status": "owner brief37 authorized one run, <=6000 updates and 07:15 hard stop",
+  "resource_policy": {
+    "no_preemption": true,
+    "owner_authorized_project_pool": [
+      4,
+      5,
+      6,
+      7
+    ],
+    "authorized_training_pool": [
+      4,
+      5,
+      6
+    ],
+    "protected_gpus": [
+      0,
+      1,
+      2,
+      3,
+      7
+    ],
+    "protected_pids": [
+      2730517,
+      2730518,
+      2730519,
+      2730520
+    ],
+    "spare_policy": "Require spare only when surplus exists inside the owner-authorized pool; do not count GPUs 0-3 belonging to zyc. GPU 7 is occupied by the higher-priority executor line.",
+    "spare_exemption": {
+      "authorization": "owner brief34, 2026-10-23",
+      "reason": "Fixed project pool 4/5/6/7; GPU 7 protected for executor; released GPUs 4/5/6 exclusively authorized for world_size=3 tau training.",
+      "default_spares": 2,
+      "required_spares_this_allocation": 0,
+      "no_other_gate_waived": true
+    },
+    "queue_if_unavailable": true,
+    "gpu_long_jobs_other_than_training": 0
+  },
+  "comparability": "no-goal / no-event; historical B1 reference only; not a causal event ablation; all comparison cells use A inputs",
+  "stop_on": [
+    "OOM",
+    "nonfinite_loss_or_gradient",
+    "disk_stop",
+    "input_identity_drift"
+  ],
+  "automatic_restart": false,
+  "legacy_config_status_modified": false,
+  "goal_inputs": {
+    "goal_object_delta": {
+      "dtype": "float32",
+      "shape": [
+        32,
+        3
+      ],
+      "value": 0.0
+    },
+    "goal_object_points": {
+      "dtype": "float32",
+      "shape": [
+        32,
+        3
+      ],
+      "value": 0.0
+    },
+    "object_goal_valid": {
+      "dtype": "bool",
+      "shape": [
+        32
+      ],
+      "value": false
+    },
+    "constructor": "ptv3_shared_wam_v6.goal_policy.apply_goal_input_policy",
+    "scheduler_task_intent": "unchanged; only WAM conditioning removed",
+    "provenance_prior": {
+      "certified_legal": 0,
+      "proven_future": 0,
+      "unproven": 6000
+    }
+  },
+  "artifact_alarm_action": "warn at32GiB; no silent restart",
+  "data_identity": {
+    "manifest_sha256": "5bda6a99678b0586b496eff7b4b3ba3afddda996cdc16c43603341ed1264225f",
+    "ordered_window_tuple_sha256": "d18ec57ee2de589152131eb2dfab4ac7581ab29275d08756c973dce2c000c3d7",
+    "windows": 6000
+  }
+}

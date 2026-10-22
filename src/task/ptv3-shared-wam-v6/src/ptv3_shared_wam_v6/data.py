@@ -9,11 +9,13 @@ from ptv3_shared_wam_v5.cache_contract import metadata_identity
 from ptv3_shared_wam_v5.storage import read_json, load_array
 from ptv3_shared_wam_v5.event_labels import EVENT_LABEL_SCHEMA
 from .events import apply_event_input_policy, validate_event_input_policy
+from .goal_policy import apply_goal_input_policy, validate_goal_input_policy, UNKNOWN_GOAL_POLICY
 
 
 class V6Windows(V5Windows):
     def __init__(self, manifest, split, cache_size=8, geometry_gt_object=False,
-                 event_input_policy=None, curated_manifest=None):
+                 event_input_policy=None, curated_manifest=None, goal_input_policy=None):
+        self.goal_input_policy=validate_goal_input_policy(goal_input_policy)
         self.event_input_policy=validate_event_input_policy(event_input_policy)
         self.geometry_gt_object = bool(geometry_gt_object)
         self.recipe_path = Path(manifest).resolve()
@@ -45,12 +47,13 @@ class V6Windows(V5Windows):
     def __getstate__(self):
         return dict(manifest=str(self.recipe_path), split=self.split, cache_size=self.cache_size,
                     geometry_gt_object=self.geometry_gt_object,event_input_policy=self.event_input_policy,
+                    goal_input_policy=self.goal_input_policy,
                     curated_manifest=str(self.curated_manifest) if self.curated_manifest else None)
 
     def __setstate__(self, state): self.__init__(**state)
 
     def __getitem__(self, index):
-        if self.curated_manifest is not None:
+        if self.curated_manifest is not None and self.goal_input_policy != UNKNOWN_GOAL_POLICY:
             # There is no certified scheduler cache bound to this reader yet.
             # Index/sampler preflight is available without consuming an update;
             # never expose the inherited future endpoint as a waypoint input.
@@ -58,6 +61,7 @@ class V6Windows(V5Windows):
                              'refusing realized-endpoint fallback before training')
         index, drop = index if isinstance(index, tuple) else (int(index), False)
         sample = super().__getitem__(index)
+        sample = apply_goal_input_policy(sample, self.goal_input_policy)
         seq_id, slot, tick = map(int, self.index[int(index)])
         if self.geometry_gt_object:
             from .geometry_gt_object import dense_object_future_gt
