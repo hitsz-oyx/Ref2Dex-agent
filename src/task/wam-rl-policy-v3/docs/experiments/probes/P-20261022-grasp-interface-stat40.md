@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259]
 decision_changed_if_positive: retain WAM reference contribution on the fixed panel and continue executor qualification before RL
 decision_changed_if_negative: do not claim tau contribution or stable engineering qualification; retain RL HOLD
-status: PLANNED
+status: RUNNING
 run_id: grasp-v9-stat40-20261022-r1
 ---
 
@@ -141,4 +141,17 @@ Torch2.0.1+cu118。采样、mesh、参考、顺序与代码快照均保存在run
 
 ## 结果
 
-尚未启动正式评估；以下待完整40/臂/子集后填，不能引用旧n5替代。
+正式评估已从`07d4db08`启动，GPU4/5/6各约4.9GiB，model/native同卡驻留。
+首批9/9完整轨迹独立重算一致，发布标签反转mutant被拒绝；不把中途结果当正式判定。
+236 passed/0 failed/0 skipped（18.58s）预检通过。实际3worker身份g4/g5/g6与registration均保留。
+完整40/臂/子集后补数字，旧n5不入新分母。
+
+
+原始状态重算（CPU，无WAM推理）：
+
+```bash
+CUDA_VISIBLE_DEVICES='' PYTHONDONTWRITEBYTECODE=1 $PY $TOOLS/rescore_large_grasp.py --worker outputs/wam-rl-policy-v3/grasp-v9-stat40-20261022-r1/g4 --verify-mutant --output outputs/wam-rl-policy-v3/grasp-v9-stat40-20261022-r1/g4-rescore.json
+```
+
+期望`PASS matched=n`且`publication_label_mutant_killed=true`；g5/g6同理。
+统计入口额外回归：即使伪造5/5 vs0/5已显著，也必须因n<40阻断发布，不能偷跑停止规则。

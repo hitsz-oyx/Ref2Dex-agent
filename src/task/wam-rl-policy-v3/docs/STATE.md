@@ -1,3 +1,15 @@
+# 2026-10-22 v9：四臂seen40/unseen40，三卡正式运行中
+
+[预注册、diff和复现](experiments/probes/P-20261022-grasp-interface-stat40.md)：每臂每子集40，
+共320episode/192000controls上限，GPU4/5/6三worker并行，每episode重建native以隔离旧solver。
+固定20s、S2c末态hold≥1s且目标≤15mm为主，不成功即停；HOLD任务release另报不适用。
+纠正stage palm测量用腕原点的角色错误：改为实测SE3下真实URDF掌部碰撞mesh间距，S2c阈值
+不变；同S2b源S2c四阶段0→全通过、最长2s。并未改v6或控制器/安全gate。
+seen一族40seed、unseen8新接口物体各5seed；不冒充40物体或WAM预训练未见。主Fisher+Wilson
+不重叠联合门按子集分别判定，n未齐禁止发布；A4失败不归因WAM。P1 RL HOLD，不重训v6。
+原始状态重算首批9/9一致、发布标签mutant拒绝；正式最终统计等待全量，旧n5不并入。
+产物`outputs/wam-rl-policy-v3/grasp-v9-stat40-20261022-r1/`。预检236 passed/0 failed/0 skipped。
+
 # 2026-10-22 v8：消融完成；5/5未稳定复现，资格退回HOLD
 
 [完整diff/预注册/复现/全量结果](grasp-interface-v8-controls-20261022.md)。同一冻结v7消费器，

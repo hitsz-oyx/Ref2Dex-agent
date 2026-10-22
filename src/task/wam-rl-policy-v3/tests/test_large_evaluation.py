@@ -74,3 +74,22 @@ def test_registration_has_40_per_arm_per_subset_and_no_validation_seeds(tmp_path
         assert len(trials)==40
         assert all(sorted(j['order'])==reg['arms'] for j in trials)
         assert all(sum(j['order'][position]==arm for j in trials)==10 for position in range(4) for arm in reg['arms'])
+
+
+def test_incomplete_n5_never_publishes_even_a_significant_contribution(tmp_path):
+    import importlib.util,json
+    script=Path(__file__).resolve().parents[1]/'tools/run/summarize_large_grasp.py'
+    spec=importlib.util.spec_from_file_location('large_summary_under_test',script);module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    reg=dict(protocol='test',subsets=['seen','unseen'],arms=['A1','A2','A3','A4'],horizon_controls=600,primary='test endpoint')
+    rows=[]
+    for subset in reg['subsets']:
+        for arm in reg['arms']:
+            for i in range(5):
+                passed=arm=='A1';stage=dict.fromkeys(['approach','contact','lift','hold','release'],passed)
+                rows.append(dict(id=subset+arm+str(i),trial=subset+str(i),subset=subset,arm=arm,sequence=subset,final_success=passed,ever_success=passed,final_hold=passed,goal_within15mm=passed,
+                                 final_goal_error_m=0.01 if passed else .1,controls=600,physical_abort=None,stage_achieved=stage,stage_final=stage,longest_hold_s=1. if passed else 0.,adapter_clipped_controls=0,final_clipped_controls=0))
+    manifest=tmp_path/'manifest.json';manifest.write_text(json.dumps(dict(protocol='test',runs=rows,status='RUNNING',environment_controls=24000)))
+    result=module.summarize(reg,[manifest]);assert result['status']=='INCOMPLETE' and not result['robust_tau_contribution']
+    for subset in reg['subsets']:
+        comparison=result['comparisons'][subset]['A1_vs_A2']
+        assert comparison['fisher_two_sided_p']<.05 and not comparison['claim_eligible'] and not comparison['registered_a_superior']
