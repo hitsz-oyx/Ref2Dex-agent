@@ -25,13 +25,6 @@ pools:
         - [400, 499]
 
 allocations:
-  P-20261023-bc-ppo-usefulness:
-    seed_pool: probe
-    native_seeds: [294, 295, 296, 297, 298, 299]
-    model_seed: 293
-    initialization_seed: 196
-    reuse_reason: fixed six exposed initials, paired BC/PPO controls and deterministic evaluation; no independent-seed or validation claim
-
   P-20261022-grasp-coverage40:
     seed_pool: probe
     native_seeds: {ranges: [[100, 139]]}

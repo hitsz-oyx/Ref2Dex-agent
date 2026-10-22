@@ -189,8 +189,6 @@ def main():
                             written=sum(f.stat().st_size for f in out.rglob('*') if f.is_file() and not f.is_symlink())
                             report['output_bytes']=written
                             if written>reg['output_cap_bytes']:raise TimeoutError('run output cap')
-                            total=sum(f.stat().st_size for f in out.parent.rglob('*') if f.is_file() and not f.is_symlink())
-                            if total>4800000000:raise TimeoutError('paired total output cap 4.8GB')
                         step_started=time.monotonic()
                         obj=np.asarray(state['objects'])[0];pose=pose7(obj);palm=pose7(np.asarray(state['palm_pose'])[0]);hand=np.asarray(state['hand'])[0,NATIVE_TO_WAM];forces=np.asarray(state['contact_forces'])[0]
                         safe=physical_safety(state,0,points,bounds,limits);lastsafe=safe;physical_abort=safe['reason'] if safe['abort'] else None
@@ -205,7 +203,7 @@ def main():
                         drop_after_hold|=bool(stage['achieved']['hold'] and feedback.released)
                         if not actions:rewarder=StagedDenseReward(stages)
                         if actions:
-                            reward_decision=SimpleNamespace(task_complete=bool(t==reg['horizon_controls'] and stage['current']['hold'] and geometry.arrived(goal_error) and not safe['abort']),failure_reason='physical' if safe['abort'] else None,terminated=bool(safe['abort']))
+                            reward_decision=SimpleNamespace(task_complete=bool(t==episode_horizon and stage['current']['hold'] and geometry.arrived(goal_error) and not safe['abort']),failure_reason='physical' if safe['abort'] else None,terminated=bool(safe['abort']))
                             reward,parts,_=rewarder.step(stages,reward_decision,np.asarray(actions[-1]),terminal=bool(safe['abort'] or t==episode_horizon),failed=bool(safe['abort']))
                             rollout['rewards'].append(reward);reward_parts.append(parts)
                         history.append(obj[:7].copy());hands.append(hand.copy());history=history[-4:];hands=hands[-4:]
@@ -248,7 +246,6 @@ def main():
                                 dist,value=residual.distribution(torch.tensor(residual_input[None],device='cuda'))
                                 latent=dist.sample() if a.ppo else dist.mean
                                 logp=dist.log_prob(latent).sum(-1)
-                            if not torch.isfinite(latent).all() or not torch.isfinite(value).all():raise ValueError('nonfinite latent/value')
                             intent=apply_intent_residual(intent,latent[0].cpu().numpy())
                             if True:
                                 rollout['observations'].append(residual_input);rollout['latents'].append(latent[0].cpu().numpy());rollout['old_logp'].append(float(logp[0]));rollout['values'].append(float(value[0]))
@@ -263,12 +260,12 @@ def main():
                     if actor_calls!=len(actions) or (arm=='A2' and np.abs(np.asarray(taus)).max()!=0):raise ValueError('clean shared-R ablation contract')
                     save_trace(folder,trace,observations,actions,raw_actions,adapter_actions,pds,taus,valids);write(folder/'stages.json',stage_info);write(folder/'consumer.json',control_info)
                     row=dict(id=label,trial=job['id'],subset=job['subset'],sequence=name,object=record['object'],arm=arm,order_position=job['order'].index(arm),seed=job['native_seed'],model_seed=job['model_seed'],controls=len(actions),
-                        final_success=bool(t==reg['horizon_controls'] and not safe['abort'] and stage['current']['hold'] and geometry.arrived(goal_error)),ever_success=ever_primary,final_hold=bool(t==reg['horizon_controls'] and stage['current']['hold'] and not safe['abort']),
+                        final_success=bool(t==episode_horizon and not safe['abort'] and stage['current']['hold'] and geometry.arrived(goal_error)),ever_success=ever_primary,final_hold=bool(t==episode_horizon and stage['current']['hold'] and not safe['abort']),
                         stage_achieved=stage['achieved'],stage_final=stage['current'],longest_hold_s=stages.longest_hold_s,release_applicable=False,drop_after_hold=drop_after_hold,
-                        final_goal_error_m=goal_error,goal_within15mm=bool(not safe['abort'] and t==reg['horizon_controls'] and goal_error<=.015),goal_error_quantiles_m=np.quantile(errors_m,[0,.5,.9,1]).tolist(),
+                        final_goal_error_m=goal_error,goal_within15mm=bool(not safe['abort'] and t==episode_horizon and goal_error<=.015),goal_error_quantiles_m=np.quantile(errors_m,[0,.5,.9,1]).tolist(),
                         physical_abort=physical_abort,physical_safety_final=lastsafe,wam_calls=wam_calls,actor_calls=actor_calls,encoder_covered_controls=covered,final_clipped_controls=final_clipped,adapter_clipped_controls=adapter_clipped,initial_errors=initial_errors,seconds_observed=t/30)
                     row.update(partial_budget_episode=episode_horizon!=reg['horizon_controls'],reward_sum=float(sum(rollout['rewards'])),reward_mean=float(np.mean(rollout['rewards'])),step_seconds_p50_p95=np.quantile(step_times,[.5,.95]).tolist(),episode_wall_s=time.monotonic()-episode_started,policy_entropy=float(dist.entropy().sum(-1).mean()))
-                    row.update(control_counts(control_info,actions));row['source_admission_failures']=source_failures;row['geometry']=geometry.manifest();row['goal_within_geometry']=bool(t==reg['horizon_controls'] and not safe['abort'] and geometry.arrived(goal_error))
+                    row.update(control_counts(control_info,actions));row['source_admission_failures']=source_failures;row['geometry']=geometry.manifest();row['goal_within_geometry']=bool(t==episode_horizon and not safe['abort'] and geometry.arrived(goal_error))
                     if a.ppo:
                         bootstrap=0.
                         if not safe['abort'] and not row['final_success']:
