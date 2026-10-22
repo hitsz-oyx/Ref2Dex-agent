@@ -155,6 +155,7 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261022-drift-intent-residual](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261022-drift-intent-residual.md) | 漂移恢复 BC 与有界意图残差 PPO | BC400 updates, train MSE.422871→.0910735 but DEV.386376→.460369; no recovery-generalization evidence. Deterministic before/after both0/2; st | BC overfit and no physical efficacy demonstrated; stop this fixed pilot without expanding training, keep three-arm RL HOLD and DAgger deferr | probes/COMPLETED |
+| [P-20261023-bc-ppo-usefulness](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261023-bc-ppo-usefulness.md) | BC-only vs BC+残差PPO：实测探针 | 预算缩小至14,400 controls/arm；确定性BC/PPO均0/6，数值门通过；机制诊断见配套报告 | 不把0/6解读为PPO无效；先裁决信号/优势配比与是否补足预算 | probes/COMPLETED |
 
 ## HF-egodex-shared-track-admission
 
