@@ -1,5 +1,10 @@
 ---
 schema: ref2dex.probe.v2
+probe_id: P-20261018-absolute-plan-executor
+claim_id: C3
+hypothesis_family: HF-trajectory-policy-executor-transition
+probe_index_in_family: 7
+seed_pool: probe
 experiment_id: P-20261018-absolute-plan-executor
 task: trajectory-policy
 branch: main
@@ -17,6 +22,18 @@ rollin_source: outputs/trajectory-policy/direct-tau-dagger-rollin-20261018-r2/tr
 base_checkpoint: outputs/trajectory-policy/direct-tau-bc-r3-20261018-r2/best.pt
 runtime: /home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train, Torch 2.0.1+cu118, GPU 0
 ---
+
+## 2026-10-22 有效性边界（本注记优先于下方历史外推）
+
+- **结论处置：降级。** UNCLEAR 仅保留为离线/收集诊断；降级历史物理资格及失败机制的外推，撤销把混合 roll-in 当自主成功的引用。
+- **能支持：** 绝对参考锚点/控制空间损失下的离线误差、query 分布和 normalized Huber 筛选未过；teacher warm-up 改变了收集分布。
+- **不能支持：** 不能支持自主抓持成功、v6/τ 无效或绝对锚点无用。本卡没有最终自主物理评估；120 控制 teacher warm-up 加 beta=.25 的 8/8 hold 含实际约 46.11% 教师干预。原生单位误差没有独立预注册物理门槛，不能把离线筛选叫物理资格。
+
+本卡不得再被引用为“v6/τ 无效”的证据。历史数值、状态、门槛和运行产物原样保留；
+此处处置限定其当前可引用范围，不重写旧实验。501 轨迹评分、UNKNOWN 准入、voxel 与日志
+修复的影响按实际执行链归属，不能无证据套用到本卡所有旧运行，也不能倒灌成修后结果。
+共同事实、逐卡处置和复现入口见[历史卡片卫生报告](../../../../../../docs/audit/historical-card-hygiene-20261022.md)。
+
 
 ## Motivation and decision note
 

@@ -1,5 +1,10 @@
 ---
 schema: ref2dex.probe.v2
+probe_id: P-20261018-direct-tau-dagger
+claim_id: C3
+hypothesis_family: HF-trajectory-policy-executor-transition
+probe_index_in_family: 5
+seed_pool: probe
 experiment_id: P-20261018-direct-tau-dagger
 task: trajectory-policy
 branch: main
@@ -18,6 +23,18 @@ base_checkpoint: outputs/trajectory-policy/direct-tau-bc-r3-20261018-r2/best.pt
 gate: direct arm requires hold45 >= 6/8, success >= 6/8 and clipping < 1%; teacher is calibration only.
 runtime: /home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train, Torch 2.0.1+cu118, GPU 0 with pre-existing context only.
 ---
+
+## 2026-10-22 有效性边界（本注记优先于下方历史外推）
+
+- **结论处置：加注。** 加注保留该一轮固定配方未恢复抓持的局部结论；不外推到未来轨迹重规划、其他执行器或 v6。
+- **能支持：** 一轮 learner-state 当前动作/PD 查询可复算，离线 action L1 改善；无教师干预的本序列 learner hold45 为 0/8，teacher hold45 为 8/8、placement 为 7/8，满足本波旧校准。
+- **不能支持：** 不能支持 v6/τ 无效或 DAgger 普遍无效。查询是当前状态动作/PD 标签，没有生成离轨状态的新未来 τ；同 motion 环境拆分不能认证任务泛化，producer r1 保存失败不计方法结果。
+
+本卡不得再被引用为“v6/τ 无效”的证据。历史数值、状态、门槛和运行产物原样保留；
+此处处置限定其当前可引用范围，不重写旧实验。501 轨迹评分、UNKNOWN 准入、voxel 与日志
+修复的影响按实际执行链归属，不能无证据套用到本卡所有旧运行，也不能倒灌成修后结果。
+共同事实、逐卡处置和复现入口见[历史卡片卫生报告](../../../../../../docs/audit/historical-card-hygiene-20261022.md)。
+
 
 ## Motivation and decision note
 

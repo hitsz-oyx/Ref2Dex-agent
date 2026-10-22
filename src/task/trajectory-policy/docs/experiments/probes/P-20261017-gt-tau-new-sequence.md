@@ -1,5 +1,13 @@
 ---
 schema: ref2dex.probe.v2
+probe_id: P-20261017-gt-tau-new-sequence
+claim_id: C3
+hypothesis_family: HF-trajectory-policy-executor-transition
+probe_index_in_family: 2
+seed_pool: probe
+date: 2026-10-17
+decision_changed_if_positive: A pass permits moving to a learned executor on this sequence.
+decision_changed_if_negative: A fail blocks that route and triggers implementation/data review before PPO.
 experiment_id: P-20261017-gt-tau-new-sequence
 task: trajectory-policy
 branch: main
@@ -21,6 +29,18 @@ run_id: gt-tau-new-sequence-20261017-r4
 target_decision: UNPROMISING
 runner_status: UNCLEAR because the legacy full-task calibration rule also requires source-PD placement >=6/8; source-PD placement was 5/8 while its hold gate was 8/8.
 ---
+
+## 2026-10-22 有效性边界（本注记优先于下方历史外推）
+
+- **结论处置：降级。** 保留固定 R 的 hold 资格失败；完整 placement 结论降级，r1/r2 撤出方法比较。
+- **能支持：** 仅坐标修正后的 r4：teacher/source-PD hold45 各 8/8，固定 GT-τ→R 为 0/8，说明该冻结 R 在这一序列未通过 hold 资格。
+- **不能支持：** 不能支持 learned executor、v6/τ 或 PPO 无效；source-PD placement 5/8 未过完整校准。r1 runner 长度/reset 与 r2 partial_filtered 错坐标不能算方法结果，特权 GT 也未检验 learned WAM 预测。
+
+本卡不得再被引用为“v6/τ 无效”的证据。历史数值、状态、门槛和运行产物原样保留；
+此处处置限定其当前可引用范围，不重写旧实验。501 轨迹评分、UNKNOWN 准入、voxel 与日志
+修复的影响按实际执行链归属，不能无证据套用到本卡所有旧运行，也不能倒灌成修后结果。
+共同事实、逐卡处置和复现入口见[历史卡片卫生报告](../../../../../../docs/audit/historical-card-hygiene-20261022.md)。
+
 
 ## Decision note
 

@@ -17,6 +17,18 @@ status: STOPPED
 run_id: inspire-measured-official-20261020-r3
 ---
 
+## 2026-10-22 有效性边界（本注记优先于下方历史外推）
+
+- **结论处置：降级；撤销 v6/τ 方法否决。** 总体零成功降级为旧混合协议下的描述性计数；撤销其对 v6/τ 的负面外推及所有任务均有成功机会的假设。保留原数值，不事后宣称修复后的 PPO 仍为零。
+- **能支持：** 仅能支持冻结 v4 桥的这次训练累计结束 53,347 回合、旧完整任务计数为 0，以及当时的终止/接线观测。三个同步 rank 是同一模型，回合数不是独立评估样本数。
+- **不能支持：** 不能支持 v6 PPO 失败、τ 无效、抓取/抬升率为零或策略已收敛。旧 64/501 UNKNOWN 在旧准入下结构性没有成功分支；同 501 条真实轨迹完整评分经任务语义修复为 0→77/501，安全 prefix 为 0→9/501，说明旧全零含评分假象；这不是该 PPO 的重评分或新策略成功率。voxel 表示边界曾充当每 tick 终止条件，iteration1570 为 27,792/53,174=52.27%，最终为 27,869/53,347=52.24%，不能解释成机械安全越界或按比例推算浪费步数。4,032 条曲线缺 reward/return/phase，不能从 loss 重建回报、阶段或收敛，也不能说 PPO 没收到 reward。
+
+本卡不得再被引用为“v6/τ 无效”的证据。历史数值、状态、门槛和运行产物原样保留；
+此处处置限定其当前可引用范围，不重写旧实验。501 轨迹评分、UNKNOWN 准入、voxel 与日志
+修复的影响按实际执行链归属，不能无证据套用到本卡所有旧运行，也不能倒灌成修后结果。
+共同事实、逐卡处置和复现入口见[历史卡片卫生报告](../../../../../../docs/audit/historical-card-hygiene-20261022.md)。
+
+
 2026-10-22 12:4x repair scope: old prefix construction changed473/501 terminal modes; restored complete
 declarations retain all501 tasks (490RELEASE/11HOLD), while true UNKNOWN is still refused. Fixing RELEASE
 timing changes same-archive full scoring0→77/501 (safe prefix0→9); old53,347 completed PPO episodes

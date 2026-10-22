@@ -1,5 +1,10 @@
 ---
 schema: ref2dex.probe.v2
+probe_id: P-20261017-direct-tau-executor
+claim_id: C3
+hypothesis_family: HF-trajectory-policy-executor-transition
+probe_index_in_family: 3
+seed_pool: probe
 experiment_id: P-20261017-direct-tau-executor
 task: trajectory-policy
 branch: main
@@ -20,6 +25,18 @@ input_contract: measured state87 + future hand tau8 in the live object frame + t
 gate: direct arm requires hold45 >= 6/8, success >= 6/8 and clipping < 1%; teacher is calibration only.
 runtime: /home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train, Torch 2.0.1+cu118, GPU 0 with pre-existing 0.4 GiB context.
 ---
+
+## 2026-10-22 有效性边界（本注记优先于下方历史外推）
+
+- **结论处置：撤销方法否决；降级为故障观测。** 撤销由这个受污染合同产生的 τ/C 方法否决；0/8 降级为旧实现局部故障，保留原始轨迹与数字。
+- **能支持：** 旧固定实现的 learner 0/8 hold45 与 teacher 8/8、同序列诊断及离线拟合数值，仍可作为历史实现/分布故障观测。
+- **不能支持：** 不能支持独立参考 τ、v6 或交互信息 C 无效：旧实现混用 reference future 与 live-current 手，mean-pool 丢失时间顺序，训练是单 motion 多环境复制；10D oracle-C 不代表一般 C。本波 teacher placement 4/8 或 5/8 也未过完整校准。
+
+本卡不得再被引用为“v6/τ 无效”的证据。历史数值、状态、门槛和运行产物原样保留；
+此处处置限定其当前可引用范围，不重写旧实验。501 轨迹评分、UNKNOWN 准入、voxel 与日志
+修复的影响按实际执行链归属，不能无证据套用到本卡所有旧运行，也不能倒灌成修后结果。
+共同事实、逐卡处置和复现入口见[历史卡片卫生报告](../../../../../../docs/audit/historical-card-hygiene-20261022.md)。
+
 
 ## Motivation and decision note
 

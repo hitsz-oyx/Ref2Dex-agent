@@ -1,5 +1,10 @@
 ---
 schema: ref2dex.probe.v2
+probe_id: P-20261018-direct-tau-executor-r3
+claim_id: C3
+hypothesis_family: HF-trajectory-policy-executor-transition
+probe_index_in_family: 4
+seed_pool: probe
 experiment_id: P-20261018-direct-tau-executor-r3
 task: trajectory-policy
 branch: main
@@ -20,6 +25,18 @@ input_contract: live measured state87 + reference-frame future hand tau8 + previ
 gate: direct arm requires hold45 >= 6/8, success >= 6/8 and clipping < 1%; teacher is calibration only.
 runtime: /home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train, Torch 2.0.1+cu118, GPU 0 with pre-existing 0.4 GiB context.
 ---
+
+## 2026-10-22 有效性边界（本注记优先于下方历史外推）
+
+- **结论处置：降级。** 保留固定执行器的局部 hold 负现象；完整任务和一般方法否决降级，不据此关闭 τ 路线。
+- **能支持：** 修正 reference-frame τ 和时间顺序后的固定 BC，在单条 unseen s1 上 learner hold45 为 0/8、teacher 为 8/8；40 序列 BC 的离线误差和已验接口一致性仍有效。
+- **不能支持：** 不能支持 v6/τ 无效、缺 C 是唯一原因或完整 placement 正控制已通过；本波 teacher placement 5/8 未达 runner 的 6/8 校准条件。八个同 seed 环境不是多 seed 验证，接线 PASS 不认证状态/动作覆盖。
+
+本卡不得再被引用为“v6/τ 无效”的证据。历史数值、状态、门槛和运行产物原样保留；
+此处处置限定其当前可引用范围，不重写旧实验。501 轨迹评分、UNKNOWN 准入、voxel 与日志
+修复的影响按实际执行链归属，不能无证据套用到本卡所有旧运行，也不能倒灌成修后结果。
+共同事实、逐卡处置和复现入口见[历史卡片卫生报告](../../../../../../docs/audit/historical-card-hygiene-20261022.md)。
+
 
 ## Motivation and decision note
 

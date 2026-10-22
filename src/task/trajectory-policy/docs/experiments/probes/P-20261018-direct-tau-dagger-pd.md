@@ -1,5 +1,10 @@
 ---
 schema: ref2dex.probe.v2
+probe_id: P-20261018-direct-tau-dagger-pd
+claim_id: C3
+hypothesis_family: HF-trajectory-policy-executor-transition
+probe_index_in_family: 6
+seed_pool: probe
 experiment_id: P-20261018-direct-tau-dagger-pd
 task: trajectory-policy
 branch: main
@@ -16,6 +21,18 @@ query_source: outputs/trajectory-policy/direct-tau-dagger-rollin-20261018-r2/dag
 rollin_source: outputs/trajectory-policy/direct-tau-dagger-rollin-20261018-r2/trajectory.npz
 base_checkpoint: outputs/trajectory-policy/direct-tau-bc-r3-20261018-r2/best.pt
 ---
+
+## 2026-10-22 有效性边界（本注记优先于下方历史外推）
+
+- **结论处置：降级。** 保留离线改善与本执行器 hold 失败；完整任务负证据降级，未恢复抓持不等于 τ 方法否决。
+- **能支持：** 复用 query 下 PD loss 降低离线 PD 误差，无干预 learner hold45 仍为 0/8；99.30% catastrophic query 的分布诊断有效。
+- **不能支持：** 不能支持 v6/τ 无效或 PD 监督无用；teacher placement 4/8 未达到完整任务校准，终点误差 0.0402 m 不能替代抓持成功。修 loss 与修恢复分布是不同问题。
+
+本卡不得再被引用为“v6/τ 无效”的证据。历史数值、状态、门槛和运行产物原样保留；
+此处处置限定其当前可引用范围，不重写旧实验。501 轨迹评分、UNKNOWN 准入、voxel 与日志
+修复的影响按实际执行链归属，不能无证据套用到本卡所有旧运行，也不能倒灌成修后结果。
+共同事实、逐卡处置和复现入口见[历史卡片卫生报告](../../../../../../docs/audit/historical-card-hygiene-20261022.md)。
+
 
 ## Motivation and decision note
 

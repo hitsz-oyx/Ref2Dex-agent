@@ -17,6 +17,18 @@ status: UNPROMISING
 run_id: goal-conditioned-finger-residual-20261011-r2
 ---
 
+## 2026-10-22 有效性边界（本注记优先于下方历史外推）
+
+- **结论处置：加注。** 加注保留该分解局部门槛失败及部分持握，排除 r1 工程中断与方法层面外推。
+- **能支持：** 有效 r2 hold45 7/16、long-held 0/16、clipping 13.5148%，说明该 finger-only 分解未恢复组合门槛。
+- **不能支持：** 不能支持完全没有持握、v6/τ 无效或所有 wrist/finger 分解无效。r1 resource guard 中断无轨迹不能作负例；仍是单 motion/seed 和特权 nominal。
+
+本卡不得再被引用为“v6/τ 无效”的证据。历史数值、状态、门槛和运行产物原样保留；
+此处处置限定其当前可引用范围，不重写旧实验。501 轨迹评分、UNKNOWN 准入、voxel 与日志
+修复的影响按实际执行链归属，不能无证据套用到本卡所有旧运行，也不能倒灌成修后结果。
+共同事实、逐卡处置和复现入口见[历史卡片卫生报告](../../../../../../docs/audit/historical-card-hygiene-20261022.md)。
+
+
 # Analytic-wrist, finger-only residual student
 
 ## Motivation and decision note

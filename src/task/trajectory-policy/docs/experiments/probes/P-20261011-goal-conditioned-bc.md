@@ -17,6 +17,18 @@ status: PROMISING
 run_id: goal-conditioned-bc-20261011-r3
 ---
 
+## 2026-10-22 有效性边界（本注记优先于下方历史外推）
+
+- **结论处置：加注。** 保留离线 PROMISING 并加注其范围；闭环结论只由独立执行卡限定。
+- **能支持：** 单 motion、环境留出下动作蒸馏 L1 0.00672288 通过离线门槛；动作标签来自自有 tracker，工程 packet 仅提供特权几何 goal。
+- **不能支持：** 不能支持闭环抓持、独立序列泛化或 v6/τ 有效或无效；13,008/4,336 行不是独立任务，低 L1 不认证低层执行资格。不能把 goal-only packet 的 training_allowed=false 误传成所有动作 label 非法。
+
+本卡不得再被引用为“v6/τ 无效”的证据。历史数值、状态、门槛和运行产物原样保留；
+此处处置限定其当前可引用范围，不重写旧实验。501 轨迹评分、UNKNOWN 准入、voxel 与日志
+修复的影响按实际执行链归属，不能无证据套用到本卡所有旧运行，也不能倒灌成修后结果。
+共同事实、逐卡处置和复现入口见[历史卡片卫生报告](../../../../../../docs/audit/historical-card-hygiene-20261022.md)。
+
+
 # Stage 1 goal-conditioned low-level BC
 
 ## Motivation and decision note

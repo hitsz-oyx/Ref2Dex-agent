@@ -17,6 +17,18 @@ status: UNPROMISING
 run_id: goal-conditioned-residual-integration-20261011-r4
 ---
 
+## 2026-10-22 有效性边界（本注记优先于下方历史外推）
+
+- **结论处置：加注。** 保留本配方 UNPROMISING 组合 gate 并加注已有持握；撤销把标签简写成零抓持或路线否决的引用。
+- **能支持：** 有效 r4 long-held 10/16、hold45 15/16、clipping 6.6075% 是真实混合结果；组合门槛未过，placement 另列。
+- **不能支持：** 不能支持完全不会抓持、v6/τ 或残差控制无效。nominal q/velocity 来自特权 geometry cache，非可部署无 future-q planner；r1–r3 setup 失败不算物理负例。
+
+本卡不得再被引用为“v6/τ 无效”的证据。历史数值、状态、门槛和运行产物原样保留；
+此处处置限定其当前可引用范围，不重写旧实验。501 轨迹评分、UNKNOWN 准入、voxel 与日志
+修复的影响按实际执行链归属，不能无证据套用到本卡所有旧运行，也不能倒灌成修后结果。
+共同事实、逐卡处置和复现入口见[历史卡片卫生报告](../../../../../../docs/audit/historical-card-hygiene-20261022.md)。
+
+
 # Goal-conditioned residual policy through the shared executor
 
 ## Motivation and decision note

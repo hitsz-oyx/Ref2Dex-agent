@@ -17,6 +17,18 @@ status: UNPROMISING
 run_id: goal-conditioned-execution-20261011-r1
 ---
 
+## 2026-10-22 有效性边界（本注记优先于下方历史外推）
+
+- **结论处置：降级。** 保留该学生单 motion/seed 的局部负现象；一般方法否决和唯一机制归因降级。
+- **能支持：** 有效 16×542 完整执行中 hold45/long-held 均 0/16，有限命令和所验接线可复算；long-held 是 433 帧且终点 held 的专用门槛。
+- **不能支持：** 不能支持 v6/τ 或 goal-policy 一般无效；tracker 校准来自另一波，非本 wave 同初态对照。audit PASS 只覆盖所验接线，不能认证 covariate shift/hidden state 为唯一失败原因。
+
+本卡不得再被引用为“v6/τ 无效”的证据。历史数值、状态、门槛和运行产物原样保留；
+此处处置限定其当前可引用范围，不重写旧实验。501 轨迹评分、UNKNOWN 准入、voxel 与日志
+修复的影响按实际执行链归属，不能无证据套用到本卡所有旧运行，也不能倒灌成修后结果。
+共同事实、逐卡处置和复现入口见[历史卡片卫生报告](../../../../../../docs/audit/historical-card-hygiene-20261022.md)。
+
+
 # Stage 1 physical execution gate
 
 ## Motivation and decision note

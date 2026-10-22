@@ -17,6 +17,18 @@ status: UNPROMISING
 run_id: goal-conditioned-ppo-execution-20261011-r1
 ---
 
+## 2026-10-22 有效性边界（本注记优先于下方历史外推）
+
+- **结论处置：降级。** 保留该 final actor 的局部物理失败；方法与 v6 解码瓶颈的推断降级，r1 仅留工程记录。
+- **能支持：** 可审计 r2 的 16×542 无干预执行 hold45/long-held 均 0/16，接线检查覆盖项通过；r1 角色标记有误，不能替代 r2 身份。
+- **不能支持：** 不能支持 v6/τ 或 PPO 普遍无效，也不能把本波接线 PASS 当完整物理资格或唯一机制诊断；单 motion/seed 与固定预算限制外推。
+
+本卡不得再被引用为“v6/τ 无效”的证据。历史数值、状态、门槛和运行产物原样保留；
+此处处置限定其当前可引用范围，不重写旧实验。501 轨迹评分、UNKNOWN 准入、voxel 与日志
+修复的影响按实际执行链归属，不能无证据套用到本卡所有旧运行，也不能倒灌成修后结果。
+共同事实、逐卡处置和复现入口见[历史卡片卫生报告](../../../../../../docs/audit/historical-card-hygiene-20261022.md)。
+
+
 # Frozen evaluation of the Stage 1 PPO actor
 
 ## Motivation and decision note

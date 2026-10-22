@@ -17,6 +17,18 @@ status: UNPROMISING
 run_id: coordination-{none,geometry,wam}-20261016-r1
 ---
 
+## 2026-10-22 有效性边界（本注记优先于下方历史外推）
+
+- **结论处置：加注。** 加注保留当前接法不追加预算的局部决策；不把该 gate 未过用于关闭 WAM、τ 或 v6 路线。
+- **能支持：** 同初态 DEV 的 BC/none/geometry/WAM 保持代理 28/26/23/25，当前 bonus 配方未过 +5 且不退 BC 的 gate；弱 WAM 特异 bonus 诊断仍有效。
+- **不能支持：** 不能支持 v6/τ 或 WAM 一般无效、BC-free 成功或纯 reward 因果结论。实际为 Shadow 旧 v3-step80000 WAM 副本加冻结 BC；保持是 goal-position/lift 代理，非实测接触/force 资格。单 seed，参考/观测/bonus 同变。
+
+本卡不得再被引用为“v6/τ 无效”的证据。历史数值、状态、门槛和运行产物原样保留；
+此处处置限定其当前可引用范围，不重写旧实验。501 轨迹评分、UNKNOWN 准入、voxel 与日志
+修复的影响按实际执行链归属，不能无证据套用到本卡所有旧运行，也不能倒灌成修后结果。
+共同事实、逐卡处置和复现入口见[历史卡片卫生报告](../../../../../../docs/audit/historical-card-hygiene-20261022.md)。
+
+
 # 保留抓取起点，检验WAM相对协调奖励
 
 Result: 固定DEV同初态保持BC/none/geometry/WAM=28/26/23/25，未过门槛；当前抬起后协调奖励接法UNPROMISING，不否定WAM主假设。

@@ -17,6 +17,18 @@ status: UNPROMISING
 run_id: wam-ref2-execution-rppo-20261014-r7
 ---
 
+## 2026-10-22 有效性边界（本注记优先于下方历史外推）
+
+- **结论处置：撤销旧受污染归因；保留修后局部结果。** 撤销 r2–r5 的清洁方法负证据资格，保留故障史；r7 仅加注保留固定配方起抓未过门槛。
+- **能支持：** 修后 r7（a2f85d4b）20 更新、frame0 四环境 held0 是局部短预算结果；phase62 已持握 reset 主导训练 held，工程 bootstrap/reset 审计只支持所验合同。
+- **不能支持：** 不能支持 v6/τ 或残差 PPO 无效；r2–r5 受 bootstrap、reset H4/previous、lift 基准和 optimizer/KL 回退问题污染，r6 更新前失败。r5→r7 也改变 reset 来源，不能当单变量因果改善，训练已有 held 不等于自主起抓。
+
+本卡不得再被引用为“v6/τ 无效”的证据。历史数值、状态、门槛和运行产物原样保留；
+此处处置限定其当前可引用范围，不重写旧实验。501 轨迹评分、UNKNOWN 准入、voxel 与日志
+修复的影响按实际执行链归属，不能无证据套用到本卡所有旧运行，也不能倒灌成修后结果。
+共同事实、逐卡处置和复现入口见[历史卡片卫生报告](../../../../../../docs/audit/historical-card-hygiene-20261022.md)。
+
+
 # Residual PPO on the frozen context pair
 
 Freeze the context actor and the old chunk R that reached a 0.91 mm gap and
