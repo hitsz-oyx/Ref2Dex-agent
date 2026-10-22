@@ -346,13 +346,48 @@ def sequence_batch_summary(args: argparse.Namespace, local_manifest: Mapping[str
         values = sorted(by_source[sid], key=lambda r: (str(r.get("source_sequence", r.get("key"))), str(r.get("key"))))
         selected.extend(values[:quotas.get(sid, 0)])
     selected = sorted(selected, key=lambda r: str(r.get("key")))
-    return {"status": "NOT_CONVERTED_SOURCE_PAYLOADS_UNAVAILABLE", "plan": str(plan_path),
+    # The compact plan preserves the original NAS paths, but the payloads for
+    # this local workspace are mirrored under the repository outputs tree (for
+    # sources 0--2) or recorded in source_row.source_path (for the packed
+    # sources).  Report availability separately from conversion: a readable
+    # raw payload is not yet an admitted sequence or effective coverage.
+    repo_root = Path(__file__).resolve().parents[5]
+    def payload_path(job: Mapping[str, object]) -> Optional[Path]:
+        sid = int(job.get("source_id", -1))
+        if sid < 3:
+            raw = str(job.get("sequence_folder", ""))
+            if "/outputs/" in raw:
+                return repo_root / "outputs" / raw.split("/outputs/", 1)[1]
+            return Path(raw)
+        source_row = job.get("source_row", {})
+        if isinstance(source_row, Mapping) and source_row.get("source_path"):
+            return Path(str(source_row["source_path"]))
+        return Path(str(job.get("payload", "")))
+    available = [row for row in selected if (payload_path(row) or Path(".")).exists()]
+    missing = [row for row in selected if row not in available]
+    inventory = None
+    inventory_path = getattr(args, "inventory", None)
+    if inventory_path is not None and Path(inventory_path).exists():
+        audit = read_json(Path(inventory_path))
+        by_key = {str(row.get("key")): row for row in audit.get("rows", [])}
+        values = [int(by_key[str(row["key"])]["estimated_bytes"])
+                  for row in selected if str(row["key"]) in by_key]
+        inventory = {"path": str(Path(inventory_path).resolve()), "status": audit.get("status"),
+                     "checked_sequences": int(audit.get("checked_sequences", 0)),
+                     "selected_sequences_with_estimates": len(values),
+                     "estimated_bytes": int(sum(values)),
+                     "estimated_gib": float(sum(values) / GIB)}
+    return {"status": "READY_FOR_BATCH_CONVERSION" if not missing else "PARTIAL_PAYLOADS_AVAILABLE", "plan": str(plan_path),
             "pending_sequences_in_plan": len(pending), "requested_sequences": int(args.sequence_target),
             "selected_sequences": len(selected),
             "source_counts": {str(k): int(v) for k, v in sorted(collections.Counter(int(r["source_id"]) for r in selected).items())},
             "selected_keys": [str(row["key"]) for row in selected],
+            "payloads_available": len(available), "payloads_missing": len(missing),
+            "missing_keys": [str(row["key"]) for row in missing],
+            "inventory": inventory,
             "coverage": "UNKNOWN_UNTIL_CONVERSION; do not call sequence count effective coverage",
-            "reason": "the plan points at /mnt/ugreen_nas payloads, unavailable in this local CPU pass"}
+            "conversion_started": False,
+            "reason": "raw payload paths are resolvable; conversion and admission remain a separate bounded batch"}
 
 
 def audit(args: argparse.Namespace) -> Dict[str, object]:
@@ -439,7 +474,10 @@ def audit(args: argparse.Namespace) -> Dict[str, object]:
     # ``out.parent`` is intentionally created only after the preflight.  Query
     # the already existing data filesystem instead of failing on a new output
     # directory.
-    free_bytes = shutil.disk_usage(data).free; estimate_bytes = int(args.estimated_additional_gib * GIB)
+    free_bytes = shutil.disk_usage(data).free
+    requested_estimate_bytes = int(args.estimated_additional_gib * GIB)
+    inventory_estimate_bytes = int((sequence_batch.get("inventory") or {}).get("estimated_bytes", 0))
+    estimate_bytes = max(requested_estimate_bytes, inventory_estimate_bytes)
     curated = {"schema": "ref2dex.tau-curated-manifest.v2", "status": "CURATED_LOCAL_WINDOWS_NO_TRAINING", "task": "ptv3-shared-wam-v6",
         "experiment_id": "P-20261023-tau-training-set-curation", "git_commit": args.git_commit, "data_root": str(data),
         "environment": {"host": platform.node(), "python": sys.version, "numpy": np.__version__, "device": "CPU/IO only", "gpu_used": False},
@@ -452,13 +490,16 @@ def audit(args: argparse.Namespace) -> Dict[str, object]:
         "brief19_failure": {"occurred": True, "failure": "candidate_windows direct lookup raised KeyError for a missing manifest key",
             "repair": "filename/declared-path resolution with explicit missing/invalid counts", "old_reported_verdict": "33,672 TRAIN and 3,356 DEV admitted windows; no 6k selection"},
         "storage_preflight": {"filesystem_free_before_bytes": int(free_bytes), "estimated_additional_conversion_bytes": estimate_bytes,
-            "estimated_additional_conversion_gib": float(args.estimated_additional_gib), "safety_floor_bytes": 20 * GIB,
+            "estimated_additional_conversion_gib": float(args.estimated_additional_gib),
+            "inventory_estimated_additional_gib": float(inventory_estimate_bytes / GIB),
+            "preflight_estimate_gib": float(estimate_bytes / GIB), "safety_floor_bytes": 20 * GIB,
             "estimated_free_after_bytes": int(free_bytes - estimate_bytes), "write_preflight_pass": bool(free_bytes - estimate_bytes >= 20 * GIB),
             "conversion_started": False, "conversion_status": sequence_batch["status"]},
         "source_summary": {split: source_summary(manifest, data, split) for split in ("train", "dev")}, "phase_coverage_all_admitted": phase_report,
         "effective_coverage": {"curated_train": coverage(curated_train), "fixed_train_anchor": coverage(anchor_train),
             "added_sequences_vs_existing_local_cache": 0,
-            "interpretation": "coverage is measured in the 1,177 prepared sequences; pending 6k sequence conversion remains unmeasured"},
+            "pending_sequence_payloads_available": int(sequence_batch.get("payloads_available", 0)),
+            "interpretation": "coverage is measured in the 1,177 prepared sequences; pending sequence conversion remains unmeasured"},
         "admission_rejections": {split: {"candidate_windows": int(sum(r["splits"].get(split, {}).get("candidate_windows", 0) for r in sequence_records)),
             "admitted_windows": len(admitted[split]), "rejected_windows": int(sum(rejections[split].values())), "reason_counts": dict(rejections[split]),
             "missing_candidate_sidecars": dict(missing[split]), "reason_fraction_of_rejected": {k: pct(v, sum(rejections[split].values())) for k, v in rejections[split].items()}} for split in ("train", "dev")},
@@ -490,6 +531,7 @@ def main() -> None:
     parser.add_argument("--output", type=Path, default=Path("outputs/ptv3-shared-wam-v6/tau-curated-20261023-r2/curated-manifest.json"))
     parser.add_argument("--target-windows", type=int, default=DEFAULT_TARGET_WINDOWS); parser.add_argument("--anchor-windows", type=int, default=DEFAULT_ANCHOR_WINDOWS)
     parser.add_argument("--sequence-target", type=int, default=6000); parser.add_argument("--estimated-additional-gib", type=float, default=23.0)
+    parser.add_argument("--inventory", type=Path, default=None, help="optional read-only header inventory for the pending batch")
     parser.add_argument("--git-commit", default="working-tree")
     args = parser.parse_args(); result = audit(args)
     print(json.dumps({"status": result["status"], "output": str(args.output), "selected_train_windows": result["selection"]["selected_train_windows"],

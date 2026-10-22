@@ -1,11 +1,11 @@
 # τ curated TRAIN 首批（2026-10-23）
 
 这轮只做 CPU/IO 审计和 manifest 生成，没有转换新序列，也没有启动训练。最终产物是
-[6,000-window curated manifest](../../../../../outputs/ptv3-shared-wam-v6/tau-curated-20261023-r3/curated-manifest.json)
-和 [固定 TRAIN 锚定样本](../../../../../outputs/ptv3-shared-wam-v6/tau-curated-20261023-r3/train-anchor.json)。
+[6,000-window curated manifest](../../../../../outputs/ptv3-shared-wam-v6/tau-curated-20261023-r6/curated-manifest.json)
+和 [固定 TRAIN 锚定样本](../../../../../outputs/ptv3-shared-wam-v6/tau-curated-20261023-r6/train-anchor.json)。
 6,000 个窗口来自已有的 1,177 条本地序列；因此相对于当前本地 cache，**新增序列数为 0**。
-manifest 同时登记了完整配方中待转换的 6,000 条 sequence key，但它们指向未挂载的
-`/mnt/ugreen_nas`，状态是 `NOT_CONVERTED_SOURCE_PAYLOADS_UNAVAILABLE`，不能把这 6,000
+manifest 同时登记了完整配方中待转换的 6,000 条 sequence key。raw payload 在当前工作区
+可解析，但本轮没有启动转换；状态是 `READY_FOR_BATCH_CONVERSION`，所以不能把这 6,000
 条序列计入有效覆盖。
 
 ## brief19 失败和实际 verdict
@@ -54,9 +54,10 @@ curated TRAIN 恰为 6,000 个 admitted windows，覆盖 1,064 条已有序列�
 `sequence_key/slot/tick` 保存，扩集前后不重抽；新旧 checkpoint 必须在同一修正后的评估
 接口和这套锚定样本上比较。
 
-完整配方的 6,000 条 pending sequence 已按 source 做了确定性批次清单，但没有转换。写盘
-前预估新增 23.0 GiB；本次检查可用空间约 139.7 GiB，估算后约 116.7 GiB，仍高于 20 GiB
-安全余量。该 preflight 只证明空间足够，不能证明 payload 已在本机或覆盖已经获得。
+完整配方的 6,000 条 pending sequence 已按 source 做了确定性批次清单，payload 可用但没有转换。用户给出的
+线性估算是 23.0 GiB；只读 header inventory 给出的保守上界为 96.50 GiB。本次检查可用空间约
+139.1 GiB，按保守上界估算后仍约 42.6 GiB，超过 20 GiB 停写线。该 preflight 证明空间足够；
+它不把未转换 payload 计为有效覆盖。
 
 ## exposure 和后续判据
 
