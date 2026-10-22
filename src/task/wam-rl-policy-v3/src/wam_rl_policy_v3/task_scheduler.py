@@ -6,7 +6,7 @@ from .goal_scheduler import OrderedGoalScheduler,SchedulerConfig,_pose
 from .task_spec import TaskSpec,Phase,EventType,TerminalMode
 from .task_feedback import InteractionFeedback
 
-SCHEDULER_SCHEMA='ref2dex.measured-task-scheduler.release-at-declared-pose.v2'
+SCHEDULER_SCHEMA='ref2dex.measured-task-scheduler.preserve-observed-geometry.v3'
 
 
 @dataclass(frozen=True)
@@ -174,13 +174,13 @@ class TaskScheduler:
                     self.path.start_time+=dt;self.path.last_progress_time+=dt
                 candidate=feedback.contact_observed or feedback.grasp_candidate or feedback.grasp_established
                 if self.phase==Phase.ACQUIRE and not candidate:
-                    # Candidate motion is provisional until grasp confirmation.
-                    # Dropping that evidence discards the unconfirmed suffix.
-                    self.path.pointer=self.confirmed_pointer;self.path.complete=self.confirmed_path_complete
+                    # Contact absence cannot undo already observed geometry.
+                    # Stage/grasp confirmation remains separate below; a gap
+                    # supplies neither final dwell nor a crossing witness.
                     self.path.settle_since=None;self.path.last_pose=None
-                    self.path.progress_anchor_arc=float(self.path.arc[self.path.milestones[self.confirmed_pointer]])
-                self.path_decision=self.path.update(actual,now,hand_points=hand_points,
-                    execution_ready=bool(self.phase in (Phase.TRACK,Phase.RELEASE) or (candidate and not self.recovering)))
+                path_ready=bool(self.phase in (Phase.TRACK,Phase.RELEASE) or (candidate and not self.recovering))
+                self.path_decision=self.path.update(actual,now,hand_points=hand_points,execution_ready=path_ready)
+                if not path_ready:self.path.last_pose=None
                 if self.phase in (Phase.TRACK,Phase.RELEASE):
                     self.confirmed_progress=self.path_decision['confirmed_progress']
                     self.confirmed_pointer=self.path.pointer;self.confirmed_path_complete=self.path.complete

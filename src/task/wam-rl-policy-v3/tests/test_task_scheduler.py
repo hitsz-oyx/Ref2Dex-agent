@@ -145,14 +145,24 @@ def test_uncontrolled_object_path_cannot_be_committed_as_pregrasp_progress():
     assert d.path_progress==0 and not d.path_complete
 
 
-def test_failed_candidate_discards_its_unconfirmed_progress():
+def test_one_frame_contact_gap_keeps_observed_geometry_without_certifying_grasp():
     poses=reference();s=TaskScheduler(TaskSpec.from_reference(poses,source_fps=30,terminal_mode='HOLD'),points())
     for t in range(16):d=s.update(poses[t],t/30,InteractionFeedback(grasp_candidate=True))
-    assert s.path.pointer>0 and d.path_progress==0
+    observed=s.path.pointer
+    assert observed>0 and d.path_progress==0
     d=s.update(poses[15],16/30,InteractionFeedback())
-    assert s.path.pointer==0 and d.path_progress==0
+    assert s.path.pointer==observed and d.path_progress==0
+    assert d.phase==Phase.ACQUIRE and not d.task_complete and d.source_cursor_frame==0
     d=s.update(poses[15],17/30,InteractionFeedback(grasp_established=True))
-    assert d.path_progress==0
+    assert s.path.pointer>=observed and d.path_progress>0
+
+
+def test_contact_gap_does_not_create_an_unobserved_milestone_crossing():
+    poses=reference();s=TaskScheduler(TaskSpec.from_reference(poses,source_fps=30,terminal_mode='HOLD'),points())
+    s.update(poses[0],0.,InteractionFeedback(grasp_candidate=True))
+    s.update(poses[1],1/30,InteractionFeedback())
+    d=s.update(poses[14],2/30,InteractionFeedback(grasp_established=True))
+    assert s.path.pointer==0 and d.path_progress==0 and not d.task_complete
 
 
 def test_unplanned_drop_keeps_planned_release_and_requests_regrasp_contact():

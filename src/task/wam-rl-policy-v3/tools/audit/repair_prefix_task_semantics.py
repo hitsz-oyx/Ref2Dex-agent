@@ -87,7 +87,7 @@ def summarize(releases):
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--audit-manifest',type=Path,default=ROOT/'outputs/wam-rl-policy-v3/inspire-teacher-rollout-audit-20261020-r3/manifest.json')
-    p.add_argument('--output',type=Path,default=ROOT/'outputs/wam-rl-policy-v3/inspire-task-prefix-semantics-20261022-r1')
+    p.add_argument('--output',type=Path,help='Fresh output directory only; not idempotent. Existing sidecars are never overwritten.',default=ROOT/'outputs/wam-rl-policy-v3/inspire-task-prefix-semantics-20261022-r1')
     p.add_argument('--refresh-audit',action='store_true',help='Refresh summary from saved per-record audits only; do not rewrite task sidecars')
     a=p.parse_args();old_path=a.audit_manifest.resolve();old=json.loads(old_path.read_text());output=a.output.resolve()
     if a.refresh_audit:
@@ -106,10 +106,12 @@ def main():
         cut=int(row['training_prefix_commands'])
         if not np.array_equal(mask,np.arange(len(mask))<cut):raise ValueError('original prefix mask disagrees with command count')
         task,availability=task_with_safe_prefix(raw,cut,unsafe_future=bool(unsafe[cut+1:].any()))
-        assert task.packet()==raw_packet
+        # from_packet supplies additive schema defaults absent in historical
+        # JSON. Compare parsed semantics, while preserving the source bytes.
+        if task.packet()!=raw.packet():raise ValueError('prefix changed complete declared task')
         for name in ['raw-task.json','admission.npz']:shutil.copyfile(source/name,target/name)
         shutil.copyfile(source/'task.json',target/'legacy-prefix-task.json')
-        write(target/'task.json',task.packet());write(target/'task-availability.json',availability)
+        shutil.copyfile(source/'raw-task.json',target/'task.json');write(target/'task-availability.json',availability)
         fixed=dict(row,sidecar=str(target.relative_to(output)),terminal_mode=raw.terminal_mode.value,raw_terminal_mode=raw.terminal_mode.value,
             task_prefix_semantics=PREFIX_TASK_SEMANTICS,task_censored=availability['task_censored'],complete_positive_eligible=False,
             legacy_prefix_terminal_mode=legacy['terminal_mode'],legacy_sidecar=str(source))
