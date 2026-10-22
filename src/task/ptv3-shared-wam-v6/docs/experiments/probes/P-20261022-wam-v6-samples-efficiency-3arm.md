@@ -113,7 +113,7 @@ root明确确认空闲后选用；4/5/6 flow长训与7禁止使用。不停止�
 首批不自动扩展；输出≤8GiB，磁盘可用低于20GiB停止。每run保留0/128/256/384/512及终点
 checkpoint，全部9run约3GiB模型，禁止视频和全量tau缓存。
 
-C模型推理按8个环境分块，避免256env一次PTv3 dense2048推理OOM。新吞吐须实测；
+C模型推理按64个环境分块（容量实测后采用），避免256env一次PTv3 dense2048推理OOM。新吞吐须实测；
 历史约36s/12288全局交互不能外推v6 dense2048。训练开始后记录nvidia-smi显存/利用率、
 每update collection/learning时间、首个稳定阶段ETA。若ETA超过4h，保存已完成曲线与共同
 预算，不静默缩小成功率分母/种子数。GPU被占则保留checkpoint，不杀外来进程。
@@ -187,3 +187,8 @@ learning约0.16s，模型CUDA峰值204/204/716MiB。以当前C吞吐512轮约5.8
 该容量工程仍用旧公共512 CAD，非科学A/B/C结果；正式实现已统一dense2048公共输入。
 统一2048后独立GPU1实测50物体共用shape encoder输出(50,64)、全finite、peak110.53MiB；
 所有4合同测试继续通过。首批须绑定修正后的代码版本，不混用工程曲线。
+
+性能适配：runtime d7145b24支持inference_batch64+forecast_only；healthy只跳未被policy消费的独立C/scene头，
+完整24帧手τ路径保留；root独立做full/only数值parity。P1 identity绑定batch64/forecast_only，
+这不是压缩τ/P2消融。新容量run_id=`samples-efficiency-capacity64-20261022-r1`，C256env2updates，
+统一新dense2048；通过前不启动科学长批。

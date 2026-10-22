@@ -47,7 +47,7 @@ def main():
   state['status']='INITIALIZING_MODELS';write(a.output/'manifest.json',state)
   native=unpack_state(hello['state']);objects=[dict(object_code='dexplore/'+s.split('_')[1],scale=1.) for s in native['sequences']]
   runtime=SimpleNamespace(device=torch.device('cuda:0'))
-  forecast=OnlineV6Runtime(a.checkpoint,a.stats,a.geometry_cache.resolve(),device='cuda:0',seed=a.seed) if a.arm=='C' else None
+  forecast=OnlineV6Runtime(a.checkpoint,a.stats,a.geometry_cache.resolve(),device='cuda:0',seed=a.seed,inference_batch=64,forecast_only=True) if a.arm=='C' else None
   env=SampleEfficiencyEnv(connection,hello,a.audit_manifest.resolve(),runtime,model,reset_probe=a.reset_probe,batch=a.wam_batch,shared_tf32=a.shared_tf32,arm=a.arm,forecast=forecast,geometry_cache=a.geometry_cache.resolve())
   official=prepare_official(ROOT,a.output,masked_resets=False,correct_distribution_kl=True);sys.path.insert(0,str(official))
   spec=importlib.util.spec_from_file_location('measured_official_process',official/'utils/process_sarl.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
@@ -67,7 +67,7 @@ def main():
   forecast_identity=str(a.checkpoint.resolve()) if a.arm=='C' else 'geometry-proximal-v1' if a.arm=='B' else 'no-tau-v1'
   identity=dict(source=str(a.audit_manifest.resolve()),bc=str(a.bc.resolve()),wam=forecast_identity,geometry=str(a.geometry_cache.resolve()),world_size=a.world_size,envs=env.num_envs,physics_backend=hello['audit'].get('physics_backend','gpu'),wam_batch=a.wam_batch,shared_tf32=a.shared_tf32,
    arm=a.arm,observation_dim=846,history_contract='causal-H4-relative-world-positions-5cm-quaternion-current-sign.v1',
-   workspace=dict(voxel_origin_m=[-2.,-2.,-2.],voxel_m=.005,max_grid=65535),task_contract='explicit-start-plus8cm-HOLD1s-timeout20s.v1')
+   workspace=dict(voxel_origin_m=[-2.,-2.,-2.],voxel_m=.005,max_grid=65535),task_contract='explicit-start-plus8cm-HOLD1s-timeout20s.v1',inference_batch=64,forecast_only=True)
   completed=0
   if a.resume:
    saved=torch.load(a.resume,map_location='cuda',weights_only=False)
