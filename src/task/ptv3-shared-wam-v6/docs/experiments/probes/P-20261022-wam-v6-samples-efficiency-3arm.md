@@ -41,7 +41,7 @@ PPO 的训练计数冒充本实验成功率。用户授权按设计直接运行�
   非凸带柄形状；三者均独立核到本地object key；旧cache实际512点，不能冒充2048点。
   root已从同一原生OBJ产生独立dense2048 cache，P1再次实际打开NPZ核到三者
   surface/normals=(2048,3)、query=(32,3)；未用旧512冒充2048。
-- 每回合从该次物理初始化的物体位姿产生显式任务：保持原朝向，目标世界z增加8cm，
+- 每回合从该次物理初始化的物体位姿产生显式任务：目标世界z增加8cm（position-only，不约束物体朝向），
   终态HOLD至少1秒；任务不取teacher实际未来物体路径。计划CONTACT事件在起点。
 - 20秒/600 controls episode上限，15秒acquire timeout，原TaskController负责
   measured grasp/arrival/HOLD判据；成功是TaskController完成，另报lift≥5cm连续30帧。
@@ -59,6 +59,10 @@ PPO 的训练计数冒充本实验成功率。用户授权按设计直接运行�
 B允许几何优化，当前实现是基于已有CAD与手锚点的确定性近端优化，不宣称已达到最强
 完整机器人碰撞约束IK。若B本身无法提供可执行抓取，C>B不能被宣传为打败机主的最强
 几何基线；需结合P0和B独立闭环数字解释。三臂均允许PPO修正参考，均不按tau误差奖励。
+
+所有臂的公共shape encoder、任务/奖励CAD与B优化使用同一原生OBJ的dense2048 surface，
+C也用该surface；不只给C更高分辨率几何。shape encoder架构/权重相同且冻结，
+其点数从BC历史512统一变为2048属于共同输入变化，不能单独归于C。
 
 三臂使用同一`Scheduled686 r4/best.pt`共同初始化：独立CPU加载核到其step=0，
 新增tau/valid输入权重为0。保留同一Current421 BC父权重和冻结CAD encoder，critic fresh；
@@ -81,7 +85,8 @@ contact loss或GT未来teacher forcing。C预训练用未来标签属于预训�
 在训练controls **0、262144、524288、786432、1048576**（updates0/128/256/384/512）
 评估确定性actor均值。各臂/各训练seed评估使用独立物理host、同一eval seed194、同一
 256env/物体清单、同样初始化/重置顺序，保存`initial-state.npz`。跨臂与跨checkpoint必须
-逐项比较q/dq/object/hand/sequence相等；不相等则该比较无共同初态资格，标记无效并修复。
+逐项比较q/dq/object/hand/sequence、physical248、tick、table pose、
+DOF/contact/object force与valid、episodeID全部相等；不相等则该比较无共同初态资格，标记无效并修复。
 评估不更新policy，不计入训练环境步数；评估物理调用与耗时单独报告。
 只计每个env的第一个episode，后续自动reset回合不重复进入成功率分母。
 
@@ -165,3 +170,20 @@ source/episode动作错配、PD误差、logprob重放误差、参数同步误差
 GPU1退出后6MiB/0%，没有动其他作业。后续首批实现收紧保存：只保留0/128/256/384/512
 及至多一个partialstop，不受官方PPO自己的log-save schedule影响；actualforecast identity记录健康4371
 （A为no-tau，B为geometry）而不是BC亲本历史v4路径，arm/846/H4/workspace/task合同严格绑定。
+
+预训练成本独立核对（root读healthy4371实际checkpoint）：elapsed_s=5210.235427，
+即1.4473小时累计wall，当前world_size=3；累计elapsed跨不同早期拓扑，不能直接×3
+冒充完整GPU-hours，完整祖先九源训练成本UNKNOWN。该时间不是本P1在线训练成本。
+
+### 256env真实规模工程容量已完成，尚非学习曲线
+
+`efb1b408` / `samples-efficiency-capacity-20261022-r1`，GPU1，A/B/C各256env、
+2updates、40optimizer steps、4096训练交互；native与policy全部COMPLETED，
+source/PD/episode/logprob/参数同步误差全部0，异步reset0/1通过。每臂只保存0/2两份
+checkpoint，实际验证official logsave guard。第二轮collection为5.485/8.532/40.642s，
+learning约0.16s，模型CUDA峰值204/204/716MiB。以当前C吞吐512轮约5.8h，超过原4h，
+因此原首批不能直接按4h发车；先优化v6推理batch或明确修改公平预算，不静默缩水。
+实际资源采样和数字见`outputs/ptv3-shared-wam-v6/samples-efficiency-capacity-20261022-r1/engineering-summary.json`。
+该容量工程仍用旧公共512 CAD，非科学A/B/C结果；正式实现已统一dense2048公共输入。
+统一2048后独立GPU1实测50物体共用shape encoder输出(50,64)、全finite、peak110.53MiB；
+所有4合同测试继续通过。首批须绑定修正后的代码版本，不混用工程曲线。

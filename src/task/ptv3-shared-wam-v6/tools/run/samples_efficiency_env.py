@@ -25,7 +25,7 @@ def check_indexed_reset(before,after,ids):
 
 
 class SampleEfficiencyEnv:
-    def __init__(self,connection,hello,manifest,runtime,model,*,reset_probe=False,batch=256,shared_tf32=False,arm="A",forecast=None):
+    def __init__(self,connection,hello,manifest,runtime,model,*,reset_probe=False,batch=256,shared_tf32=False,arm="A",forecast=None,geometry_cache=None):
         from gym import spaces
         self.arm=arm;self.forecast=forecast
         self.connection=connection;self.native=unpack_state(hello['state']);self.runtime=runtime;self.model=model
@@ -37,11 +37,18 @@ class SampleEfficiencyEnv:
         self.batch=batch;self.shared_tf32=shared_tf32;self.inference_audit=None;self.reset_probe=reset_probe;self.steps=0;self.reset_count=0;self.completed_episodes=0;self.successes=0;self.workspace_failures=0
         self.reset_audits=[];self.source_mismatches=0;self.max_goal_error=0.;self.tau_valid_count=0;self.timings={}
         audit_path=Path(manifest);audit=json.loads(audit_path.read_text());self.records={};self.shape_features={}
+        if geometry_cache is None:raise ValueError('all arms require the same dense2048 CAD source')
+        geometry_cache=Path(geometry_cache)
+        geometry_manifest=json.loads((geometry_cache/'surface-manifest.json').read_text())
+        surfaces={}
+        for row in geometry_manifest['objects']:
+            with np.load(geometry_cache/row['path']) as z:surfaces[row['key']]=z['surface'].astype(np.float32)
         if audit.get('schema')!='ref2dex.teacher-measured-rollout-admission.v2' or audit.get('status')!='COMPLETED':raise ValueError('corrected completed corpus required')
         for row in audit['records']:
             if row['split']!='train' or row['engineering']!='PASS' or row['training_prefix_commands']<=0:continue
             side=audit_path.parent/row['sidecar']
-            with np.load(Path(row['source'])/'canonical.npz') as z:points=z['points'].astype(np.float32)
+            points=surfaces['dexplore/'+row['object']+'@1']
+            if points.shape!=(2048,3):raise ValueError('shared CAD must contain genuine 2048 points')
             with np.load(side/'admission.npz') as z:bounds=z['table_bounds'].copy()
             spec=TaskSpec.from_packet(json.loads((side/'task.json').read_text()))
             self.records[row['sequence']]=(spec,points,bounds,row['object'])

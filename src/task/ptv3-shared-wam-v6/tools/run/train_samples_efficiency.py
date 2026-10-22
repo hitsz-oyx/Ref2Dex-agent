@@ -48,7 +48,7 @@ def main():
   native=unpack_state(hello['state']);objects=[dict(object_code='dexplore/'+s.split('_')[1],scale=1.) for s in native['sequences']]
   runtime=SimpleNamespace(device=torch.device('cuda:0'))
   forecast=OnlineV6Runtime(a.checkpoint,a.stats,a.geometry_cache.resolve(),device='cuda:0',seed=a.seed) if a.arm=='C' else None
-  env=SampleEfficiencyEnv(connection,hello,a.audit_manifest.resolve(),runtime,model,reset_probe=a.reset_probe,batch=a.wam_batch,shared_tf32=a.shared_tf32,arm=a.arm,forecast=forecast)
+  env=SampleEfficiencyEnv(connection,hello,a.audit_manifest.resolve(),runtime,model,reset_probe=a.reset_probe,batch=a.wam_batch,shared_tf32=a.shared_tf32,arm=a.arm,forecast=forecast,geometry_cache=a.geometry_cache.resolve())
   official=prepare_official(ROOT,a.output,masked_resets=False,correct_distribution_kl=True);sys.path.insert(0,str(official))
   spec=importlib.util.spec_from_file_location('measured_official_process',official/'utils/process_sarl.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
   cfg=yaml.safe_load((official/'cfg/ppo/config.yaml').read_text());cfg['seed']=a.seed;cfg['policy'].update(backbone_type='pn',freeze_backbone=False,obs_dim=846)
@@ -125,7 +125,10 @@ def main():
   if a.evaluate_only:
    if not a.resume:raise ValueError('evaluation requires frozen policy checkpoint')
    observation=env.reset()
-   np.savez_compressed(a.output/'initial-state.npz',q=env.native['q'],dq=env.native['dq'],objects=env.native['objects'],hand=env.native['hand'],sequences=np.array(env.native['sequences']))
+   initial_fields=('q','dq','objects','hand','sequences','physical','tick','table_pose',
+       'contact_forces','dof_force','contact_force_valid','dof_force_valid','object_contact_force','episodes')
+   if set(initial_fields)-set(env.native):raise ValueError('common initial-state snapshot is incomplete')
+   np.savez_compressed(a.output/'initial-state.npz',**{key:np.asarray(env.native[key]) for key in initial_fields})
    policy_times=[];first={};initial_episodes=list(env.native['episodes'])
    for control in range(600):
     torch.cuda.synchronize();policy_started=time.perf_counter()
