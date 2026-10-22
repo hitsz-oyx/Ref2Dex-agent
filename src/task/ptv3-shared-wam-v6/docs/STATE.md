@@ -14,7 +14,7 @@
 PYTHONPATH=src/task/ptv3-shared-wam-v6/src:src/task/ptv3-shared-wam-v5/src:src/task/wam-rl-policy-v3/src /home2/wyy/miniconda3/envs/graspenv/bin/python -m pytest -q src/task/ptv3-shared-wam-v6/tests/test_v6_goal_contract.py
 6 passed in 2.18s
 PYTHONPATH=src/task/ptv3-shared-wam-v6/src:src/task/ptv3-shared-wam-v5/src:src/task/wam-rl-policy-v3/src /home2/wyy/miniconda3/envs/graspenv/bin/python -m pytest -q src/task/ptv3-shared-wam-v6/tests
-155 passed, 8 warnings in 18.57s
+154 passed, 1 skipped, 7 warnings in 17.51s
 ```
 
 门槛逐项：goal contract tests **达成**；scheduler-conditioned cache identities
