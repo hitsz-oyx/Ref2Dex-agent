@@ -36,8 +36,10 @@ def online(geo, poses, joints, dense, joint_valid, dense_valid, parts, goal, eve
 
 
 class OnlineV6Runtime:
-    def __init__(self, checkpoint, stats, geometry_cache, device="cuda:0", seed=185):
+    def __init__(self, checkpoint, stats, geometry_cache, device="cuda:0", seed=185, inference_batch=8, forecast_only=False):
         self.device=torch.device(device)
+        self.inference_batch=int(inference_batch);self.forecast_only=bool(forecast_only)
+        if not 1<=self.inference_batch<=96:raise ValueError("bounded inference batch required")
         packet=torch.load(checkpoint,map_location="cpu",weights_only=False)
         self.config=packet["config"]; self.step=packet["step"]
         self.model=SharedWAMV6(json.loads(Path(stats).read_text()),self.config).to(device).eval().requires_grad_(False)
@@ -49,6 +51,24 @@ class OnlineV6Runtime:
             with np.load(self.root/row["path"]) as z:
                 self.geometries[row["key"]]={k:z[k].copy() for k in z.files}
         self.calls=0;self.seconds=0.;self.samples=0
+
+    def _trajectory(self, batch):
+        if not self.forecast_only:return self.model(batch)["trajectory"]
+        # Exact hand path of forward(), omitting the unused independent C head.
+        model=self.model
+        shared,shared_valid,geometry=model.encode(batch)
+        offset=geometry["tokens"].shape[1]
+        hand_z=model.hand_future(shared[:,offset:offset+42]).reshape(len(shared),24,2,21,3)
+        if model.config.get("flow_matching"):
+            from ptv3_shared_wam.model import clean
+            points=batch["scene_points"];valid=batch["object_valid"].bool()[...,None].expand(*points.shape[:-1])
+            query=model.scene_query(clean(points,valid)/model.position_scale).flatten(1,2)
+            context=model.scene_context(shared)
+            update,_=model.scene_readout(query,context,context,key_padding_mask=~shared_valid,need_weights=False)
+            latent=model.scene_norm(query+update).reshape(len(points),points.shape[1],points.shape[2],-1)
+            scene_z=model.scene_future(latent.flatten(1,2)).reshape(len(points),24,*points.shape[1:3],3).transpose(1,2)
+            hand_z,_,_=model.flow_future(hand_z,scene_z,shared,shared_valid,batch,model.normalizer)
+        return torch.where(batch["start_hand_valid"][:,None,...,None],model.normalizer.denormalize("hand",hand_z),0.)
 
     def workspace_valid(self, objects, hands):
         from scipy.spatial.transform import Rotation
@@ -80,10 +100,10 @@ class OnlineV6Runtime:
             samples.append(sample);rotations.append(poses[-1,:3,:3])
         torch.cuda.synchronize(self.device);started=time.monotonic()
         chunks=[]
-        for offset in range(0,len(samples),8):
-            batch={k:v.to(self.device) for k,v in collate(samples[offset:offset+8]).items()}
+        for offset in range(0,len(samples),self.inference_batch):
+            batch={k:v.to(self.device) for k,v in collate(samples[offset:offset+self.inference_batch]).items()}
             with torch.inference_mode(),torch.autocast("cuda",enabled=False):
-                chunks.append(self.model(batch)["trajectory"][:,:,0][:,:,ids].float().cpu().numpy())
+                chunks.append(self._trajectory(batch)[:,:,0][:,:,ids].float().cpu().numpy())
         prediction=np.concatenate(chunks)
         torch.cuda.synchronize(self.device);self.seconds+=time.monotonic()-started;self.calls+=1;self.samples+=len(objects)
         result=np.einsum("btki,bji->btkj",prediction,np.asarray(rotations))

@@ -55,7 +55,7 @@ def main():
     start=time.monotonic();state=dict(status='STARTING',arm=a.arm,python=sys.executable,torch=torch.__version__,numpy=np.__version__,seed=185,
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),checkpoint=str(a.checkpoint),wam=str(a.wam),
         panel=str(a.panel.resolve()),native_command=cmd,samples=n,controls=a.controls,policy_updates=0,native_output=str(native_out),
-        gt_origin=a.gt_origin,gt_contract='world reference_future minus '+a.gt_origin+' current hand; held last reference beyond end',
+        gt_startup='first3 zero tau invalid, identical to predicted arms',gt_origin=a.gt_origin,gt_contract='world reference_future minus '+a.gt_origin+' current hand; held last reference beyond end',
         adapter='v6 sparse11 observed in joint21; remaining joints/skin invalid; first8 of24 to frozen Scheduled686')
     write(a.output/'manifest.json',state);log=(a.output/'native.log').open('x');proc=subprocess.Popen(cmd,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
     connection=None;trace=[];workspace_failed=np.zeros(n,bool);workspace_first=np.full(n,-1,int);previous=np.zeros((n,12),np.float32);hist=[deque(maxlen=4) for _ in rows];hands=[deque(maxlen=4) for _ in rows]
@@ -82,7 +82,7 @@ def main():
                 tasks.append(result['task']);hist[i].append(obj[:7]);hands[i].append(hand);poses.append(pose)
                 supports.append(support);phases.append(int(decision.phase));progress.append(float(decision.path_progress));complete.append(bool(decision.task_complete))
             taus=np.zeros((n,8,11,3),np.float32);valid=np.zeros(n,bool)
-            if a.arm=='gt':
+            if a.arm=='gt' and step>=3:
                 for i,ref in enumerate(refs):
                     tick=int(np.asarray(snapshot['tick'])[i]);idx=np.minimum(tick+np.arange(1,9),len(ref['hand'])-1)
                     origin=hands[i][-1] if a.gt_origin=='measured' else InspireAdapter.canonical_hand(ref['hand'][min(tick,len(ref['hand'])-1)])
