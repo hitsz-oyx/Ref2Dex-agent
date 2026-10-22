@@ -148,3 +148,13 @@ python3 src/task/wam-rl-policy-v3/tools/run/run_grasp_components.py --output out
 ```
 
 Hermes新重复仍使用前述普通命令与全新输出目录；`--resume-empty-queue`只接受已明确标记停止、从未启动worker的队列，不能恢复有实验结果的运行。
+
+## 干预接线独立重放
+
+新增 `replay_v13_interventions.py` 不调用生产swap函数：独立选择腕/手指字段、从记录的R输出和真实状态重建命令；A3/A4还独立重建源物体局部未来与闭环游标。逐步检查完整τ、抓姿hint、预测时钟、每步R调用且输出非零，故意篡改抓姿1cm的审计负例必须被拒绝。GPU6先完成13回合/7800步已PASS，命令/抓姿/τ/阶段差均0；`component-replay-g6-progress.json`只是进度审计，不代替全量最终审计。
+
+```sh
+python3 src/task/wam-rl-policy-v3/tools/audit/replay_v13_interventions.py --worker outputs/wam-rl-policy-v3/grasp-v13-mechanism-20261022-r1/mechanism/g6 --output outputs/wam-rl-policy-v3/grasp-v13-mechanism-20261022-r1/component-replay-g6-final.json
+```
+
+对两阶段g4/g5/g6分别运行；CPU只重放控制/几何，没有神经网络推理或新增物理步。TIME若没有contact_index则保持未排定闭合，必须报告其覆盖率；不能把“信号未产生”称为“时机准确但无效”。
