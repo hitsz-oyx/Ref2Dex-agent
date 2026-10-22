@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 from .task_spec import TaskSpec,TerminalMode
 
-POLICY='ref2dex.executable-task-admission.reject-unknown.v1'
+POLICY='ref2dex.executable-task-admission.full-declaration.reject-unknown.v2'
 
 
 def load_executable_tasks(manifest):
@@ -20,6 +20,14 @@ def load_executable_tasks(manifest):
         if row['sequence'] in seen:raise ValueError('duplicate eligible sequence: '+row['sequence'])
         seen.add(row['sequence']);eligible+=1
         side=path.parent/row['sidecar'];spec=TaskSpec.from_packet(json.loads((side/'task.json').read_text()))
+        # Never filter the UNKNOWN artifacts created by the historical prefix
+        # rewrite. Require an explicit migrated manifest, preserving membership.
+        raw_path=side/'raw-task.json'
+        if raw_path.exists():
+            declared=TaskSpec.from_packet(json.loads(raw_path.read_text()))
+            if spec.packet()!=declared.packet():
+                raise ValueError('prefix-rewritten task differs from full declaration: '+row['sequence']+
+                    '; run repair_prefix_task_semantics.py into a new corpus before admission')
         if spec.terminal_mode==TerminalMode.UNKNOWN:
             rejected.append(dict(sequence=row['sequence'],terminal_mode=spec.terminal_mode.value,
                 reason='UNKNOWN has no defined task success branch',task_path=str(side/'task.json')))
@@ -28,7 +36,8 @@ def load_executable_tasks(manifest):
         accepted.append((row,spec,side))
     report=dict(schema=POLICY,source_manifest=str(path),eligible_count=eligible,admitted_count=len(accepted),
         rejected_count=len(rejected),rejected=rejected,admitted_sequences=[r['sequence'] for r,_,_ in accepted],
-        annotation_mutated=False,comparison_scope='new admission changes the training distribution; never replace the old run denominator silently')
+        annotation_mutated=False,full_declaration_checked=True,
+        comparison_scope='explicitly version restored declarations and actual membership; never replace the old run denominator silently')
     return accepted,report
 
 

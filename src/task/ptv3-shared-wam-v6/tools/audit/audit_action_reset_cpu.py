@@ -64,7 +64,7 @@ def reset_replay(mutate=False):
         workspace_valid=V4Runtime.workspace_valid
     rt=Runtime();rt.env_objects=[dict(object_code='dexplore/'+s.split('_')[1],scale=1.) for s in native['sequences']]
     rt.geometry=load_geometry(ROOT/'outputs/wam-rl-policy-v2/inspire-shadow-parity-20261019-r1/cache',rt.env_objects)
-    env=MeasuredOfficialEnv(None,dict(state=native),ROOT/'outputs/wam-rl-policy-v3/inspire-teacher-rollout-audit-20261020-r3/manifest.json',rt,Model(),reset_probe=True)
+    env=MeasuredOfficialEnv(None,dict(state=native),ROOT/'outputs/wam-rl-policy-v3/inspire-task-prefix-semantics-20261022-r1/manifest.json',rt,Model(),reset_probe=True)
     def fingerprint(i):
         return pickle.dumps((env.controllers[i],env.trackers[i],list(env.histories[i]),list(env.hands[i]),env.previous[i].copy(),env.observations[i].numpy().copy()),protocol=4)
     original_refresh=env._refresh

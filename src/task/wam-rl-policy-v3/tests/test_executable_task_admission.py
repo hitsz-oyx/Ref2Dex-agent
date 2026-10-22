@@ -82,3 +82,11 @@ def test_legacy_native_sampler_cannot_hide_unknown_until_a_later_reset(tmp_path)
         require_native_membership(['seq-0','seq-1','seq-2'],report)
     with pytest.raises(ValueError,match='declare'):
         require_native_membership(None,report)
+
+
+def test_prefix_created_unknown_is_not_silently_dropped_before_migration(tmp_path):
+    from wam_rl_policy_v3.task_admission import load_executable_tasks
+    path=corpus(tmp_path)
+    (tmp_path/'side-1/raw-task.json').write_text(json.dumps(task('RELEASE').packet()))
+    with pytest.raises(ValueError,match='prefix-rewritten.*full declaration'):
+        load_executable_tasks(path)

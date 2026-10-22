@@ -25,6 +25,10 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261022-teacher-action-reset-validation:
+    seed_pool: probe
+    native_engineering_seed: 195
+    reuse_reason: fixed original panel and bounded action/reset/teacher engineering acceptance; reused probe seed, not an independent policy replication or validation
   P-20261021-wam-v6-gt-object-contact:
     seed_pool: probe
     model_and_training_seed: 170

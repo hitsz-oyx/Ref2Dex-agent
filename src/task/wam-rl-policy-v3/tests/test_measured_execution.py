@@ -36,8 +36,14 @@ def test_live_support_enables_release_and_airborne_or_invalid_force_does_not():
     bounds = np.array([[-.5,-.5,-.05],[.5,.5,0]])
     snapshot = dict(contact_force_valid=[True], object_contact_force=[[0,0,1]], table_pose=[[0,0,.8,0,0,0,1]])
     scheduler = TaskScheduler(spec, points)
-    scheduler.phase = Phase.RELEASE
-    for tick in range(35):
+    # Reach RELEASE through the public ordered-path contract. Forcing the
+    # phase field alone no longer supplies an unobserved completed path.
+    for tick in range(120):
+        pose=poses[0].copy();pose[:3,3]+=(poses[-1,:3,3]-poses[0,:3,3])*min(tick/100,1.)
+        decision=scheduler.update(pose,tick/30,InteractionFeedback(grasp_established=True,stable=True))
+        if decision.phase==Phase.RELEASE:break
+    assert decision.phase==Phase.RELEASE
+    for tick in range(tick+1,tick+36):
         supported = online_support(snapshot, 0, poses[-1], points, bounds)
         decision = scheduler.update(poses[-1], tick/30, InteractionFeedback(released=True, stable=True, supported=supported))
         if decision.terminated:

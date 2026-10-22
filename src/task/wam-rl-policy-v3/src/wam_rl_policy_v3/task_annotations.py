@@ -1,6 +1,7 @@
-"""Construct executor tasks from same-execution teacher object/contact rollouts.
+"""Construct provisional tasks from same-execution teacher object/contact rollouts.
 
-Offline measured events become known task instructions for a later execution.
+Measured contact endings are release hypotheses, not verified planned intent.
+An accepted complete task declaration is kept separate from data availability.
 Online feedback still comes from that later execution, never this saved future.
 The reference-label helper below is retained only for explicit historical audits.
 """
@@ -10,6 +11,30 @@ from .task_spec import TaskSpec,TaskEvent,EventType,TerminalMode
 REFERENCE_CONTACT_COLUMNS=np.array([168+i for i in (3,6,9,12,15)])
 ANNOTATION_SCHEMA='ref2dex.teacher-rollout-planned-events.v1'
 GOAL_SOURCE='same_execution_teacher_object_rollout'
+PREFIX_TASK_SEMANTICS='ref2dex.declared-task-prefix-mask.v1'
+
+
+def task_with_safe_prefix(declared_task,safe_prefix_commands,*,unsafe_future=None):
+    """Keep the full declaration; prefix limits usable data, never task intent.
+
+    Measured force/contact-loss events remain an unverified task declaration.
+    This helper does not certify that a RELEASE was intended or executable.
+    """
+    if not isinstance(declared_task,TaskSpec):raise TypeError('complete declared TaskSpec required')
+    if type(safe_prefix_commands) is not int or not 0<=safe_prefix_commands<declared_task.source_length:
+        raise ValueError('safe prefix control boundary outside original task source')
+    events=declared_task.packet()['events'];end=int(declared_task.source_frames[-1])
+    censored=safe_prefix_commands<declared_task.source_length-1
+    availability=dict(schema=PREFIX_TASK_SEMANTICS,safe_prefix_commands=safe_prefix_commands,
+        source_length=declared_task.source_length,declared_endpoint_frame=end,
+        observed_prefix_last_frame=safe_prefix_commands,task_censored=censored,
+        unsafe_future=unsafe_future,complete_positive_eligible=False,terminal_intent_verified=False,
+        declared_events=events,events_beyond_observed_prefix=[e for e in events if e['source_frame']>safe_prefix_commands],
+        events_without_available_command_state=[e for e in events if e['source_frame']>=safe_prefix_commands],
+        event_labels_negative_beyond_prefix=False,
+        declaration_provenance='Preserved complete task; measured force/proximity release inference is not verified planned intent.',
+        interpretation='Prefix is a control availability/censoring boundary, never a replacement terminal, endpoint or event stream.')
+    return declared_task,availability
 
 
 def planned_contact_events(reference_current,*,minimum_contact_frames=3,merge_gap_frames=2):

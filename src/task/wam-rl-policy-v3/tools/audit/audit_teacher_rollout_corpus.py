@@ -1,7 +1,6 @@
 """Watch fresh teacher receipts, audit measured fields and emit admission sidecars."""
 import argparse
 from collections import Counter
-from dataclasses import replace
 import importlib.util
 import json
 import os
@@ -14,7 +13,7 @@ import numpy as np
 TASK=Path(__file__).resolve().parents[2];ROOT=Path(os.environ.get('REF2DEX_RUN_ROOT',TASK.parents[2])).resolve()
 sys.path.insert(0,str(TASK/'src'))
 from wam_rl_policy_v3.teacher_quality import QUALITY_SCHEMA,TABLE_SUPPORT_CONTRACT,failure_masks,measured_failures,table_support
-from wam_rl_policy_v3.task_annotations import task_from_teacher_archive,GOAL_SOURCE
+from wam_rl_policy_v3.task_annotations import task_from_teacher_archive,task_with_safe_prefix,GOAL_SOURCE,PREFIX_TASK_SEMANTICS
 from wam_rl_policy_v3.task_feedback import FeedbackObserver
 from wam_rl_policy_v3.robot_adapter import InspireAdapter
 
@@ -52,6 +51,8 @@ def main():
         prior=json.loads(a.reuse_audit.read_text())
         if (prior.get('schema')!=QUALITY_SCHEMA or prior.get('goal_source')!=GOAL_SOURCE
                 or prior.get('table_support_contract')!=TABLE_SUPPORT_CONTRACT):raise ValueError('different prior admission/support contract; re-audit required')
+        if prior.get('task_prefix_semantics')!=PREFIX_TASK_SEMANTICS:
+            raise ValueError('legacy prefix tasks cannot be reused; migrate full declared task sidecars first')
         root=a.reuse_audit.resolve().parent
         for row in prior['records']:
             if row['engineering']!='PASS':continue
@@ -110,27 +111,25 @@ def main():
                         commands,windows,unsafe=failure_masks(bad)
                         if not any(coupled):commands[:]=False;windows[:]=False
                         raw_task=task_from_teacher_archive(data,ids,object_points=points)
-                        # Do not splice separated episodes or later recovery
-                        # into one BC task. Keep the safe prefix for training;
-                        # retain full masks/raw data for review and future use.
+                        # Only data availability is truncated. The original
+                        # complete declaration, terminal and future events stay.
                         cut=int(np.flatnonzero(~commands)[0]) if (~commands).any() else len(commands)
                         prefix=np.arange(len(commands))<cut
-                        task=None
-                        if cut:
-                            clean={k:data[k][:cut+1] for k in ('obj','hand','body_contact_forces','contact_force_valid','frame_tick')}
-                            task=replace(task_from_teacher_archive(clean,ids,object_points=points),source_length=n)
+                        task,availability=task_with_safe_prefix(raw_task,cut,unsafe_future=bool(unsafe[cut+1:].any()))
                         np.savez_compressed(folder/'admission.npz',command=commands,window24=windows,unsafe_frame=unsafe,
                             training_prefix=prefix,contact_force_valid=contact_valid,dof_force_valid=valid,supported=support,
                             coupled=np.asarray(coupled),released=np.asarray(released),table_pose=table,table_bounds=table_bounds)
                         write(folder/'raw-task.json',raw_task.packet())
-                        if task is not None:write(folder/'task.json',task.packet())
+                        write(folder/'task.json',task.packet())
+                        write(folder/'task-availability.json',availability)
                         rows[name]=dict(sequence=name,object=record['object'],source=str(source),frames=n,commands=n-1,
                             split=manifest['inherited_split'][name],engineering='PASS',maximum_pd_error=engineering['max_pd_error'],
                             ever_coupled=any(coupled),admitted_commands=int(commands.sum()),admitted_windows=int(windows.sum()),
                             training_prefix_commands=cut,excluded_commands=int((~commands).sum()),
-                            failure_frames={k:int(v.sum()) for k,v in reasons.items()},terminal_mode=task.terminal_mode.value if task else 'UNKNOWN',
+                            failure_frames={k:int(v.sum()) for k,v in reasons.items()},terminal_mode=task.terminal_mode.value,
                             raw_terminal_mode=raw_task.terminal_mode.value,review_unmatched_frames=review_unmatched,
-                            sidecar=str(folder.relative_to(a.output)),goal_source=GOAL_SOURCE)
+                            sidecar=str(folder.relative_to(a.output)),goal_source=GOAL_SOURCE,
+                            task_prefix_semantics=PREFIX_TASK_SEMANTICS,task_censored=availability['task_censored'],complete_positive_eligible=False)
                 except (ValueError,AssertionError,KeyError) as error:
                     rows[name]=dict(sequence=name,object=record['object'],split=manifest['inherited_split'][name],
                         source=str(source),engineering='REJECTED',error=repr(error),training_prefix_commands=0,admitted_commands=0,admitted_windows=0)
@@ -146,9 +145,10 @@ def main():
         git_commit=os.environ.get('REF2DEX_CODE_COMMIT') or subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         corpus=str(a.corpus),python=sys.executable,elapsed_s=time.monotonic()-started,sequences=len(rows),goal_source=GOAL_SOURCE,
         table_support_contract=TABLE_SUPPORT_CONTRACT,
+        task_prefix_semantics=PREFIX_TASK_SEMANTICS,
         quality_uses_training_reference=False,shape_features='CAD512 captured; learned shape64 is produced by the later BC encoder',
         policy=dict(preceding_failure_frames=50,history=4,horizon=24,max_crossing_translation_m=.08,max_crossing_rotation_rad=.7,
-            support_tolerance_m=.02,penetration_tolerance_m=.02,no_motion_coupling='exclude manipulation example',training='safe prefix only'),
+            support_tolerance_m=.02,penetration_tolerance_m=.02,no_motion_coupling='exclude manipulation example',training='safe prefix controls; complete task declaration retained'),
         engineering_counts=dict(Counter(r['engineering'] for r in rows.values())),
         admitted_prefix_commands=sum(r['training_prefix_commands'] for r in rows.values()),
         retained_sequences=sum(r['training_prefix_commands']>0 for r in rows.values()),

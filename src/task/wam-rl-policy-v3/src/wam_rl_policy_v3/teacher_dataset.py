@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 from .inspire_shadow import ACTIVE,current_state,measured_from_legacy,object_state
 from .task_spec import TaskSpec
-from .task_annotations import GOAL_SOURCE
+from .task_annotations import GOAL_SOURCE,task_with_safe_prefix
 from .task_runtime import TaskController
 from .robot_adapter import InspireAdapter
 from .teacher_quality import QUALITY_SCHEMA,TABLE_SUPPORT_CONTRACT
@@ -27,12 +27,23 @@ class TeacherRolloutCorpus:
     def episode(self,index):
         row=self.records[index];source=Path(row['source']);n=row['training_prefix_commands'];sidecar=self.root/row['sidecar']
         spec=TaskSpec.from_packet(json.loads((sidecar/'task.json').read_text()))
-        if spec.source_role!=GOAL_SOURCE or spec.source_frames[-1]!=n:raise ValueError('task must end at the admitted measured prefix')
+        if spec.source_role!=GOAL_SOURCE:raise ValueError('same-execution declared task required')
+        raw_path=sidecar/'raw-task.json'
+        if raw_path.exists():
+            declared=TaskSpec.from_packet(json.loads(raw_path.read_text()))
+            if spec.packet()!=declared.packet():raise ValueError('task differs from complete raw-task declaration; migrate truncated prefix sidecars')
+        elif spec.source_frames[-1]!=spec.source_length-1:
+            raise ValueError('complete declared raw-task required for a truncated or censored task')
+        metadata_path=sidecar/'task-availability.json'
+        stored=json.loads(metadata_path.read_text()) if metadata_path.exists() else None
+        _,availability=task_with_safe_prefix(spec,n,unsafe_future=stored.get('unsafe_future') if stored else None)
+        if stored is not None and stored!=availability:raise ValueError('declared task/prefix availability metadata mismatch')
         receipt=json.loads((source.parents[1]/'manifest.json').read_text());ids=receipt['observation_contract']['contact_body_ids']
         with np.load(source/'canonical.npz') as geometry:points=geometry['points'].copy()
         with np.load(sidecar/'admission.npz') as masks:support=masks['supported'][:n].copy()
         controller=TaskController(spec,points)
         with np.load(source/'trajectory.npz') as z:
+            if len(z['obj'])!=spec.source_length:raise ValueError('declared task source_length differs from complete recorded source')
             ticks=z['frame_tick'][:n].copy()
             if ticks.shape!=(n,) or not np.array_equal(ticks,np.arange(n)):
                 raise ValueError('same-execution consecutive native ticks required')
@@ -54,4 +65,5 @@ class TeacherRolloutCorpus:
         if measured.shape!=(n,347) or not np.isfinite(measured).all():raise ValueError('finite measured347 required')
         return dict(sequence=row['sequence'],measured=measured,task=task,active=active,action=action,
             object_points=points.astype(np.float32),task_spec=spec.packet(),goal_source=GOAL_SOURCE,
-            local_goal_pose=local_goals,ticks=ticks)
+            local_goal_pose=local_goals,ticks=ticks,task_prefix_availability=availability,
+            task_censored=availability['task_censored'],complete_positive_eligible=False)

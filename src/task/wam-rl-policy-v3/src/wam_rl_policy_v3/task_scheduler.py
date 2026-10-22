@@ -6,7 +6,7 @@ from .goal_scheduler import OrderedGoalScheduler,SchedulerConfig,_pose
 from .task_spec import TaskSpec,Phase,EventType,TerminalMode
 from .task_feedback import InteractionFeedback
 
-SCHEDULER_SCHEMA='ref2dex.measured-task-scheduler.v1'
+SCHEDULER_SCHEMA='ref2dex.measured-task-scheduler.release-at-declared-pose.v2'
 
 
 @dataclass(frozen=True)
@@ -56,8 +56,12 @@ class TaskScheduler:
     def __init__(self,spec:TaskSpec,object_points,*,config=None,path_config=None,interaction_points=None):
         spec.require_success_path()
         self.spec=spec;self.config=config or TaskSchedulerConfig()
+        # Event poses are ordered constraints, including release BEFORE the
+        # recording endpoint. The remaining geometry may describe passive settling.
+        mandatory=np.flatnonzero(np.isin(spec.source_frames,[e.source_frame for e in spec.events]))
         self.path=OrderedGoalScheduler(spec.object_path,spec.source_frames/spec.source_fps,object_points,
-            config=path_config or SchedulerConfig(),goal_type=spec.goal_type,interaction_points=interaction_points)
+            config=path_config or SchedulerConfig(),goal_type=spec.goal_type,interaction_points=interaction_points,
+            mandatory_indices=mandatory)
         self.reset()
 
     def reset(self):
@@ -93,15 +97,29 @@ class TaskScheduler:
     def _release_expected(self,actual,planned):
         if self.phase==Phase.RELEASE:return True
         if self.spec.terminal_mode==TerminalMode.RELEASE and planned==self.spec.events[-1]:
-            # Arrival alone does not request terminal release: path settling
-            # must first authorize the explicit RELEASE phase.
-            return False
+            return self._terminal_release_ready(actual)
         if self.phase!=Phase.TRACK or self.recovering or self.plan_cursor_frame<planned.source_frame:
             return False
         # Intermediate planned releases also need confirmed path context and
         # observed arrival at the corresponding source pose, not elapsed time.
         indices=np.flatnonzero(self.spec.source_frames==planned.source_frame)
         return bool(len(indices) and self.path._reached(actual,self.spec.object_path[indices[0]]))
+
+    def _terminal_release_ready(self,actual):
+        if (self.phase!=Phase.TRACK or self.recovering or not self.spec.events
+                or self.spec.terminal_mode!=TerminalMode.RELEASE
+                or self.event_index!=len(self.spec.events)-1):return False
+        planned=self.spec.events[-1]
+        if planned.kind!=EventType.RELEASE:return False
+        indices=np.flatnonzero(self.spec.source_frames==planned.source_frame)
+        if not len(indices):raise ValueError('declared release pose missing from task path')
+        index=int(indices[0]);milestone=int(np.flatnonzero(self.path.milestones==index)[0])
+        return bool(self.path.initial_acquired and self.path.pointer>=max(0,milestone-1)
+            and self.path._reached(actual,self.spec.object_path[index]))
+
+    def _begin_release(self,now,events):
+        self.phase=Phase.RELEASE;self.phase_since=now;self.settle_since=None
+        self._transition('release_authorized',events)
 
     def update(self,pose,now,feedback:InteractionFeedback,*,hand_points=None):
         if self.complete or self.failure_reason is not None:raise ValueError('terminal task requires reset before another control decision')
@@ -112,10 +130,13 @@ class TaskScheduler:
         if self.start_time is None:self.start_time=self.phase_since=now
         dt=0. if self.last_time is None else now-self.last_time;self.last_time=now;events=[]
         paused_path_budget=self.phase==Phase.ACQUIRE
+        # An observed release at its declared ordered pose is not an unplanned
+        # drop. Authorize before the generic lost-grasp recovery branch.
+        if self._terminal_release_ready(actual):self._begin_release(now,events)
         if self.event_index<len(self.spec.events):
             planned=self.spec.events[self.event_index];kind=planned.kind
             observed=((kind==EventType.CONTACT and feedback.grasp_established and not self.last_grasp)
-                or (kind==EventType.RELEASE and feedback.released and not self.last_release
+                or (kind==EventType.RELEASE and feedback.released
                     and self._release_expected(actual,planned)))
             if observed:self.event_index+=1
         self.last_grasp=feedback.grasp_established;self.last_release=feedback.released
@@ -143,7 +164,7 @@ class TaskScheduler:
                     goal=self.probe_origin.copy();goal[:3,3]+=direction/np.linalg.norm(direction)*self.config.probe_distance_m
                     goal=self.path._bounded(actual,goal);probe=True
                 else:self.probe_origin=None
-            if self.phase in (Phase.ACQUIRE,Phase.TRACK) and self.failure_reason is None:
+            if self.phase in (Phase.ACQUIRE,Phase.TRACK,Phase.RELEASE) and self.failure_reason is None:
                 # Observe geometry from the first real state, before the
                 # motion-coupling dwell confirms grasp. Path milestones are
                 # geometric evidence, not grasp or task-stage certificates.
@@ -159,28 +180,31 @@ class TaskScheduler:
                     self.path.settle_since=None;self.path.last_pose=None
                     self.path.progress_anchor_arc=float(self.path.arc[self.path.milestones[self.confirmed_pointer]])
                 self.path_decision=self.path.update(actual,now,hand_points=hand_points,
-                    execution_ready=bool(self.phase==Phase.TRACK or (candidate and not self.recovering)))
-                if self.phase==Phase.TRACK:
+                    execution_ready=bool(self.phase in (Phase.TRACK,Phase.RELEASE) or (candidate and not self.recovering)))
+                if self.phase in (Phase.TRACK,Phase.RELEASE):
                     self.confirmed_progress=self.path_decision['confirmed_progress']
                     self.confirmed_pointer=self.path.pointer;self.confirmed_path_complete=self.path.complete
                     self.plan_cursor_frame=max(self.plan_cursor_frame,float(self.spec.source_frames[self.path_decision['projected_index']]))
             if self.phase==Phase.TRACK:
                 goal=self.path_decision['goal_pose'].copy()
                 if self.path_decision['timed_out']:self.failure_reason='path_'+self.path_decision['reason']
+                if self._terminal_release_ready(actual):self._begin_release(now,events)
                 at_end=self.path._reached(actual,self.path.poses[-1])
                 if self.path_decision['complete'] and at_end:
                     self._transition('path_arrived',events)
                     if self.spec.terminal_mode==TerminalMode.RELEASE:
-                        self.phase=Phase.RELEASE;self.phase_since=now;self.settle_since=None
+                        if self.phase!=Phase.RELEASE:self._begin_release(now,events)
                     elif self.spec.terminal_mode==TerminalMode.HOLD:
                         valid=feedback.grasp_established and not feedback.grasp_lost and feedback.stable
                         self._settle(valid,now,events)
                 else:self.settle_since=None
             if self.phase==Phase.RELEASE:
-                goal=self.path.poses[-1].copy()
-                if self.spec.goal_type=='position_only':goal[:3,:3]=actual[:3,:3]
-                at_end=self.path._reached(actual,goal)
-                valid=at_end and feedback.released and feedback.stable and (feedback.supported is True or not self.spec.require_support)
+                goal=self.path_decision['goal_pose'].copy()
+                if self.path_decision['timed_out']:self.failure_reason='path_'+self.path_decision['reason']
+                at_end=self.path._reached(actual,self.path.poses[-1])
+                valid=bool(self.path_decision['complete'] and at_end and feedback.released and feedback.stable
+                    and (feedback.supported is True or not self.spec.require_support))
+                if self.path_decision['complete'] and at_end:self._transition('path_arrived',events)
                 self._settle(valid,now,events)
                 if not self.complete and now-self.phase_since>=self.config.release_timeout_s:self.failure_reason='release_timeout'
         if self.failure_reason is not None:goal=actual.copy();self.settle_since=None;probe=False

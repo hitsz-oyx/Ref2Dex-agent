@@ -19,6 +19,12 @@ run_id: goal-chain-audit-20261022-r1
 
 # Goal contract, event-aligned identifiability and deployment-path consistency
 
+**12:4x implementation update**: restoring complete task declarations and fixing RELEASE phase timing
+changes the same 501 archived robot trajectories from 0 to 77 full-task scorer successes (9 inside the
+safe prefixes). This is a scorer repair, not a new physical-policy result. New teacher/source-PD controls
+remain 0/6 complete tasks, so P1 stays HOLD. See [the joint review package](../../audit/fix-review-20261022.md)
+for diffs, concrete expectations, remaining intent/reset/action limits, and the conditional v6 retrain list.
+
 Result: COMPLETED. FullDEV3356/K8: healthy OracleH/O15.80/14.72mm versus FM17.37/16.21; Planner21.12/25.55 versus22.79/27.60. Goal semantics mismatch verified; contact-region gains not robust after phase/same-window controls.
 Decision: prioritize clarifying the spatial-goal/time contract and sequence generalization before scaling. Do not directly relabel t24 supervision with planner waypoints without defining the timing/target contract. No new training, loss, model or data changes. Three-executor-prior study remains design only.
 

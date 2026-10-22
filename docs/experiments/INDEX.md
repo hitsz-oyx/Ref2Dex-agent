@@ -384,6 +384,12 @@
 | [P-20261009-hidden-physx-state-api-audit](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-hidden-physx-state-api-audit.md) | Does the public Isaac Gym API expose a hidden PhysX fork/restore contract? | 见原卡 | 见原卡 | probes/UNPROMISING |
 | [P-20261009-ref13-panel-inventory](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-ref13-panel-inventory.md) | Is the complete ref13 candidate panel recoverable? | 见原卡 | 见原卡 | probes/UNPROMISING |
 
+## HF-native-teacher-action-reset-acceptance
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261022-teacher-action-reset-validation](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261022-teacher-action-reset-validation.md) | 原生动作与indexed reset验收；teacher/source-PD上限 | 见原卡 | 见原卡 | probes/COMPLETED |
+
 ## HF-nine-source-pretrain
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

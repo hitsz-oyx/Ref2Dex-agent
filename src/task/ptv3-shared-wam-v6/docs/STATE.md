@@ -1,3 +1,35 @@
+## 2026-10-22 12:4x 完整声明/释放时序/voxel协议已修，teacher上限资格FAIL，P1 HOLD
+
+共同复核入口：[fix-review-20261022.md](audit/fix-review-20261022.md)。未启动新RL或v6大训练，
+训练重启需Hermes确认。旧437/64筛选方案由完整声明修复取代：501原cohort全部保留，
+473终态翻转恢复成490R/11H/0U，56418安全prefix控制、1221事件、81794有序source_frames
+不变；491删失、709超prefix事件保留，不把不可观察事件当NONE。真UNKNOWN仍显式拒绝，
+旧坏sidecar必须先迁移，不能静默过滤。初态voxel501/501通过。
+
+固定原501真实轨迹/完整raw task，TaskScheduler v2同指标复评分：full成功0→77/501，
+prefix0→9/501；RELEASE授权1→205、pathcomplete1→204，剩415删失/9pathstall。
+bowl171帧授权、222帧成功；hammer233帧授权、269帧成功。修复按有序release位姿授权，
+继续检查释放后剩余路径与终态1秒，未降低门槛。不是新物理执行/独立策略评估成功率。
+491 unsafe/censored来源不能凭新scorer成功自动认证成高质量完整正示教。
+
+voxel保持初态准入与每tick输入保护，在线坏点不送PTv3，τ invalid并单独记数，不再当机械
+工作空间立即终止。注入错误点额外done1→0、invalid计数1；初态错误仍拒绝。
+新增admission v2/scheduler v2/domain v1身份绑定resume，不能与旧训练混用。
+
+真实GPU4工程24/24 PD/运动通过。已修continuous腕角reset代表，生产r4同协议24/24、
+PD误差0，2/4步indexed reset旧13+palm_pose共14字段untouched差0；真实刚体首tick旋转
+airplane0.002434/cubemedium0.000435rad。此前teacher/sourcePD各6条完整任务都0/6，
+teacher5删失；sourcePD3acquire timeout、1path stall、2未完成。审计nearest-angle单例0/1，
+平移Y动作饱和未解决。不能把这些旧初始化采集0/6套作生产reset修后完整链结果；修后尚未
+重跑完整正控，上限资格仍未通过。含全部尝试共9366envcontrols、所有自有进程已退出。
+GPU5真flow11000/PTv3→21/11→BC→PD smoke PASS，单次WAM0.491s；官方PPO仍v4/UNWIRED。
+
+证据：`outputs/wam-rl-policy-v3/inspire-task-prefix-semantics-20261022-r1/`；
+`outputs/ptv3-shared-wam-v6/prefix-task-rescore-20261022-r1/`；
+`teacher-task-scoring-20261022-r1/`；`fix-review-20261022-r1/`。
+88回归、19不变量/错误注入、8production源码mutants通过；物理上限未过不等于方法无收益。
+本节覆盖下方同日旧准入/CPU-only/待测描述，历史记录与旧结果不改写。
+
 ## 2026-10-22 12:3x 机主停止FM长训；确认缺陷已修、P1继续HOLD
 
 Hermes12:29 SIGINT由机主转达；独立确认目标11个PID已退出，GPU4/5/6各6MiB/0%，未重启。

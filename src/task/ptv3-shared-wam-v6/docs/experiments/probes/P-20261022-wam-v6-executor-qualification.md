@@ -20,6 +20,12 @@ decision_changed_if_negative: prioritize execution chain; do not call tau decodi
 
 # Fixed executor on unseen robot sequences
 
+**12:4x评分修复范围**：安全prefix曾改写任务、完整RELEASE时序亦有缺陷，同501历史真实
+reference档案修后full评分0→77、prefix0→9。这要求复核本卡旧完整任务0/14的任务声明/
+评分版本，不能拿它当已合格评分器下的v6失败。原抓取抬升秒制局部指标仍单列保留。
+新teacher/sourcePD6例完整任务仍0/6未资格；GT-τ执行链及v6方法否决仍不成立。
+详见[共同复核包](../../audit/fix-review-20261022.md)，没有把77个回放评分回填为本卡新执行。
+
 This tests whether the existing tau-adapted executor can execute robot future
 references before attributing physical failures to WAM. Cheapest discriminating
 comparison: paired native robot command replay, frozen executor with GT robot

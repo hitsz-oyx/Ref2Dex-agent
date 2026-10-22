@@ -16,6 +16,7 @@ from .inspire_contract import expand_action
 from .inspire_state_codec import unpack_state
 from .wam_v4_runtime import v4_online_samples,collate_v4
 from .task_admission import load_executable_tasks
+from .model_domain import current_v4_domain_sample
 
 REWARD_COMPONENTS=('shaping','event','sparse','time','effort','external_terminal')
 
@@ -38,6 +39,7 @@ class MeasuredOfficialEnv:
         self.task=SimpleNamespace(cfg={'seed':246},max_episode_length=1800,random_time=False)
         self.batch=batch;self.shared_tf32=shared_tf32;self.inference_audit=None;self.reset_probe=reset_probe;self.steps=0;self.reset_count=0;self.completed_episodes=0;self.successes=0;self.workspace_failures=0
         self.reset_audits=[];self.source_mismatches=0;self.max_goal_error=0.;self.tau_valid_count=0;self.timings={}
+        self.model_domain_invalid_steps=0;self.model_domain_invalid_episodes=0
         entries,self.task_admission=load_executable_tasks(manifest);self.records={};self.shape_features={}
         if not entries:raise ValueError('no executable TRAIN tasks: all eligible tasks UNKNOWN or empty')
         for row,spec,side in entries:
@@ -54,6 +56,7 @@ class MeasuredOfficialEnv:
         self.histories=[deque(maxlen=4) for _ in range(n)];self.hands=[deque(maxlen=4) for _ in range(n)]
         self.previous=np.zeros((n,12),np.float32);self.observations=torch.zeros((n,686),device=self.device)
         self.workspace=np.zeros(n,bool);self.initial_z=np.zeros(n);self.max_lift=np.zeros(n)
+        self.domain_invalid_seen=np.zeros(n,bool)
         self.streak=np.zeros(n,int);self.longest=np.zeros(n,int);self.returns=np.zeros(n)
         self.reward_components=np.zeros((n,len(REWARD_COMPONENTS)),np.float64);self.phase_controls=np.zeros((n,3),np.int64)
         self.reward_totals=np.zeros(len(REWARD_COMPONENTS),np.float64);self.phase_totals=np.zeros(3,np.int64)
@@ -86,10 +89,14 @@ class MeasuredOfficialEnv:
             spec,points,bounds,obj=self.records[name]
             if self.runtime.env_objects[i]['object_code']!='dexplore/'+obj:raise ValueError('reset changed bound object geometry')
             if reset:
+                admission=current_v4_domain_sample(poses[i],hand[i],self.runtime.geometry[i])
+                if not self.runtime.workspace_valid([admission])[0]:
+                    raise ValueError(f'model-domain admission failed for sequence={name}, env={i}; not a task failure')
                 self.controllers[i]=TaskController(spec,points);self.trackers[i]=MeasuredRewardTracker()
                 self.histories[i].clear();self.hands[i].clear();self.previous[i]=0
                 self.initial_z[i]=objects[i,2];self.max_lift[i]=0;self.streak[i]=0;self.longest[i]=0;self.returns[i]=0
                 self.reward_components[i]=0;self.phase_controls[i]=0
+                self.domain_invalid_seen[i]=False
             self.workspace[i]=False
             dof_valid=bool(np.asarray(native['dof_force_valid'])[i]);contact_valid=bool(np.asarray(native['contact_force_valid'])[i])
             force=np.asarray(native['dof_force'],np.float32)[i];contact=np.asarray(native['contact_forces'],np.float32)[i]
@@ -104,7 +111,9 @@ class MeasuredOfficialEnv:
                 delta,error=task_wam_goal(poses[i],decision.local_goal_pose,task,self.runtime.geometry[i][2]);self.max_goal_error=max(self.max_goal_error,error)
                 sample=v4_online_samples(np.asarray(self.histories[i])[None],np.asarray(self.hands[i])[None],[self.runtime.geometry[i]],goal_delta=delta[None])[0]
                 if self.runtime.workspace_valid([sample])[0]:samples.append(sample);sample_ids.append(local);rotations.append(poses[i,:3,:3].copy())
-                else:self.workspace[i]=True
+                else:
+                    self.workspace[i]=True;self.model_domain_invalid_steps+=1
+                    if not self.domain_invalid_seen[i]:self.model_domain_invalid_episodes+=1;self.domain_invalid_seen[i]=True
             features=reward_features(poses[i],hand[i],points,decision,objects[i,7:13],contact)
             if reset:self.trackers[i].initialize(decision,features)
             self.latest[i]=(decision,features)
@@ -140,7 +149,8 @@ class MeasuredOfficialEnv:
 
     def training_statistics(self):
         out=dict(transitions=self.transition_count,reward_sum=self.reward_total,
-                 completed_episode_controls=self.completed_controls,completed_episode_return_sum=self.completed_returns)
+                 completed_episode_controls=self.completed_controls,completed_episode_return_sum=self.completed_returns,
+                 model_domain_invalid_steps=self.model_domain_invalid_steps,model_domain_invalid_episodes=self.model_domain_invalid_episodes)
         out.update({'phase_'+name+'_controls':int(value) for name,value in zip(('acquire','track','release'),self.phase_totals)})
         out.update({'reward_component_'+name:float(value) for name,value in zip(REWARD_COMPONENTS,self.reward_totals)})
         return out
@@ -155,10 +165,10 @@ class MeasuredOfficialEnv:
         reward=np.zeros(self.num_envs,np.float32);done=np.zeros(self.num_envs,bool);results={}
         for i,(decision,features) in enumerate(self.latest):
             r,parts=self.trackers[i].step(decision,features,canonical[i]);reward[i]=r
-            done[i]=decision.terminated or self.workspace[i]
+            done[i]=decision.terminated
             forced=self.reset_probe and ((self.steps==2 and i==0) or (self.steps==4 and i==1))
             if forced:done[i]=True
-            if (self.workspace[i] or forced) and not decision.terminated:
+            if forced and not decision.terminated:
                 # External terminal must also zero the next potential, not bootstrap through reset.
                 from .task_reward import potential
                 reward[i]-=self.trackers[i].gamma*potential(decision,features)+self.trackers[i].reward.failure_cost
@@ -170,13 +180,14 @@ class MeasuredOfficialEnv:
             lift=float(self.native['objects'][i][2]-self.initial_z[i]);self.max_lift[i]=max(self.max_lift[i],lift)
             self.streak[i]=self.streak[i]+1 if lift>=.05 else 0;self.longest[i]=max(self.longest[i],self.streak[i])
             if done[i]:
-                result=dict(episode_id=source[i],sequence=self.native['sequences'][i],task_success=bool(decision.task_complete and not self.workspace[i] and not forced),
-                    failure_reason='engineering_reset' if forced else 'wam_workspace' if self.workspace[i] else decision.failure_reason,
+                result=dict(episode_id=source[i],sequence=self.native['sequences'][i],task_success=bool(decision.task_complete and not forced),
+                    failure_reason='engineering_reset' if forced else decision.failure_reason,
+                    model_domain_invalid_seen=bool(self.domain_invalid_seen[i]),
                     confirmed_progress=float(decision.path_progress),return_sum=float(self.returns[i]),controls=int(self.native['tick'][i]),max_lift_m=float(self.max_lift[i]),ever_lift5cm30=bool(self.longest[i]>=30),
                     terminal_mode=self.controllers[i].scheduler.spec.terminal_mode.value,
                     reward_components=dict(zip(REWARD_COMPONENTS,self.reward_components[i].tolist())),
                     phase_controls=dict(zip(('acquire','track','release'),self.phase_controls[i].tolist())))
-                results[i]=result;self.completed_episodes+=1;self.successes+=int(result['task_success']);self.workspace_failures+=int(self.workspace[i])
+                results[i]=result;self.completed_episodes+=1;self.successes+=int(result['task_success'])
                 self.completed_controls+=result['controls'];self.completed_returns+=result['return_sum']
                 if self.episode_sink is not None:self.episode_sink(dict(result,environment=i))
         terminal=self.observations.clone();terminal_episodes=list(self.native['episodes']);ids=np.flatnonzero(done)

@@ -179,12 +179,12 @@ def test_unplanned_drop_keeps_planned_release_and_requests_regrasp_contact():
     assert scheduler.event_index==2 and d.next_event.kind is None
 
 
-def test_drop_at_endpoint_before_release_phase_keeps_terminal_release_pending():
+def test_drop_before_declared_release_pose_keeps_terminal_release_pending():
     poses=reference();spec=TaskSpec.from_reference(poses,source_fps=30,terminal_mode='RELEASE',
         events=(TaskEvent(0,'CONTACT'),TaskEvent(30,'RELEASE')))
     scheduler=TaskScheduler(spec,points());held=InteractionFeedback(grasp_established=True,stable=True)
-    for t in range(31):d=scheduler.update(poses[t],t/30,held)
-    assert d.phase==Phase.TRACK and d.source_cursor_frame==30
-    d=scheduler.update(poses[-1],31/30,InteractionFeedback(grasp_lost=True,released=True))
+    for t in range(16):d=scheduler.update(poses[t],t/30,held)
+    assert d.phase==Phase.TRACK and d.source_cursor_frame<30
+    d=scheduler.update(poses[15],16/30,InteractionFeedback(grasp_lost=True,released=True))
     assert d.phase==Phase.ACQUIRE and d.next_event.kind==EventType.CONTACT
     assert scheduler.event_index==1

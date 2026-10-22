@@ -1,5 +1,11 @@
 # v6 → 官方 measured PPO 接线可行性（2026-10-22）
 
+**12:4x新增真实checkpoint smoke**：已获GPU456工程验证授权，在使用前检查GPU5空闲后，
+以真实`flowmatching-overnight-20261022-r2/training/step011000.pt`做真实PTv3 GPU forward
+→稀疏21/11→原Scheduled686 BC→native PD，1个真实H4 PASS，WAM前向0.490903s、18目标finite。
+没有替换官方PPO的V4Runtime，没有PhysX/optimizer，也不是执行成功资格。
+复现命令与输出见[共同复核包](fix-review-20261022.md)；下文CPU seam结果为之前阶段，单独保留。
+
 **当前官方PPO链只覆盖v4；v6在该入口未接线（UNWIRED）。** 本轮没有把V4Runtime
 替换成v6。已有P0推理/物理executor入口和P1独立入口使用过v6，不等于官方PPO完成迁移。
 

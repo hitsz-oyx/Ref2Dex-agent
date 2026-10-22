@@ -1,3 +1,33 @@
+## 2026-10-22 12:4x 共同复核修复：完整任务评分0→77/501，teacher新执行资格仍FAIL
+
+优先级为修执行/标注合同；P1继续HOLD，没有新RL或v6大训练。旧437准入方案已被本节取代：
+安全prefix曾造成473/501终态翻转，现完整保留501原声明与56418可用controls，恢复490RELEASE/
+11HOLD/0UNKNOWN；491删失、709个超prefix事件保留，不把未来不可用标NONE。新task与原raw
+逐packet501/501相同；原初态voxel501/501通过。真UNKNOWN仍准入拒绝，旧坏manifest明确报错。
+
+TaskScheduler修复“等待录制完整终点settle后才允许释放”的时序错误，schema v2：按序到达
+声明release位姿后授权，释放后继续核剩余路径、实际终点稳定/支撑/分离1s，门槛不放宽。
+同501原真实轨迹、同完整声明：旧full0/501→新77/501（15.37%），prefix0→9/501（1.80%）；
+full RELEASE授权1→205，pathcomplete1→204；剩415删失+9pathstall，不能当物理失败率。
+这是评分修复，不是新policy执行成功率；full unsafe后缀不能自动认证高质量完整示教。
+
+voxel初态准入/在线输入保护保留原grid，在线越界屏蔽τ并计model_domain_invalid，不再直接
+终止物理任务。一次错误点注入：额外done1→0、tau_valid→0、计数1；初态越界setup拒绝。
+新admission/scheduler/domain身份绑定resume，旧实验不能无声切协议。
+
+GPU4工程实测24/24轴PD与运动通过。continuous腕角reset只规范化rpy代表，同姿态、平移/
+手指/dq不变；生产r4再验24/24、PD误差0、两次14字段untouched差0，实测刚体首tick旋转
+airplane0.002434/cubemedium0.000435rad。此前未修reset的teacher/sourcePD各6例完整任务
+均0/6（teacher5删失），审计branch0/1；不能套作生产修复后完整链结果。修后尚未重跑完整
+teacher，上限资格仍未通过；sourcePD平移Y动作饱和待解决。总9366物理controls，均已退出。
+GPU5真实step11000 v6 PTv3→21/11→旧BC→native PD smoke通过，单次WAM0.491s；
+官方PPO仍明确v4，v6 UNWIRED。flowmatching保持停止，11000权重未覆盖。
+
+88项回归、19个不变量及错误检测、8个production源码mutants均通过，不能代替物理资格。
+共同复核入口：`src/task/ptv3-shared-wam-v6/docs/audit/fix-review-20261022.md`，包含diff行号、
+复现命令/期望数值、危害表、未决项和最小v6重训清单（须Hermes确认后才可启动）。
+本节覆盖下方旧437/64准入、CPU-only与未做teacher的历史状态；旧产物原样保留。
+
 ## 2026-10-22 12:3x 机主停止FM长训；确认缺陷已修、P1继续HOLD
 
 Hermes12:29 SIGINT由机主转达；独立确认目标11个PID已退出，GPU4/5/6各6MiB/0%，未重启。

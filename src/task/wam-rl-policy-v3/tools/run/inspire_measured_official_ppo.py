@@ -31,6 +31,8 @@ def main():
  from wam_rl_policy_v3.scheduled_ppo_loop import parameter_sync_error
  from wam_rl_policy_v3.checkpoint_retention import prune_checkpoints
  from wam_rl_policy_v3.task_admission import load_executable_tasks,require_native_membership
+ from wam_rl_policy_v3.model_domain import DOMAIN_POLICY
+ from wam_rl_policy_v3.task_scheduler import SCHEDULER_SCHEMA
  _,task_admission=load_executable_tasks(a.audit_manifest.resolve())
  write(a.output/'task-admission.json',task_admission)
  if not task_admission['admitted_count']:raise ValueError('no executable TRAIN tasks: all eligible tasks UNKNOWN or empty')
@@ -44,7 +46,7 @@ def main():
  state=dict(status='WAITING_NATIVE',experiment_id='P-20261020-inspire-measured-official-ppo',run_id=a.output.parent.name,git_commit=commit,python=sys.executable,torch=torch.__version__,gpu=a.gpu,rank=a.rank,world_size=a.world_size,bc=str(a.bc.resolve()),bc_step=packet['step'],source_manifest=str(a.audit_manifest.resolve()),optimizer_steps=0,iteration=0,
   ppo_engine='pinned UniDexGrasp2 official; actual-KL/global advantage/gradient adapters reused from Shadow',observation_dim=686,cad_encoder='frozen BC encoder, part of checkpoint',reset_contract='step in source episode; terminal reward then eager indexed reset before next sampling',reset_probe=a.reset_probe,
   task_admission=dict(schema=task_admission['schema'],admitted_count=task_admission['admitted_count'],rejected_count=task_admission['rejected_count'],file=str(a.output/'task-admission.json')),
-  wam_version='v4',wam_trajectory_shape=[24,2,11,3],v6_connection='UNWIRED in this PPO entrypoint')
+  wam_version='v4',wam_trajectory_shape=[24,2,11,3],v6_connection='UNWIRED in this PPO entrypoint',model_domain_policy=DOMAIN_POLICY,task_scheduler_schema=SCHEDULER_SCHEMA)
  write(a.output/'manifest.json',state);print('READY',flush=True);connection=None;env=None;ppo=None;started=time.monotonic()
  try:
   connection,_=listener.accept();connection.settimeout(600);hello=receive(connection);state['native_peer_pid']=peer_pid(connection)
@@ -66,7 +68,7 @@ def main():
   from wam_rl_policy_v3.bc_mlp import NormalizedCommandMLP
   actor=NormalizedCommandMLP(686,312,12).cuda();actor.load_state_dict(model.actor.state_dict(),strict=True);ppo.actor_critic.actor=actor
   ppo.optimizer=torch.optim.Adam(ppo.actor_critic.parameters(),lr=cfg['learn']['optim_stepsize'])
-  identity=dict(source=str(a.audit_manifest.resolve()),bc=str(a.bc.resolve()),wam=packet['config']['wam'],geometry=str(a.geometry_cache.resolve()),world_size=a.world_size,envs=env.num_envs,physics_backend=hello['audit'].get('physics_backend','gpu'),wam_batch=a.wam_batch,shared_tf32=a.shared_tf32,task_admission_policy=task_admission['schema'])
+  identity=dict(source=str(a.audit_manifest.resolve()),bc=str(a.bc.resolve()),wam=packet['config']['wam'],geometry=str(a.geometry_cache.resolve()),world_size=a.world_size,envs=env.num_envs,physics_backend=hello['audit'].get('physics_backend','gpu'),wam_batch=a.wam_batch,shared_tf32=a.shared_tf32,task_admission_policy=task_admission['schema'],model_domain_policy=DOMAIN_POLICY,task_scheduler_schema=SCHEDULER_SCHEMA,reset_angle_policy=hello['audit'].get('reset_angle_policy','legacy-unwrapped'))
   completed=0
   if a.resume:
    saved=torch.load(a.resume,map_location='cuda',weights_only=False)

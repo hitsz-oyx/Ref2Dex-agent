@@ -19,6 +19,12 @@ run_id: samples-efficiency-3arm-20261022-r1
 
 # 三臂抓取—抬升样本效率 Decision Probe
 
+**12:4x继续HOLD**：prefix完整声明与release时序已修（同501记录评分0→77），物理动作/
+indexed reset已过工程检查；新teacher/sourcePD6例完整任务仍0/6，95%上限资格未过，
+raw释放意图/连续腕角/动作范围与跟踪误差仍须解决。此时三臂“无收益”无法归因，禁止恢复。
+新task10/τ cache必须重建，不能沿用旧prefix任务条件。最新证据：
+[共同复核包](../../audit/fix-review-20261022.md)。下文历史“按设计直接跑”不覆盖本HOLD。
+
 这是设计先行的 Probe，不是结果。P0 qualification 优先；已有 executor 未证明
 能稳定执行未见机器人 GT-τ 时，本卡不能把 C 的失败归因为预测质量，也不能拿历史
 PPO 的训练计数冒充本实验成功率。用户授权按设计直接运行首批，无需另行确认。

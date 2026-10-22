@@ -3,7 +3,7 @@
 Uses a tiny random v6 with the CPU geometry test seam, not a trained WAM or
 PhysX. Does not install a v6 runtime into the official PPO entrypoint.
 """
-import argparse,json,sys
+import argparse,json,sys,time
 from pathlib import Path
 from types import SimpleNamespace
 import numpy as np
@@ -26,9 +26,7 @@ from wam_rl_policy_v3.task_spec import TaskSpec
 from audit_action_reset_cpu import native_pd_function
 
 
-def run():
-    sys.path.insert(0,str(ROOT/'src/task/ptv3-shared-wam-v5/tests'))
-    from test_v5_contract import Geometry,config,stats
+def run(checkpoint=None,device='cpu'):
     torch.set_num_threads(2);torch.manual_seed(185)
     base=ROOT/'outputs/ptv3-shared-wam-v6/executor-qualification-20261022-r1'
     panel=json.loads((base/'panel.json').read_text());row=panel['records'][0]
@@ -46,9 +44,21 @@ def run():
     indices=np.asarray(SPARSE11_IN_21);joints[:,0,indices]=data['hand'][:,NATIVE_TO_WAM]
     valid=np.zeros((2,21),bool);valid[0,indices]=True
     sample=online(geo,data['obj'],joints,np.zeros((4,2,778,3),np.float32),valid,np.zeros((2,778),bool),np.zeros((2,778),int),decision.local_goal_pose,event)
-    cfg=dict(config(),schema=SCHEMA,event_conditioning=True,event_encoding=EVENT_ENCODING,event_dropout=.15)
-    model=SharedWAMV6(stats(),cfg,Geometry(8)).eval()
-    with torch.no_grad():pred=model(collate([sample]))['trajectory'].numpy()
+    if checkpoint is None:
+        sys.path.insert(0,str(ROOT/'src/task/ptv3-shared-wam-v5/tests'))
+        from test_v5_contract import Geometry,config,stats
+        cfg=dict(config(),schema=SCHEMA,event_conditioning=True,event_encoding=EVENT_ENCODING,event_dropout=.15)
+        model=SharedWAMV6(stats(),cfg,Geometry(8)).eval();wam_step=None
+    else:
+        from ptv3_shared_wam_v6.online_runtime import OnlineV6Runtime
+        runtime=OnlineV6Runtime(checkpoint,ROOT/'outputs/ptv3-shared-wam-v6/local-expanded-recipe-20261021-r1/stats.json',base/'geometry',device=device)
+        model=runtime.model;wam_step=runtime.step
+    batch={k:v.to(device) for k,v in collate([sample]).items()}
+    if str(device).startswith('cuda'):torch.cuda.synchronize()
+    started=time.monotonic()
+    with torch.inference_mode():pred=model(batch)['trajectory'].float().cpu().numpy()
+    if str(device).startswith('cuda'):torch.cuda.synchronize()
+    wam_seconds=time.monotonic()-started
     assert pred.shape==(1,24,2,21,3) and not pred[:,:,1].any()
     canonical_world=pred[0,:,0][:,indices]@data['obj'][-1,:3,:3].T
     tau=canonical_world[:8,WAM_TO_NATIVE].copy()
@@ -57,19 +67,20 @@ def run():
         controller.scheduler.spec.object_path[-1,:3,3][None],np.zeros((1,12),np.float32))[0]
     forces=data['body_contact_forces'][-1,ids_contact]
     measured=np.r_[current,data['dof_force'][-1],forces.reshape(-1),float(data['dof_force_valid'][-1]),float(data['contact_force_valid'][-1])].astype(np.float32)
-    checkpoint=ROOT/'outputs/wam-rl-policy-v3/inspire-scheduled686-bc-20261020-r4/latest.pt'
-    packet=torch.load(checkpoint,map_location='cpu',weights_only=False);actor=MeasuredInspirePolicy(with_tau=True).eval();actor.load_state_dict(packet['model'],strict=True)
+    bc_checkpoint=ROOT/'outputs/wam-rl-policy-v3/inspire-scheduled686-bc-20261020-r4/latest.pt'
+    packet=torch.load(bc_checkpoint,map_location='cpu',weights_only=False);actor=MeasuredInspirePolicy(with_tau=True).eval();actor.load_state_dict(packet['model'],strict=True)
     with torch.no_grad():raw=actor(torch.tensor(measured[None]),torch.tensor(result['task'][None]),torch.tensor(geo['surface'][None]),tau=torch.tensor(tau[None]),tau_valid=torch.tensor([True])).numpy()
     clipped=np.clip(raw,-1,1);expanded=expand_action(clipped);native,evidence=native_pd_function();ctrl=receipt['native_controller']
     target=native(SimpleNamespace(_pd_action_offset=torch.tensor(ctrl['offset']),_pd_action_scale=torch.tensor(ctrl['scale']),_dof_pos=torch.tensor(data['q'][-1:])),torch.tensor(expanded)).numpy()
     assert np.isfinite(target).all() and target.shape==(1,18)
-    return dict(status='PASS',scope='CPU boundary-only, tiny random v6 + geometry seam, real robot H4 and actual frozen BC; no trained-WAM quality claim, no physics, no PPO optimizer',
-        official_ppo_v6_connection='UNWIRED',sequence=row['sequence'],wam_schema=SCHEMA,bc_checkpoint=str(checkpoint),bc_step=packet['step'],
+    scope=('trained v6 real PTv3 GPU forward' if checkpoint else 'CPU tiny random v6 + geometry seam')+' -> sparse11 -> actual frozen BC -> native PD; real H4, no physics, no PPO optimizer, no quality claim'
+    return dict(status='PASS',scope=scope,wam_checkpoint=str(checkpoint) if checkpoint else None,wam_step=wam_step,wam_seconds=wam_seconds,device=str(device),
+        official_ppo_v6_connection='UNWIRED',sequence=row['sequence'],wam_schema=SCHEMA,bc_checkpoint=str(bc_checkpoint),bc_step=packet['step'],
         input_history_frames=[0,1,2,3],sparse21_indices=indices.tolist(),native_to_canonical=NATIVE_TO_WAM.tolist(),canonical_to_native=WAM_TO_NATIVE.tolist(),
         event=event,goal_pose=decision.local_goal_pose.tolist(),output_shape=list(pred.shape),student_shape=list(tau.shape),
         invalid_left_zero=True,unknown_joints_invalid=True,dense_skin_valid_count=0,raw_action=raw.tolist(),clipped_action=clipped.tolist(),pd_target=target.tolist(),native_pd_source=evidence)
 
 
 if __name__=='__main__':
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--output',type=Path,required=True);args=parser.parse_args()
-    report=run();args.output.parent.mkdir(parents=True,exist_ok=True);args.output.write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(dict(status=report['status'],scope=report['scope'],output=str(args.output))))
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--output',type=Path,required=True);parser.add_argument('--checkpoint',type=Path);parser.add_argument('--device',default='cpu');args=parser.parse_args()
+    report=run(args.checkpoint,args.device);args.output.parent.mkdir(parents=True,exist_ok=True);args.output.write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(dict(status=report['status'],scope=report['scope'],output=str(args.output))))

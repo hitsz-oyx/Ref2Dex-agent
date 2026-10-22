@@ -17,6 +17,15 @@ status: STOPPED
 run_id: inspire-measured-official-20261020-r3
 ---
 
+2026-10-22 12:4x repair scope: old prefix construction changed473/501 terminal modes; restored complete
+declarations retain all501 tasks (490RELEASE/11HOLD), while true UNKNOWN is still refused. Fixing RELEASE
+timing changes same-archive full scoring0→77/501 (safe prefix0→9); old53,347 completed PPO episodes
+cannot be retroactively rescored without their missing physical traces. Official PPO remains v4, v6 UNWIRED.
+Voxel now protects admission/model inputs and no longer directly manufactures task termination; new
+teacher/source-PD complete-task qualification still fails0/6. See
+[reviewable fixes and remaining blockers](../../../../ptv3-shared-wam-v6/docs/audit/fix-review-20261022.md).
+Old run counters below are preserved historical observations, not repaired-run results.
+
 2026-10-21 user-authorized resource switch: r3 normal STOP at1575; all3 ranks
 STOPPED, six workers and supervisor exited. Final rank0 checkpoint61,158,850bytes
 CPU-loaded with finite model/optimizer and nonempty optimizer state. Training
