@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [293, 294, 295, 296, 297, 298, 299]
 decision_changed_if_positive: schedule daytime 1e6 controls for the same algorithm if >=3 initials improve without regressions
 decision_changed_if_negative: normal KL without gain means insufficient budget or coverage, never PPO invalidity
-status: RUNNING
+status: COMPLETED
 run_id: bc-ppo-usefulness-20261023-r1
 ---
 
@@ -21,7 +21,7 @@ run_id: bc-ppo-usefulness-20261023-r1
 
 ## 结果解读表
 
-| 结果（待 preflight 和配对实测填入） | 含义 | 决定 |
+| 预注册结果分支（实测见文末） | 含义 | 决定 |
 |---|---|---|
 | 1e5 内成功率↑或限位↓，且≥3初态改善、无回退 | PPO 本身有用 | 白天排1e6卡时 |
 | 1e5 无改善、KL/裁剪比正常（KL 1e-3–5e-2量级） | 预算/覆盖不足 | 只扩预算，不下“PPO无效”结论 |
@@ -55,7 +55,8 @@ checkpoint限频和固定runtime复用；原成功/安全/phase条件保持。
 preflight的PPO checkpoint不进入正式规模训练；正式两arm从同BC权重开始。
 输出、日志、原生Python与Torch/CUDA环境见各run manifest，不写入文档目录。
 
-Result: preflight numerical PASS, 22 updates, KL .000112–.008408, clip0–.1317, zero rollbacks; BC3.124/PPO4.060 controls/s. Main paired budget reduced explicitly to14400/arm.
-Decision: original100000/arm sequential estimate15.73h misses08:00; execute14400/arm on GPU7 after measured preflight report; retain original efficacy criteria.
+Result: budget explicitly reduced to14400/arm; deterministic BC0/6 vs PPO0/6, joint abort3→4; 0 improved/1 regressed initials; stochastic train BC0/30 vs PPO2/35 from2 initials, not retained in mean assessment; KL0.0000234–0.0095190; 0 rollback retries; raw and update replay PASS.
+Decision: 本次预算缩小运行未达预注册≥3初态改善无回退；完整1e5分支尚未检验，不能下“PPO无效”结论；本次不触发1e6排卡。
 
-[实测preflight与顺序耗时账](../../ppo-bc-usefulness-preflight-20261023.md)。
+[完整实测结果与序列](../../ppo-bc-usefulness-results-20261023.md)。
+[preflight实测与预算账](../../ppo-bc-usefulness-preflight-20261023.md)。

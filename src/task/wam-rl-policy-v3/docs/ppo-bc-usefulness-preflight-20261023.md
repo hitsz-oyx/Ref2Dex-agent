@@ -21,7 +21,7 @@ status: PREFLIGHT_COMPLETE_BUDGET_REDUCED
 preflight从04:08:06开始，报告时间2026-10-23T04:27:13.216195+08:00，累计19.11min。
 PPO 3600 controls / 886.657s，BC 600 / 192.086s。
 这是含模型/原生启动、reset、更新和落盘的端到端速度；不是优化器吞吐。
-PPO实际优化器速率0.024812 updates/s。
+PPO按总墙钟计的更新频率0.024812 updates/s；它包含等待采样的时间，并非纯optimizer kernel吞吐。每轮优化计算耗时另记`ppo_update.wall_s`。
 BC短测只覆盖第一个初态，PPO覆盖全部6初态且重复；因此速度不视为所有相位的常数。
 原计划preflight两arm各3600，首完整回合低于8/s后取消第二个3600，再补600 BC controls，
 使工程preflight在20分钟内完成；这不是正式配对预算。
