@@ -22,7 +22,7 @@ def summary(total,nwindows,valid_windows):
                     s,c=total[gi,bi,pi,mi];values[name]=dict(mean=float(s/c) if c else None,sum=float(s),count_per_draw=float(c),windows=int(valid_windows[gi,bi,pi,mi]))
                 for prefix in ('C','GTobj_geom','ownobj_geom'):
                     tp=values[prefix+'_tp']['sum'];fp=values[prefix+'_fp']['sum'];fn=values[prefix+'_fn']['sum'];den=2*tp+fp+fn
-                    values[prefix+'_F1']=dict(value=2*tp/den if den else None,tp=tp,fp=fp,fn=fn,queries_per_draw=values[prefix+'_tp']['count_per_draw'])
+                    values[prefix+'_F1']=dict(value=2*tp/den if den else None,tp=tp,fp=fp,fn=fn,queries_per_draw=values[prefix+'_tp']['count_per_draw'],windows=values[prefix+'_tp']['windows'])
                 byphase[phase]=values
             goal_result[band]=byphase
         result[goal]=goal_result
