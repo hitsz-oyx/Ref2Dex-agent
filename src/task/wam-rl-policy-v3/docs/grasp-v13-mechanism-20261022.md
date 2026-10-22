@@ -97,3 +97,16 @@ python3 src/task/wam-rl-policy-v3/tools/run/run_grasp_components.py --output out
 ```
 
 重复改为新的输出目录即可；不覆盖检查点。`supervisor.json` 保存每个worker的确切命令、PID、提交和GPU启动状态；冻结新增干预代码在 `launch-code/`。worker 的 `runtime-code/` 保留实际消费/host/scorer，manifest保存Python/Torch/CUDA、模型路径和控制计数。原生物理host固定 `/home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train/bin/python`。
+
+## 实现预检与排队
+
+预注册提交 `fad72d0a4c3c527a77fb13991569e90dcc6a719c` 已推送并核对远端。supervisor PID3701886 已以独立进程排队；不会抢占正在跑的覆盖n40。34项针对干预/阶段/消费/伺服的测试和全量278项相关测试通过（20.09s），日志 `preflight-tests.log`。17例审计重复运行逐字一致。
+
+首次共同有效预测时，seen40对的非τ观测误差为0，R的腕部与手指动作都改变；归一化动作差范数中位数约0.03014/0.05841。它们单位不同，不能据此判定哪个贡献大；这只是干净输入效应检查，不是成分成功机制。40对是同一seen初态重复seed，不能看作40种物体覆盖。复现：
+
+```sh
+python3 src/task/wam-rl-policy-v3/tools/audit/audit_v13_common_state.py --run outputs/wam-rl-policy-v3/grasp-v10-stat40-20261022-r1 --output outputs/wam-rl-policy-v3/grasp-v13-mechanism-20261022-r1/common-state-replay.json
+python3 src/task/wam-rl-policy-v3/tools/audit/audit_v13_phases.py --run outputs/wam-rl-policy-v3/grasp-v13-mechanism-20261022-r1 --output outputs/wam-rl-policy-v3/grasp-v13-mechanism-20261022-r1/phases.json
+```
+
+A4实现预检：9条源序列均有有效双指实测接触，接触帧30/41/40/48/37/42/33/39/45，匹配初始游标全为0；不存在缺失接触帧而默默回退。物理close是否真正进入仍待新批量记录，预检不代替实跑。
