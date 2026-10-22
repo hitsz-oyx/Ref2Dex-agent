@@ -14,7 +14,7 @@ from .tau_replay_contract import pd_targets
 from .interaction_state import InteractionConfig
 from .task_feedback import FeedbackObserver
 
-SOURCE_CEILING_CONTRACT = 'source.measured-motion.contact-stop.v9'
+SOURCE_CEILING_CONTRACT = 'source.measured-motion.contact-stop.physical-warning.v10'
 
 
 def object_anchored_source_target(target,reference_q,reference_palm,reference_object,
@@ -172,6 +172,17 @@ class MarginAdmission(JointAdmission):
             margin=min(.04 if i>=6 else .01, .1*(limits['upper'][i]-limits['lower'][i]))
             inner['lower'][i]+=margin;inner['upper'][i]-=margin
         super().__init__(inner,offset,scale)
+        self.measured_lower=np.asarray(limits['lower'],float)
+        self.measured_upper=np.asarray(limits['upper'],float)
+
+    def measured_pressure(self,q,dq):
+        # Command margins are NOT physical bounds. Ordinary elastic deflection
+        # must not replace the reference by another grasp. Match the existing
+        # source warning halfway to the unchanged +/- .10 physical abort.
+        q=np.asarray(q);dq=np.asarray(dq);projected=q+dq/30
+        risk=self.mask&(((projected<self.measured_lower-.05)&(dq<-.2))|
+                        ((projected>self.measured_upper+.05)&(dq>.2)))
+        return bool(risk.any())
 
 
 class SourceCeilingConsumer(GeometryGraspConsumer):

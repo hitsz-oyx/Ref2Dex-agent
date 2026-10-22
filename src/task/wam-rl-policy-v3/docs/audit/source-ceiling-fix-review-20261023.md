@@ -8,7 +8,7 @@
 | 提升但<32/40 | 修复不够，不能拿WAM解释数据量 | 按余下死因继续修source |
 | 不提升或实际限位仍多 | 当前方案未解决物理瓶颈 | 保留全部失败和gate，继续修；不训练v6 |
 
-当前状态：**R3–R6均已完成40且均0/40；未修好，不能称改善**。R7已运行且≥9失败，仍完成40。R8恢复source路径及完整腕PD目标，预注册同40/24000控制，尚未运行。旧source14/40；新四版合计93322控制、0更新。完整逐版数据在后文，各版原始失败均保留。
+当前状态：**原source14/40；R3–R7各完整0/40；R8至少30失败仍跑完40；未修好，不能称改善。** R9在0子进程/0控制时因实际step红测试取消；fresh R10保留闭合修复并拆开目标内余量/实测危险。source未达32前不比WAM。
 ## 修复、可证伪预测与复现
 
 R3历史定位（以提交99875f23核对；均以`src/task/wam-rl-policy-v3/`为前缀）：
@@ -164,3 +164,8 @@ SourceGraspReference新增live_object/live_palm入口：当前物体局部腕在
 R7在21个回合首次锁定时，目标离实测腕中位63.232mm/max178.322mm，仍继续挤推。`SourceCeilingConsumer.step`改成锁实测palm而非未来目标；红测试源R8/contact-stop-red.log实际输出推进.01m，修后0。失触恢复合同仍在。
 同模块probe分支删除“用持握微调覆盖尚未完成闭合”，保留source闭合目标及相邻.04rad上限、12N卸载；probe最多10mm/不是成功证书不变。红测试R8/probe-closure-red.log q=.4时旧命令.4，新.44；已抓住过早持握冻结。预期32专项/28mutants，现有命令可复核；物理n40门槛仍32，未达则不比WAM。
 R9仅在R8≥9完整失败后排队启动；仍不终止R7/R8原40、不改评分或物理gate。完整v3结果以R9/tests-all.log全量pass/failed为准。新逐物体死因仍由summary.json保存全部q/关节名/阶段/几何量，不挑最好例。
+
+## R10：目标准入与实测压力分离（R9未启动）
+
+实际step红测试R9/margin-replan-red.log为1 failed/32 deselected：q=.01在名义0界内、未达实测危险−.05，父Geometry却因目标margin .04而换抓姿。`grasp_geometry.py`只增加可选admission.measured_pressure两行钩子；source MarginAdmission将真实危险按原名义边界±.05且向外速度>0.2预警。PD候选仍须目标inner bounds，physical_safety±.10不动，普通控制器无hook保持旧行为。预期不必要的重规划1→0；卸载和真实gate仍有效。
+冻结prepare对v11 baseline仅注入同两行，不整份copy当前geometry，确保postservo/评分不被并行改动带入。R9 supervisor在QUEUED且pids/commands均空时被本线程取消，记录CANCELLED_PRESTART/0controls；从R8作为前序启动fresh R10，同40/24000/0updates，目标32。复现命令见实验卡R10；33专项/29mutants/全量309 passed/0 failed/0 skipped，20.85s、2 warnings。红测试与mutant都在真实step读reachability标记，非import失败。

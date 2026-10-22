@@ -377,3 +377,10 @@ def test_acquisition_probe_does_not_freeze_partly_completed_finger_closure():
     np.testing.assert_allclose(target,np.full(6,.44),atol=1e-6,
         err_msg='A candidate probe must retain the registered closure slew; tiny force-hold updates are premature')
     assert info['source_ceiling']['acquisition_probe'] and not args['feedback'].grasp_established
+
+
+def test_inner_target_margin_is_not_a_measured_collision_or_replanning_gate():
+    c,args=approaching();args['q'][6]=.01;args['dq'][6]=-.3
+    _,info=c.step(**args)
+    assert not info['reachability']['filter_active'], 'A safe compliant state outside the TARGET margin must not replace the source wrist with another grasp'
+    assert info['source_ceiling']['inner_target_admitted']

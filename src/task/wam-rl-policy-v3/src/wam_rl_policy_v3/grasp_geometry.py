@@ -192,6 +192,8 @@ class GeometryGraspConsumer(MeasuredGraspConsumer):
             # of the more permissive unchanged physical abort margin.
             projected=q+np.asarray(args['dq'])/30
             pressure=bool((self.admission.mask&((projected<self.admission.lower)|(projected>self.admission.upper))).any())
+            measured_warning=getattr(self.admission,'measured_pressure',None)
+            if measured_warning is not None:pressure=bool(measured_warning(q,args['dq']))
             geometry_needed=not safe or pressure or measured_gap<0
             choice=dict(status='R_ADMITTED',rejected_joint_indices=bad,measured_support_gap_m=measured_gap if np.isfinite(measured_gap) else None)
             if geometry_needed:

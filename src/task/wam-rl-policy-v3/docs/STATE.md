@@ -436,3 +436,5 @@ BC-only vs BC+残差PPO 配对 probe。1e5 无改善但 KL 正常只扩预算，
 R7已≥9完整失败，仍完成40；R8预注册恢复source PD接近路径（实测最近前方状态游标）及前驱腕PD目标，避免静态key丢失动作信息。保留同评分/后段/gate，同40/24000/0updates。未过source32/40门，不做WAM/RL/重训。
 
 R9条件预注册（R8≥9失败才启动）：首次接触锁实测腕、停止继续插入；探测保持source闭合目标，不提前转微弱持握调节。同40/24000/0updates，仍需32/40，不比WAM/不RL/不重训。
+
+R9在0子进程/0控制时取消：新step红测试发现目标inner margin被父类当成实测碰撞压力。R10 fresh预注册（前序R8），同40/24000/0updates，保留闭合修复，加可选measured_pressure钩子，目标仍inner准入/实际gate不动。全v3 309 passed/0 failed；33专项、29mutants。R7完整0/40/22073控制/0jointabort，R8≥30完整失败仍跑满。未达32/40，不比WAM。

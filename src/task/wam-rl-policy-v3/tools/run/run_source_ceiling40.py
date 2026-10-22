@@ -18,10 +18,16 @@ def prepare(out,predecessor=None):
         text=file.read_text()
         if old in text:file.write_text(text.replace(old,str(launch)))
     shutil.copyfile(TASK/'src/wam_rl_policy_v3/source_ceiling.py',launch/'src/task/wam-rl-policy-v3/src/wam_rl_policy_v3/source_ceiling.py')
+    geometry=launch/'src/task/wam-rl-policy-v3/src/wam_rl_policy_v3/grasp_geometry.py'
+    text=geometry.read_text()
+    pressure="            pressure=bool((self.admission.mask&((projected<self.admission.lower)|(projected>self.admission.upper))).any())\n"
+    if text.count(pressure)!=1:raise ValueError('baseline pressure seam changed; do not replace its scorer or postservo')
+    text=text.replace(pressure,pressure+"            measured_warning=getattr(self.admission,'measured_pressure',None)\n            if measured_warning is not None:pressure=bool(measured_warning(q,args['dq']))\n")
+    geometry.write_text(text)
     worker=(TASK/'tools/run/run_source_ceiling_worker.py').read_text().replace("ROOT=Path(__file__).resolve().parents[5];TASK=ROOT/'src/task/wam-rl-policy-v3'", "ROOT=Path(%r);TASK=Path(%r)"%(str(ROOT),str(launch/'src/task/wam-rl-policy-v3')))
     (out/'worker.py').write_text(worker)
     reg=json.loads((BASELINE/'registration.json').read_text())
-    reg.update(protocol='source.measured-motion.contact-stop.n40.v9',experiment_id='P-20261023-source-controller-ceiling',
+    reg.update(protocol='source.measured-motion.contact-stop.physical-warning.n40.v10',experiment_id='P-20261023-source-controller-ceiling',
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         arms=['A0'],subsets=['development_same_v11'],maximum_controls=24000,worker_wall_s=14400,queue_wall_s=14400,learning_updates=0,ppo_authorized=False,
         worker_source=str(out/'worker.py'),runtime_source=str(launch),baseline=str(BASELINE),
@@ -32,6 +38,7 @@ def prepare(out,predecessor=None):
         approach_rate=dict(far_linear_mps=.75,far_angular_radps=2.4,near_linear_mps=.3,near_angular_radps=1.2,near_surface_m=.06),
         acquisition_probe=dict(maximum_m=.01,rate_mps=.06,trigger='existing measured force-valid grasp_candidate; does not certify acquisition or success'),
         predecessor=str(predecessor.resolve()) if predecessor else None,
+        control_geometry_delta='baseline plus optional measured_pressure hook; default controllers unchanged; source admission uses physical warning, not inner target margin',
         postgrasp='exact baseline RelativePoseServo and hold-force controller; no changes',
         main_rule='source final successes >=32/40; no WAM comparison before this gate',
         scope='same 20 objects x2 sequences; source-only development repair, not tau comparison or new holdout')

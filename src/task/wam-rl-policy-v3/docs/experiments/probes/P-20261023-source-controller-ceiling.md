@@ -14,7 +14,7 @@ seeds: [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 11
 decision_changed_if_positive: qualify source-only controller on the same forty development initials before comparing WAM
 decision_changed_if_negative: retain all failures and repair measured approach or closure without relaxing physical gates
 status: RUNNING
-run_id: source-ceiling-20261023-r9
+run_id: source-ceiling-20261023-r10
 ---
 
 ## 结果解读表
@@ -27,7 +27,7 @@ run_id: source-ceiling-20261023-r9
 
 分类Blocker：没有可执行source基线时，WAM差距无法归因。最便宜合规方法是复用已有原始轨迹定位控制缺口，再按机主n≥40要求只跑source一臂；0训练更新。
 
-**冻结面板**：原v11同20物体×2不同序列=40回合，不是每物体40回合。native seed100–139、model seed180–219、初始化196、env1/30Hz/600控制/20秒全部照旧；R仅在原source表达拒绝时作为原有无τ后备，保留且单列。全程不实例化WAM。
+**冻结面板**：原v11同20物体×2不同序列=40回合，不是每物体40回合。native seed100–139、model seed180–219、初始化196、env1/30Hz/600控制/20秒全部照旧；原v11中R仅在source表达拒绝时后备；R5起source-key/motion各版均不消费R，forward仅诊断并单列，不能再称原source-PD原样重放。全程不实例化WAM。
 对象/序列/原始参考/worker归属从v11 registration逐项复制，只将order收窄为A0；40个初态九字段与旧A0对照，容差2e-6，不换样本、不成功即停。此面板已暴露，今后称开发面板，不再称接口未见。
 
 **固定预算**：最多24000控制，0updates，不做RL/BC/v6训练、不做完整RELEASE；每worker≤14400秒、排队≤14400秒、仅空闲GPU4/5/6（≤64MiB），失败保留partial，不自动重采。原生Host、TaskController、S2c阶段/尺寸目标阈值、真实关节/table gate、抓后RelativePoseServo均从v11源码快照继承。
@@ -135,4 +135,16 @@ export TMPDIR="$PWD/tmp"
 PY=/home2/wyy/miniconda3/envs/graspenv/bin/python
 $PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r9 --prepare --predecessor outputs/wam-rl-policy-v3/source-ceiling-20261023-r8
 $PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r9 --detached
+```
+
+## R9预启动取消 / R10预注册：分离目标内余量与实测危险
+
+R9为CANCELLED_PRESTART、0子进程/0控制；其注册、源码和取消记录保留。实际step红测试证明普通接触形变q=.01（名义下限0、目标内余量.04）即触发父类换抓姿，即使仍远未达到物理abort−.10；source模块虽没有卸载，父类仍偷偷重规划。R10在保留R9两处闭合修复的基础上，增加**可选admission.measured_pressure**接口，只有source MarginAdmission使用名义边界外.05且向外运动的实测预警；普通控制器默认行为不改。候选PD目标仍严格在原名义范围内留40mrad余量，真实physical abort仍±.10。
+冻结器在v11 baseline Geometry上仅注入两行调用钩子，保留原postservo/评分；不把当前并行控制器整份替换进去。预期上述普通形变的换抓姿次数1→0，但真正危险仍卸载并受原gate约束。33专项、29mutants、全v3为309 passed/0 failed/0 skipped（20.85s，2warnings），不当物理成功。
+R10同40/≤24000控制/0updates，前序是R8（R9未启动），R3–R8六版加本版最多168000控制。R7已完整0/40、22073控制、0jointabort；R8至少30完整失败，但仍跑完40，不截分母。新目标仍≥32/40/预抓限位≤2，不达到不比WAM。
+```bash
+export TMPDIR="$PWD/tmp"
+PY=/home2/wyy/miniconda3/envs/graspenv/bin/python
+$PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r10 --prepare --predecessor outputs/wam-rl-policy-v3/source-ceiling-20261023-r8
+$PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r10 --detached
 ```
