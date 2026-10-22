@@ -162,3 +162,17 @@ python3 src/task/wam-rl-policy-v3/tools/audit/replay_v13_interventions.py --work
 ## A3/A4执行前的可用性边界
 
 A3按源时钟到 `t+24>=T` 时失效；A4按实测手匹配源游标，不随墙钟到达源尾而失效。该差异在运行前由实现已知，必须并列报告有效τ控制数、close进入数与游标范围。A3低不能单独证明“任何几何方法都做不到”；若A4也未进入close，它是实现/准入与R输入适配的阻塞记录，不是证明WAM优于最优GT策略。Hermes的A3高/低解读用于已登记算法之间的取舍，外部审计的可实现性要求仍须满足；二者不等同于几何方法的理论能力边界。
+
+## 冻结R权重复算
+
+`replay_v13_actor.py` 在空闲GPU从worker记录的base checkpoint批量复算R，并逐步检查observation的τ切片/valid mask；另在共同观测保持mask与全部非τ字段，将R输入τ清零做敏感性检查。这个反事实不执行物理控制，不能冒称新的A2全策略消融。GPU6已完成的52回合/31200步PASS：R动作最大误差7.246e−7，τ/valid一致；零τ使R最大输出变化0.4802。实际GPU计算1.066s，0updates，Python `/usr/bin/python3`、Torch2.4.1+cu121/CUDA12.1。启动前物理GPU6为2MiB。
+
+```sh
+python3 src/task/wam-rl-policy-v3/tools/audit/replay_v13_actor.py --worker outputs/wam-rl-policy-v3/grasp-v13-mechanism-20261022-r1/mechanism/g6 --gpu 6 --output outputs/wam-rl-policy-v3/grasp-v13-mechanism-20261022-r1/R-replay-mechanism-g6-repeat.json
+```
+
+各worker都可独立复算；只接受空闲物理GPU4/5/6，其他作业占用时排队。模型权重与保存观测在各worker目录/manifest中追溯，工具不生成checkpoint。
+
+GPU5的52回合/31174步R复算同样PASS，最大误差9.537e−7，零τ敏感性最大0.3636。GPU6全52回合/31200步独立干预重放PASS，保存的R非零、每步调用、τ、关键姿与实际命令/阶段均匹配。
+
+运行性能只读检查：同样1688步，OpenBLAS2线程13.54s、64线程13.49s，命令和阶段差均0。未见墙钟收益，故不改正在执行或后续批量的物理控制配置；记录在 `replay-threads2.time` / `replay-threads64.time`。
