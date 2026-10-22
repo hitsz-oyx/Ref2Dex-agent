@@ -101,7 +101,10 @@ def main():
     residual=None;optimizer=None
     if a.residual_checkpoint:
         residual=IntentResidualPolicy().cuda();residual.load_state_dict(torch.load(a.residual_checkpoint,map_location='cpu',weights_only=False)['model'])
-        optimizer=torch.optim.Adam(residual.parameters(),lr=1e-4) if a.ppo else None
+        # The old 1e-4 pilot moved the 12D residual Normal by exact KL
+        # 0.61/0.17 on its first updates.  Keep the update deliberately small;
+        # ppo_update still applies an exact target-KL rollback/retry gate.
+        optimizer=torch.optim.Adam(residual.parameters(),lr=1e-5) if a.ppo else None
     if a.ppo and (residual is None or not reg.get('ppo_authorized') or reg['maximum_controls']>4800):raise ValueError('PPO requires frozen BC, staged reward and registered <=4800 control budget')
     wam=OnlineV6Runtime(ROOT/'outputs/ptv3-shared-wam-v6/flowmatching-overnight-20261022-r2/training/step011000.pt',ROOT/'outputs/ptv3-shared-wam-v6/local-expanded-recipe-20261021-r1/stats.json',ROOT/'outputs/ptv3-shared-wam-v6/executor-qualification-20261022-r1/geometry',device='cuda:0',forecast_only=True)
     palm_surface=PalmSurface.from_urdf(ROOT/'third_party/DExplore/dexplore/data/assets/inspire_hand_new/inspire_hand_right.urdf')
@@ -248,7 +251,7 @@ def main():
                             terminal_intent=grasp_intent_from_retargeter(np.asarray(state['q'])[0],palm,pose,target.object_path[-1],np.clip(terminal_adapter[0],-1,1),offset,scale,plan=plan,tau_valid=valid)
                             with torch.no_grad():_,terminal_value=residual(torch.tensor(residual_observation(observation,terminal_intent)[None],device='cuda'))
                             bootstrap=float(terminal_value[0])
-                        update_started=time.monotonic();update=ppo_update(residual,optimizer,bootstrap=bootstrap,**rollout);update['wall_s']=time.monotonic()-update_started;update['cuda_peak_bytes']=torch.cuda.max_memory_allocated();row['ppo_update']=update;report['learning_updates']+=update['optimizer_updates']
+                        update_started=time.monotonic();update=ppo_update(residual,optimizer,bootstrap=bootstrap,target_kl=.03,epochs=2,**rollout);update['wall_s']=time.monotonic()-update_started;update['cuda_peak_bytes']=torch.cuda.max_memory_allocated();row['ppo_update']=update;report['learning_updates']+=update['optimizer_updates']
                         torch.save(dict(model=residual.state_dict(),optimizer=optimizer.state_dict(),contract=RESIDUAL_CONTRACT),out/('residual-'+label+'.pt'))
                         np.savez_compressed(folder/'ppo-rollout.npz',**{k:np.asarray(v) for k,v in rollout.items()});write(folder/'reward-parts.json',reward_parts)
                     native.finish(send,receive);write(folder/'result.json',row);report['runs'].append(row);report.update(status='RUNNING',elapsed_s=time.monotonic()-started+report['carried_elapsed_s']);write(out/'manifest.json',report);print(json.dumps(row),flush=True)

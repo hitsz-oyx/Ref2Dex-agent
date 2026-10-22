@@ -376,3 +376,18 @@ alarmclock在第60拍被observer短暂判为TRACK（前100拍40拍TRACK），末
 初始实测输入与teacher一致到2.98e-7、task10精确，下一步诊断耦合丢失与状态分布漂移，
 暂不扩展长PPO。结果位于outputs/wam-rl-policy-v3/inspire-ref1-paired-20261020-r1/
 及inspire-ref1-latest-20261020-r2/；两卡任务均已结束。
+# 2026-10-23 PPO/BC 取证：首步 KL 实现缺陷已定位，规模训练继续 HOLD
+
+真实部署 goal contract 仍未完全落地（`ptv3-shared-wam-v6/.../online_runtime.py:49` 的
+`object_goal_valid=np.ones(32,bool)` 尚在修复中），本轮没有启动长训。冻结残差 pilot 的
+旧实现把 sampled-action log-prob 差当作 KL，且 `if epoch` 跳过首步检查；离线精确审计为
+p000/p001 Gaussian joint KL 0.611887/0.165042，旧日志 approx KL 约 0，clip fraction
+0.8451/0.6800，entropy -12.972737→-12.972737/-12.973036，reward sum -1.181455/-0.845830。
+同一 batch 的 lr 敏感性支持 1e-4 是强漂移因素，但不作唯一因果归因；12D joint target=.03
+的尺度解释单独记录在 [P-20261023-ppo-bc-evidence](ppo-bc-evidence-20261023.md)。
+
+`intent_residual.py` 现用 exact Normal KL、首步 rollback/retry（四次按 1/4 lr）、每轮记录
+KL/clip fraction/entropy/reward，worker 预设 lr=1e-5、epochs=2；离线 p000 replay 已验证
+最终 KL≤.03。下一步只有 10–20 分钟吞吐/数值 preflight；通过后才可排每 arm 1e5 的
+BC-only vs BC+残差PPO 配对 probe。1e5 无改善但 KL 正常只扩预算，KL 未修好不下 PPO
+无效结论。当前本地 `/home2` 约 140–141GiB 可用、历史 outputs 约 571GiB，不删历史。
