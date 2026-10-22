@@ -22,9 +22,15 @@ def control_counts(infos,actions):
         goal_servo_saturated_controls=int(sum(i['phase'] in ('lift','hold') and np.abs(ac[:3]).max()>=.024999 for i,ac in zip(infos,actions))))
 
 
-def advance_source_reference(cursor,length,pregrasp,guard,contact_observed):
+def advance_source_reference(cursor,length,pregrasp,guard,contact_observed,*,fingertip_gap_m=None,approach_distance_m=None):
+    measured_approach=False
+    if fingertip_gap_m is not None:
+        if approach_distance_m is None or not np.isfinite(approach_distance_m) or approach_distance_m<=0:raise ValueError('production approach distance required')
+        measured_approach=bool(np.isfinite(fingertip_gap_m) and 0<=fingertip_gap_m<=approach_distance_m)
     blocked=guard['unloading'] or guard.get('finger_bandwidth_limited',False) or guard.get('bandwidth_projection_override',False)
-    blocked|=guard.get('root_bandwidth_or_compliance_limited',False) and not contact_observed
+    # The same measured approach zone engages root compliance. It must also
+    # permit the next preshape BEFORE contact; otherwise the two gates deadlock.
+    blocked|=guard.get('root_bandwidth_or_compliance_limited',False) and not (contact_observed or measured_approach)
     return min(cursor+1,length-1) if pregrasp and not blocked else cursor
 
 
@@ -100,6 +106,8 @@ def main():
     from wam_rl_policy_v3.grasp_repair import clean_tau_future,support_plane
     from wam_rl_policy_v3.grasp_geometry import GraspGeometry
     from wam_rl_policy_v3.source_ceiling import SourcePDGuard as GeometryGraspConsumer,SourceGraspReference
+    from wam_rl_policy_v3.interaction_state import InteractionConfig
+    approach_distance_m=InteractionConfig().approach_distance_m
     from wam_rl_policy_v3.source_pd import source_pd_action
     from wam_rl_policy_v3.intent_residual import IntentResidualPolicy,residual_observation,apply_intent_residual,ppo_update,RESIDUAL_CONTRACT
     from wam_rl_policy_v3.evaluation_sources import freeze_template,template_intent,gt_future
@@ -250,7 +258,9 @@ def main():
                             reference_PD_target=source_target.tolist(),source_admission_rejection=rejection,
                             R_fallback_selected=rejection is not None,consumes_R=rejection is not None,
                             wrist_reference_frame='original_native_world_q; same registered initial state')
-                        next_source_frame=advance_source_reference(source_frame,len(reference['action']),source_pre,info['source_ceiling'],feedback.contact_observed)
+                        next_source_frame=advance_source_reference(source_frame,len(reference['action']),source_pre,info['source_ceiling'],feedback.contact_observed,
+                            fingertip_gap_m=evidence['fingertip_gap_m'],approach_distance_m=approach_distance_m)
+                        info['source_reference']['measured_progress_gate']=dict(fingertip_gap_m=evidence['fingertip_gap_m'],approach_distance_m=approach_distance_m,contact_observed=feedback.contact_observed)
                         info['source_reference']['advanced']=next_source_frame!=source_frame
                         source_frame=next_source_frame
                         action=np.clip(raw[None],-1,1).astype(np.float32);final_clipped+=int((np.abs(raw-action[0])>1e-6).any());full=expand_action(action)

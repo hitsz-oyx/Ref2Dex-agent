@@ -69,3 +69,19 @@ def test_source_reference_waits_for_motor_admission_and_freezes_while_held():
     assert worker.advance_source_reference(7,100,True,root_limited,True)==8
     with patch.object(worker,'advance_source_reference',lambda cursor,*args:cursor+1):
         with pytest.raises(AssertionError):check()
+
+
+def test_measured_approach_progress_breaks_precontact_motor_reference_deadlock():
+    path=Path(__file__).resolve().parents[1]/'tools/run/run_source_ceiling_worker.py'
+    spec=importlib.util.spec_from_file_location('source_approach_clock',path)
+    worker=importlib.util.module_from_spec(spec);spec.loader.exec_module(worker)
+    guard=dict(unloading=False,finger_bandwidth_limited=False,
+        root_bandwidth_or_compliance_limited=True,bandwidth_projection_override=False)
+    original=worker.advance_source_reference
+    def check():
+        try:result=worker.advance_source_reference(36,100,True,guard,False,fingertip_gap_m=.04,approach_distance_m=.06)
+        except TypeError:result=worker.advance_source_reference(36,100,True,guard,False) # Old production gate ignored approach evidence.
+        assert result==37, 'Near the object, deliver the next preshape without inventing contact or grasp success'
+    check()
+    with patch.object(worker,'advance_source_reference',lambda *args,**kwargs:original(*args)):
+        with pytest.raises(AssertionError):check()

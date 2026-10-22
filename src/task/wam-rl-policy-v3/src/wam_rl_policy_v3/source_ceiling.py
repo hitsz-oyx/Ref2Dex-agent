@@ -432,7 +432,7 @@ class SourcePDGuard(GeometryGraspConsumer):
     acquisition probe. The source trajectory supplies the acquisition motion.
     """
     force_limit_n=12.
-    contract='source.native-PD.bandwidth-compliance-guard.v14'
+    contract='source-PD-guard.force-margin-bandwidth.v1'
     finger_rate_radps=1.2
     wrist_joint_rate_radps=2.4
     far_rate_mps=.75

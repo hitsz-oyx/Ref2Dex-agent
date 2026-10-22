@@ -14,7 +14,7 @@ seeds: [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 11
 decision_changed_if_positive: qualify source-only controller on the same forty development initials before comparing WAM
 decision_changed_if_negative: retain all failures and repair measured approach or closure without relaxing physical gates
 status: RUNNING
-run_id: source-ceiling-20261023-r14
+run_id: source-ceiling-20261023-r15
 ---
 
 ## 结果解读表
@@ -206,3 +206,16 @@ $PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wa
 ```
 
 R14最后启动检查还抓住“未执行的handover closure也阻塞reference”：执行preshape未受限时不得因未来hold initializer更大而冻结cursor；handover本身仍≤.04rad初始化，不让持握开始瞬间跳到完整closure。正常带宽不足、柔顺/native投影优先、紧急卸载三种口径分别记，不拿0canonical clipping冒充无干预。软件完整计数见R14/tests-ready-all.log；当前production Guard的8项直接step回归、11个故意错误与旧legacy模式检查分开，不用legacy PASS替Guard物理正确性背书。
+
+## R15运行前修订：实测接近区允许手形继续，不等先有接触
+
+R14已≥17完整失败，32门不可达但仍跑满。p000满600控制停在reference36（source首次接触42），t180–599 root受限、无多指接触、0卸载、手已近物体：同一个实测接近区开启柔顺限制，clock却要求先contact才继续，闭合手形永远送不下来。R15只改reference pacing：使用同一InteractionConfig.approach_distance_m=.06的实测finger gap，近物体即可跨过root受限继续给后续手形；手指带宽/卸载/最终投影仍阻塞。没有将接近当接触，更没有改lift/hold/成功。
+production Guard动作算法保持R14；身份改为稳定schema `source-PD-guard.force-margin-bandwidth.v1`，reference协议为`source-PD-guard.measured-approach-paced.n40.v1`，与run_id r15/实验ID分离，不再共用连续版本号。旧冻结产物标签不改。
+预期实测gap40mm、contact=false、root受限时reference36→37，远离仍36；第一条回归的旧语义实际返回36（AssertionError，非缺参数失败），见R14/approach-clock-red.log。实际手指/对象是否建立接触与运动耦合仍须物理验收。目标仍source≥32/40、jointabort≤2。
+同40/24k/0updates/20秒，前序R14；累计上限明确追加24k至250430（R14实际控制数完成后再报），不比WAM/不RL/不重训，保留R14完整40。
+```bash
+export TMPDIR="$PWD/tmp"
+PY=/home2/wyy/miniconda3/envs/graspenv/bin/python
+$PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r15 --prepare --predecessor outputs/wam-rl-policy-v3/source-ceiling-20261023-r14
+$PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r15 --detached
+```

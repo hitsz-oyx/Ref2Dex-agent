@@ -197,3 +197,8 @@ worker的advance_source_reference将reference推进与motor admission对齐：�
 预期最大正常位置命令步长≤25/10mm、腕joint≤.08rad、指≤.04rad；实际异常投影/卸载须另报。目标joint19→≤2、成功12→≥32，仍待完整40。复现命令见实验卡R14；红测试为旧Guard第一步超带宽的实际step断言，非import错误。原“健康输入逐位相同”fixture改成同时满足新带宽的真实安全输入（.005m/.02rad指变化），不冒称全14旧成功轨迹逐位不变。
 
 R14启动前补充：真实step红测试handover-clock-red.log抓住unused closure冻结executed-preshape cursor；仅当前执行手形决定finger_bandwidth_limited，未来持握初始化另记closure_handover_limited。实际close→lift finger目标仍限相邻.04rad，held之后原伺服不变。投影/柔顺优先造成的带宽例外和紧急卸载分别标记，不谎报绝对硬上界。生产Guard直接8项回归/11mutants，legacy模式35项/32mutants仅历史兼容；queue4项含3种注入错误。全量数以R14/tests-ready-all.log为准。
+
+## R15：打断“需要先contact才能送到contact手形”的推进死锁
+
+R14/p000在t180–599、reference36/source contact42、0卸载、root受限且手已接近，满20秒无持握。reference gate现接收生产同一InteractionConfig的实测finger gap；近物体可推进下一手形，不要求先多指力接触。手指指令带宽/卸载/投影仍阻塞，评分与物理接触布尔量原封不动。红测试实际返回36而非37；新增queue注入故意丢弃接近测量会被同一断言抓住，非import/TypeError冒充kill。
+Guard动作算法沿R14，仅标签规范为schema force-margin-bandwidth.v1；clock协议schema measured-approach-paced.n40.v1，与run_id r15分开。预期root受限且实测40mm近物时36→37，远离仍停；真实force/coupling/lift/hold/目标误差不改。新同40/24k/0updates，前序R14，累计上限≤250430，目标32仍未知；不比WAM。

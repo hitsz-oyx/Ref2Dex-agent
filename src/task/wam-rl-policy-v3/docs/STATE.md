@@ -446,3 +446,5 @@ R11已有真实完整成功但≥19失败，仍完整40；R12预注册同40/24k/
 R11完整4/40（Wilson3.958–23.052%）/23080控制/1jointabort，较原14/40显著退步（Fisher.01448）；R12≥36失败仍跑满。R13恢复原source-PD意图/阶段/后段，只加SourcePDGuard实测压力与目标余量，健康/后段命令逐位同原；不再keypose/停腕/probe改写。source R无τ后备只在strict逆变换拒绝时选择且逐拍报告。新同40/24k/0updates，累计上限212356，未过32门不比WAM/不RL/不重训。
 
 R12完整2/40/23795控制/1jointabort；R13完整12/40（Wilson18.075–45.430%）/14279控制/19jointabort，未优于原14（Fisher.81165）。R14 fresh同40/24k/0updates，给正常source PD加带宽/几何tracking偏移准入，并暂停未执行完的reference；卸载例外显式记录，原评分/后段/actual gate不改。累计202430+新≤24k=≤226430；未过32前不比WAM/不RL/不重训。
+
+R14≥17完整失败仍跑满；p000停reference36（source接触42）满600，柔顺近区限制与“先contact才推进”的clock形成死锁。R15只让同一实测接近区允许reference手形推进，手指带宽/卸载/投影仍阻塞，绝不改接触/成功标签；同40/24k/0updates，累计上限≤250430。Guard身份改稳定schema v1，与run r15分离；未过32不比WAM、不RL/不重训。
