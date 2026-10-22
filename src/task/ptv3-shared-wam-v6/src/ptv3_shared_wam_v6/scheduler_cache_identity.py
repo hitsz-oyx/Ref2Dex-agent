@@ -67,7 +67,7 @@ def cache_identity(source_id, sample_id, window_start_frame, condition,
     return dict(schema=IDENTITY_SCHEMA, identity=identity, **payload)
 
 
-def _canonical_hand(joints, source_id):
+def _canonical_hand(joints, source_id, hand_index=0):
     """Map the v5 21-joint hand to the scheduler's canonical 11 points."""
     joints = np.asarray(joints, dtype=np.float64)
     if joints.ndim != 4 or joints.shape[2:] != (21, 3):
@@ -75,10 +75,11 @@ def _canonical_hand(joints, source_id):
     # Source 4 has the historical thumb ordering used by the v5 preparation;
     # all other sources use the frozen SPARSE11_IN_21 mapping.
     ids = (0, 2, 5, 9, 13, 17, 4, 8, 12, 16, 20) if int(source_id) == 4 else SPARSE11_IN_21
-    return joints[:, 0, ids].astype(np.float64, copy=False)
+    return joints[:, hand_index, ids].astype(np.float64, copy=False)
 
 
-def scheduler_conditions_for_ticks(sequence, geometry, source_id, slot, ticks):
+def scheduler_conditions_for_ticks(sequence, geometry, source_id, slot, ticks,
+                                   *, hand_index=0, return_details=False):
     """Replay the inference scheduler once and return deltas for selected ticks.
 
     ``geometry`` is the same v5 geometry entry used by ``sample_window`` and
@@ -95,28 +96,36 @@ def scheduler_conditions_for_ticks(sequence, geometry, source_id, slot, ticks):
     reference = sequence.get("scheduler_reference_poses")
     if reference is None:
         raise ValueError("scheduler reference path absent; observed object_poses are labels")
+    # Only the separately supplied instruction is available in full. Never
+    # use it as the live pose, and never convert/validate a live array in full:
+    # even an isfinite check would read the observation tail.
     poses = np.asarray(reference[:, slot], dtype=np.float64)
-    joints = np.asarray(sequence["joints"], dtype=np.float64)
     query = np.asarray(geometry["query"], dtype=np.float64)
     surface = np.asarray(geometry["surface"], dtype=np.float64)
     if poses.ndim != 3 or poses.shape[1:] != (4, 4):
         raise ValueError("finite object pose reference required")
-    if not np.isfinite(poses).all() or not np.isfinite(joints).all():
-        raise ValueError("scheduler replay cannot bridge non-finite observations")
+    if not np.isfinite(poses).all():
+        raise ValueError("scheduler instruction must be finite")
     if query.shape != (32, 3) or not np.isfinite(query).all():
         raise ValueError("finite 32-point scheduler query required")
     scheduler = OrderedGoalScheduler(
         poses, np.arange(len(poses), dtype=np.float64) / SCHEDULER_HZ,
         query, interaction_points=surface, goal_type="se3_pose")
-    hands = _canonical_hand(joints, source_id)
-    if not np.isfinite(hands).all():
-        raise ValueError("scheduler replay hand observations are not finite")
     wanted = set(ticks)
     result = {}
     for tick in range(max(ticks) + 1):
+        actual = np.asarray(sequence["object_poses"][tick, slot], dtype=np.float64)
+        joints = np.asarray(sequence["joints"][tick], dtype=np.float64)[None]
+        hands = _canonical_hand(joints, source_id, hand_index)
+        if "object_pose_valid" in sequence and not sequence["object_pose_valid"][tick, slot]:
+            raise ValueError("scheduler replay cannot bridge invalid live poses")
+        if "joint_valid" in sequence:
+            ids = (0, 2, 5, 9, 13, 17, 4, 8, 12, 16, 20) if source_id == 4 else SPARSE11_IN_21
+            if not np.asarray(sequence["joint_valid"][tick, hand_index])[list(ids)].all():
+                raise ValueError("scheduler replay cannot bridge invalid live hand11")
         decision = update_schedulers(
-            [scheduler], poses[tick:tick + 1],
-            np.asarray([tick / float(SCHEDULER_HZ)]), hands[tick:tick + 1],
+            [scheduler], actual[None],
+            np.asarray([tick / float(SCHEDULER_HZ)]), hands,
             fast_geometry=True)[0]
         if tick in wanted:
             condition = np.asarray(decision["goal_delta"], dtype=np.float32)
@@ -124,7 +133,10 @@ def scheduler_conditions_for_ticks(sequence, geometry, source_id, slot, ticks):
                 raise ValueError("scheduler emitted an invalid goal delta")
             if decision.get("goal_semantics") != GOAL_SEMANTICS:
                 raise ValueError("scheduler emitted a second/unknown goal semantic")
-            result[tick] = condition.copy()
+            if return_details:
+                result[tick] = dict(decision, goal_delta=condition.copy())
+            else:
+                result[tick] = condition.copy()
     if set(result) != wanted:
         raise ValueError("scheduler did not emit every requested window condition")
     return result
