@@ -14,7 +14,7 @@ seeds: [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 11
 decision_changed_if_positive: qualify source-only controller on the same forty development initials before comparing WAM
 decision_changed_if_negative: retain all failures and repair measured approach or closure without relaxing physical gates
 status: RUNNING
-run_id: source-ceiling-20261023-r5
+run_id: source-ceiling-20261023-r6
 ---
 
 ## 结果解读表
@@ -78,4 +78,23 @@ export TMPDIR="$PWD/tmp"
 PY=/home2/wyy/miniconda3/envs/graspenv/bin/python
 $PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r5 --prepare --predecessor outputs/wam-rl-policy-v3/source-ceiling-20261023-r4
 $PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r5 --detached
+```
+
+## R6运行前修订：保留握力预载与闭合完成抓姿
+
+R3/R4/R5均已完整40：各0/40（Wilson95 0–8.7622%），分别23894/24000/23648控制；真实关节中止均0，table中止1/0/6；每版raw40/40一致。比原14/40显著退步（每版Fisher3.07753148e-5），不是改进；不跑WAM。
+已消耗71542控制，R6再给同40/≤24000控制、0updates，四版总上限96000（按前三版实际最多95542）。依旧同初态、评分、post servo和物理gate，不换样本。
+
+修正两处真实控制错误：闭合目标取产生所选状态的前一拍source PD命令（action[f-1]+controller），不是接触挤压后的实测q；限速相邻两次**命令**，不是永远绑定实测q。阻挡时目标可0.44→0.8逐步建立预载，不是改实际状态。
+source key优先选原轨迹已有“生产observer运动耦合+抬升≥5cm+对象底部离桌>2cm”的闭合完成状态，而不是初碰；40中35有此证据，39有source对象接触，5个不具完成证据的样本仍保留接触/几何候选，不叫live成功。
+远离物体时PD位置偏移上限0.01→0.025m/控制（近物仍0.01），对应命令角速率1.2→2.4rad/s；这不是实测速度保证。力槽index/middle/pinky/ring/thumb与native手点thumb/index/middle/ring/pinky显式映射；控制闭合允许匹配的中间指节线段接触，live评分几何不改。
+实测卸载预警提前量为原±0.10m/rad中止界限的一半（±0.05），目标仍在URDF内40mrad余量；原actual physical gate不变。名义URDF越界另统计，不能用0中止冒充0机械偏差。
+
+预期：hand thumb pitch闭合目标0.05558→0.45993rad；被阻挡q=.4时12拍命令0.44停滞→0.8且相邻≤.04；首次接触约13s→期望≤7s；最终仍目标≥32/40/预抓限位≤2。CPU测试302 passed/0 failed/0 skipped（19.35s，4warnings）、26项专项、21/21 mutants killed，不当作物理通过。
+
+```bash
+export TMPDIR="$PWD/tmp"
+PY=/home2/wyy/miniconda3/envs/graspenv/bin/python
+$PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r6 --prepare --predecessor outputs/wam-rl-policy-v3/source-ceiling-20261023-r5
+$PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r6 --detached
 ```

@@ -61,7 +61,7 @@ def test_nominally_legal_near_limit_target_is_rejected_before_candidate_ranking(
 
 
 def test_lower_joint_warning_recovers_inward_instead_of_opening_further():
-    c,args=approaching();args['q'][6]=.01;args['dq'][6]=-1.
+    c,args=approaching();args['q'][6]=-.04;args['dq'][6]=-1.
     command,info=c.step(**args)
     target=pd_targets(command,args['q'],c.offset,c.scale)
     assert info['source_ceiling']['unloading']
@@ -190,25 +190,117 @@ def key_reference():
     points=np.array([[x,y,z] for x in (-.02,.02) for y in (-.02,.02) for z in (-.02,.02)])
     ref['hand']=np.tile(ref['objects'][:,:,None,:3]+points[0],(1,1,11,1))
     ref['q']=np.ones((n,1,18))*.2;ref['q'][8:,0,6:]=.8
+    ref['action'][:,6:]=-.6;ref['action'][7:,6:]=.6
     return ref,points
 
 
 def test_source_keygrasp_preserves_preshape_closure_and_live_SE3_without_clock():
     from wam_rl_policy_v3.source_ceiling import SourceGraspReference
     from wam_rl_policy_v3.pose_consumer import pose7
-    ref,points=key_reference();key=SourceGraspReference(ref,points)
+    ref,points=key_reference();key=SourceGraspReference(ref,points,np.zeros(18),np.ones(18))
     assert key.contact_frame==4 and key.grasp_frame==8
     intent=key.intent(np.eye(4));np.testing.assert_array_equal(intent.preshape_q,np.full(6,.2))
-    np.testing.assert_array_equal(intent.closure_q,np.full(6,.8))
+    np.testing.assert_allclose(intent.closure_q,np.full(6,.8),atol=1e-7,rtol=0)
     live=pose7(ref['objects'][8,0]);live[1,3]+=.15
     expected=pose7(ref['palm_pose'][8,0]);expected[1,3]+=.15
     np.testing.assert_allclose(live@intent.grasp_pose_object,expected,atol=1e-8)
-    assert not key.manifest()['consumes_R'] and not key.manifest()['consumes_source_actions']
+    assert not key.manifest()['consumes_R'] and key.manifest()['source_action_mode']=='one_predecessor_closure_command_no_replay'
 
 
 def test_source_contact_force_without_object_proximity_is_not_a_contact_label():
     from wam_rl_policy_v3.source_ceiling import SourceGraspReference
     ref,points=key_reference();ref['hand']+=10.
-    key=SourceGraspReference(ref,points)
+    key=SourceGraspReference(ref,points,np.zeros(18),np.ones(18))
     assert key.contact_frame is None and key.raw_force_contact_frames>0 and key.object_contact_frames==0
     assert key.manifest()['evidence']=='geometric_candidate_no_source_contact'
+
+
+def test_force_bearing_closure_uses_preceding_pd_target_not_deflected_joint_state():
+    from wam_rl_policy_v3.source_ceiling import SourceGraspReference
+    ref,points=key_reference();ref['q'][8,0,6:]=.05
+    ref['action'][7,6:]=.4 # Target .7 created the measured state at frame8.
+    key=SourceGraspReference(ref,points,np.zeros(18),np.ones(18))
+    np.testing.assert_allclose(key.closure,np.full(6,.7),atol=1e-6)
+    assert key.manifest()['closure_command_frame']==7
+
+
+def test_free_approach_is_fast_and_near_object_command_is_slow():
+    results=[]
+    for near in (False,True):
+        c,args=approaching();c.phase='approach';args['near_fingers']=0
+        args['intent'].approach_pose_object[0,3]+=.4;args['intent'].grasp_pose_object[0,3]+=.4
+        args['fingertip_gap_m']=.066
+        if near:
+            args['hand'][4]=args['object_pose'][:3,3]+c.points[0]
+            args['fingertip_gap_m']=0.
+        command,info=c.step(**args);results.append(np.linalg.norm(command[:3]*c.scale[:3]))
+    np.testing.assert_allclose(results,[.025,.01],atol=1e-6,rtol=0)
+
+
+def one_contact_args(force_slot):
+    c,args=approaching();c.phase='approach';args['near_fingers']=1;args['fingertip_gap_m']=0.
+    args['intent'].approach_pose_object[0,3]+=.04;args['intent'].grasp_pose_object[0,3]+=.04
+    args['hand'][4]=args['object_pose'][:3,3]+c.points[0] # Native index fingertip.
+    args['hand'][8]+=np.array([.1,0,0]);args['hand'][10]-=np.array([.1,0,0])
+    args['forces'][force_slot,2]=1.
+    return c,args
+
+
+def test_same_finger_contact_authorizes_closure_before_tight_wrist_goal():
+    c,args=one_contact_args(0) # Force slot0 is index, native tip slot1.
+    _,info=c.step(**args)
+    assert c.phase=='close' and info['source_ceiling']['contact_ready']
+    assert not info['measured_contact']
+
+
+def test_thumb_force_does_not_pair_with_index_geometry():
+    c,args=one_contact_args(4) # Thumb force, but only index is near the object.
+    _,info=c.step(**args)
+    assert c.phase=='approach' and not info['source_ceiling']['matched_contact']
+
+
+def test_command_slew_accumulates_preload_when_measured_joint_is_blocked():
+    c,args=approaching(force=.5);targets=[]
+    for i in range(12):
+        args['now']=i/30
+        command,_=c.step(**args)
+        targets.append(pd_targets(command,args['q'],c.offset,c.scale)[FINGER_ACTIVE])
+    np.testing.assert_allclose(targets[-1][:4],np.full(4,.8),atol=1e-6)
+    assert np.max(np.abs(np.diff(targets,axis=0)))<=.04+1e-6
+
+
+def test_target_margin_does_not_trigger_measured_unload_on_ordinary_deflection():
+    c,args=approaching();args['q'][6]=.01;args['dq'][6]=-.3
+    command,info=c.step(**args)
+    assert not info['source_ceiling']['unloading']
+    assert c.admission.check(command,args['q'])[0]
+
+
+def test_unloading_interlocks_lift_without_falsifying_feedback():
+    c,args=approaching(force=30.);c.contact_since=-1.
+    args['feedback'].grasp_established=True
+    _,info=c.step(**args)
+    assert c.phase=='close' and info['lift_interlocked_for_unloading']
+    assert args['feedback'].grasp_established is True
+
+
+def test_intermediate_link_contact_can_start_closure_before_tip_contact():
+    c,args=one_contact_args(0)
+    center=args['object_pose'][:3,3]
+    args['hand'][3]=center+[-.04,.02,.02]
+    args['hand'][4]=center+[.04,.02,.02]
+    _,info=c.step(**args)
+    assert c.phase=='close' and info['source_ceiling']['matched_contact']
+
+
+def test_source_key_prefers_completed_coupled_lift_over_initial_touch():
+    from wam_rl_policy_v3.source_ceiling import SourceGraspReference
+    ref,points=key_reference()
+    for t in range(len(ref['objects'])):
+        ref['objects'][t,0,2]+=min(max(t-4,0)*.01,.15)
+        ref['hand'][t,0]=ref['objects'][t,0,:3]+points[0]
+        ref['palm_pose'][t,0,:3]=ref['objects'][t,0,:3]+[-.15,0,.05]
+        ref['hand'][t,0,0]=ref['palm_pose'][t,0,:3]
+    key=SourceGraspReference(ref,points,np.zeros(18),np.ones(18),plane=(np.array([0.,0,1.]),1.08))
+    assert key.grasp_frame==9 and key.manifest()['evidence']=='measured_source_coupled_lift'
+    assert key.manifest()['source_contact_is_live_success'] is False

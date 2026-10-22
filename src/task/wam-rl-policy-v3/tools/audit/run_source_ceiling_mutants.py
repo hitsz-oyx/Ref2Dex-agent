@@ -1,5 +1,6 @@
 """Execute regressions against four deliberately broken in-memory controllers."""
 import importlib.util,json,sys,dataclasses
+import numpy as np
 from pathlib import Path
 from unittest.mock import patch
 TASK=Path(__file__).resolve().parents[2];sys.path.insert(0,str(TASK/'src'))
@@ -34,6 +35,17 @@ def main():
     def omit_finger_closure(self,*args):
         intent=key_intent(self,*args);intent.closure_q=intent.preshape_q.copy()
         return intent
+    key_init=SourceGraspReference.__init__
+    def measured_state_as_target(self,reference,points,offset,scale):
+        key_init(self,reference,points,offset,scale)
+        self.closure=reference['q'][self.grasp_frame,0,[6,8,10,12,14,15]].copy()
+    def next_command_as_target(self,reference,points,offset,scale):
+        key_init(self,reference,points,offset,scale)
+        frame=self.grasp_frame
+        self.closure=controller_module.pd_targets(reference['action'][frame],reference['q'][frame,0],offset,scale)[[6,8,10,12,14,15]]
+    def measured_slew_anchor(self,**args):
+        self.finger_target=np.asarray(args['q'])[[6,8,10,12,14,15]].copy()
+        return original(self,**args)
     cases=[('ignore-measured-pressure',patch.object(SourceCeilingConsumer,'force_limit_n',float('inf')),tests.test_measured_pressure_unloads_at_actual_approach_close_step),
         ('unlimited-finger-target-jump',patch.object(SourceCeilingConsumer,'finger_rate_radps',100.),tests.test_approach_finger_target_does_not_jump_to_reference),
         ('omit-target-margin',patch.object(MarginAdmission,'__init__',JointAdmission.__init__),tests.test_nominally_legal_near_limit_target_is_rejected_before_candidate_ranking),
@@ -46,7 +58,15 @@ def main():
         ('make-probe-cumulative',patch.object(SourceCeilingConsumer,'step',cumulative_probe),tests.test_acquisition_probe_is_not_cumulative_and_requires_valid_contact),
         ('never-close-at-measured-wrist-pose',patch.object(SourceCeilingConsumer,'wrist_angle_tolerance_rad',-1.),tests.test_measured_wrist_arrival_starts_closure_with_open_fingertips),
         ('omit-source-finger-closure-intent',patch.object(SourceGraspReference,'intent',omit_finger_closure),tests.test_source_keygrasp_preserves_preshape_closure_and_live_SE3_without_clock),
-        ('count-table-force-as-object-contact',patch.object(controller_module,'InteractionConfig',lambda:SimpleNamespace(near_surface_m=float('inf'))),tests.test_source_contact_force_without_object_proximity_is_not_a_contact_label)]
+        ('count-table-force-as-object-contact',patch.object(controller_module,'InteractionConfig',lambda:SimpleNamespace(near_surface_m=float('inf'))),tests.test_source_contact_force_without_object_proximity_is_not_a_contact_label),
+        ('remove-force-preload',patch.object(SourceGraspReference,'__init__',measured_state_as_target),tests.test_force_bearing_closure_uses_preceding_pd_target_not_deflected_joint_state),
+        ('off-by-one-force-command',patch.object(SourceGraspReference,'__init__',next_command_as_target),tests.test_force_bearing_closure_uses_preceding_pd_target_not_deflected_joint_state),
+        ('slow-free-approach',patch.object(SourceCeilingConsumer,'free_linear_rate_mps',.3),tests.test_free_approach_is_fast_and_near_object_command_is_slow),
+        ('swap-force-and-native-tip-slots',patch.object(SourceCeilingConsumer,'force_to_native_tip',(0,1,2,3,4)),tests.test_same_finger_contact_authorizes_closure_before_tight_wrist_goal),
+        ('anchor-slew-to-measured-q',patch.object(SourceCeilingConsumer,'step',measured_slew_anchor),tests.test_command_slew_accumulates_preload_when_measured_joint_is_blocked),
+        ('unload-at-command-margin',patch.object(SourceCeilingConsumer,'measured_warning_margin',-.04),tests.test_target_margin_does_not_trigger_measured_unload_on_ordinary_deflection),
+        ('miss-intermediate-link-contact',patch.object(SourceCeilingConsumer,'contact_geometry','tip'),tests.test_intermediate_link_contact_can_start_closure_before_tip_contact),
+        ('use-initial-touch-instead-of-completed-grasp',patch.object(controller_module,'FeedbackObserver',lambda points:SimpleNamespace(update=lambda *args,**kwargs:SimpleNamespace(grasp_established=False))),tests.test_source_key_prefers_completed_coupled_lift_over_initial_touch)]
     result=[]
     for name,mutation,check in cases:
         check() # First prove the unmutated check passes.

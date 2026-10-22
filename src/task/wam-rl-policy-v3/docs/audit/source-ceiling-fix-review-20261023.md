@@ -12,7 +12,7 @@
 
 ## 修复、可证伪预测与复现
 
-可核对定位（均以`src/task/wam-rl-policy-v3/`为前缀）：
+R3历史定位（以提交99875f23核对；均以`src/task/wam-rl-policy-v3/`为前缀）：
 `src/wam_rl_policy_v3/source_ceiling.py:16`物体SE3映射、`:33`余量准入、`:64`实测卸载/限速/交接；
 `tools/run/run_source_ceiling_worker.py:111`不实例化WAM、`:214`source映射实际调用、`:233`游标暂停；
 `tools/run/run_source_ceiling40.py:12`原40初态/源码冻结；
@@ -109,3 +109,40 @@ R5同40/≤24000controls/0updates，累计三版≤72000；每GPU等待所有前
 新增回归：腕到位/开指时必须进入close且不假造contact；source独立预形/闭合/live SE3必须保留；离对象很远的手部力不能成为source对象接触。R4冻结运行时首条确实失败，见R4/key-close-red.log。
 专项17项/0 failed/0 skipped、完整v3预计286项（以本run tests.log全量结果为准），13个故意错误（以mutants.log为准）。真实新成功率仍必须原生40验收，不能用这些数字替代。
 启动fresh R5的prepare/--detached命令见实验卡R5节。全部源帧/接触依据见`outputs/wam-rl-policy-v3/source-ceiling-20261023-r5/source-keys.json`。
+
+## R6当前复现与审阅索引
+
+| 已完成批次 | 成功 / n / Wilson95 | 控制 / joint abort / table abort | 决定 |
+|---|---|---|---|
+| 原source | 14/40，[22.13%,50.49%] | 16745 / 12 / 2 | 仍是较强基线 |
+| R3 | 0/40，[0,8.76%] | 23894 / 0 / 1 | 显著退步，Fisher3.07753e-5；不得称修好 |
+| R4 | 0/40，[0,8.76%] | 24000 / 0 / 0 | 同上，不能只报限位减少 |
+| R5 | 0/40，[0,8.76%] | 23648 / 0 / 6 | 同上，继续修消费/握力，不比WAM |
+
+各版40个raw一致、40旧初态一致；这是本线程改进失败，不是τ或数据量的负证据。
+R6预注册同40、≤24000新控制，累计四版≤96000；尚无R6物理结果。
+
+最新文件定位（前缀src/task/wam-rl-policy-v3/）：
+`src/wam_rl_policy_v3/source_ceiling.py:70` source完成抓姿/前一拍PD目标；`:131`18关节内余量准入；`:175`实测闭合、命令间限速、卸载/有界起动；
+`tools/run/run_source_ceiling_worker.py:164`真实入口以native offset/scale/plane构造source key，`:211`消费该意图；
+`tools/run/run_source_ceiling40.py`冻结v11评分/物理/后段并逐卡等前序完成。
+
+最重要的两处修正及预期：
+1. 用接触实测q当PD目标会卸掉正常握力。hand例实测thumb_pitch=.055578、前一拍PD目标=.459928；R6使用后者，前一拍是f-1，避免错一帧。新增实际step回归还抓住“相对实测q限速”会使q=.4时目标永远=.44，R6命令间限速允许12拍达到.8。危险时明确紧急卸载，非正常闭合跳变。见R5/force-target-red.log、R6/slew-red.log。
+2. 原source抓姿误取初碰，R6优先source已观测运动耦合/抬升5cm/离桌2cm的完成状态。35/40具该source证据，5个不足的照留，不升级成live成功。闭合也读取匹配指节的实测接触；原live成功几何/时间/目标误差一个不改。
+远端PD增量上限.01→.025m/tick，近端保留.01；实测接触预期≤7秒，而非R5约13秒。不是物理速度保证。
+
+目标仍URDF内余量；卸载预警改为对既有physical abort±.10留一半余量（±.05），**没有更改physical_safety.py/评分边界**。保存并报告实际名义URDF偏差与中止不同口径。警告超限时interlock阻止发lift命令而不篡改feedback。
+不再把跟踪误差当命令跳变：finger_target_step_rad、finger_tracking_error_rad、finger_emergency_slew_override分别记，力/手点槽显式映射。source参考actions只消费一个前驱闭合PD目标，不回放时钟；R forward仅诊断，不消费。
+
+```bash
+export TMPDIR="$PWD/tmp"
+PY=/home2/wyy/miniconda3/envs/graspenv/bin/python
+$PY -m pytest -q src/task/wam-rl-policy-v3/tests/test_source_ceiling.py --basetemp=tmp/pytest-source-ceiling-review-latest
+$PY src/task/wam-rl-policy-v3/tools/audit/run_source_ceiling_mutants.py
+# fresh独立复跑目录；已有registration拒绝重复prepare，禁止覆盖：
+$PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-independent-review --prepare --predecessor outputs/wam-rl-policy-v3/source-ceiling-20261023-r5
+$PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-independent-review --detached
+```
+当前软件全量302 passed/0 failed/0 skipped（19.35s，4warnings），专项26，21/21 mutants killed；actual-source支持条件/控制构型/最终成绩须物理40验收。原v11缓存、基线raw/reference和calibration-r1旧模型metadata、native IsaacGym/Torch环境都是必需输入；缺失不能独立复跑，命令不会下载/代换。
+本轮git曾被并行暂存区挡住；用项目tmp/source-ceiling-sync的detached worktree完成pull/rebase及push，未stash对方文件；后续全仓检查断链已被相应会话修复。

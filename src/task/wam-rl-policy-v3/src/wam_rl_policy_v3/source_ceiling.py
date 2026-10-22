@@ -9,10 +9,12 @@ from scipy.spatial.transform import Rotation
 from scipy.spatial import cKDTree
 from .grasp_geometry import GeometryGraspConsumer, JointAdmission, COUPLINGS
 from .pose_consumer import FINGER_ACTIVE, closest_wrist_angles,pose7,GraspIntent,TIPS
+from .inspire_contract import ACTIVE,NATIVE_TO_WAM
 from .tau_replay_contract import pd_targets
 from .interaction_state import InteractionConfig
+from .task_feedback import FeedbackObserver
 
-SOURCE_CEILING_CONTRACT = 'source.keygrasp.measured-close.unload.probe.v5'
+SOURCE_CEILING_CONTRACT = 'source.keygrasp.force-target.distance-rate.v6'
 
 
 def object_anchored_source_target(target,reference_q,reference_palm,reference_object,
@@ -71,7 +73,7 @@ class SourceGraspReference:
     Contact is evidence from the source recording, not a live success label.
     No-contact recordings get an explicit geometric candidate and stay in n40.
     """
-    def __init__(self,reference,points):
+    def __init__(self,reference,points,offset,scale,*,plane=None):
         force=np.asarray(reference['contact_forces'])[:,0]
         raw_contact=(np.linalg.norm(force,axis=-1)>=.1).sum(-1)>=2
         raw_contact&=reference['contact_force_valid'][:,0]&np.isfinite(force).all(axis=(1,2))
@@ -85,17 +87,31 @@ class SourceGraspReference:
         contact=raw_contact&near
         self.raw_force_contact_frames=int(raw_contact.sum());self.object_contact_frames=int(contact.sum())
         found=np.flatnonzero(contact);self.contact_frame=int(found[0]) if len(found) else None
+        observer=FeedbackObserver(points);coupled=np.zeros(len(force),bool)
+        if plane is not None:
+            normal,height=plane;initial_z=reference['objects'][0,0,2]
+            for t in range(len(force)):
+                obj=reference['objects'][t,0];pose=pose7(obj)
+                gap=float(np.min((points@pose[:3,:3].T+pose[:3,3])@normal)-height)
+                feedback=observer.update(pose,reference['hand'][t,0,NATIVE_TO_WAM],obj[7:13],t/30,
+                    contact_forces=force[t],force_valid=bool(reference['contact_force_valid'][t,0]),supported=gap<=.002)
+                coupled[t]=bool(feedback.grasp_established and obj[2]-initial_z>=.05 and gap>.02 and contact[t])
+        positive=np.flatnonzero(coupled);self.source_coupled_lift_frames=int(coupled.sum())
         if len(found):
             stable=[int(i)+4 for i in found if i+4<len(contact) and contact[i:i+5].all()]
-            frame=stable[0] if stable else self.contact_frame
-            self.evidence='measured_source_force_contact'
+            frame=int(positive[0]) if len(positive) else stable[0] if stable else self.contact_frame
+            self.evidence='measured_source_coupled_lift' if len(positive) else 'measured_source_force_contact'
         else:
             frame=int(np.argmin(np.partition(gaps,1,axis=1)[:,1]))
             self.evidence='geometric_candidate_no_source_contact'
         self.grasp_frame=frame;self.preshape_frame=max(0,(self.contact_frame if self.contact_frame is not None else frame)-5)
         self.grasp=np.linalg.inv(pose7(reference['objects'][frame,0]))@pose7(reference['palm_pose'][frame,0])
         self.preshape=np.asarray(reference['q'][self.preshape_frame,0,FINGER_ACTIVE]).copy()
-        self.closure=np.asarray(reference['q'][frame,0,FINGER_ACTIVE]).copy()
+        self.command_frame=max(0,frame-1)
+        command=reference['action'][self.command_frame]
+        if command.shape==(18,):command=command[list(ACTIVE)]
+        self.closure=pd_targets(command,reference['q'][self.command_frame,0],offset,scale)[FINGER_ACTIVE]
+        self.measured_grasp_q=np.asarray(reference['q'][frame,0,FINGER_ACTIVE]).copy()
 
     def intent(self,object_goal):
         return GraspIntent(self.grasp.copy(),self.grasp.copy(),self.preshape.copy(),self.closure.copy(),
@@ -105,7 +121,11 @@ class SourceGraspReference:
         return dict(kind='source_keygrasp',evidence=self.evidence,contact_frame=self.contact_frame,
                     grasp_frame=self.grasp_frame,preshape_frame=self.preshape_frame,
                     raw_force_contact_frames=self.raw_force_contact_frames,object_contact_frames=self.object_contact_frames,
-                    consumes_source_actions=False,consumes_R=False,source_contact_is_live_success=False)
+                    source_coupled_lift_frames=self.source_coupled_lift_frames,
+                    consumes_source_actions=True,source_action_mode='one_predecessor_closure_command_no_replay',
+                    closure_command_frame=self.command_frame,closure_has_predecessor=self.grasp_frame>0,
+                    measured_grasp_q=self.measured_grasp_q.tolist(),closure_pd_target_q=self.closure.tolist(),
+                    consumes_R=False,source_contact_is_live_success=False)
 
 
 class MarginAdmission(JointAdmission):
@@ -130,9 +150,14 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
     finger_rate_radps=1.2
     reaching_linear_rate_mps=.30
     reaching_angular_rate_radps=1.2
+    free_linear_rate_mps=.75
+    free_angular_rate_radps=2.4
     acquisition_distance_m=.01
     acquisition_rate_mps=.06
     wrist_angle_tolerance_rad=.2
+    force_to_native_tip=(1,2,4,3,0)
+    measured_warning_margin=.05 # Half the unchanged .10 physical abort margin.
+    contact_geometry='segment'
 
     def __init__(self,*args,joint_limits,**kwargs):
         super().__init__(*args,joint_limits=joint_limits,**kwargs)
@@ -142,6 +167,10 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
         self.unload_direction=None
         self.source_paused=False
         self.acquire_anchor=None
+        self.object_tree=cKDTree(self.points)
+        initial=np.asarray(args[0] if args else kwargs['q'])
+        self.finger_target=self.inner_admission.fingers(initial[FINGER_ACTIVE])
+        self.unload_fingers=self.finger_target.copy()
 
     def step(self,**args):
         if self.phase not in ('approach','close'):
@@ -150,25 +179,47 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
             self.source_paused=False
             self.acquire_anchor=None
             command,info=super().step(**args)
+            self.finger_target=pd_targets(command,args['q'],self.offset,self.scale)[FINGER_ACTIVE].copy()
             info['source_ceiling']=dict(contract=SOURCE_CEILING_CONTRACT,active=False,source_paused=False)
             return command,info
         self.admission=self.inner_admission
         q=np.asarray(args['q']);dq=np.asarray(args['dq']);palm=np.asarray(args['palm'])
         now=float(args['now']);intent=args['intent'];force=np.asarray(args['forces'])
         grasp=args['object_pose']@intent.grasp_pose_object
+        distances=self.object_tree.query((np.asarray(args['hand'])[TIPS]-args['object_pose'][:3,3])@args['object_pose'][:3,:3])[0]
+        local_hand=(np.asarray(args['hand'])-args['object_pose'][:3,3])@args['object_pose'][:3,:3]
+        bases=local_hand[TIPS-1];segments=local_hand[TIPS]-bases
+        along=np.clip(np.einsum('fpi,fi->fp',self.points[None]-bases[:,None],segments)/np.maximum((segments*segments).sum(-1)[:,None],1e-12),0,1)
+        segment_gaps=np.linalg.norm(self.points[None]-(bases[:,None]+along[:,:,None]*segments[:,None]),axis=-1).min(-1)
+        force_valid=bool(args['feedback'].force_valid)
+        magnitudes=np.linalg.norm(force,axis=-1) if force_valid else np.zeros(5)
+        # Native tips: thumb,index,middle,ring,pinky; force/active-driver order:
+        # index,middle,pinky,ring,thumb. Never pair sensors by raw slot number.
+        contact_gaps=segment_gaps if self.contact_geometry=='segment' else distances
+        contact_match=bool(((contact_gaps[list(self.force_to_native_tip)]<=InteractionConfig().near_surface_m)&(magnitudes>=.1)).any())
+        tips=np.asarray(args['hand'])[TIPS]
+        hand_span=float(np.linalg.norm(tips[:,None]-tips[None],axis=-1).max())
+        wrist_distance=float(np.linalg.norm(grasp[:3,3]-palm[:3,3]))
+        wrist_angle=float(np.linalg.norm(Rotation.from_matrix(grasp[:3,:3]@palm[:3,:3].T).as_rotvec()))
         wrist_arrived=bool(np.linalg.norm(grasp[:3,3]-palm[:3,3])<=self.geometry.wrist_gap_m and
-                           np.linalg.norm(Rotation.from_matrix(grasp[:3,:3]@palm[:3,:3].T).as_rotvec())<=self.wrist_angle_tolerance_rad)
+                           wrist_angle<=self.wrist_angle_tolerance_rad)
+        contact_ready=bool(contact_match and wrist_distance<=hand_span*.5+self.geometry.wrist_gap_m and wrist_angle<=.5)
+        wrist_arrived|=contact_ready
         if self.phase=='approach' and wrist_arrived:
             # Closing is an attempted action, not a contact/grasp certificate.
             self.phase='close';self.close_pose=palm.copy();self.fingers=q[FINGER_ACTIVE].copy()
-        force_valid=bool(args['feedback'].force_valid)
-        magnitudes=np.linalg.norm(force,axis=-1) if force_valid else np.zeros(5)
+        near_object=bool(args['fingertip_gap_m']<=InteractionConfig().approach_distance_m or args['feedback'].contact_observed)
+        linear_rate=self.reaching_linear_rate_mps if near_object else self.free_linear_rate_mps
+        angular_rate=self.reaching_angular_rate_radps if near_object else self.free_angular_rate_radps
         loaded=magnitudes>self.force_limit_n
         projected=q+dq/30
         # Directional prediction: harmless motion back into the workspace must
         # not trigger another retreat. Continuous wrist angles have no bounds.
-        lower=(self.admission.mask & (projected<self.admission.lower) & (dq<-.2))
-        upper=(self.admission.mask & (projected>self.admission.upper) & (dq>.2))
+        # Targets keep the URDF inner margin. Actual compliant contact states
+        # warn halfway to the EXISTING physical abort, not at the target margin.
+        # The physical_safety function and its .10m/.10rad bound are untouched.
+        lower=(self.outer_admission.mask & (projected<self.outer_admission.lower-self.measured_warning_margin) & (dq<-.2))
+        upper=(self.outer_admission.mask & (projected>self.outer_admission.upper+self.measured_warning_margin) & (dq>.2))
         risk=lower|upper
         trigger=bool(loaded.any() or risk[6:].any())
         if trigger:
@@ -183,9 +234,9 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
         unloading=now<self.unload_until
         self.source_paused=unloading
         fingers=np.asarray(intent.closure_q if self.phase=='close' else intent.preshape_q).copy()
-        if unloading:
+        if trigger:
             finger_load=np.r_[loaded[:4],loaded[4],loaded[4]]
-            fingers=np.where(finger_load,q[FINGER_ACTIVE]-.04,fingers)
+            fingers=np.where(finger_load,np.minimum(self.finger_target-.04,q[FINGER_ACTIVE]-.04),self.finger_target)
             # An actual lower-bound excursion needs inward recovery, not more
             # opening. Mimic-joint warnings act on their independent driver.
             for i,joint in enumerate(FINGER_ACTIVE):
@@ -194,9 +245,10 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
                     fingers[i]=max(q[j]/ratio+.04 for j,ratio in group)
                 if any(upper[j] for j,_ in group):
                     fingers[i]=min(q[j]/ratio-.04 for j,ratio in group)
-        fingers=q[FINGER_ACTIVE]+np.clip(fingers-q[FINGER_ACTIVE],-self.finger_rate_radps/30,self.finger_rate_radps/30)
+            self.unload_fingers=self.admission.fingers(fingers)
+        fingers=self.unload_fingers.copy() if unloading else self.finger_target+np.clip(fingers-self.finger_target,-self.finger_rate_radps/30,self.finger_rate_radps/30)
         fingers=self.admission.fingers(fingers)
-        closure=q[FINGER_ACTIVE]+np.clip(intent.closure_q-q[FINGER_ACTIVE],-self.finger_rate_radps/30,self.finger_rate_radps/30)
+        closure=self.finger_target+np.clip(intent.closure_q-self.finger_target,-self.finger_rate_radps/30,self.finger_rate_radps/30)
         closure=self.admission.fingers(closure)
         proposal=args['object_pose']@intent.approach_pose_object
         candidate=bool(force_valid and args['feedback'].contact_observed and getattr(args['feedback'],'grasp_candidate',False))
@@ -208,16 +260,16 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
             # Preserve the actual force-bearing pre-shape rather than following
             # a later reference opening command while waiting for acquisition.
             mapped_force=np.r_[magnitudes[:4],magnitudes[4],magnitudes[4]]
-            fingers=self.admission.fingers(q[FINGER_ACTIVE]+np.where(mapped_force<.25,.005,0.))
+            fingers=self.admission.fingers(self.finger_target+np.where(mapped_force<.25,.0015,np.where(mapped_force>4.,-.001,0.)))
         if unloading:
             proposal=palm.copy();proposal[:3,3]+=self.unload_direction*self.reaching_linear_rate_mps/30
         # Pre-limit the source too, not just replacement geometry candidates.
         delta=proposal[:3,3]-palm[:3,3]
-        linear_step=self.acquisition_rate_mps/30 if probing else self.reaching_linear_rate_mps/30
+        linear_step=self.acquisition_rate_mps/30 if probing else linear_rate/30
         delta*=min(1.,linear_step/max(np.linalg.norm(delta),1e-12))
         proposal[:3,3]=palm[:3,3]+delta
         rotation=Rotation.from_matrix(proposal[:3,:3]@palm[:3,:3].T).as_rotvec()
-        rotation*=min(1.,self.reaching_angular_rate_radps/30/max(np.linalg.norm(rotation),1e-12))
+        rotation*=min(1.,angular_rate/30/max(np.linalg.norm(rotation),1e-12))
         proposal[:3,:3]=Rotation.from_rotvec(rotation).as_matrix()@palm[:3,:3]
         mount=Rotation.from_euler('XYZ',q[3:6]).as_matrix().T@palm[:3,:3]
         changed=replace(intent,approach_pose_object=np.linalg.inv(args['object_pose'])@proposal,
@@ -225,11 +277,16 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
         # Parent geometry selection still checks all candidate targets against
         # the INNER bounds before ranking. It also retains table feasibility.
         command,info=super().step(**dict(args,intent=changed))
+        if unloading and self.phase in ('lift','hold'):
+            # Preserve the real feedback, but interlock commanded lift while
+            # measured pressure/joint danger is still being relieved.
+            self.phase='close';self.servo.reset();self.servo_active=False
+            info.update(phase='close',lift_interlocked_for_unloading=True)
         if self.phase in ('approach','close'):
             # Apply slew limits AFTER geometry selection too. Candidate rotation
             # and target admission cannot bypass the approach control budget.
-            command[:3]*=min(1.,self.reaching_linear_rate_mps/30/max(np.linalg.norm(command[:3]*self.scale[:3]),1e-12))
-            command[3:6]*=min(1.,self.reaching_angular_rate_radps/30/max(np.linalg.norm(command[3:6]*self.scale[3:6]),1e-12))
+            command[:3]*=min(1.,linear_rate/30/max(np.linalg.norm(command[:3]*self.scale[:3]),1e-12))
+            command[3:6]*=min(1.,angular_rate/30/max(np.linalg.norm(command[3:6]*self.scale[3:6]),1e-12))
         if unloading and self.phase in ('approach','close'):
             # A new candidate must not overwrite this tick's measured retreat.
             command[:3]=(proposal[:3,3]-palm[:3,3]-self.offset[:3])/self.scale[:3]
@@ -247,14 +304,21 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
         executed_pose=palm.copy();executed_pose[:3,3]+=applied[:3]-q[:3]
         executed_pose[:3,:3]=Rotation.from_euler('XYZ',applied[3:6]).as_matrix()@mount
         info.update(wrist_target=executed_pose.tolist(),executed_finger_target=applied[FINGER_ACTIVE].tolist())
-        finger_delta=float(np.max(np.abs(applied[FINGER_ACTIVE]-q[FINGER_ACTIVE])))
+        finger_step=float(np.max(np.abs(applied[FINGER_ACTIVE]-self.finger_target)))
+        finger_error=float(np.max(np.abs(applied[FINGER_ACTIVE]-q[FINGER_ACTIVE])))
         info['source_ceiling']=dict(contract=SOURCE_CEILING_CONTRACT,active=True,
             force_valid=force_valid,force_norm_n=magnitudes.tolist(),force_limit_n=self.force_limit_n,
             wrist_pose_ready=wrist_arrived,
+            contact_ready=contact_ready,matched_contact=contact_match,hand_span_m=hand_span,
+            control_contact_geometry=self.contact_geometry,
+            near_object=near_object,command_linear_rate_mps=linear_rate,command_angular_rate_radps=angular_rate,
             loaded_fingers=np.flatnonzero(loaded).tolist(),coasting_joint_indices=np.flatnonzero(risk).tolist(),
             unloading=applied_unloading,unload_requested=unloading,source_paused=self.source_paused,inner_target_admitted=self.admission.check(command,q)[0],
             acquisition_probe=probing,acquisition_anchor=None if self.acquire_anchor is None else self.acquire_anchor.tolist(),acquisition_maximum_m=self.acquisition_distance_m,
-            finger_max_applied_delta_rad=finger_delta,finger_rate_override_for_admission=bool(finger_delta>self.finger_rate_radps/30+1e-6),
+            finger_target_step_rad=finger_step,finger_tracking_error_rad=finger_error,
+            finger_emergency_slew_override=bool(finger_step>self.finger_rate_radps/30+1e-6),
+            measured_warning_margin=self.measured_warning_margin,physical_abort_margin_unchanged=.10,
             finger_rate_radps=self.finger_rate_radps,retreat_direction=None if not unloading else self.unload_direction.tolist())
         self.last_info=info
+        self.finger_target=applied[FINGER_ACTIVE].copy()
         return command,info

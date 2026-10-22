@@ -44,10 +44,19 @@ def summarize(rows):
                 support_gap_m=row['physical_safety_final']['table_gap_m'])
             force=np.linalg.norm(z['contact_forces'][:,0],axis=-1)
             force_quantiles=np.quantile(force.max(-1),[.5,.9,1]).tolist()
+            # Keep nominal URDF excursions distinct from the frozen physical
+            # abort margin. A zero abort count is NOT zero mechanical deviation.
+            states=z['q'][1:,0];limited=np.asarray(bounds['has_limits'],bool)
+            excess=np.maximum(np.maximum(np.asarray(bounds['lower'])-states,states-np.asarray(bounds['upper'])),0.)
+            excess[:,~limited]=0.
+            excursion_count=int((excess>1e-6).any(-1).sum())
+            excursion_joints=[dict(index=int(j),name=audit['native_dof_names'][j],unit='m' if j<3 else 'rad',
+                maximum_nominal_excess=float(excess[:,j].max())) for j in range(18) if len(excess) and excess[:,j].max()>1e-6]
         records.append(dict(id=row['id'],sequence=row['sequence'],object=row['object'],death=death(row),
             final_phase=info[-1]['phase'] if info else 'reset',controls=t,final_success=row['final_success'],
             longest_hold_s=row['longest_hold_s'],joints=joints,geometry=geometry,force_max_quantiles_n=force_quantiles,
             unloading_controls=sum(bool(i.get('source_ceiling',{}).get('unloading')) for i in info),
+            post_control_states_with_nominal_joint_excursion=excursion_count,nominal_excursion_joints=excursion_joints,
             source_admission_failures=row['source_admission_failures'],final_clipped_controls=row['final_clipped_controls']))
     objects={}
     for obj in sorted(set(r['object'] for r in records)):
