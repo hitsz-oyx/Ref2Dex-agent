@@ -10,7 +10,24 @@ from .grasp_geometry import GeometryGraspConsumer, JointAdmission, COUPLINGS
 from .pose_consumer import FINGER_ACTIVE, closest_wrist_angles
 from .tau_replay_contract import pd_targets
 
-SOURCE_CEILING_CONTRACT = 'source.measured-unload.margin-admission.slew.v2'
+SOURCE_CEILING_CONTRACT = 'source.object-anchored.measured-unload.margin-admission.slew.v3'
+
+
+def object_anchored_source_target(target,reference_q,reference_palm,reference_object,
+                                  live_q,live_palm,live_object):
+    """Retain source finger commands while attaching its wrist intent to live SE3.
+
+    Source remains a direct PD chain, not a GT-tau/R qualification. The reference
+    frame and target are sampled together; no future object state is fed to WAM.
+    """
+    ref_mount=Rotation.from_euler('XYZ',reference_q[3:6]).as_matrix().T@reference_palm[:3,:3]
+    desired=reference_palm.copy();desired[:3,3]+=target[:3]-reference_q[:3]
+    desired[:3,:3]=Rotation.from_euler('XYZ',target[3:6]).as_matrix()@ref_mount
+    desired=live_object@np.linalg.inv(reference_object)@desired
+    mount=Rotation.from_euler('XYZ',live_q[3:6]).as_matrix().T@live_palm[:3,:3]
+    result=np.asarray(target).copy();result[:3]=live_q[:3]+desired[:3,3]-live_palm[:3,3]
+    result[3:6]=closest_wrist_angles(desired[:3,:3],live_q[3:6],mount)
+    return result
 
 
 class MarginAdmission(JointAdmission):

@@ -87,7 +87,7 @@ def main():
     from wam_rl_policy_v3.pose_consumer import pose7,reduce_to_wrist_plan,grasp_intent_from_retargeter
     from wam_rl_policy_v3.grasp_repair import clean_tau_future,support_plane
     from wam_rl_policy_v3.grasp_geometry import GraspGeometry
-    from wam_rl_policy_v3.source_ceiling import SourceCeilingConsumer as GeometryGraspConsumer
+    from wam_rl_policy_v3.source_ceiling import SourceCeilingConsumer as GeometryGraspConsumer,object_anchored_source_target
     from wam_rl_policy_v3.source_pd import source_pd_action
     from wam_rl_policy_v3.intent_residual import IntentResidualPolicy,residual_observation,apply_intent_residual,ppo_update,RESIDUAL_CONTRACT
     from wam_rl_policy_v3.evaluation_sources import freeze_template,template_intent,gt_future
@@ -211,6 +211,7 @@ def main():
                             source_action=reference['action'][ref_t]
                             if source_action.shape==(18,):source_action=source_action[list(ACTIVE)]
                             source_target=pd_targets(source_action,reference['q'][ref_t,0],offset,scale)
+                            source_target=object_anchored_source_target(source_target,reference['q'][ref_t,0],pose7(reference['palm_pose'][ref_t,0]),pose7(reference['objects'][ref_t,0]),np.asarray(state['q'])[0],palm,pose)
                             try:adapter=source_pd_action(source_target,np.asarray(state['q'])[0],offset,scale)[0][None]
                             except ValueError:
                                 # Explicit source admission failure; continue the measured

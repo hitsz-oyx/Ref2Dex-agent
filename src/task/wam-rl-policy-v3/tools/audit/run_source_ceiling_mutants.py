@@ -28,7 +28,8 @@ def main():
         ('omit-target-margin',patch.object(MarginAdmission,'__init__',JointAdmission.__init__),tests.test_nominally_legal_near_limit_target_is_rejected_before_candidate_ranking),
         ('change-held-object-servo',patch.object(SourceCeilingConsumer,'step',altered_held),tests.test_postgrasp_command_is_identical_to_existing_controller),
         ('omit-closure-handover-slew',patch.object(controller_module,'replace',omit_closure_limit),tests.test_close_to_lift_handover_cannot_jump_to_future_closure_target),
-        ('log-unexecuted-target',patch.object(SourceCeilingConsumer,'step',incorrect_target_log),tests.test_executed_target_telemetry_matches_final_admitted_command)]
+        ('log-unexecuted-target',patch.object(SourceCeilingConsumer,'step',incorrect_target_log),tests.test_executed_target_telemetry_matches_final_admitted_command),
+        ('retain-recording-world-source',patch.object(tests,'object_anchored_source_target',lambda target,*args:target),tests.test_source_approach_follows_live_object_translation_not_recording_world)]
     result=[]
     for name,mutation,check in cases:
         check() # First prove the unmutated check passes.

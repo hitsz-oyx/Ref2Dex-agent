@@ -1,9 +1,11 @@
 """Approach/close regressions at the production consumer step boundary."""
 from types import SimpleNamespace
 import numpy as np
-from wam_rl_policy_v3.source_ceiling import SourceCeilingConsumer, MarginAdmission
+from wam_rl_policy_v3.source_ceiling import SourceCeilingConsumer, MarginAdmission,object_anchored_source_target
 from wam_rl_policy_v3.pose_consumer import GraspIntent, FINGER_ACTIVE
 from wam_rl_policy_v3.tau_replay_contract import pd_targets
+from wam_rl_policy_v3.source_pd import source_pd_action
+from wam_rl_policy_v3.pose_consumer import grasp_intent_from_retargeter
 
 
 def approaching(cls=SourceCeilingConsumer, force=0., valid=True):
@@ -91,3 +93,30 @@ def test_executed_target_telemetry_matches_final_admitted_command():
     target=pd_targets(command,args['q'],c.offset,c.scale)
     np.testing.assert_allclose(info['executed_finger_target'],target[FINGER_ACTIVE],atol=1e-6,rtol=0)
     np.testing.assert_allclose(np.asarray(info['wrist_target'])[:3,3],args['palm'][:3,3]+target[:3]-args['q'][:3],atol=1e-6,rtol=0)
+
+
+def source_target_intent(reference_object,live_object):
+    q=np.zeros(18);q[2]=1.2;q[6:]=.2
+    palm=np.eye(4);palm[2,3]=1.2
+    source=pd_targets(np.r_[np.zeros(6),np.full(6,-.6)],q,np.zeros(18),np.ones(18))
+    source=object_anchored_source_target(source,q,palm,reference_object,q,palm,live_object)
+    action=source_pd_action(source,q,np.zeros(18),np.ones(18))[0]
+    intent=grasp_intent_from_retargeter(q,palm,live_object,live_object,action,np.zeros(18),np.ones(18))
+    return live_object@intent.approach_pose_object,source,intent
+
+
+def test_source_approach_follows_live_object_translation_not_recording_world():
+    reference=np.eye(4);reference[2,3]=1.1;live=reference.copy();live[0,3]=.05
+    original,_,_=source_target_intent(reference,reference)
+    moved,_,_=source_target_intent(reference,live)
+    np.testing.assert_allclose(moved[:3,3]-original[:3,3],[.05,0,0],atol=1e-6,rtol=0)
+
+
+def test_object_anchor_maps_rotation_and_preserves_finger_targets():
+    from scipy.spatial.transform import Rotation
+    reference=np.eye(4);reference[2,3]=1.1
+    live=reference.copy();live[:3,:3]=Rotation.from_euler('y',.4).as_matrix()
+    original,source,_=source_target_intent(reference,reference)
+    moved,target,_=source_target_intent(reference,live)
+    np.testing.assert_allclose(moved,live@np.linalg.inv(reference)@original,atol=1e-6,rtol=0)
+    np.testing.assert_array_equal(source[6:],target[6:])
