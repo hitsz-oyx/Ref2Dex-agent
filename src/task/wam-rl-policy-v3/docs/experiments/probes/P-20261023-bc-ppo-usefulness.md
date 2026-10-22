@@ -44,7 +44,7 @@ run_id: bc-ppo-usefulness-20261023-r1
 PPO Adam1e-5、2epochs、joint exact KL target .03、超门1/4lr回滚重试，
 gamma .96、GAE .95、ratio clip .2；不因结果调整算法。每回合更新，记录optimizer
 attempts/accepted/retry、exact KL/clip/entropy/reward，controls/s与updates/s分开。
-preflight计划3600controls/arm；规模阶段最多1e5/arm，必须先报告实测数字再决定。
+preflight实际PPO3600/BC600 controls，19.11min。主配对**预算缩小：14400controls/arm**；完整1e5未测。
 单卡顺序总时长、08:00余量及必要的“预算缩小”另写preflight报告。
 总输出<5GB，逐run上限2GB、总量另监控；<20GiB磁盘可用停止，checkpoint每40回合及最终，
 不写视频，不覆盖旧checkpoint。末尾预算截断回合标记partial，不冒充600controls完整评估。
@@ -55,5 +55,7 @@ checkpoint限频和固定runtime复用；原成功/安全/phase条件保持。
 preflight的PPO checkpoint不进入正式规模训练；正式两arm从同BC权重开始。
 输出、日志、原生Python与Torch/CUDA环境见各run manifest，不写入文档目录。
 
-Result: pending preflight.
-Decision: do not scale before measured preflight passes.
+Result: preflight numerical PASS, 22 updates, KL .000112–.008408, clip0–.1317, zero rollbacks; BC3.124/PPO4.060 controls/s. Main paired budget reduced explicitly to14400/arm.
+Decision: original100000/arm sequential estimate15.73h misses08:00; execute14400/arm on GPU7 after measured preflight report; retain original efficacy criteria.
+
+[实测preflight与顺序耗时账](../../ppo-bc-usefulness-preflight-20261023.md)。
