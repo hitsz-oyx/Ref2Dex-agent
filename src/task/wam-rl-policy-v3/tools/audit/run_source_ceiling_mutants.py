@@ -46,6 +46,9 @@ def main():
     def measured_slew_anchor(self,**args):
         self.finger_target=np.asarray(args['q'])[[6,8,10,12,14,15]].copy()
         return original(self,**args)
+    def chasing_close_goal(self,**args):
+        self.closing_goal=None
+        return original(self,**args)
     cases=[('ignore-measured-pressure',patch.object(SourceCeilingConsumer,'force_limit_n',float('inf')),tests.test_measured_pressure_unloads_at_actual_approach_close_step),
         ('unlimited-finger-target-jump',patch.object(SourceCeilingConsumer,'finger_rate_radps',100.),tests.test_approach_finger_target_does_not_jump_to_reference),
         ('omit-target-margin',patch.object(MarginAdmission,'__init__',JointAdmission.__init__),tests.test_nominally_legal_near_limit_target_is_rejected_before_candidate_ranking),
@@ -66,7 +69,9 @@ def main():
         ('anchor-slew-to-measured-q',patch.object(SourceCeilingConsumer,'step',measured_slew_anchor),tests.test_command_slew_accumulates_preload_when_measured_joint_is_blocked),
         ('unload-at-command-margin',patch.object(SourceCeilingConsumer,'measured_warning_margin',-.04),tests.test_target_margin_does_not_trigger_measured_unload_on_ordinary_deflection),
         ('miss-intermediate-link-contact',patch.object(SourceCeilingConsumer,'contact_geometry','tip'),tests.test_intermediate_link_contact_can_start_closure_before_tip_contact),
-        ('use-initial-touch-instead-of-completed-grasp',patch.object(controller_module,'FeedbackObserver',lambda points:SimpleNamespace(update=lambda *args,**kwargs:SimpleNamespace(grasp_established=False))),tests.test_source_key_prefers_completed_coupled_lift_over_initial_touch)]
+        ('use-initial-touch-instead-of-completed-grasp',patch.object(controller_module,'FeedbackObserver',lambda points:SimpleNamespace(update=lambda *args,**kwargs:SimpleNamespace(grasp_established=False))),tests.test_source_key_prefers_completed_coupled_lift_over_initial_touch),
+        ('chase-live-object-during-closing',patch.object(SourceCeilingConsumer,'step',chasing_close_goal),tests.test_closing_reference_does_not_chase_object_after_real_contact),
+        ('keep-stale-goal-after-contact-loss',patch.object(SourceCeilingConsumer,'contact_loss_dwell_s',float('inf')),tests.test_contact_loss_releases_captured_goal_and_returns_to_approach)]
     result=[]
     for name,mutation,check in cases:
         check() # First prove the unmutated check passes.

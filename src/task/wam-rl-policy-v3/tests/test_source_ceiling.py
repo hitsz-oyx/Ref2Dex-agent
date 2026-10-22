@@ -304,3 +304,21 @@ def test_source_key_prefers_completed_coupled_lift_over_initial_touch():
     key=SourceGraspReference(ref,points,np.zeros(18),np.ones(18),plane=(np.array([0.,0,1.]),1.08))
     assert key.grasp_frame==9 and key.manifest()['evidence']=='measured_source_coupled_lift'
     assert key.manifest()['source_contact_is_live_success'] is False
+
+
+def test_closing_reference_does_not_chase_object_after_real_contact():
+    c,args=one_contact_args(0)
+    c.step(**args) # Capture the grasp geometry at the measured first contact.
+    args['now']=1/30;args['palm'][0,3]+=.04;args['q'][0]+=.04;args['hand'][:,0]+=.04
+    args['object_pose'][0,3]+=.05 # Object slips, but the same index still touches.
+    command,_=c.step(**args)
+    assert abs(command[0])<1e-6, 'The wrist reached the captured grasp; do not chase the pushed object'
+
+
+def test_contact_loss_releases_captured_goal_and_returns_to_approach():
+    c,args=one_contact_args(0);c.step(**args)
+    args['object_pose'][0,3]+=.2;args['forces'][:]=0
+    args['intent'].preshape_q[:]=.2
+    for t in range(1,6):
+        args['now']=t/30;_,info=c.step(**args)
+    assert c.phase=='approach' and c.closing_goal is None and info['source_ceiling']['regrasp_requested']

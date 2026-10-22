@@ -14,7 +14,7 @@ seeds: [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 11
 decision_changed_if_positive: qualify source-only controller on the same forty development initials before comparing WAM
 decision_changed_if_negative: retain all failures and repair measured approach or closure without relaxing physical gates
 status: RUNNING
-run_id: source-ceiling-20261023-r6
+run_id: source-ceiling-20261023-r7
 ---
 
 ## 结果解读表
@@ -97,4 +97,17 @@ export TMPDIR="$PWD/tmp"
 PY=/home2/wyy/miniconda3/envs/graspenv/bin/python
 $PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r6 --prepare --predecessor outputs/wam-rl-policy-v3/source-ceiling-20261023-r5
 $PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r6 --detached
+```
+
+## R7运行前修订：闭合接触后固定世界抓姿，实测失触才重新接近
+
+R6完整0/40、21780控制、1关节中止（2关节事件），未达32。原14/40仍较强；不比较WAM。
+真实trace与step红测试表明，闭合时继续按live对象映射抓姿会追逐被推动的物体；R7在首次匹配实测指节接触时捕获该世界抓姿，继续向其闭合，不跟随对象滑移。有效实测失触持续0.12秒后释放并重新接近；过载卸载后也重新规划，不冻结陈旧目标。未接触前仍映射live对象，抓后伺服、评分、物理gate完全沿用v11。
+此为Blocker修复，决定是否具备source≥32/40资格；最便宜验收仍是同40任务，不加WAM/训练。预注册n40/≤24000新控制/0updates，同种子/初态/20秒，R3–R7累计上限120000控制；本版运行前四版已实耗93322。目标32/40、预抓限位≤2；目标不是实测结论。
+软件预期：接触后对象平移50mm，已捕获目标平移0mm；失触0.12s后approach、捕获清除；28专项通过、23故意错误被抓。原生腕XYZ安装变换实测最大漂移1.22e-6rad，排除腕运动学顺序错误。
+```bash
+export TMPDIR="$PWD/tmp"
+PY=/home2/wyy/miniconda3/envs/graspenv/bin/python
+$PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r7 --prepare --predecessor outputs/wam-rl-policy-v3/source-ceiling-20261023-r6
+$PY src/task/wam-rl-policy-v3/tools/run/run_source_ceiling40.py --run outputs/wam-rl-policy-v3/source-ceiling-20261023-r7 --detached
 ```

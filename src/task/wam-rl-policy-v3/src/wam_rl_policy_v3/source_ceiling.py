@@ -14,7 +14,7 @@ from .tau_replay_contract import pd_targets
 from .interaction_state import InteractionConfig
 from .task_feedback import FeedbackObserver
 
-SOURCE_CEILING_CONTRACT = 'source.keygrasp.force-target.distance-rate.v6'
+SOURCE_CEILING_CONTRACT = 'source.keygrasp.contact-latched-close.v7'
 
 
 def object_anchored_source_target(target,reference_q,reference_palm,reference_object,
@@ -158,6 +158,7 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
     force_to_native_tip=(1,2,4,3,0)
     measured_warning_margin=.05 # Half the unchanged .10 physical abort margin.
     contact_geometry='segment'
+    contact_loss_dwell_s=.12
 
     def __init__(self,*args,joint_limits,**kwargs):
         super().__init__(*args,joint_limits=joint_limits,**kwargs)
@@ -171,6 +172,7 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
         initial=np.asarray(args[0] if args else kwargs['q'])
         self.finger_target=self.inner_admission.fingers(initial[FINGER_ACTIVE])
         self.unload_fingers=self.finger_target.copy()
+        self.closing_goal=None;self.closing_lost_since=None;self.regrasp_pending=False
 
     def step(self,**args):
         if self.phase not in ('approach','close'):
@@ -178,6 +180,7 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
             self.admission=self.outer_admission
             self.source_paused=False
             self.acquire_anchor=None
+            self.closing_goal=None;self.closing_lost_since=None
             command,info=super().step(**args)
             self.finger_target=pd_targets(command,args['q'],self.offset,self.scale)[FINGER_ACTIVE].copy()
             info['source_ceiling']=dict(contract=SOURCE_CEILING_CONTRACT,active=False,source_paused=False)
@@ -205,9 +208,23 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
                            wrist_angle<=self.wrist_angle_tolerance_rad)
         contact_ready=bool(contact_match and wrist_distance<=hand_span*.5+self.geometry.wrist_gap_m and wrist_angle<=.5)
         wrist_arrived|=contact_ready
+        recovered_after_unload=bool(self.regrasp_pending and now>=self.unload_until)
+        if recovered_after_unload:
+            self.phase='approach';self.closing_goal=None;self.closing_lost_since=None
+            self.contact_since=None;self.acquire_anchor=None;self.regrasp_pending=False
         if self.phase=='approach' and wrist_arrived:
             # Closing is an attempted action, not a contact/grasp certificate.
             self.phase='close';self.close_pose=palm.copy();self.fingers=q[FINGER_ACTIVE].copy()
+        regrasp_requested=False
+        if self.phase=='close':
+            if self.closing_goal is None and contact_match:self.closing_goal=grasp.copy()
+            if self.closing_goal is not None:
+                if contact_match:self.closing_lost_since=None
+                elif force_valid:
+                    if self.closing_lost_since is None:self.closing_lost_since=now
+                    if now-self.closing_lost_since>=self.contact_loss_dwell_s-1e-10:
+                        self.phase='approach';self.closing_goal=None;self.closing_lost_since=None
+                        self.contact_since=None;self.acquire_anchor=None;regrasp_requested=True
         near_object=bool(args['fingertip_gap_m']<=InteractionConfig().approach_distance_m or args['feedback'].contact_observed)
         linear_rate=self.reaching_linear_rate_mps if near_object else self.free_linear_rate_mps
         angular_rate=self.reaching_angular_rate_radps if near_object else self.free_angular_rate_radps
@@ -223,6 +240,7 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
         risk=lower|upper
         trigger=bool(loaded.any() or risk[6:].any())
         if trigger:
+            self.closing_goal=None;self.closing_lost_since=None;self.regrasp_pending=True
             self.unload_until=now+.10
             direction=force[loaded].sum(0) if loaded.any() else palm[:3,3]-args['object_pose'][:3,3]
             normal,height=self.plane
@@ -250,7 +268,8 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
         fingers=self.admission.fingers(fingers)
         closure=self.finger_target+np.clip(intent.closure_q-self.finger_target,-self.finger_rate_radps/30,self.finger_rate_radps/30)
         closure=self.admission.fingers(closure)
-        proposal=args['object_pose']@intent.approach_pose_object
+        captured_close=bool(self.phase=='close' and self.closing_goal is not None and not unloading)
+        proposal=self.closing_goal.copy() if captured_close else args['object_pose']@intent.approach_pose_object
         candidate=bool(force_valid and args['feedback'].contact_observed and getattr(args['feedback'],'grasp_candidate',False))
         probing=bool(candidate and not args['feedback'].grasp_established and not unloading)
         if not probing:self.acquire_anchor=None
@@ -274,6 +293,7 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
         mount=Rotation.from_euler('XYZ',q[3:6]).as_matrix().T@palm[:3,:3]
         changed=replace(intent,approach_pose_object=np.linalg.inv(args['object_pose'])@proposal,
                         preshape_q=fingers,closure_q=closure,approach_joint_angles=closest_wrist_angles(proposal[:3,:3],q[3:6],mount))
+        if captured_close:changed=replace(changed,grasp_pose_object=np.linalg.inv(args['object_pose'])@self.closing_goal)
         # Parent geometry selection still checks all candidate targets against
         # the INNER bounds before ranking. It also retains table feasibility.
         command,info=super().step(**dict(args,intent=changed))
@@ -293,7 +313,7 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
             command[3:6]=-self.offset[3:6]/self.scale[3:6]
             command[6:]=2*(fingers-self.offset[FINGER_ACTIVE])/self.scale[FINGER_ACTIVE]-1
             command=self.admission.bound_action(command,q)
-        elif probing and self.phase in ('approach','close'):
+        elif (probing or captured_close) and self.phase in ('approach','close'):
             command[:3]=(proposal[:3,3]-palm[:3,3]-self.offset[:3])/self.scale[:3]
             command[3:6]=(closest_wrist_angles(proposal[:3,:3],q[3:6],mount)-q[3:6]-self.offset[3:6])/self.scale[3:6]
             command[6:]=2*(fingers-self.offset[FINGER_ACTIVE])/self.scale[FINGER_ACTIVE]-1
@@ -310,6 +330,8 @@ class SourceCeilingConsumer(GeometryGraspConsumer):
             force_valid=force_valid,force_norm_n=magnitudes.tolist(),force_limit_n=self.force_limit_n,
             wrist_pose_ready=wrist_arrived,
             contact_ready=contact_ready,matched_contact=contact_match,hand_span_m=hand_span,
+            closing_reference_captured=captured_close,closing_goal_world=None if self.closing_goal is None else self.closing_goal.tolist(),
+            regrasp_requested=regrasp_requested,recovered_after_unload=recovered_after_unload,
             control_contact_geometry=self.contact_geometry,
             near_object=near_object,command_linear_rate_mps=linear_rate,command_angular_rate_radps=angular_rate,
             loaded_fingers=np.flatnonzero(loaded).tolist(),coasting_joint_indices=np.flatnonzero(risk).tolist(),

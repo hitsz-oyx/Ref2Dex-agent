@@ -428,3 +428,7 @@ KL/clip fraction/entropy/reward，worker 预设 lr=1e-5、epochs=2；离线 p000
 最终 KL≤.03。下一步只有 10–20 分钟吞吐/数值 preflight；通过后才可排每 arm 1e5 的
 BC-only vs BC+残差PPO 配对 probe。1e5 无改善但 KL 正常只扩预算，KL 未修好不下 PPO
 无效结论。当前本地 `/home2` 约 140–141GiB 可用、历史 outputs 约 571GiB，不删历史。
+
+## 2026-10-23 v14 source天花板修复（R7预注册，未过门）
+
+原source14/40。R3/R4/R5/R6均完整0/40，实耗23894/24000/23648/21780控制；关节中止0/0/0/1。新控制退步，不是τ负证据，不声称已修好。R7只修闭合目标追逐物体的问题，同40/≤24000/0updates，接触后捕获世界抓姿、持续失触/卸载后重新接近；评分及抓后伺服不动。source未达32/40前不比WAM；RL HOLD、不重训v6。详见本task source-controller-ceiling实验卡/报告。
