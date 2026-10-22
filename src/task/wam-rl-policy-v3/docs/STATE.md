@@ -1,3 +1,27 @@
+# 2026-10-23 source 门控/引用离线分诊：先修接口，不开 R6 全批
+
+审计报告与可复跑工具见 [`source-gate-triage-20261023.md`](audit/source-gate-triage-20261023.md) 和
+[`audit_source_gate_triage.py`](../tools/audit/audit_source_gate_triage.py)。只读取 R3/R4/R5
+已完成产物，没有启动仿真或 GPU，也没有修改 `source_ceiling.py`、`run_source_ceiling*.py`。
+
+- R3/R4 40 个注册 reference 的物体坐标 frame0→首次有效双指力帧，位置差 p10/median/p90
+  为 0.9801/1.1225/1.2495 m，旋转差为 1.5380/2.0256/2.8760 rad；按每例
+  `wrist_gap_m`/`angle_tolerance_rad`，位置、旋转和双门命中均 0/40，且 40/40 均超过
+  各自 5×门限。这支持引用 approach→grasp 几何不自洽的实现缺陷判断。
+- 需要区分 runtime intent：A0 `plan=None` 时 `grasp_pose_object` 直接复制当拍
+  `approach_pose_object`，R3/R4 的 intent 内部两 pose 差为零；历史 R3/R4 实际阶段门还要求
+  `near_fingers>=2`，或腕位置≤`wrist_gap_m`且指尖 gap≤`tip_gap_m`，没有使用
+  `angle_tolerance_rad`。
+- R4 末控制时刻 31/40 仍在 approach、9/40 已进入 close/lift。31 个未推进例中，20 个腕
+  位置+旋转静态门已满足但指尖门未满足，11 个腕静态门也未满足；R4 的 5 个
+  `contact_without_lift` 属于已过阶段门但 live coupling/lift 认证未完成。
+- R5 source 证据与 live success 明确分离：39/40 有 source object-contact 帧，raw/object
+  帧总计 4724/4466（p006=71/69），但 manifest 的 `source_contact_is_live_success` 固定为
+  false；运行时 25/40 曾 measured contact、13/40 曾 lift/hold、21/40 阶段 contact。
+
+决策：不启动 R6 全 40。先在 3–5 个已有失败例上做一个最小接口修复（使引用几何/入门判据
+自洽，同时保留 live contact/coupling 认证），再小样本回放；结果通过后才重新决定全批。
+
 # 2026-10-23 v14：source前三版0/40，R6握力目标修复待物理验收
 
 | 结果解读 | 结论 | 下一步决定 |
