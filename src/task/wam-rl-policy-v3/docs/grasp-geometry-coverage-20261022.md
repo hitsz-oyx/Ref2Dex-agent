@@ -56,7 +56,7 @@ $PY src/task/wam-rl-policy-v3/tools/audit/audit_grasp_geometry.py \
 $PY src/task/wam-rl-policy-v3/tools/audit/check_grasp_reference_contract.py \
  --output outputs/wam-rl-policy-v3/grasp-geometry-review-reference.json
 # 期望 origin117.565869mm / surface0.109218mm，参考 hold2.000s。
-git diff c93164b5 HEAD -- src/task/wam-rl-policy-v3 src/task/ptv3-shared-wam-v6/src/ptv3_shared_wam_v6/staged_progress.py
+git diff 2b1da246 HEAD -- src/task/wam-rl-policy-v3 src/task/ptv3-shared-wam-v6/src/ptv3_shared_wam_v6/staged_progress.py
 ```
 
 ## 扩覆盖冻结协议与可直接复跑命令
