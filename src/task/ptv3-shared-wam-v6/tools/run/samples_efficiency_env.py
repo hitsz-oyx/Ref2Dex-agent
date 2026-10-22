@@ -136,9 +136,12 @@ class SampleEfficiencyEnv:
                 if self.arm=='B':
                     predicted=np.stack([geometric_reference(s['hands'][-1],s['pose'],s['points'],s['goal'])[:8] for s in samples])
                 else:
-                    predicted=self.forecast.predict(np.stack([s['objects'] for s in samples]),
-                        np.stack([s['hands'] for s in samples]),np.stack([s['goal'] for s in samples]),
-                        [s['event'] for s in samples],[s['object_code'] for s in samples])[:,:8]
+                    # Frozen PTv3 serialization must not consume the policy's
+                    # Gaussian exploration/minibatch random-number stream.
+                    with torch.random.fork_rng(devices=[self.device.index or 0]):
+                        predicted=self.forecast.predict(np.stack([s['objects'] for s in samples]),
+                            np.stack([s['hands'] for s in samples]),np.stack([s['goal'] for s in samples]),
+                            [s['event'] for s in samples],[s['object_code'] for s in samples])[:,:8]
                 from wam_rl_policy_v3.inspire_contract import WAM_TO_NATIVE
                 tau[sample_ids]=predicted[:,:,WAM_TO_NATIVE];valid[sample_ids]=True
                 self.forecast_times.append(dict(batch=len(samples),seconds=time.perf_counter()-begin))

@@ -213,3 +213,16 @@ root之后修改main不会改变排队seed的实现。官方PPO源也来自snaps
 每run写interaction-costs.json，native.steps×envs为实际交互，包含STOP前采集但未更新的rollout；
 checkpoint/manifest另记实际环境步，不能把只计已完成update的步数冒充全部成本。
 最终自动汇总JSON、learning-curves.png/svg；缺点/缺seed标INCOMPLETE，不填0。
+
+### 冻结与真实评估通路工程验证通过
+
+冻结smoke r1在native首次创建前失败：snapshot跳过data/cfg symlink，缺inspire.yaml，
+训练交互0；失败产物保留。4f02b123显式冻结选中训练YAML，未复制大assets，fresh r2重跑。
+`outputs/ptv3-shared-wam-v6/samples-efficiency-frozen-smoke-20261022-r2/`已COMPLETED：
+A/C各3env1update、各24训练交互；各自checkpoint0均通过真实独立host评估450controls。
+两份14字段初态NPZ逐字段完全相同；自动summary退出0并生成JSON/PNG/SVG，summary正确标
+INCOMPLETE（只是工程通路，不是9job科学结果）。r2全实现/依赖从snapshot读取。
+
+正式启动另加项目内XDG_CACHE_HOME/MPLCONFIGDIR/CUDA_CACHE_PATH，避免driver/图形缓存落home；
+C冻结推理用fork_rng恢复CPU/CUDA策略RNG，不让PTv3随机序列化消耗PPO探索流。
+正式批次独立run_id仍为samples-efficiency-3arm-20261022-r1，不混入以上任何工程数据。

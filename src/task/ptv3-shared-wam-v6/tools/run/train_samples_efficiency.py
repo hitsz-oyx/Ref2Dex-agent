@@ -68,7 +68,7 @@ def main():
   forecast_identity=str(a.checkpoint.resolve()) if a.arm=='C' else 'geometry-proximal-v1' if a.arm=='B' else 'no-tau-v1'
   identity=dict(source=str(a.audit_manifest.resolve()),bc=str(a.bc.resolve()),wam=forecast_identity,geometry=str(a.geometry_cache.resolve()),world_size=a.world_size,envs=env.num_envs,physics_backend=hello['audit'].get('physics_backend','gpu'),wam_batch=a.wam_batch,shared_tf32=a.shared_tf32,
    arm=a.arm,observation_dim=846,history_contract='causal-H4-relative-world-positions-5cm-quaternion-current-sign.v1',
-   workspace=dict(voxel_origin_m=[-2.,-2.,-2.],voxel_m=.005,max_grid=65535),task_contract='explicit-start-plus8cm-HOLD1s-timeout20s.v1',inference_batch=64,forecast_only=True)
+   workspace=dict(voxel_origin_m=[-2.,-2.,-2.],voxel_m=.005,max_grid=65535),task_contract='explicit-start-plus8cm-HOLD1s-timeout20s.v1',inference_batch=64,forecast_only=True,forecast_rng_contract='fork_restore_cpu_and_cuda_policy_rng.v1')
   completed=0;base_environment_steps=0
   if a.resume:
    saved=torch.load(a.resume,map_location='cuda',weights_only=False)

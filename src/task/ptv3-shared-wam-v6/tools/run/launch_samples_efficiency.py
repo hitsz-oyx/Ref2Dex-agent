@@ -86,6 +86,7 @@ def main():
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()))
     private = ROOT/'tmp'/out.name
     private.mkdir(parents=True,exist_ok=True)
+    for name in ('cache','mpl','cuda-cache'):(private/name).mkdir(exist_ok=True)
     objects = out/'objects.json'
     write(objects, dict(object_names=a.objects))
     manifest = dict(status='RUNNING',experiment_id='P-20261022-wam-v6-samples-efficiency-3arm',run_id=out.name,
@@ -96,7 +97,8 @@ def main():
     write(out/'manifest.json',manifest)
     environment=dict(os.environ,REF2DEX_RUN_ROOT=str(ROOT),REF2DEX_SAMPLE_CODE_ROOT=str(frozen),
         REF2DEX_V6_V5_CODE_ROOT=str(frozen),REF2DEX_V5_BASE_CODE_ROOT=str(frozen),PYTHONDONTWRITEBYTECODE='1',
-        OMP_NUM_THREADS='2',OPENBLAS_NUM_THREADS='2',TMPDIR=str(private))
+        OMP_NUM_THREADS='2',OPENBLAS_NUM_THREADS='2',TMPDIR=str(private),
+        XDG_CACHE_HOME=str(private/'cache'),MPLCONFIGDIR=str(private/'mpl'),CUDA_CACHE_PATH=str(private/'cuda-cache'))
 
     def pair(folder, arm, seed, gpu, *, resume=None, evaluation=False):
         folder.mkdir()

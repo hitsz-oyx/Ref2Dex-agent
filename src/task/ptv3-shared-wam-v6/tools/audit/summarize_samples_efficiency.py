@@ -36,7 +36,17 @@ def main():
         if reference is None:reference=initial
         matches=compare_initials(reference,initial);checks.append(dict(path=str(initial),matches=matches))
         if matches:groups[(row['arm'],seed)].append(row)
-    runs=[dict(arm=arm,seed=seed,**metrics(points)) for (arm,seed),points in sorted(groups.items())]
+    runs=[]
+    for (arm,seed),points in sorted(groups.items()):
+        timing=[row for point in points for row in point.get('forecast_times',[])]
+        policy=[(seconds,point['n']) for point in points for seconds in point.get('policy_batch_seconds',[])]
+        forecast_seconds=sum(row['seconds'] for row in timing);forecast_samples=sum(row['batch'] for row in timing)
+        runs.append(dict(arm=arm,seed=seed,**metrics(points),
+            forecast_batch_mean_s=float(np.mean([row['seconds'] for row in timing])) if timing else None,
+            forecast_batch_p95_s=float(np.percentile([row['seconds'] for row in timing],95)) if timing else None,
+            forecast_ms_per_env=1000*forecast_seconds/forecast_samples if forecast_samples else None,
+            policy_ms_per_env=1000*sum(seconds for seconds,n in policy)/sum(n for seconds,n in policy) if policy else None,
+            timing_scope='batched wall latency and amortized ms/env; not single-environment latency'))
     valid=checks and all(row['matches'] for row in checks)
     complete=valid and len(runs)==9 and all(row['complete_budget'] for row in runs)
     result=dict(status='COMPLETE' if complete else 'INCOMPLETE' if valid else 'UNPAIRED_OR_NO_RESULTS',
