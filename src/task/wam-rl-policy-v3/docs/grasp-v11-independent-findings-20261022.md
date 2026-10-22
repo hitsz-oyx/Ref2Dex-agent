@@ -9,7 +9,10 @@
 | 新SE3草稿：实测物体滑移20mm而腕X修正0 | 首次抓持变换的固定腕目标不能自动补偿物体滑移 | 修live物体误差反馈，并用此反例作回归；未验收草稿不进入v10 |
 | 覆盖草稿每臂12，独立子集8/4 | 不符合仍有效的每臂每子集n≥40 | 正式覆盖扩大规模；工程smoke不能承担泛化/显著性结论 |
 
-本报告只记录本执行流独立读取代码/已有产物的发现。v10尚未收完，不对未满40的中间数据计算显著性，不把新尺寸化/SE3控制改动混入v10。
+本报告只记录本执行流独立读取代码/已有产物的发现。v10现已完成160/160回合，seen35/40对0/40、原未见3/40对0/40，
+详见[完成交付](grasp-handoff-results-20261022.md)。新尺寸化/SE3控制没有混入v10。
+后续[每链n40接口未见覆盖](experiments/probes/P-20261022-grasp-coverage40.md)另行冻结、排队；
+不对未满40的中间数据宣称显著性，不把12例工程覆盖与其合并。
 
 ## 互斥死因与重叠指标
 
@@ -67,3 +70,23 @@ $PY src/task/wam-rl-policy-v3/tools/audit/classify_measured_grasp_deaths.py --ma
 分类器防错：把真实`held_but_off_goal`的`final_success`故意翻为True，完整CLI以`published outcome disagrees with saved physical endpoint`拒绝；正常80条A1记录通过。原正式数据未改。故障副本与日志在`tmp/v11-classification-mutant/`，收据`.../grasp-v10-stat40-20261022-r1/classification-mutant.json`。分类器从消费日志读取真实postgrasp目标，不重新假设初态+8cm；仅适用于v9/v10冻结15mm协议。
 
 后续打包阻塞已修：geometry worker直接导入`source_pd`，但它不在legacy基线快照，也未在新复制清单。实际隔离旧包导入报ModuleNotFoundError。提取`freeze_grasp_geometry.py::copy_geometry_runtime`供真实worker调用，补该依赖；隔离包回归先1 failed（真实缺项），修后通过，再故意删该模块仍被拒绝。只补打包，不改几何/伺服常数。运行中v10不依赖这次改动。
+
+## v11 三处实现的可复核位置与数值期望
+
+| 修复 | 当前文件:行号（wam-rl-policy-v3内） | 可核的数值期望；物理效果另验 |
+|---|---|---|
+| 尺寸几何/到位合同 | `src/wam_rl_policy_v3/grasp_geometry.py:20`、`pose_consumer.py:221` | 同物体尺度×2，容差×2；圆柱容差3.98077mm；真实源参考仍hold2.000s，不能因换测量角色改称伺服成功 |
+| 实测物体相对SE3反馈/限速/抗饱和 | `src/wam_rl_policy_v3/grasp_geometry.py:137`、`:222` | 固定腕、物体X滑移20mm应给负X纠偏（反例实测−14.2mm）；每步平移范数≤25mm、旋转≤.08rad，最终饱和回授积分 |
+| 几何候选+原生18目标准入 | `src/wam_rl_policy_v3/grasp_geometry.py:54`、`:96`、`:170` | 非法目标候选0被接纳；实测限位目标≤4/40，不能把静态合法等同动态安全，实际计数等物理结果 |
+| 快照依赖修复 | `tools/audit/freeze_grasp_geometry.py:8`、`tests/test_geometry_runtime_snapshot.py:1` | 干净隔离包可导入source_pd；故意删除依赖必须拒绝，不fallback到工作区包 |
+
+复现用上方[三处修复报告](grasp-geometry-coverage-20261022.md)的geometry测试/真实参考命令；
+独立快照回归：`/home2/wyy/miniconda3/envs/graspenv/bin/python -m pytest -q src/task/wam-rl-policy-v3/tests/test_geometry_runtime_snapshot.py`，
+期望1passed/0failed。软件检查通过不证明物理修复幅度，正式数值由120回合冻结覆盖给出。
+原生目标准入、相位和真实关节中止分别统计，不用final_clipped_controls=0替代“无饱和”。
+旧v10 seen A1实际R上游裁剪2/23562、最终归一化裁剪0、PI限幅235次；
+原未见A1上游2/15597、最终0、PI限幅145次；两者不能报成统一的“动作饱和0”。
+
+无法自证：canonical稀疏点几何与真实接触面的完全一致、两指接近与力是否来自相同接触体、
+动态受压安全、三方独立物理复跑的一致性。A0 source-PD是不同执行链，成功也不能当GTτ→R上界，
+更不能凭A0>A1直接决定重训WAM。
