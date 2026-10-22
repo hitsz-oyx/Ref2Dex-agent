@@ -13,6 +13,7 @@ def main():
     p.add_argument('--native-gpu',type=int,choices=[4,5,6],default=6);p.add_argument('--model-gpu',type=int,choices=[4,5,6],default=5)
     p.add_argument('--suite',choices=['ablation','robust','gt'],required=True)
     p.add_argument('--sequence',default='s1_cylindersmall_pass_1')
+    p.add_argument('--carry-run',type=Path,help='Resume completed unchanged arms; retain every partial control and elapsed second')
     p.add_argument('--repeats',type=int,default=5)
     a=p.parse_args();out=a.output.resolve();oldrun=a.original_run.resolve()
     if out.exists() or ROOT/'outputs/wam-rl-policy-v3' not in out.parents or a.native_gpu==a.model_gpu:raise ValueError('fresh task-local output and distinct allowed GPUs required')
@@ -23,6 +24,7 @@ def main():
     shutil.copyfile(ROOT/'src/task/ptv3-shared-wam-v6/src/ptv3_shared_wam_v6/staged_progress.py',frozen/'src/task/ptv3-shared-wam-v6/src/ptv3_shared_wam_v6/staged_progress.py')
     shutil.copyfile(TASK/'src/wam_rl_policy_v3/evaluation_sources.py',frozen/'src/task/wam-rl-policy-v3/src/wam_rl_policy_v3/evaluation_sources.py')
     shutil.copyfile(TASK/'tools/audit/measure_s2d_controls.py',out/'s2d_mapping.py')
+    shutil.copyfile(TASK/'tools/audit/audit_first_tau_loss.py',out/'physical_scoring.py')
     shutil.copyfile(Path(__file__),out/'runner.py')
     private=ROOT/'tmp'/out.name;private.mkdir(parents=True,exist_ok=False)
     os.environ.update(CUDA_VISIBLE_DEVICES=str(a.model_gpu),REF2DEX_RUN_ROOT=str(ROOT),REF2DEX_V6_V5_CODE_ROOT=str(frozen),REF2DEX_V5_BASE_CODE_ROOT=str(frozen),TMPDIR=str(private),PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='2',OPENBLAS_NUM_THREADS='2')
@@ -47,14 +49,14 @@ def main():
     from wam_rl_policy_v3.measured_reward_bridge import reward_features
     from ptv3_shared_wam_v6.staged_progress import StagedProgress,STAGE_CONTRACT
     from wam_rl_policy_v3.evaluation_sources import absent_tau,freeze_template,template_intent,gt_future,continuous_hold
-    from audit_first_tau_loss import physical_rows
     sys.path.insert(0,str(out))
+    from physical_scoring import physical_rows
     from s2d_mapping import object_anchored_targets
     torch.set_num_threads(2);torch.manual_seed(196);np.random.seed(196);started=time.monotonic()
     original=json.loads((oldrun/'manifest.json').read_text());name=a.sequence
     catalog=json.loads((ROOT/'outputs/wam-rl-policy-v3/inspire-teacher-rollout-audit-20261020-r3/manifest.json').read_text())
     rows=catalog['records'] if 'records' in catalog else catalog['sequences']
-    record=next(r for r in rows if r['sequence']==name);source=Path(record['source'])
+    catalog_record=next(r for r in rows if r['sequence']==name);source=Path(catalog_record['source'])
     with np.load(source/'canonical.npz') as z:points=z['points'].copy()
     reference_path=ROOT/'src/task/ptv3-shared-wam-v6/outputs/s2b-reference-r2/reference.npz'
     with np.load(reference_path) as z:reference={k:z[k].copy() for k in z.files}
@@ -76,13 +78,22 @@ def main():
     if a.suite=='robust' and a.repeats!=1:raise ValueError('one trial per registered new initial')
     order=[keys[b%len(keys):]+keys[:b%len(keys)] for b in range(a.repeats)];maximum_controls=300*len(keys)*a.repeats
     report=dict(status='STARTING',experiment_id='P-20261022-single-tau-calibration',run_id=out.name,git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
-        protocol='grasp-intent.v8.frozen-consumer.'+a.suite,consumer=GRASP_INTERFACE,stages=STAGE_CONTRACT,scheduler_schema=SCHEDULER_SCHEMA,original_run=str(oldrun),source_sequence=name,source_object=record['object'],source_split=record['split'],source_reference=str(reference_path),
+        protocol='grasp-intent.v8.frozen-consumer.'+a.suite,consumer=GRASP_INTERFACE,stages=STAGE_CONTRACT,scheduler_schema=SCHEDULER_SCHEMA,original_run=str(oldrun),source_sequence=name,source_object=catalog_record['object'],source_split=catalog_record['split'],source_reference=str(reference_path),
         base_checkpoint=original['base_checkpoint'],calibrated_checkpoint_loaded_unused=str(oldrun/'calibrated.pt'),wam_step=wam.step,flow_eval_seed=wam.config.get('flow_eval_seed'),
         native_gpu=a.native_gpu,model_gpu=a.model_gpu,gpu_before=gpu,native_seed=195,model_seed=196,envs=1,repeats_per_chain=a.repeats,order=order,
         maximum_environment_controls=maximum_controls,maximum_wall_s=1800,learning_updates=0,environment_controls=0,runs=[],maximum_pd_reconstruction_error=0.,task_contract=LiftHoldWitness.contract,
         initial_tolerance=2e-6,unit='repeated seen initial for ablation/GT; one new initial per robust case, not independent training seeds',
         template_provenance='single source-PD physical narrow-success demonstration, fixed before trials; not data-matched pretraining claim',
         current_environment_controls=0,carried_elapsed_s=0.)
+    if a.carry_run:
+        previous=json.loads((a.carry_run/'manifest.json').read_text())
+        for key in ('protocol','source_sequence','base_checkpoint','wam_step','order','maximum_environment_controls'):
+            if previous[key]!=report[key]:raise ValueError('resume input differs: '+key)
+        report['environment_controls']=previous['environment_controls'];report['carried_elapsed_s']=previous['elapsed_s']
+        report['interrupted_run']=str(a.carry_run.resolve());report['partial_controls_retained_in_budget']=previous['environment_controls']-sum(r['controls'] for r in previous['runs'])
+        for row in previous['runs']:
+            report['runs'].append(dict(row,carried_unchanged=True,source_run=str(a.carry_run.resolve())))
+            (out/row['label']).symlink_to(a.carry_run.resolve()/row['label'],target_is_directory=True)
     write(out/'manifest.json',report)
     fixed=private/'motions.json';write(fixed,dict(sequences=[name]));sock=private/'rpc.sock';server=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);server.settimeout(2);server.bind(str(sock));server.listen(1)
     cmd=['/home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train/bin/python','-u',str(frozen/'src/task/wam-rl-policy-v3/tools/run/inspire_physics_host.py'),
@@ -112,6 +123,7 @@ def main():
         write(out/'template.json',dict(**{k:v.tolist() for k,v in vars(template).items()},contact_frame=contact_frame,held_frame=held_frame,source=str(reference_path)))
         for block,chains in enumerate(order):
             for chain in chains:
+                if any(r['block']==block and r['chain']==chain for r in report['runs']):continue
                 episode_saved=False;report['active_episode']=dict(block=block,chain=chain,tick=0)
                 send(connection,dict(op='reset',ids=[0]));state=unpack_state(receive(connection)['state'])
                 initial={k:np.asarray(state[k]).copy() for k in reference_initial}
@@ -143,7 +155,7 @@ def main():
                     robot=np.r_[measured[:345],shape,measured[345:]];tau=np.zeros((8,11,3),np.float32);valid=False;available=bool(len(history)==4 and encoder_domain_available(points,hand,pose))
                     future=None;plan=None;forecast_valid=False
                     if available and chain=='wam' and consumer.phase in ('approach','close'):
-                        with torch.random.fork_rng(devices=[0]):prediction=wam.predict(np.asarray(history)[None],np.asarray(hands)[None],decision.local_goal_pose[None],[decision.next_event.wam_condition()],['dexplore/'+record['object']])[0][:,WAM_TO_NATIVE]
+                        with torch.random.fork_rng(devices=[0]):prediction=wam.predict(np.asarray(history)[None],np.asarray(hands)[None],decision.local_goal_pose[None],[decision.next_event.wam_condition()],['dexplore/'+catalog_record['object']])[0][:,WAM_TO_NATIVE]
                         forecast_count+=1;future=np.asarray(state['hand'])[0][None]+prediction;forecast_valid=True
                         tau=prediction[:8];valid=True
                     if chain=='gt' and consumer.phase in ('approach','close'):

@@ -29,3 +29,11 @@ CUDA_VISIBLE_DEVICES='' PYTHONDONTWRITEBYTECODE=1 $PY -m pytest -q -p no:cachepr
 ```
 
 所有输出目录必须不存在；改 run_id 可复跑，不能覆盖原产物。runner 保存执行源快照、原始状态/τ/R动作/实际PD、每回合完整结果、独立连续评分和退出回执；manifest 记录实际代码提交。无硬件确定性保证，只提供相同 seed/初态/构造顺序与数值证据。评分重算独立于阶段机累计奖励，仍共享接触观测定义，不是外部物理真值验证。
+
+### 中断与补救（不改变实验臂）
+
+r1 在7个完整回合后，block1/WAM tick3 因 catalog `record` 被上一回合结果同名覆盖发生 `KeyError('object')`。已用 `catalog_record` 独立命名修复；物理控制与消费器不变。r1 保留1806 controls（完整1803+partial3）、91.767执行秒。r2 `--carry-run ...r1` 携带全部7个结果和中断预算，仅补剩余13个预注册回合；新进程可能有隐藏physics状态差异，不能声称跨进程严格确定性。
+
+```bash
+$PY -u $RUN --suite ablation --carry-run outputs/wam-rl-policy-v3/grasp-v8-ablation-20261022-r1 --output outputs/wam-rl-policy-v3/grasp-v8-ablation-20261022-r2 --native-gpu 6 --model-gpu 5
+```
