@@ -33,12 +33,15 @@ def main():
         for k,part in enumerate(('pre_contact','contact','post_release','unknown')):
             hit=[r for r in rows if k in r['phase']]
             frame_counts[part]=dict(windows=len(hit),captures=len(set(r['capture'] for r in hit)),frames=sum(r['phase'].count(k) for r in rows))
+            for band,lo,hi in [('prefix8',0,8),('middle8',8,16),('last8',16,24)]:
+                hit=[r for r in rows if k in r['phase'][lo:hi]]
+                frame_counts[band+'/'+part]=dict(windows=len(hit),captures=len(set(r['capture'] for r in hit)),frames=sum(r['phase'][lo:hi].count(k) for r in rows))
         for model in ('healthy4371','flow8500'):
             path=out/(model+'-'+name+'.json')
             if path.exists():loaded[(model,name)]=read(path)
         if not all((m,name) in loaded for m in ('healthy4371','flow8500')):continue
         base=loaded[('healthy4371',name)];flow=loaded[('flow8500',name)]
-        for part in ('prefix8','middle8','last8','all24','pre_contact','contact','post_release','unknown'):
+        for part in frame_counts:
             bm=base['metrics'][part];fm=flow['metrics'][part]
             row=dict(panel=name,stratum=part,**frame_counts[part],healthy={},flow={},delta_flow_minus_healthy={},delta95_capture_bootstrap={})
             for key in ('hand_epe_mm','object_epe_mm','C_head_mae'):

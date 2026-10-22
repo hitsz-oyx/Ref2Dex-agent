@@ -26,3 +26,15 @@ def test_h4_history_reconstruction_preserves_encoded_dynamics():
     x=np.arange(4,dtype=np.float32)[:,None,None]*np.ones((4,2,3),np.float32)
     f=np.concatenate(((x[3]-x[2])*30,(x[3]-2*x[2]+x[1])*900,x[3]-x[0]),-1)
     np.testing.assert_allclose(audit.reconstruct_history(x[3],f),x)
+
+
+def test_group_variance_uses_degrees_of_freedom_and_omits_singletons():
+    spec=importlib.util.spec_from_file_location('group_audit',Path(__file__).resolve().parents[1]/'tools/audit/group_identifiability.py')
+    group=importlib.util.module_from_spec(spec);spec.loader.exec_module(group)
+    h=np.zeros((4,24,2,21,3),np.float32);s=np.zeros((4,24,32,3),np.float32)
+    for i in range(4):h[i,...,0]=s[i,...,0]=i*.001
+    labels=[dict(contact_available=i<2,region=0 if i<2 else -1,finger=i%2,interaction_type='same') for i in range(4)]
+    result=group.statistics([[0,1,2,3]],labels,dict(hand=h,scene=s,present=np.ones((4,2),bool)))[0]
+    np.testing.assert_allclose(result[0,:4]/result[0,4],5/3,rtol=1e-5)
+    np.testing.assert_allclose(result[1,:4]/result[1,4],.5,rtol=1e-5)
+    np.testing.assert_equal(result[:,4],[3,2,2,0,0])
