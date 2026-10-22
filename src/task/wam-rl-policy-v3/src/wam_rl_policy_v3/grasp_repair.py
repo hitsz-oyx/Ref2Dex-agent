@@ -57,20 +57,37 @@ class ReachabilityFilter:
     with six object-axis tangent approach candidates and an upward retreat.
     Actual limited-joint targets are rate limited; the physical abort is intact.
     """
-    def project(self,palm,target,object_pose,q,dq,fingers,*,table_z=None,plane=None,hand_local=None,palm_vertices=None):
+    def project(self,palm,target,object_pose,q,dq,fingers,*,table_z=None,plane=None,hand_local=None,palm_vertices=None,table_geometry=None):
         normal,height=(np.array([0.,0.,1.]),float(table_z)) if plane is None else plane
-        delta=target[:3,3]-palm[:3,3];length=np.linalg.norm(delta)
-        delta=delta*min(1.,.025/max(length,1e-12))
+        raw_delta=target[:3,3]-palm[:3,3]
         mount=Rotation.from_euler('XYZ',q[3:6]).as_matrix().T@palm[:3,:3]
-        angles=closest_wrist_angles(target[:3,:3],q[3:6],mount)
-        angles=q[3:6]+np.clip(angles-q[3:6]-.010*dq[3:6],-.10,.10)
+        raw_angles=closest_wrist_angles(target[:3,:3],q[3:6],mount)
+        local=np.zeros((1,3)) if hand_local is None else np.asarray(hand_local)
+        if palm_vertices is not None:local=np.r_[local,palm_vertices]
+        proposed_bottom=float(np.min((local@target[:3,:3].T+target[:3,3])@normal))
+        measured=local@palm[:3,:3].T+palm[:3,3]
+        mask=np.ones(len(measured),bool)
+        if table_geometry is not None:
+            table_pose,bounds=table_geometry;axes=np.argsort(bounds[1]-bounds[0])[1:]
+            table_local=(measured-table_pose[:3,3])@table_pose[:3,:3]
+            mask=((table_local[:,axes]>=bounds[0,axes])&(table_local[:,axes]<=bounds[1,axes])).all(-1)
+        actual_bottom=float(np.min(measured[mask]@normal)) if mask.any() else np.inf
+        risk=bool(actual_bottom<height-.015) if hand_local is not None else bool(proposed_bottom<height-.005 or np.linalg.norm(raw_delta)>.30)
+        if not risk:
+            directions=np.r_[object_pose[:3,:3].T,-object_pose[:3,:3].T,normal[None]]
+            return target.copy(),np.asarray(fingers).copy(),dict(candidate_count=8,selected_candidate=0,directions_world=directions.tolist(),support_required_delta_m=None,filter_active=False,proposal_delta_m=raw_delta.tolist(),filtered_delta_m=raw_delta.tolist(),actual_support_gap_m=float(actual_bottom-height) if np.isfinite(actual_bottom) else None)
+        delta=raw_delta.copy()
+        if risk:
+            length=np.linalg.norm(delta);delta*=min(1.,.025/max(length,1e-12))
+            angles=q[3:6]+np.clip(raw_angles-q[3:6]-.010*dq[3:6],-.10,.10)
+        else:angles=raw_angles
         rotation=Rotation.from_euler('XYZ',angles).as_matrix()@mount
         directions=np.r_[object_pose[:3,:3].T,-object_pose[:3,:3].T,normal[None]]
         local=np.zeros((1,3)) if hand_local is None else np.asarray(hand_local)
         if palm_vertices is not None:local=np.r_[local,palm_vertices]
         # A few millimetres of planned clearance prevents commanded table plunge;
         # actual safety remains the original 100mrad / 20mm physical gate.
-        required=height+.003-float(np.min((local@rotation.T+palm[:3,3])@normal))
+        required=height+.003-float(np.min((local@rotation.T+palm[:3,3])@normal)) if risk else -np.inf
         alternatives=[delta]
         for direction in directions:
             travel=.025*direction
@@ -79,34 +96,38 @@ class ReachabilityFilter:
             alternatives.append(travel)
         costs=[];projected=[]
         for i,value in enumerate(alternatives):
-            value=value+normal*max(required-float(value@normal),0.)
-            norm=np.linalg.norm(value);value*=min(1.,.025/max(norm,1e-12))
+            if risk:
+                value=value+normal*max(required-float(value@normal),0.)
+                norm=np.linalg.norm(value);value*=min(1.,.025/max(norm,1e-12))
             deficit=max(required-float(value@normal),0.)
             cost=np.linalg.norm(value-delta)+10*deficit+(0. if i==0 else .005)
             projected.append(value);costs.append(cost)
         chosen=int(np.argmin(costs));out=np.eye(4);out[:3,:3]=rotation;out[:3,3]=palm[:3,3]+projected[chosen]
-        desired=np.clip(np.asarray(fingers)-.010*dq[FINGER_ACTIVE],.06,FINGER_UPPER)
-        desired=np.clip(desired,q[FINGER_ACTIVE]-.08,q[FINGER_ACTIVE]+.08)
-        desired=np.clip(desired,.06,FINGER_UPPER)
-        return out,desired,dict(candidate_count=len(alternatives),selected_candidate=chosen,directions_world=directions.tolist(),support_required_delta_m=required,
+        desired=np.asarray(fingers).copy()
+        if risk:
+            desired=np.clip(desired-.010*dq[FINGER_ACTIVE],.06,FINGER_UPPER)
+            desired=np.clip(desired,q[FINGER_ACTIVE]-.08,q[FINGER_ACTIVE]+.08)
+            desired=np.clip(desired,.06,FINGER_UPPER)
+        return out,desired,dict(candidate_count=len(alternatives),selected_candidate=chosen,directions_world=directions.tolist(),support_required_delta_m=float(required) if np.isfinite(required) else None,filter_active=risk,
             proposal_delta_m=(target[:3,3]-palm[:3,3]).tolist(),filtered_delta_m=projected[chosen].tolist())
 
 
 class RepairedGraspConsumer(MeasuredGraspConsumer):
     """Same measured phases and R for both arms; shared reach filter and PI."""
-    def __init__(self,*args,plane,palm_vertices,**kwargs):
+    def __init__(self,*args,plane,palm_vertices,table_geometry=None,**kwargs):
         super().__init__(*args,**kwargs);self.servo=GoalServo();self.reach=ReachabilityFilter();self.plane=plane
-        self.palm_vertices=np.asarray(palm_vertices);self.servo_active=False
+        self.palm_vertices=np.asarray(palm_vertices);self.servo_active=False;self.table_geometry=table_geometry
     def step(self,**args):
         intent=args['intent'];palm=args['palm'];q=np.asarray(args['q']);dq=np.asarray(args['dq']);obj=args['object_pose']
         reach_info=None
         if self.phase in ('approach','close'):
             local=(np.asarray(args.pop('hand'))-palm[:3,3])@palm[:3,:3]
             target,fingers,reach_info=self.reach.project(palm,obj@intent.approach_pose_object,obj,q,dq,intent.preshape_q,
-                plane=self.plane,hand_local=local,palm_vertices=self.palm_vertices)
+                plane=self.plane,hand_local=local,palm_vertices=self.palm_vertices,table_geometry=self.table_geometry)
             mount=Rotation.from_euler('XYZ',q[3:6]).as_matrix().T@palm[:3,:3]
-            intent=replace(intent,approach_pose_object=np.linalg.inv(obj)@target,preshape_q=fingers,
-                approach_joint_angles=closest_wrist_angles(target[:3,:3],q[3:6],mount))
+            if reach_info['filter_active']:
+                intent=replace(intent,approach_pose_object=np.linalg.inv(obj)@target,preshape_q=fingers,
+                    approach_joint_angles=closest_wrist_angles(target[:3,:3],q[3:6],mount))
         else:args.pop('hand')
         args['intent']=intent;command,info=super().step(**args)
         if self.phase in ('lift','hold'):

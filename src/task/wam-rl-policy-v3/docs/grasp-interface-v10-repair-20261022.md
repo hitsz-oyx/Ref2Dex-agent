@@ -30,3 +30,6 @@ DOF15/16与10的具体原生名称将从新host回执核对，禁止按XML文本
 # 正式验证去掉 --engineering；工程运行不是n<40的效果对照。
 ```
 所有运行从新目录启动，保存代码快照、初态、实测PD、原始状态、阶段和物理中止；原安全gate/奖励评分阈值保持。
+
+工程r1回退与修正：统一25mm/0.10rad限速使已知可行seen触发样本无接触，主动SIGINT停止三个自有worker，保存3个完成+3个partial（2813 controls）。R输出是PD偏置，不能当作立即到达的运动学位姿。新过滤仅在**实测**手点/掌mesh进入CAD桌面有限支撑范围且向下侵入超过15mm时介入，正常R命令逐字节保留。原物理安全中止不变。此开发数据不进入正式n40统计。
+新host原生DOF名称已确认；旧未见面板：31/40 approach、9/40 close中止；thumb_proximal_pitch_joint 11、thumb_intermediate_joint 25、pinky_proximal_joint 6（42个关节事件/40回合）。39/40不是腕pitch近奇异构型，故不能用Euler奇异性解释大多数中止。

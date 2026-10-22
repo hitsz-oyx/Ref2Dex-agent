@@ -39,12 +39,12 @@ def summarize(reg,manifests):
                 paired=sorted(set(index[a])&set(index[b]));ab=sum(index[a][t]['final_success'] and not index[b][t]['final_success'] for t in paired);ba=sum(index[b][t]['final_success'] and not index[a][t]['final_success'] for t in paired)
                 c['paired_supplement']=dict(n=len(paired),a_only=ab,b_only=ba,mcnemar_exact_p=float(binomtest(ab,ab+ba,p=.5).pvalue) if ab+ba else 1.)
                 comparisons[subset][a+'_vs_'+b]=c
-        a1,a4=groups[subset]['A1'],groups[subset]['A4'];retraining[subset]=bool(a1['complete'] and a4['complete'] and a4['k']>=32 and a1['k']<=8)
+        a1,a4=groups[subset]['A1'],groups[subset].get('A4');retraining[subset]=bool(a4 and a1['complete'] and a4['complete'] and a4['k']>=32 and a1['k']<=8)
     complete=all(groups[s][a]['complete'] for s in reg['subsets'] for a in reg['arms'])
     return dict(status='COMPLETED' if complete else 'INCOMPLETE',protocol=reg['protocol'],groups=groups,comparisons=comparisons,retraining_recommendation=retraining,
         robust_tau_contribution=bool(complete and all(comparisons[s]['A1_vs_A2']['registered_a_superior'] for s in reg['subsets'])),
         workers=workers,completed_episodes=len(rows),environment_controls=sum(w['controls'] for w in workers),rows=rows,
-        scope='Wilson and Fisher describe fixed-panel episode trials; repeated families are not independent objects. Unseen means no interface tuning, not unseen in WAM/BC pretraining. No automatic retraining.',
+        scope=reg.get('scope','Wilson and Fisher describe fixed-panel episode trials; repeated families are not independent objects. Unseen means no interface tuning, not unseen in WAM/BC pretraining. No automatic retraining.'),
         primary=reg['primary'],error_quantiles_order=[0,.25,.5,.75,.9,1])
 
 

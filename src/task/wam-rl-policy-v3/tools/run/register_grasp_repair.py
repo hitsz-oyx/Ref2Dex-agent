@@ -12,7 +12,7 @@ def main():
         j['order']=['A1','A2'] if int(j['id'][1:])//2%2==0 else ['A2','A1']
     if a.engineering:
         # One trigger per object plus two seen seeds, no efficacy claims or resampling.
-        reg['jobs']=[j for j in reg['jobs'] if j['id'] in ('p000','p006','p001','p003','p005','p007','p009','p011','p013','p015')]
+        reg['jobs']=[j for j in reg['jobs'] if j['id'] in ('p000','p006','p001','p005','p013')]
         for i,j in enumerate(reg['jobs']):j['worker']=i%3;j['order']=['A1']
         reg['n_per_arm_per_subset']=None;reg['engineering_only']=True
     reg.update(protocol='grasp.sharedR.zero-tau.reachable-PI.stagefinal20s15mm.v1',experiment_id='P-20261022-grasp-interface-repair',

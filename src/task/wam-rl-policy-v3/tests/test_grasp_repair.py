@@ -44,3 +44,15 @@ def test_reachability_rate_limits_collision_into_support_without_relaxing_gate()
     obj[:3,:3]=np.array([[0,-1,0],[1,0,0],[0,0,1]])
     other=ReachabilityFilter().project(palm,target,obj,q,dq,np.ones(6),table_z=.9)[2]
     assert not np.array_equal(info['directions_world'],other['directions_world'])
+
+
+def test_healthy_R_PD_proposal_is_not_mistaken_for_instantaneous_kinematic_motion():
+    # Learned PD offsets can extend below the table while the measured hand is
+    # high and collision-free. Limiting every such offset destroyed v10-r1.
+    palm=np.eye(4);palm[2,3]=1.4;target=palm.copy();target[2,3]=.7
+    q=np.zeros(18);q[6:]=.2
+    out,fingers,info=ReachabilityFilter().project(palm,target,np.eye(4),q,np.zeros(18),np.ones(6)*.7,
+        table_z=.9,hand_local=np.array([[0,0,0],[0,0,-.1]]))
+    assert not info['filter_active']
+    np.testing.assert_array_equal(out,target)
+    np.testing.assert_array_equal(fingers,np.ones(6)*.7)

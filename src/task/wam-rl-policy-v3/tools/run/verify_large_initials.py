@@ -11,7 +11,8 @@ def compare(packets,tolerance=2e-6):
 
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--manifest',type=Path,action='append',required=True);p.add_argument('--output',type=Path,required=True);a=p.parse_args();groups={}
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--manifest',type=Path,action='append',required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--arms',default='A1,A2,A3,A4');a=p.parse_args();groups={};expected=set(a.arms.split(','))
+    if len(expected)<2:raise ValueError('at least two distinct arms required')
     for path in a.manifest:
         m=json.loads(path.read_text())
         for r in m['runs']:
@@ -20,7 +21,7 @@ def main():
             with np.load(path.parent/r['id']/'initial.npz') as z:byarm[r['arm']]={k:z[k].copy() for k in FIELDS}
     rows=[];mutant=False
     for trial,byarm in sorted(groups.items()):
-        if set(byarm)!={'A1','A2','A3','A4'}:continue
+        if set(byarm)!=expected:continue
         packets=[byarm[a] for a in sorted(byarm)];rows.append(dict(trial=trial,**compare(packets)))
         if not mutant:
             altered={k:v.copy() for k,v in packets[1].items()};altered['hand'][0,0,0]+=.01
