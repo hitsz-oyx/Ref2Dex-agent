@@ -29,9 +29,12 @@ def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 def arrays(p):return {f.stem:np.load(f,allow_pickle=False) for f in p.glob('*.npy')}
 
 
-def audit(out):
+def audit(out,check_only=False):
     from scipy.spatial.transform import Rotation
+    from ptv3_shared_wam_v5.shadow import ShadowSurface
+    from ptv3_shared_wam_v5.preparation import surface_contact
     started=time.monotonic();plan=read(out/'plan.json');summary=read(out/'audit-summary.json')
+    surface=ShadowSurface(out/'assets/mjcf/open_ai_assets/hand/robot.xml')
     assert len(plan['jobs'])==96 and len({j['rollout_id'] for j in plan['jobs']})==96
     assets={r['object_code']:r for r in plan['objects']}
     verdicts=[json.loads(line) for line in (out/'window-verdicts.jsonl').read_text().splitlines()]
@@ -58,6 +61,19 @@ def audit(out):
         assert np.allclose(seq['object_poses'][:,0,:3,:3],Rotation.from_quat(raw['object'][:,3:7]).as_matrix(),atol=1e-7)
         assert seq['joint_valid'][:,0].all() and not seq['joint_valid'][:,1].any()
         assert seq['surface_valid'][:,0].all() and not seq['surface_valid'][:,1].any()
+        reconstructed,jv,vertices,sv,parts=surface.reconstruct(raw['q'],raw['hand_root'])
+        assert np.array_equal(reconstructed,seq['joints']) and np.array_equal(jv,seq['joint_valid'])
+        assert np.array_equal(parts,seq['surface_parts']) and np.array_equal(sv,seq['surface_valid'])
+        assert np.array_equal((vertices-reconstructed[:,:,None,0]).astype('f2'),seq['surface_offsets'])
+        for frame in (0,150,300):
+            observed=seq['surface_offsets'][frame,0].astype('f4')+seq['joints'][frame,0,0]
+            pose=seq['object_poses'][frame,0]
+            query=geo['surface']@pose[:3,:3].T+pose[:3,3]
+            c,p=surface_contact(observed,parts[0],query)
+            assert np.array_equal(c,contact['contact'][frame,0]) and np.array_equal(p,contact['part'][frame,0])
+        admission=read(folder/'admission.json')
+        assert admission['joint_semantics']==list(JOINT_NAMES) and admission['part_semantics']==list(PART_NAMES)
+        assert admission['label_semantics']==LABEL_SEMANTICS
         instruction=read(folder/'goal-channel/instruction.json');validate_instruction(instruction)
         assert instruction['reset']==binding['reset']
         intents=read(binding['intent_artifact'])
@@ -109,11 +125,14 @@ def audit(out):
         admitted_windows=admitted,maximum_native21_vs_saved21_m=maximum_error,
         checked=['all saved windows through existing admission predicate','source hash and producer reset order',
                  'every native target reset restoration','goal instruction derivation','raw measured21 versus saved21',
+                 'all saved surfaces and part IDs reconstructed from source asset','three contact/part frames per rollout recomputed',
                  'actual class and phase coverage','reset and native clock continuity'],elapsed_s=time.monotonic()-started)
-    with (out/'independent-audit.json').open('x') as f:json.dump(result,f,indent=2);f.write('\n')
+    if not check_only:
+        with (out/'independent-audit.json').open('x') as f:json.dump(result,f,indent=2);f.write('\n')
     print(json.dumps(result))
 
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--output',required=True,type=Path)
-    audit(parser.parse_args().output.resolve())
+    parser.add_argument('--check-only',action='store_true')
+    args=parser.parse_args();audit(args.output.resolve(),args.check_only)
