@@ -366,3 +366,13 @@ C3 FAILED exit 1; no restart. See /mnt/ugreen_nas/storage/oyx_storage/wam-nine-s
 ## C3 initial run: terminal reader fault,0 updates
 
 NAS diagnosis/full-census/sequences.jsonl had mode000; all ranks stopped while opening the reader, before first update/panel/checkpoint. Original controller stopped and all failure logs/receipts remain under C3/. Only this diagnostic task's artifact permissions were restored to0664; every census file byte size and SHA binding is unchanged. This is an engineering fault, not C3 outcome. After explicit diagnosis and permission repair, a separate one-shot C3-r2 run is manually admitted with original initialization/config/data and full500-update budget (previous0 updates). No automatic retry loop is added. Remaining C4/C5 retain original preregistration.
+
+### Decision audit registered after C2, before measuring source1 support scales
+
+C1 recovers; C2 with identical source weights regresses. Question: does expanded within-source1 target scale differ from curated support despite identical source weights? Cheapest discriminator is CPU replay of first256 source1 draws from each actual training sampler, seed170/rank0, compare first8 raw/normalized targets and observed velocities. No model execution/optimizer. If expanded scale changes>=2x, prioritize within-source window/label distribution over a claim restricted to rare newly added source IDs; otherwise continue source-semantic/optimization diagnosis. This audit is sampled evidence, not a causal intervention.
+
+### C1 versus C2 source1 sampled support audit (measured, CPU13.93s)
+
+First256 source1 draws replayed from each actual rank0 sampler: C1 first8 coordinate RMS63.718mm (inherited z RMS1.741), C2 RMS91.505mm (z RMS2.520), ratio1.436. Observed input velocity coordinate RMS0.361 versus0.533m/s. C1/C2 sampled230/233 mothers,253/256 distinct windows. This DOES NOT meet the preregistered >=2x dominant-source scale criterion. Phase counts and axis tails remain in C1-C2-source1-scale-audit.json. Do not overclaim a causal source1 normalization failure from this result.
+
+The source1 window support expands5632->287955 (51.13x) with the same source probability/update budget; average repeated exposure per available source1 window therefore falls51.13x before mother/phase nonuniformity. Thus C2 failure establishes that restoring source weights alone is insufficient on this old TRAIN panel; it does not isolate toxic newly added source IDs, nor distinguish broader support/retention/optimization from label-semantic mismatch. No extra training baseline was run.
