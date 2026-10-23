@@ -7,7 +7,7 @@ task: ptv3-shared-wam-v6
 branch: main
 git_commit: recorded-in-receipts
 classification: Decision
-status: PREPARING
+status: HOLD
 run_id: diagnosis-C1-C2-C3-C4-20261023
 ---
 
@@ -54,3 +54,5 @@ PYTHONDONTWRITEBYTECODE=1 /home/wbcd/miniconda3/envs/graspenv/bin/python -u src/
 
 Report raw signed EPE deltas and relative changes for C4, preserving the owner's
 50% threshold. No future repair or additional baseline is launched in this run.
+
+A completed in379.912s; H2 scale screen positive, causal normalization attribution unresolved. C1 missing original support metadata; all B arms0 updates. CPU recipe/sampler checks passed; report snapshot: [audit](../../audit/nine-source-degradation-20261023.md). Initial scripts/report commit93c5ebc2; per-arm code identity recorded in recipe.

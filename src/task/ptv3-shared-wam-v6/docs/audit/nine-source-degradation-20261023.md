@@ -120,3 +120,7 @@ PYTHONDONTWRITEBYTECODE=1 /home/wbcd/miniconda3/envs/graspenv/bin/python -u src/
 ```
 
 Per-arm launch-receipt.json records command, config/data identity, actual code commit, GPU IDs and initializer. No existing campaign controller is restarted.
+
+## Engineering verification and current stop point
+
+CPU recipe/sampler checks PASS for C2/C3/C4-source1/10/0:4,800 draws per arm, deterministic repeat, worker-state reconstruction, max8/mother/rank. C2 source1=4499/4800 (93.729%). Evidence: `engineering-checks.json`. All six scripts parse successfully in graspenv. GPU training/flow-only backward not yet tested;0 optimizer updates across all arms. C1 is blocked on original curated support metadata; later arms wait to preserve requested order. Working tree remains on main; no push.
