@@ -260,3 +260,103 @@ Preregistered interpretation: All three stable/improve: continuation cleared und
 ### C1 interpretation scope
 
 C1 meets the owner aggregate three-metric recovery rule with all paired CI95 below0. However source1 supplies the improvement: first8-hand delta-1.349mm, while every other source has positive first8-hand point estimates (+0.134 to+1.300mm). Thus this is a source-weight tradeoff on a source1-heavy fixed TRAIN panel, not universal source improvement. The generic inherited result.primary.pass_all=false is caused by undefined loss-block monotonicity (only ONE500-update block); the requested C1 decision uses its three EPE deltas/CIs, not that inapplicable multi-block field. No threshold was relaxed.
+
+## C2 completed (measured)
+
+Progress: `{"automatic_restart": false, "elapsed_s": 1211.150352437995, "global_batch": 384, "status": "COMPLETED", "step": 500, "updates": 500}`
+
+Panel summary:
+```json
+{
+  "anchor_sha256": "440c00c8609a2e9c6276f328f1aa5136a04708294a09b5dab8321044e6caa706",
+  "bootstrap_repeats": 4000,
+  "bootstrap_seed": 170,
+  "cluster_ci95_mm": [
+    [
+      10.938187207067852,
+      11.895930431255964
+    ],
+    [
+      31.865318560266505,
+      36.39105164041886
+    ],
+    [
+      6.393557545758629,
+      7.1715454570390635
+    ]
+  ],
+  "means_mm": [
+    11.41656623134433,
+    34.071339758648925,
+    6.779464827147663
+  ],
+  "metrics_order": [
+    "first8_hand",
+    "fixed_contact_hand",
+    "first8_object"
+  ],
+  "mothers": 124,
+  "panel_attention_backend": "math",
+  "repeat_bit_exact": true,
+  "rows": 512,
+  "same_A_conditions": true,
+  "scope": "fixed TRAIN panel only; no generalization or execution conclusion",
+  "status": "PASS",
+  "step": 500,
+  "training_attention_backend": "efficient",
+  "versus_local3000": {
+    "delta_mm": [
+      2.4357468160871463,
+      9.411990506587184,
+      1.1400614169550778
+    ],
+    "paired_mother_cluster_ci95_mm": [
+      [
+        2.110840309722414,
+        2.7498262034710734
+      ],
+      [
+        7.789745421578563,
+        11.174453117228472
+      ],
+      [
+        0.9374832469139278,
+        1.3797063642711969
+      ]
+    ],
+    "winner": [
+      "local",
+      "local",
+      "local"
+    ]
+  }
+}
+```
+
+by_source
+
+|group|rows/mothers|first8 hand mm (delta)|contact hand mm (delta)|first8 object mm (delta)|
+|---|---:|---:|---:|---:|
+|0|27/3|9.0463 (+2.7791)|16.8752 (+5.5303)|3.8844 (+0.3224)|
+|1|347/101|11.8340 (+2.1990)|36.2748 (+9.9336)|7.0671 (+1.1139)|
+|10|78/3|11.1665 (+1.5816)|28.3862 (+2.5994)|7.1062 (+0.8919)|
+|2|16/3|9.7029 (+4.2245)|22.3657 (+9.0489)|4.8459 (+1.2388)|
+|4|10/3|12.3722 (+3.1887)|24.2324 (+7.5231)|9.3898 (+3.0987)|
+|5|7/2|9.7356 (+4.8629)|20.4492 (+9.3779)|9.2229 (+5.3847)|
+|6|18/3|10.2503 (+4.9180)|14.4598 (+5.0088)|3.8060 (+0.3146)|
+|8|6/3|11.5093 (+6.9202)|32.9732 (+21.2250)|5.7025 (+2.1934)|
+|9|3/3|6.0658 (+1.9073)|15.4732 (+5.9450)|6.9758 (+3.8614)|
+
+by_phase
+
+|group|rows/mothers|first8 hand mm (delta)|contact hand mm (delta)|first8 object mm (delta)|
+|---|---:|---:|---:|---:|
+|approach|105/79|16.0413 (+5.8782)|22.1208 (-0.6160)|4.3881 (+0.2826)|
+|close|105/100|9.5533 (+1.1993)|30.6411 (+6.4712)|5.6473 (+0.4565)|
+|contact|105/104|8.9806 (+1.4816)|23.3349 (+5.7836)|6.5970 (+1.1938)|
+|hold|105/102|10.5001 (+1.7455)|46.4426 (+16.0780)|10.3842 (+2.9810)|
+|unknown|92/17|12.4385 (+1.1535)|27.9486 (+2.1436)|6.8950 (+0.7364)|
+
+Full reproducible paired group CIs and relative changes: `/mnt/ugreen_nas/storage/oyx_storage/wam-nine-source-full-20261023-pending/diagnosis/C2/grouped-panel.json`.
+
+Preregistered interpretation: C2 does not recover all three: new-source supervision remains implicated by owner rubric; inspect C3/C5 and scale evidence.
