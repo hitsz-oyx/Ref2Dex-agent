@@ -310,7 +310,7 @@ def summarize(run,out,workers=1):
                     else:
                         if feat is None:feat=full_feature(r,slot,tick,phase,geo)
                         key=feature_signature(feat)
-                    candidates=db.execute('SELECT sequence_id,slot,tick,phase FROM representatives WHERE signature=?',(key,)).fetchall()
+                    candidates=db.execute('SELECT sequence_id,slot,tick,phase FROM representatives WHERE signature=? ORDER BY rowid',(key,)).fetchall()
                 for sid,rs,rt,rp in ([] if representative is not None else candidates):
                     comparisons+=1
                     rr=by_id[sid];_,rgeo=prep.geometry(rr['objects'][rs],rr['source_id'])

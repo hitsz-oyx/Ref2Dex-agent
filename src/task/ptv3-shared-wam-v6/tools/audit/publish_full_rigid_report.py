@@ -20,7 +20,7 @@ def main():
     if out.parent!=(p.TASK/'docs/audit').resolve():raise ValueError('task-owned report required')
     m=p.read(summary/'manifest.json');status=p.read(summary/'progress.json')
     if status['status']!='COMPLETED':raise ValueError('completed full manifest required')
-    budget=p.read(run/'storage-budget-v7.json');legacy=m['legacy'];diff=m['versus_6000']
+    budget=p.read(run/'storage-budget-v7.json');legacy=m['legacy'];diff=m['versus_6000'];environment=p.read(run/'environment-record.json')
     source_names={0:'OakInk2',1:'GRAB',2:'ARCTIC rigid slots',4:'Shadow replay',5:'TACO',6:'HOT3D',8:'H2O',9:'DexYCB',10:'HOI4D'}
     def load_cov(path):
         with path.open() as f:return {(r['phase'],r['geometry_class'],int(r['source_id'])):int(r['windows']) for r in csv.DictReader(f)}
@@ -161,7 +161,8 @@ source2已从本地官方raw恢复295条；6条既有缓存对照pose误差0、�
 每批64条，续跑校验window shard SHA与hand/contact/event metadata identity；已完成序列不重算，
 batch receipt带attempt ID，运行manifest按attempt留档。调整输入/并发时只在序列边界STOP，
 原STOP/receipt保留并命名归档，没有杀未知进程或删历史outputs。预算版本保留，没有用新数字
-覆盖历史预检。环境为graspenv/Python3.8.20、Torch2.4.1+cu121、NumPy1.24.4；MANO使用GPU7，
+覆盖历史预检。环境为graspenv/Python{environment['python'].split()[0]}、Torch{environment['packages']['torch']} / CUDA{environment['cuda']}、
+NumPy{environment['packages']['numpy']}；完整版本在environment-record.json。MANO使用GPU7，
 KD-tree/审计最多12个CPU worker，全量去重8个CPU worker。GPU4/5/6上的其他作业未触碰。
 seed：manifest/dedup登记值170，本次确定性排序/去重不消耗RNG；已有Shadow表面采样20261019。
 geometry registry不重采样。没有随机抽样、优化器更新。
