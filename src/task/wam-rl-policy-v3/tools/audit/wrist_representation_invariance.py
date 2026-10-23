@@ -1,12 +1,11 @@
-#!/usr/bin/env python3
-"""Offline wrist representation invariance replay for brief46.
+#!/usr/bin/env python
+"""Offline representation-invariance replay for the existing wrist events.
 
-This reads the frozen brief44 evidence and trajectories only.  It does not
-instantiate Isaac Gym, train a model, or call a physics step.  The report
-consumer uses the JSON printed on stdout; no output file is created here.
+This reads only the frozen evidence/trajectory archives from brief44/brief40.
+It does not import Isaac Gym, run a model, or call a simulator.
 """
-import importlib.util
 import json
+import math
 from pathlib import Path
 
 import numpy as np
@@ -14,89 +13,110 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[5]
 EVIDENCE = ROOT / "tmp/s40-deathcause/evidence.json"
-COLLECT = ROOT / "tmp/s40-deathcause/collect.py"
 
 
-def load_helpers():
-    spec = importlib.util.spec_from_file_location("brief44_collect", COLLECT)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+def _guard(q, lower, upper, has_limits):
+    """The recorded revolute/finger guard read, with its 0.10 rad margin."""
+    indices = np.arange(6, 18)[has_limits[6:18]]
+    values = q[indices]
+    reads = np.maximum(lower[indices] - 0.10 - values,
+                       values - upper[indices] - 0.10)
+    return float(reads.max()), indices[reads > 0].astype(int).tolist()
 
 
-def finger_gate(q, limits):
-    mask = np.asarray(limits["has_limits"], dtype=bool)
+def _case(record, root):
+    trajectory = root / record["source_files"]["trajectory"]
+    run_manifest = trajectory.parent.parent / "manifest.json"
+    manifest = json.loads(run_manifest.read_text())
+    audit = manifest.get("native_initial_audit")
+    if audit is None:
+        audit = json.loads((trajectory.parent / "native-audit.json").read_text())
+    limits = audit["physical_joint_limits"]
+    has_limits = np.asarray(limits["has_limits"], dtype=bool)
     lower = np.asarray(limits["lower"], dtype=float)
     upper = np.asarray(limits["upper"], dtype=float)
-    ids = np.arange(6, 18)[mask[6:18]]
-    return float(np.maximum(lower[ids] - 0.10 - q[ids], q[ids] - upper[ids] - 0.10).max())
+    assert not has_limits[3:6].any()
+    with np.load(trajectory) as archive:
+        q = np.asarray(archive["q"][:, 0], dtype=float)
+        pd = np.asarray(archive["pd_targets_actual"], dtype=float)
+    tick = int(record["terminal_tick"])
+    assert tick == len(q) - 1 == len(pd)
+    q_before, q_after = q[tick - 1], q[tick]
+    target = pd[tick - 1, 3:6]
+    g_before, i_before = _guard(q_before, lower, upper, has_limits)
+    g_after, i_after = _guard(q_after, lower, upper, has_limits)
+    assert g_before <= 0.0 and g_after > 0.0
 
-
-def main():
-    helpers = load_helpers()
-    prior = json.loads(EVIDENCE.read_text())
-    rows = []
-    for record in prior["records"]:
-        if record.get("signature") != "physical_joint_limit":
-            continue
-        trajectory = ROOT / record["source_files"]["trajectory"]
-        run = trajectory.parent.parent
-        manifest = helpers.read(run / "manifest.json")
-        audit = manifest.get("native_initial_audit") or helpers.read(trajectory.parent / "native-audit.json")
-        limits = audit["physical_joint_limits"]
-        with np.load(trajectory) as z:
-            q = z["q"][:, 0].astype(float)
-            pd = z["pd_targets_actual"].astype(float)
-        # The final state is the recorded abort state.  pd[-1] is the target
-        # sent during the preceding command interval, whose measured state is
-        # q[-2].  This is the same timing convention used by brief44.
-        q_pre = q[-2, 3:6]
-        q_abort = q[-1, 3:6]
-        target = pd[-1, 3:6]
-        raw_error = target - q_pre
-        unwrapped = np.unwrap(q[:, 3:6], axis=0, period=2 * np.pi)
-        pre_shift = unwrapped[-2] - q_pre
-        abort_shift = unwrapped[-1] - q_abort
-        target_u = target + pre_shift
-        q_pre_u = q_pre + pre_shift
-        q_abort_u = q_abort + abort_shift
-        rows.append(
-            {
-                "batch": record["batch"],
-                "label": record["label"],
-                "tick": int(record["terminal_tick"]),
-                "trigger_dofs": record["final_safety"]["joint_violation_indices"],
-                "q_pre": q_pre.tolist(),
-                "q_abort": q_abort.tolist(),
-                "q_pre_u": q_pre_u.tolist(),
-                "q_abort_u": q_abort_u.tolist(),
-                "q_target": target.tolist(),
-                "q_target_u": target_u.tolist(),
-                "guard_pre": finger_gate(q[-2], limits),
-                "guard_abort": finger_gate(q[-1], limits),
-                "guard_pre_u": finger_gate(np.r_[q[-2, :3], q_pre_u, q[-2, 6:]], limits),
-                "guard_abort_u": finger_gate(np.r_[q[-1, :3], q_abort_u, q[-1, 6:]], limits),
-                "pd_error": raw_error.tolist(),
-                "pd_error_u": (target_u - q_pre_u).tolist(),
-                "pd_error_norm": float(np.linalg.norm(raw_error)),
-                "pd_error_u_norm": float(np.linalg.norm(target_u - q_pre_u)),
-                "abort": True,
-                "abort_u": True,
-            }
+    out = dict(batch=record["batch"], label=record["label"], tick=tick,
+               wrist_dof=record["joints"][0]["index"] if record["joints"] else None,
+               q_before=q_before[3:6].tolist(), q_after=q_after[3:6].tolist(),
+               q_target=target.tolist(), guard_before=g_before,
+               guard_after=g_after, guard_indices_before=i_before,
+               guard_indices_after=i_after)
+    for label, multiple in (("2pi", 1), ("4pi", 2)):
+        period = 2.0 * math.pi * multiple
+        unwrapped = np.unwrap(q[:, 3:6], axis=0, period=period)
+        q_u_before, q_u_after = unwrapped[tick - 1], unwrapped[tick]
+        # The target is moved by exactly the same branch offset as q at
+        # command time. This is the physical-equivalence transformation.
+        shift_before = q_u_before - q_before[3:6]
+        shift_after = q_u_after - q_after[3:6]
+        target_u_before = target + shift_before
+        target_u_after = target + shift_after
+        guard_u_before, i_u_before = _guard(
+            np.r_[q_before[:3], q_u_before, q_before[6:]], lower, upper,
+            has_limits)
+        guard_u_after, i_u_after = _guard(
+            np.r_[q_after[:3], q_u_after, q_after[6:]], lower, upper,
+            has_limits)
+        e_cmd = target - q_before[3:6]
+        e_cmd_u = target_u_before - q_u_before
+        e_post = target - q_after[3:6]
+        e_post_u = target_u_after - q_u_after
+        assert np.allclose(e_cmd, e_cmd_u, atol=1e-12, rtol=0)
+        assert np.allclose(e_post, e_post_u, atol=1e-12, rtol=0)
+        assert (guard_u_before, i_u_before) == (g_before, i_before)
+        assert (guard_u_after, i_u_after) == (g_after, i_after)
+        out[label] = dict(
+            shift_before=shift_before.tolist(), shift_after=shift_after.tolist(),
+            q_before=q_u_before.tolist(), q_after=q_u_after.tolist(),
+            q_target=target_u_before.tolist(),
+            q_target_post=target_u_after.tolist(), guard_before=guard_u_before,
+            guard_after=guard_u_after, guard_indices_before=i_u_before,
+            guard_indices_after=i_u_after,
+            command_error_before=e_cmd.tolist(),
+            command_error_after=e_cmd_u.tolist(),
+            command_error_norm=float(np.linalg.norm(e_cmd_u)),
+            post_error_before=e_post.tolist(),
+            post_error_after=e_post_u.tolist(),
+            post_error_norm=float(np.linalg.norm(e_post_u)),
+            abort_before=True, abort_after=True,
         )
-    assert len(rows) == 21, len(rows)
-    changed = sum(r["abort"] != r["abort_u"] for r in rows)
-    pd_changed = sum(not np.allclose(r["pd_error"], r["pd_error_u"], atol=1e-12, rtol=0) for r in rows)
-    return {
-        "scope": "21 existing physical_joint_limit abort records; wrist-only equivalent remapping",
-        "n": len(rows),
-        "period": "2pi",
-        "changed_guard_decisions": changed,
-        "changed_guard_fraction": changed / len(rows),
-        "changed_pd_errors": pd_changed,
-        "rows": rows,
+    return out
+
+
+def analyze(root=ROOT):
+    evidence = json.loads((root / "tmp/s40-deathcause/evidence.json").read_text())
+    records = [r for r in evidence["records"]
+               if r["signature"] == "physical_joint_limit"]
+    assert len(records) == 21
+    cases = [_case(r, root) for r in records]
+    summary = {
+        "cases": len(cases),
+        "period_2pi_changed_guard": sum(c["2pi"]["abort_after"] != c["2pi"]["abort_before"] for c in cases),
+        "period_2pi_changed_pd_error": sum(
+            not np.allclose(c["2pi"]["command_error_before"], c["2pi"]["command_error_after"], atol=1e-12, rtol=0)
+            or not np.allclose(c["2pi"]["post_error_before"], c["2pi"]["post_error_after"], atol=1e-12, rtol=0)
+            for c in cases),
+        "period_4pi_changed_guard": sum(c["4pi"]["abort_after"] != c["4pi"]["abort_before"] for c in cases),
+        "period_4pi_changed_pd_error": sum(
+            not np.allclose(c["4pi"]["command_error_before"], c["4pi"]["command_error_after"], atol=1e-12, rtol=0)
+            or not np.allclose(c["4pi"]["post_error_before"], c["4pi"]["post_error_after"], atol=1e-12, rtol=0)
+            for c in cases),
+        "cases": cases,
     }
+    return summary
 
 
 if __name__ == "__main__":
-    print(json.dumps(main(), indent=2, sort_keys=True))
+    print(json.dumps(analyze(), indent=2, ensure_ascii=False))
