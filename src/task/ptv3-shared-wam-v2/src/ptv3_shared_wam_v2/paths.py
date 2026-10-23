@@ -9,7 +9,7 @@ LEGACY = TASK.parent / "ptv3-shared-wam"
 sys.path.insert(0, str(LEGACY / "src"))
 from ptv3_shared_wam.paths import add_dependencies
 add_dependencies()
-DEFAULT_DATA = ROOT / "outputs/cm-pointflow-effect-pretrain/pointworld-main3-sharedstats-20261009/data-main-worktree"
+DEFAULT_DATA = ROOT / "outputs/_kept-pointworld-main3-sharedstats-20261009/data-main-worktree"
 SCHEMA = "ref2dex.ptv3-shared-wam.v2"
 STATS_SCHEMA = "ref2dex.horizon-displacement-stats.v1"
 
