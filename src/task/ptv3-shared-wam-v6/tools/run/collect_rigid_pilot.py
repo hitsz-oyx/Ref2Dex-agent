@@ -245,7 +245,8 @@ def worker(out, object_index, gpu):
     gymutil.parse_sim_config(cfg['sim'],sim)
     work = out/'dexgrasp'; work.mkdir(exist_ok=True); os.chdir(work)
     write(batch/'simulation-config.json',dict(config=cfg, dt=sim.dt, substeps=sim.substeps, gpu=gpu,
-        seed=198+object_index, python=sys.version, executable=sys.executable, numpy=np.__version__,torch=torch.__version__,cuda=torch.version.cuda))
+        seed=198+object_index, python=sys.version, executable=sys.executable, numpy=np.__version__,torch=torch.__version__,cuda=torch.version.cuda,
+        git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),collector_sha256=sha(__file__)))
     task = cls(cfg,sim,gymapi.SIM_PHYSX,'cuda',0,True)
     try:
         if abs(task.dt-1/60)>1e-7 or task.control_freq_inv!=1 or task.num_shadow_hand_dofs!=22:
@@ -426,7 +427,7 @@ def collect(out,gpu,resume=False):
         rollouts=96,output_ticks=28800,native_controls=57600,warmup_native_controls=96,policy_updates=0))
 
 
-def audit(out):
+def audit(out,wait_for_collection=False):
     from scipy.spatial.transform import Rotation
     from ptv3_shared_wam_v5.shadow import ShadowSurface
     from ptv3_shared_wam_v5.preparation import surface_contact
@@ -438,8 +439,13 @@ def audit(out):
     if (out/'audit-summary.json').exists(): raise FileExistsError('audit already published')
     surface=ShadowSurface(out/'assets/mjcf/open_ai_assets/hand/robot.xml')
     assets={r['object_code']:r for r in plan['objects']}; verdicts=[]; windows=[]; certified=[]; phase_counts=Counter()
-    for job in plan['jobs']:
+    jobs=sorted(plan['jobs'],key=lambda j:(not (out/j['rollout_id']/'raw.npz').exists(),j['rollout_id'])) if wait_for_collection else plan['jobs']
+    for job in jobs:
         folder=out/job['rollout_id'];asset=assets[job['object_code']]
+        while not (folder/'raw.npz').exists():
+            if not wait_for_collection or time.monotonic()-started>7200:raise FileNotFoundError(folder/'raw.npz')
+            guard(out,24*1024**2)
+            time.sleep(10)
         raw=dict(np.load(folder/'raw.npz',allow_pickle=False)); n=len(raw['q'])
         if n!=301 or len(raw['action'])!=600: raise ValueError('length/tick drift')
         if not np.array_equal(raw['native_progress'],np.arange(1,602,2)): raise ValueError('reset/timing drift')
@@ -549,6 +555,7 @@ def main():
     p.add_argument('--output',type=Path,required=True);p.add_argument('--gpu',type=int,default=4);p.add_argument('--object-index',type=int)
     p.add_argument('--prepared-from',type=Path)
     p.add_argument('--resume',action='store_true')
+    p.add_argument('--wait-for-collection',action='store_true')
     a=p.parse_args();out=a.output.resolve()
     if ROOT/'outputs/ptv3-shared-wam-v6' not in out.parents: raise ValueError('task-owned output required')
     if a.stage=='prepare':
@@ -556,7 +563,7 @@ def main():
         else: prepare(out)
     elif a.stage=='collect':collect(out,a.gpu,a.resume)
     elif a.stage=='worker':worker(out,a.object_index,a.gpu)
-    else:audit(out)
+    else:audit(out,a.wait_for_collection)
 
 
 if __name__=='__main__': main()
