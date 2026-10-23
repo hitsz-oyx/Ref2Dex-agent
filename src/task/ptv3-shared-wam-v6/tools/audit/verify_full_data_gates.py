@@ -298,13 +298,58 @@ def hashes(out):
     return report
 
 
+def geometry(out):
+    """Independent brute-force nearest-vertex check, without the writer KD tree."""
+    from scipy.spatial.distance import cdist
+    ds = datasets(); checked = invalid = 0; maximum = 0.; ties = 0
+    for split, index in selected_rows(ds):
+        dataset = ds[split]; sid, slot, tick = map(int,dataset.index[index])
+        seq, contact, _ = dataset.sequence(sid); geo = dataset.geometry_for(sid,slot)
+        for frame in (tick,tick+12,tick+24):
+            sides = seq['surface_valid'][frame]
+            expected = seq['expected_hand_presence'][frame]
+            valid = bool((~expected|sides).all() and sides.any() and seq['observed_frame'][frame]
+                         and seq['object_pose_valid'][frame,slot])
+            assert valid == bool(contact['valid'][frame,slot])
+            if not valid:
+                invalid += 1
+                assert not np.count_nonzero(contact['contact'][frame,slot])
+                continue
+            vertices = (seq['surface_offsets'][frame].astype('f4')+seq['joints'][frame,:,None,0])[sides].reshape(-1,3)
+            labels = seq['surface_parts'][sides].reshape(-1)
+            pose = seq['object_poses'][frame,slot]
+            queries = geo['surface']@pose[:3,:3].T+pose[:3,3]
+            near = ((queries >= vertices.min(0)-.033)&(queries <= vertices.max(0)+.033)).all(-1)
+            distances = cdist(queries[near],vertices)
+            which = distances.argmin(-1); distance = distances[np.arange(len(distances)),which]
+            expected_c = np.zeros(2048,np.float16); expected_p = np.zeros(2048,np.uint8)
+            confidence = np.exp(-np.maximum(distance-.003,0)/.010); confidence[distance>.033] = 0
+            expected_c[near] = confidence.astype('f2'); expected_p[near] = labels[which]
+            saved_c, saved_p = contact['contact'][frame,slot],contact['part'][frame,slot]
+            maximum = max(maximum,float(np.abs(expected_c.astype('f4')-saved_c.astype('f4')).max()))
+            assert np.array_equal(expected_c,saved_c), (sid,frame,'contact')
+            assert not np.any(saved_p[~near]), (sid,frame,'outside bounding box')
+            different = np.flatnonzero(expected_p[near]!=saved_p[near])
+            for j in different:
+                # Different solvers may choose different exactly tied vertices;
+                # accept only an actual equal-distance vertex with saved part.
+                matching = labels == saved_p[near][j]
+                assert matching.any() and np.min(distances[j,matching]) <= distance[j]+1e-12
+                ties += 1
+            checked += 1
+    return dict(status='PASS',windows=288,frames_checked=checked,invalid_frames_mask_checked=invalid,
+        maximum_contact_error=maximum,exact_distance_part_ties=ties,
+        algorithm='SciPy brute-force cdist; independent of writer surface_contact/cKDTree',
+        scope='saved pose + saved surface -> saved contact/part; does not independently establish raw MANO joint convention')
+
+
 def goal(out):
     from wam_rl_policy_v3.goal_channel import validate_instruction
     from ptv3_shared_wam_v6.fresh_rigid import reset_bound_sample
     candidate = read(FRESH/'candidate-manifest.json')
     tuples = np.load(candidate['tuple_index'], allow_pickle=False)
     rows = sorted(candidate['sequences'], key=lambda r:r['sequence_ordinal'])
-    counts = Counter(); event_counts = Counter(); checked = 0
+    counts = Counter(); event_counts = Counter(); checked = 0; consumer_checks = 0
     for row in rows:
         ordinal = row['sequence_ordinal']; binding = read(row['reset_binding'])
         instruction = read(row['goal_instruction']); validate_instruction(instruction)
@@ -329,16 +374,31 @@ def goal(out):
         with np.load(Path(row['sequence']).parent/'raw.npz',allow_pickle=False) as raw:
             assert (np.diff(raw['observed_at_ns']) > 0).all()
             assert binding['reset_timestamp_ns'] <= int(raw['observed_at_ns'][0])
-        for _,slot,tick in own:
+        # The immutable instruction is shared by the rollout. Validate it once
+        # and check every current-pose encoding in a batch; repeatedly hashing
+        # the same 2048-point JSON at every overlapping window adds no evidence.
+        assert (own[:,1] == instruction['object_slot']).all()
+        query = np.asarray(geo['query'],np.float64)
+        assert np.array_equal(query,np.asarray(instruction['sources']['query']['payload'],np.float64))
+        poses = np.asarray(seq['object_poses'][own[:,2],instruction['object_slot']],np.float64)
+        relative = np.linalg.inv(poses) @ np.asarray(instruction['task_goal_pose'],np.float64)
+        delta = np.einsum('tij,pj->tpi',relative[:,:3,:3],query)+relative[:,None,:3,3]-query
+        assert np.isfinite(delta).all() and delta.shape == (274,32,3)
+        for position in (0,len(own)-1):
+            _,slot,tick = own[position]
             sampled = reset_bound_sample(seq,geo,contact,int(tick),int(slot),4,[ordinal,int(slot),int(tick)],instruction,binding['reset'])
-            assert sampled['object_goal_valid'].all() and np.isfinite(sampled['goal_object_delta']).all()
-            checked += 1
+            assert sampled['object_goal_valid'].all()
+            assert np.allclose(sampled['goal_object_delta'],delta[position],rtol=1e-5,atol=1e-7)
+            consumer_checks += 1
+        checked += len(own)
         counts[instruction.get('source_role', binding['source_role'])] += len(own)
         event_counts['UNKNOWN_NO_INDEPENDENT_EVENT_INTENT'] += len(own)
+        if len(counts) and checked % (274*16) == 0:
+            progress(stage='goal',certified_windows=checked)
     assert checked == 26304
     return dict(status='PASS', old6000_certified_goal=0, full_legacy_certified_goal=0,
         full_legacy_windows=11197332, new_certified_goal_windows=checked, new_rollouts=len(rows),
-        by_goal_role=dict(counts), by_event_certification=dict(event_counts),
+        by_goal_role=dict(counts), by_event_certification=dict(event_counts),consumer_windows_checked=consumer_checks,
         fresh_candidate_manifest_sha256=sha256(FRESH/'candidate-manifest.json'),
         combined_catalog_exists=False, fresh_split='unassigned candidate; official TRAIN assets only',
         legal_goal_comparison_ready=False,
@@ -398,7 +458,7 @@ def smoke(out):
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--stage',required=True,choices=['full','sample','hashes','goal','smoke'])
+    parser.add_argument('--stage',required=True,choices=['full','sample','hashes','geometry','goal','smoke'])
     parser.add_argument('--output',type=Path,required=True)
     args=parser.parse_args(); args.output.mkdir(parents=True,exist_ok=True)
     assert shutil.disk_usage(args.output).free > 31*2**30
