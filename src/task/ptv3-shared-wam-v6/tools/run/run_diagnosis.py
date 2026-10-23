@@ -11,6 +11,8 @@ def environment(gpus):
 
 def launch(arm,gpus):
  folder=OUT/arm;r=read(folder/'recipe-v2.json');assert not (folder/'launch-receipt.json').exists()
+ preflight=folder/'workspace-preflight.json'
+ if preflight.exists() and read(preflight)['status']!='PASS_500_PLANNED_DRAWS':raise RuntimeError('known workspace fault blocks '+arm)
  command=[PY,'-m','torch.distributed.run','--standalone','--nnodes=1','--nproc_per_node='+str(r['world_size']),str(TASK/'tools/run/train_diagnosis.py'),'--recipe',str(folder/'recipe-v2.json'),'--output',str(folder)]
  with (folder/'console.log').open('x') as log:p=subprocess.Popen(command,cwd=ROOT,env=environment(gpus),stdout=log,stderr=subprocess.STDOUT,stdin=subprocess.DEVNULL,start_new_session=True)
  write(folder/'launch-receipt.json',dict(command=command,pid=p.pid,pgid=p.pid,gpus=gpus,config_sha256=r['config_sha256'],data_identity_sha256=r.get('data_identity_sha256',r['manifest_sha256']),recipe_sha256=sha(folder/'recipe-v2.json'),git_commit=r['git_commit'],git_head_at_launch=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),initialization_sha256=r['initialization_sha256'],automatic_restart=False,at=time.time()),immutable=True)
