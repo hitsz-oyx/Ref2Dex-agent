@@ -17,5 +17,8 @@ def main():
  try:fixed_workspace_grid(torch.from_numpy(np.stack(xyzs)),torch.from_numpy(np.stack(valids)),config['voxel_origin_m'],config['voxel_m']);raise AssertionError('expected production grid rejection')
  except ValueError as exc:error=str(exc)
  result=dict(status='EXACT_FAILURE_REPRODUCED_CPU',step=104,rank=2,batch=96,production_validator_error=error,bad_windows=bad,model_executed=False,updates=0)
- write(OUT/'workspace-fault-reproduction.json',result,immutable=True);print(json.dumps(result,indent=2))
+ path=OUT/'workspace-fault-reproduction.json'
+ if path.exists():assert read(path)==result,'saved reproduction changed'
+ else:write(path,result,immutable=True)
+ print(json.dumps(result,indent=2))
 if __name__=='__main__':main()

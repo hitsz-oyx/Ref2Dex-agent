@@ -43,7 +43,7 @@ def main():
  for arm,v in self_change.items():
   if all(d is not None and d>0 for d in v['delta_mm']):decisions.append(arm+' also worsens its OWN source on all three point estimates; source mixing is not necessary for that observed regression. Any>=50% off-diagonal threshold hit is reported under the owner rule, but is not a clean source-tradeoff proof when the trained source itself also deteriorates. Broader within-source support/retention/semantics/optimization remain candidates.')
  lines+=['\nPreregistered decisions and causal limits:']+['- '+x for x in decisions]+['\nNo model/loss/LR/threshold/workspace was relaxed. Original half/remaining outputs are retained. Original half support differs from new full support; C4 global96 differs from global384 controls. Fixed TRAIN512/124 evidence only; no heldout generalization/execution claim. Independent workspace repair preflight remains a proposal unless separately authorized; original C3/C5 cannot be labelled recovered/degraded from runtime failures.']
- write(OUT/'final-summary.json',dict(status='PARTIAL_BLOCKED_INPUT_CONTRACT',arms=summary,decisions=decisions,C4_strong_interference=strong,C4_self=self_change,C4_other_pooled=pooled),immutable=True)
+ write(OUT/'final-summary.json',dict(status='PARTIAL_FAULTED_AND_BLOCKED',arms=summary,decisions=decisions,C4_strong_interference=strong,C4_self=self_change,C4_other_pooled=pooled),immutable=True)
  with (OUT/'README.md').open('a') as f:f.write('\n'.join(lines)+'\n')
  (OUT/'README.md').chmod(0o664)
  report=ROOT/'src/task/ptv3-shared-wam-v6/docs/audit/nine-source-degradation-20261023.md';report.write_text((OUT/'README.md').read_text())
