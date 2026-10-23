@@ -101,7 +101,7 @@ def main():
 不同采集根，不能只按basename合并。完整URI逐条见mother-identities.jsonl。
 唯一原计划外的本地非TEST母序列用append-only ID39526补齐，实际全量准入判定
 **{m['total_prepared_mother_decisions']:,}条TRAIN/DEV母序列**；另有202条官方TEST母序列
-逐条排除进入TRAIN/DEV；这是保留原协议TEST划分，不是按物体身份新设质量阈值或判数据非法。合并去重后的母序列审计全集为39,729条，robot派生view不增加母序列数。
+逐条排除进入TRAIN/DEV；这是保留原协议TEST划分，不是按物体身份新设质量阈值或判数据非法。合并去重后的母序列审计全集为39,729条，派生view不增加母序列数（含Inspire与qualitative MANO）。
 
 没有6,000窗口上限，也没有source/phase配额；对已有刚体slot逐tick使用同一H4/K24
 合同，packed source保留原target_slot，source0/1/2检查已注册slot。没有训练、换模型、
@@ -112,7 +112,7 @@ def main():
 
 母序列准入状态：`{json.dumps(m['sequence_status'],ensure_ascii=False)}`。
 原pending **6,000条序列批次**：`{json.dumps(m['pending6000'],ensure_ascii=False)}`。
-legacy1335状态：`{json.dumps(legacy['mother_status'])}`；两根robot view共
+legacy1335状态：`{json.dumps(legacy['mother_status'])}`；两根派生view共
 `{sum(legacy['views_by_root'].values())}`条，全部独立列出原因，不借用human parent标签。
 完整判定在{link('full-manifest-r1/sequence-verdicts.jsonl','序列判定')}、
 {link('full-manifest-r1/legacy-mother-verdicts.jsonl','legacy母序列')}和
@@ -201,7 +201,7 @@ Shadow原始`goal[T,3]`是reset后录制的task参数快照；原生goal或动�
 完整TaskSpec、原执行/reset/来源绑定及reset前可得性证据。上述候选不升级为合法证书，
 也不能泛称“原始数据没有goal字段”。
 
-两根robot legacy view的拒绝原因：`{json.dumps(legacy['view_rejection_reasons'])}`。
+两根legacy派生view的拒绝原因：`{json.dumps(legacy['view_rejection_reasons'])}`。
 几何pool或q/wrist存在不等于joint21/part16/annotation validity/contact/event语义已绑定，
 不把human parent的MANO或contact贴给Inspire。完整文件缺口在上述逐view JSONL。
 source2已从本地官方raw恢复295条；6条既有缓存对照pose误差0、手部最大误差
@@ -250,6 +250,7 @@ source0-copy-receipt*.json和remaining-legacy-budget.json；逐序列receipt在`
 仓库`tools/verify.py --changed`另有腾盘后历史cm-pointflow outputs链接缺失，未为了过检查
 恢复空文件或修改无关历史文档。没有训练、物理回放或预测性能改善结论。
 '''
+    text=text.replace('full-manifest-r1',str(summary.relative_to(run)))
     out.write_text(text)
     p.write(support/'report-receipt.json',dict(status='COMPLETED',manifest_sha256=sha,report_sha256=p.digest(out),report=str(out),
         coverage_visual_sha256={name:p.digest(support/name) for name in ['coverage-train.png','coverage-dev.png']},

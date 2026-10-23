@@ -85,3 +85,14 @@ def test_timing_gate_rejects_a_boundary_inside_the_full_horizon(tmp_path):
     record=dict(key='example',clock_kind='packed_grid30',clock_uri=str(clock))
     with pytest.raises(ValueError,match='clock/segment boundary'):
         summary.timing_gate(record,np.array([[0,0,3]],np.int32),32)
+
+
+def test_legacy_view_path_can_be_missing_without_keyerror(tmp_path):
+    root=tmp_path/'cm';root.mkdir()
+    native=tmp_path/'native';(native/'geometry').mkdir(parents=True)
+    folder,resolution=summary.legacy_view_folder(root,dict(path='stale/test/mano',geometry_root=str(native/'geometry'),qualitative_only=True))
+    assert folder==native and resolution=='declared_geometry_parent'
+    folder,resolution=summary.legacy_view_folder(root,dict(path='missing'))
+    assert folder==root/'missing' and resolution=='declared_path_missing'
+    folder,resolution=summary.legacy_view_folder(root,dict(path='stale',view_manifest=str(native/'view.json')))
+    assert folder==native and resolution=='declared_view_manifest'
