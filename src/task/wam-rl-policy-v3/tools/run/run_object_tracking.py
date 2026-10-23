@@ -34,6 +34,9 @@ def main():
     p.add_argument('--matrix',choices=['sentinel','full'],default='full')
     p.add_argument('--reference-npz',type=Path,help='Generic world-frame object SE3: arrays times (seconds) and poses (N,4,4); overrides shape matrix')
     p.add_argument('--stages',choices=['A','B','both'],default='both')
+    p.add_argument('--feedforward',choices=['both','off','on'],default='both')
+    p.add_argument('--repeats',type=int,choices=range(1,4),default=1)
+    p.add_argument('--unloaded-probe',action='store_true',help='Diagnostic A only: disable object gravity/collisions; preserve hand gravity')
     p.add_argument('--reference-start',type=Path,help='Reuse frozen world object start for a paired stage-only run')
     p.add_argument('--legacy-unchecked',action='store_true',help='Explicit historical reproduction only; bypass new admission/watchdog')
     p.add_argument('--predictive-braking',action='store_true',help='Experimental: stop approach on q+0.10s*dq risk; not qualified as default')
@@ -124,7 +127,9 @@ def main():
         if a.matrix=='sentinel':cells=cells[:1]
         if external is not None:cells=[('external',0.,0.)]
         stages=('A','B') if a.stages=='both' else (a.stages,)
-        plan=[dict(shape=s,scale_m=r,requested_mean_speed_m_s=v,stage=stage,feedforward=ff) for s,r,v in cells for stage in stages for ff in (False,True)]
+        ff_values=(False,True) if a.feedforward=='both' else (a.feedforward=='on',)
+        plan=[dict(shape=s,scale_m=r,requested_mean_speed_m_s=v,stage=stage,feedforward=ff,repeat=rep) for s,r,v in cells for stage in stages for ff in ff_values for rep in range(a.repeats)]
+        manifest['unloaded_probe']=a.unloaded_probe
         write(out/'registered-matrix.json',plan)
         stop_p0=False
         for case_index,case in enumerate(plan):
@@ -162,7 +167,7 @@ def main():
             # deflected joints: resetting targets to q discards contact preload.
             if last_acquisition_pd is None:raise ValueError('missing actual acquisition PD target')
             finger_ids=np.array([6,8,10,12,14,15])
-            held_fingers=last_acquisition_pd[finger_ids] if case['stage']=='B' else None
+            held_fingers=last_acquisition_pd[finger_ids] if case['stage']=='B' or a.unloaded_probe else None
             tracker=ObjectPoseTracker(np.asarray(state['q'])[0],palm,offset,scale,held_finger_targets=held_fingers,joint_limits=limits if envelope is not None else None,predictive_braking=a.predictive_braking)
             write(folder/'handoff.json',dict(measured_q=np.asarray(state['q'])[0].tolist(),last_actual_pd=last_acquisition_pd.tolist(),held_finger_targets=tracker.fingers.tolist()))
             if envelope is not None:
@@ -173,7 +178,7 @@ def main():
                                 acquisition_controls=len(acquisition)-1,tracked_controls=0)
                     manifest['results'].append(result);write(folder/'result.json',result);write(out/'manifest.json',manifest);continue
             if case['stage']=='A':
-                rpc(dict(op='tracking_attachment',enabled=True,hand_object=np.r_[relative[:3,3],Rotation.from_matrix(relative[:3,:3]).as_quat()].tolist()))
+                rpc(dict(op='tracking_attachment',enabled=True,unloaded_probe=a.unloaded_probe,hand_object=np.r_[relative[:3,3],Rotation.from_matrix(relative[:3,:3]).as_quat()].tolist()))
             captures=[];metrics=[];details=[];raw_actions=[];pds=[];N=int(np.ceil(meta['duration_s']*30-1e-9));last_lost=None;watchdog=ProgressWatchdog();current_phase='TRACK'
             for tick in range(N+1):
                 now=tick/30;reference_time=min(now,meta['duration_s']);desired,v,w=curve.evaluate(reference_time)

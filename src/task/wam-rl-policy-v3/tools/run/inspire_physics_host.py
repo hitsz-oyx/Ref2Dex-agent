@@ -199,6 +199,27 @@ def main():
                            for env,handle in zip(task.envs,task._table_handles)]
             table_indices=torch.tensor(table_indices,device=task.device,dtype=torch.long)
             attachment=None
+            # Diagnostic only: remove object load, never the hand's own gravity.
+            unloaded_probe=False
+            original_object_flags=original_object_filters=None
+            def object_load_probe(enabled):
+                nonlocal unloaded_probe
+                env,handle=task.envs[0],task._target_handles[0]
+                bodies=task.gym.get_actor_rigid_body_properties(env,handle)
+                shapes=task.gym.get_actor_rigid_shape_properties(env,handle)
+                for prop,flag in zip(bodies,original_object_flags):
+                    prop.flags=flag | gymapi.RIGID_BODY_DISABLE_GRAVITY if enabled else flag
+                for prop,mask in zip(shapes,original_object_filters):
+                    prop.filter=0x7fffffff if enabled else mask
+                if not task.gym.set_actor_rigid_body_properties(env,handle,bodies,False):raise RuntimeError('object gravity probe setter failed')
+                if not task.gym.set_actor_rigid_shape_properties(env,handle,shapes):raise RuntimeError('object collision probe setter failed')
+                flags=[int(x.flags) for x in task.gym.get_actor_rigid_body_properties(env,handle)]
+                filters=[int(x.filter) for x in task.gym.get_actor_rigid_shape_properties(env,handle)]
+                expected_flags=[x | gymapi.RIGID_BODY_DISABLE_GRAVITY if enabled else x for x in original_object_flags]
+                expected_filters=[0x7fffffff if enabled else x for x in original_object_filters]
+                if flags!=expected_flags or filters!=expected_filters:raise RuntimeError('object load probe readback mismatch')
+                unloaded_probe=enabled
+                audit.setdefault('tracking_load_probe_changes',[]).append(dict(enabled=enabled,flags=flags,filters=filters,tick=int(task.progress_buf[0])))
             if a.object_tracking_probe:
                 if a.envs!=1 or a.physics_backend!='gpu-cpu':
                     raise ValueError('tracking contact diagnostics require one env and GPU PhysX/CPU exchange')
@@ -210,6 +231,10 @@ def main():
                     audit['tracking_body_roles'].extend([role]*len(actor_names))
                 audit['tracking_table_body']=task.gym.get_actor_rigid_body_index(task.envs[0],task._table_handles[0],0,gymapi.DOMAIN_ENV)
                 audit['tracking_object_body']=task.gym.get_actor_rigid_body_index(task.envs[0],task._target_handles[0],0,gymapi.DOMAIN_ENV)
+                original_object_flags=[int(x.flags) for x in task.gym.get_actor_rigid_body_properties(task.envs[0],task._target_handles[0])]
+                original_object_filters=[int(x.filter) for x in task.gym.get_actor_rigid_shape_properties(task.envs[0],task._target_handles[0])]
+                audit['tracking_original_object_flags']=original_object_flags
+                audit['tracking_original_object_filters']=original_object_filters
             original_post=task.post_physics_step
             def tracking_post():
                 original_post()
@@ -240,6 +265,7 @@ def main():
                     result['tracking_contacts']=contact_records(contacts)
                     if len(contacts):audit['tracking_contact_dtype']=list(contacts.dtype.names)
                     result['tracking_rigid_attachment']=attachment is not None
+                    result['tracking_unloaded_probe']=unloaded_probe
                     result['tracking_body_pose']=bodies[0,:,:7].cpu().tolist()
                 if a.extended_state:
                     roots=task._root_states.view(a.envs,task.get_num_actors_per_env(),-1)
@@ -271,6 +297,7 @@ def main():
                     if op=='close':send(connection,dict(ok=True));break
                     if op=='reset':
                         attachment=None
+                        if unloaded_probe:object_load_probe(False)
                         selected=np.asarray(command['ids'],np.int64)
                         if len(selected)!=len(np.unique(selected)) or (selected<0).any() or (selected>=a.envs).any():raise ValueError('invalid indexed reset')
                         reset_started=time.perf_counter()
@@ -283,6 +310,9 @@ def main():
                         value=np.asarray(command['hand_object'],np.float32)
                         if value.shape!=(7,) or not np.isfinite(value).all() or abs(np.linalg.norm(value[3:])-1)>1e-5:raise ValueError('finite local pose7 required')
                         attachment=(torch.tensor(value[:3][None],device=task.device),torch.tensor(value[3:][None],device=task.device)) if command['enabled'] else None
+                        if command.get('unloaded_probe',False):
+                            if attachment is None:raise ValueError('unloaded probe requires rigid fixture')
+                            object_load_probe(True)
                     elif op=='step':
                         if command['episodes']!=episodes.tolist():
                             audit['episode_action_mismatches']+=1;raise ValueError('cross-episode action')
