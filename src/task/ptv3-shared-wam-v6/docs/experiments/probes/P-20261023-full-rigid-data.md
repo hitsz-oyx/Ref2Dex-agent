@@ -20,6 +20,20 @@ decision_changed_if_negative: report structural zero cells and missing native in
 
 # P-20261023-full-rigid-data
 
+## 2026-10-23 数据八门独立复核（data-gates-r2 / goal-r3）
+
+本轮为大训练前置工程准入检查，不训练、不恢复旧summary、不移除STOP。完整39,527 shard、
+11,197,332 tuple实读与manifest逐行一致；TRAIN9,341,050/DEV1,856,282，无母序列跨split。
+182,331,193,978B磁盘/receipt一致；288窗与811有效帧独立contact复算、12,760文件SHA
+抽查（1.5124%）通过。九源真实PTv3前向/loss有限，0反向/0更新/0checkpoint。新96条26,304
+合法goal复核通过，独立意图事件仍0。另实读全部287 HOT3D远端分段/时间：10条边界不同，
+716,080准入窗跨边界0，不把原pack身份差异误报成已发现监督污染。
+
+结论仍HOLD：生产全量recipe未接入、source8 DEV缺失、NAS冻结数据/recipe未落地；最终去重
+catalog也未完成。审计采样seed20261023仅用于数据抽查，不领取新的训练重复seed；smoke
+沿用170，原surface seed20261019。环境、SHA、失败attempt、逐项证据和修复工时见
+[八门报告](../../audit/full-data-gates-20261023.md)与[机器收据](../../audit/full-data-gates-20261023.json)。
+
 | 观测 | 含义 | 决定 |
 |---|---|---|
 | 全量准入后覆盖缺口显著缩小 | 数据面可为后续训练提供支撑 | 进入全量数据重训/续训排期；本轮不训练 |

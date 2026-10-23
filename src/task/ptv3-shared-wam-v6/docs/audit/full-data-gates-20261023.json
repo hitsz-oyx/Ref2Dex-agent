@@ -1,0 +1,1257 @@
+{
+  "backward_calls": 0,
+  "checkpoints_written": 0,
+  "decision": "HOLD",
+  "evidence": {
+    "outputs/ptv3-shared-wam-v6/data-gates-20261023-r2/all-fixed-file-stats.jsonl": {
+      "bytes": 152349407,
+      "sha256": "e4f14e01ff07acacffee15effcaaa97121468774f4c9ecc30b69d405a0502f7f"
+    },
+    "outputs/ptv3-shared-wam-v6/data-gates-20261023-r2/all-sequence-reconciliation.jsonl": {
+      "bytes": 7527619,
+      "sha256": "fcdc8c6e64111fb79db4c0b45822ee6cd93147d4e3e7e41abd9484acffb9fe2b"
+    },
+    "outputs/ptv3-shared-wam-v6/data-gates-20261023-r2/execution-source-resolution.json": {
+      "bytes": 702,
+      "sha256": "47318095516c2e632051b88357f7ef9e13e2d94d852e6743486eb5330750552c"
+    },
+    "outputs/ptv3-shared-wam-v6/data-gates-20261023-r2/full.json": {
+      "bytes": 8748,
+      "sha256": "21f0233fc97119cf7e550b6b481232407fdf32bfed3307f4ddc5461349a4c8d4"
+    },
+    "outputs/ptv3-shared-wam-v6/data-gates-20261023-r2/geometry.json": {
+      "bytes": 1128,
+      "sha256": "00cd5ddef0bf103804af6b665fa30c92d5922eee725a9457d6f602c2f410df51"
+    },
+    "outputs/ptv3-shared-wam-v6/data-gates-20261023-r2/hashes.json": {
+      "bytes": 1192,
+      "sha256": "ccec20c3a76364dac92c9941497283dca124d0966dd5737612565eb614e07953"
+    },
+    "outputs/ptv3-shared-wam-v6/data-gates-20261023-r2/hot3d-all-native-segment-impact.json": {
+      "bytes": 130461,
+      "sha256": "f5bf333a85f8dc377f64dfc8146a9d15005bbba16c46470d76b6c1fae45bea97"
+    },
+    "outputs/ptv3-shared-wam-v6/data-gates-20261023-r2/hot3d-segment-window-impact.json": {
+      "bytes": 2025,
+      "sha256": "6620aea76f97c2ebaf87f796f8f88b20c196691eacda00f5209d3f17bdc7870d"
+    },
+    "outputs/ptv3-shared-wam-v6/data-gates-20261023-r2/identity-lock.json": {
+      "bytes": 2478,
+      "sha256": "2f3b1c0a4ad32bb473991a4386be33b9e5d148689eadca09d10bd062d764e35d"
+    },
+    "outputs/ptv3-shared-wam-v6/data-gates-20261023-r2/sample-file-sha256.jsonl": {
+      "bytes": 4234328,
+      "sha256": "051f651568798a5b9267a45ac32f2d73b82f3ce258b684d5a8ab92504138288e"
+    },
+    "outputs/ptv3-shared-wam-v6/data-gates-20261023-r2/sample-windows.json": {
+      "bytes": 1786089,
+      "sha256": "d14785fbb5b893958a9907ff6e9f6cc4c2f24902b57d4ffd90fc45e1ae7a28ed"
+    },
+    "outputs/ptv3-shared-wam-v6/data-gates-20261023-r2/sample.json": {
+      "bytes": 5411,
+      "sha256": "9c3df638239ba9fdcf829be343dc6bf3df9b62808cdaf1d2be92e76b27734d5f"
+    },
+    "outputs/ptv3-shared-wam-v6/data-gates-20261023-r2/smoke.json": {
+      "bytes": 8893,
+      "sha256": "798ddf563cd544b7c55422acb20a9e6100823b09c41d9fc7357359d416e806a4"
+    },
+    "outputs/ptv3-shared-wam-v6/data-gates-20261023-r2/source0-native-clock-reread.json": {
+      "bytes": 160619,
+      "sha256": "1308fbe0d4ae80b98d8019c53fabe576a86bf3091f7e590d9b114542edcbbdb6"
+    },
+    "outputs/ptv3-shared-wam-v6/data-gates-20261023-r2/storage-plan.json": {
+      "bytes": 1677,
+      "sha256": "3e37ca577a9429e8e06ab06497ef0e8c8504a4ecdb7a9c305dfe84995367fcb3"
+    },
+    "outputs/ptv3-shared-wam-v6/data-gates-20261023-r3/goal.json": {
+      "bytes": 1500,
+      "sha256": "c11b2f7139e01cb6a4825bef76212ec1d5f67c1dbc06129b5d030544e1a7eab2"
+    }
+  },
+  "experiment_id": "P-20261023-full-rigid-data",
+  "gates": {
+    "1": "full index/shards PASS; production recipe HOLD",
+    "2": "mother isolation/content sample PASS; source8 DEV missing, restricted claim only",
+    "3": "data/smoke identity PASS; production recipe/config absent; r2 source-at-finish caveat disclosed",
+    "4": "local FAIL budget; NAS space PASS, dataset/recipe landing HOLD",
+    "5": "8 cells measured; restricted coverage acceptable, no full-grid claim",
+    "6": "certification census PASS; goal comparison recipe HOLD",
+    "7": "local baseline exact identity PASS; NAS raw pack is a different input version",
+    "8": "real full-reader adapter/PTv3/loss PASS; production-launch entry remains blocked"
+  },
+  "identities": {
+    "files": {
+      "dev-all.npy": {
+        "bytes": 22275512,
+        "sha256": "3e24cbabd8e26d71addf33d3e874af0b85fea09ab4f4f18f2d8f9488a7b9afed"
+      },
+      "dev-clock-valid.npy": {
+        "bytes": 1856410,
+        "sha256": "2c816f6b30b9afc8e652ff6170ed314ce07ea241a8de77e0dad20ab5008517ab"
+      },
+      "phase-geometry-source.csv": {
+        "bytes": 9781,
+        "sha256": "17e8735545012c17f63fe953de0843dc60ca880df32f7e292dc412064152d6d2"
+      },
+      "sequences.jsonl": {
+        "bytes": 104070580,
+        "sha256": "98f800bbcec5cf57f99903cb4597c0c24f207e018f2c26029997ba79201b3f00"
+      },
+      "train-all.npy": {
+        "bytes": 112092728,
+        "sha256": "b8d0314aeada83ad6878d5781d677b28e1a76e279cf4bb6107a7ac2744e1ea99"
+      },
+      "train-clock-valid.npy": {
+        "bytes": 9341178,
+        "sha256": "b89d55692f07b1160e4cd6b099f1b9dfb631cf2f8d58905d6de9bcef8b97b5ee"
+      }
+    },
+    "fixed512_anchor_file_sha256": "440c00c8609a2e9c6276f328f1aa5136a04708294a09b5dab8321044e6caa706",
+    "fresh_candidate_manifest_sha256": "b6aa273be84eeb1eade618965e9f4675d8569d6544b2b13e253dbe67f0f588e4",
+    "global_seed_ledger_sha256": "14b7bfa7b5ca0889a34123e4b239f11864a395d464c38f899bfd8cf06833b11a",
+    "inherited_stats": {
+      "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/ptv3-shared-wam-v6/local-expanded-recipe-20261021-r1/stats.json",
+      "sha256": "2bd4f7e553fc2e3ddffc0856b078790e4177aaae362d7ec6626d6a9ef3485d61"
+    },
+    "manifest": {
+      "path": "outputs/ptv3-shared-wam-v6/full-rigid-20261023-brief47-r1/readiness-manifest-r1/manifest.json",
+      "sha256": "4e40b4ec0bd58d390f8d5cee6047530d1832c3d5acb6080232251236d934c4c3"
+    },
+    "old6000_manifest_sha256": "5bda6a99678b0586b496eff7b4b3ba3afddda996cdc16c43603341ed1264225f",
+    "old6000_ordered_tuple_sha256": "d18ec57ee2de589152131eb2dfab4ac7581ab29275d08756c973dce2c000c3d7",
+    "production_recipe_admitted": false,
+    "production_training_config": null,
+    "seed_serialization": "UTF-8 JSON sorted keys, separators comma/colon, no trailing newline",
+    "seed_sha256": "a63744dbfc8505076b0baf013c68e0b5e569f428d4c25635905314a29edb80a0",
+    "seeds": {
+      "audit_sampling": 20261023,
+      "flow_eval_candidate": 172,
+      "inherited_surface_sampling": 20261019,
+      "torch_smoke": 170,
+      "training_candidate": 170,
+      "validation_candidate": 171
+    },
+    "smoke_config": {
+      "path": "outputs/ptv3-shared-wam-v6/data-gates-20261023-r2/smoke-config.json",
+      "sha256": "127cefbaf49370e18f54524202ef5224d77d2d3866c50778ecfeb0f8a8f45484"
+    }
+  },
+  "limits": [
+    "11,197,332 complete tuples/shards checked, not 11,197,332 materialized point clouds",
+    "288 stratified windows cannot establish zero population content defects",
+    "raw MANO/robot convention not independently reconstructed for every mother",
+    "pre-existing near-content dedup remains interrupted; no completed final catalog is claimed",
+    "source8 DEV0 means no nine-source DEV metric",
+    "fresh96 split unassigned; only official TRAIN assets; no independent event-intent certificates",
+    "remote 32-parent probe is externally produced evidence, not full data conversion or full parity"
+  ],
+  "measured_at": "2026-10-23T06:39:57.337745+00:00",
+  "run_id": "data-gates-20261023-r2 + goal-r3",
+  "run_source_resolution": {
+    "base_loaded_sha256": "1a68a820d3f2ead72fd138ac2928984258946c2f87b0886b5e571fd5f5cd1d54",
+    "base_stages": [
+      "full",
+      "sample",
+      "hashes",
+      "smoke"
+    ],
+    "future_fix": "capture source/commit at process startup for future audit attempts",
+    "geometry_loaded_sha256": "d58eeed2be81032385b747e5b8c16d1b1c3d3ec666010f2e0c4b7f330041e209",
+    "goal_stage_commit": "188bebd2ff0f8fcc6325ead9dcbfb4456bdd7cfa",
+    "limitation": "r2 code_sha256 and git_commit fields were captured at completion, not process start; full receipt observed addition of unused geometry stage. Exact loaded source snapshots reconstructed from immutable git revisions are saved here; input identities did not drift."
+  },
+  "schema": "ref2dex.full-data-gates.v1",
+  "source0_native_clock_summary": {
+    "elapsed_s": 6.757833204232156,
+    "scope": "read-only independent reread of every source0 original clock; confirms prior bad-edge list; no absolute availability certificate",
+    "sequences": 568,
+    "source": "remote original native120Hz frame_ids arrays, stride4",
+    "source_id": 0,
+    "status": "PASS"
+  },
+  "stages": {
+    "full": {
+      "binding_errors": [],
+      "by_source": {
+        "0": {
+          "dev": 971478,
+          "train": 5412663
+        },
+        "1": {
+          "dev": 25479,
+          "train": 287955
+        },
+        "10": {
+          "dev": 118604,
+          "train": 475898
+        },
+        "2": {
+          "dev": 49930,
+          "train": 370362
+        },
+        "4": {
+          "dev": 482384,
+          "train": 1930631
+        },
+        "5": {
+          "dev": 61408,
+          "train": 238297
+        },
+        "6": {
+          "dev": 137899,
+          "train": 578181
+        },
+        "8": {
+          "train": 2953
+        },
+        "9": {
+          "dev": 9100,
+          "train": 44110
+        }
+      },
+      "certified_goal_windows": {
+        "dev": 0,
+        "train": 0
+      },
+      "code_sha256": {
+        "src/task/ptv3-shared-wam-v6/src/ptv3_shared_wam_v6/prepared_reader.py": "a09905d82d512cae0e0baebbb1e64e9223d6d24dd17028dc465068dba68d55c9",
+        "src/task/ptv3-shared-wam-v6/tools/audit/verify_full_data_gates.py": "d58eeed2be81032385b747e5b8c16d1b1c3d3ec666010f2e0c4b7f330041e209"
+      },
+      "coverage": {
+        "dev/0/0/0": 154486,
+        "dev/0/0/1": 235409,
+        "dev/0/0/2": 420294,
+        "dev/0/1/0": 2684,
+        "dev/0/1/1": 2915,
+        "dev/0/1/2": 6567,
+        "dev/0/2/0": 2690,
+        "dev/0/2/1": 2911,
+        "dev/0/2/2": 6680,
+        "dev/0/3/0": 21142,
+        "dev/0/3/1": 55473,
+        "dev/0/3/2": 59483,
+        "dev/0/4/0": 128,
+        "dev/0/4/1": 222,
+        "dev/0/4/2": 394,
+        "dev/1/0/1": 602,
+        "dev/1/0/2": 4935,
+        "dev/1/1/1": 394,
+        "dev/1/1/2": 2944,
+        "dev/1/2/1": 528,
+        "dev/1/2/2": 4146,
+        "dev/1/3/1": 1190,
+        "dev/1/3/2": 10558,
+        "dev/1/4/1": 20,
+        "dev/1/4/2": 162,
+        "dev/10/0/1": 1616,
+        "dev/10/0/2": 6044,
+        "dev/10/1/1": 1406,
+        "dev/10/1/2": 4662,
+        "dev/10/2/1": 1373,
+        "dev/10/2/2": 4544,
+        "dev/10/3/1": 7446,
+        "dev/10/3/2": 28104,
+        "dev/10/4/1": 14173,
+        "dev/10/4/2": 49236,
+        "dev/2/0/0": 2120,
+        "dev/2/0/1": 2091,
+        "dev/2/0/2": 5675,
+        "dev/2/1/0": 1587,
+        "dev/2/1/1": 545,
+        "dev/2/1/2": 3099,
+        "dev/2/2/0": 2112,
+        "dev/2/2/1": 566,
+        "dev/2/2/2": 3968,
+        "dev/2/3/0": 11581,
+        "dev/2/3/1": 3215,
+        "dev/2/3/2": 13235,
+        "dev/2/4/0": 46,
+        "dev/2/4/1": 18,
+        "dev/2/4/2": 72,
+        "dev/4/0/0": 53,
+        "dev/4/0/1": 2500,
+        "dev/4/0/2": 5130,
+        "dev/4/1/0": 1075,
+        "dev/4/1/1": 16426,
+        "dev/4/1/2": 39881,
+        "dev/4/2/0": 354,
+        "dev/4/2/1": 6088,
+        "dev/4/2/2": 20882,
+        "dev/4/3/0": 6495,
+        "dev/4/3/1": 97928,
+        "dev/4/3/2": 273544,
+        "dev/4/4/0": 199,
+        "dev/4/4/1": 3202,
+        "dev/4/4/2": 8627,
+        "dev/5/0/0": 217,
+        "dev/5/0/1": 1255,
+        "dev/5/0/2": 1281,
+        "dev/5/1/0": 926,
+        "dev/5/1/1": 2791,
+        "dev/5/1/2": 4625,
+        "dev/5/2/0": 907,
+        "dev/5/2/1": 2462,
+        "dev/5/2/2": 3565,
+        "dev/5/3/0": 5126,
+        "dev/5/3/1": 16344,
+        "dev/5/3/2": 21231,
+        "dev/5/4/0": 46,
+        "dev/5/4/1": 323,
+        "dev/5/4/2": 309,
+        "dev/6/0/0": 5479,
+        "dev/6/0/1": 19263,
+        "dev/6/0/2": 78929,
+        "dev/6/1/0": 302,
+        "dev/6/1/1": 511,
+        "dev/6/1/2": 3774,
+        "dev/6/2/0": 412,
+        "dev/6/2/1": 391,
+        "dev/6/2/2": 3500,
+        "dev/6/3/0": 2342,
+        "dev/6/3/1": 2669,
+        "dev/6/3/2": 16771,
+        "dev/6/4/0": 346,
+        "dev/6/4/1": 672,
+        "dev/6/4/2": 2538,
+        "dev/9/0/0": 6,
+        "dev/9/0/1": 1846,
+        "dev/9/0/2": 17,
+        "dev/9/1/0": 55,
+        "dev/9/1/1": 393,
+        "dev/9/1/2": 183,
+        "dev/9/2/0": 59,
+        "dev/9/2/1": 319,
+        "dev/9/2/2": 165,
+        "dev/9/3/0": 697,
+        "dev/9/3/1": 3166,
+        "dev/9/3/2": 2056,
+        "dev/9/4/0": 19,
+        "dev/9/4/1": 61,
+        "dev/9/4/2": 58,
+        "train/0/0/0": 887017,
+        "train/0/0/1": 1100703,
+        "train/0/0/2": 2428525,
+        "train/0/1/0": 16359,
+        "train/0/1/1": 18741,
+        "train/0/1/2": 46812,
+        "train/0/2/0": 17042,
+        "train/0/2/1": 18500,
+        "train/0/2/2": 46479,
+        "train/0/3/0": 115015,
+        "train/0/3/1": 341760,
+        "train/0/3/2": 370980,
+        "train/0/4/0": 872,
+        "train/0/4/1": 1272,
+        "train/0/4/2": 2586,
+        "train/1/0/0": 2879,
+        "train/1/0/1": 7156,
+        "train/1/0/2": 52036,
+        "train/1/1/0": 1530,
+        "train/1/1/1": 3817,
+        "train/1/1/2": 31210,
+        "train/1/2/0": 1864,
+        "train/1/2/1": 4928,
+        "train/1/2/2": 46237,
+        "train/1/3/0": 6425,
+        "train/1/3/1": 16852,
+        "train/1/3/2": 110979,
+        "train/1/4/0": 103,
+        "train/1/4/1": 244,
+        "train/1/4/2": 1695,
+        "train/10/0/1": 6753,
+        "train/10/0/2": 23571,
+        "train/10/1/1": 5590,
+        "train/10/1/2": 18441,
+        "train/10/2/1": 5585,
+        "train/10/2/2": 17846,
+        "train/10/3/1": 28425,
+        "train/10/3/2": 115089,
+        "train/10/4/1": 55943,
+        "train/10/4/2": 198655,
+        "train/2/0/0": 13103,
+        "train/2/0/1": 10302,
+        "train/2/0/2": 41975,
+        "train/2/1/0": 9617,
+        "train/2/1/1": 3664,
+        "train/2/1/2": 18647,
+        "train/2/2/0": 13286,
+        "train/2/2/1": 3982,
+        "train/2/2/2": 23326,
+        "train/2/3/0": 83610,
+        "train/2/3/1": 27758,
+        "train/2/3/2": 120026,
+        "train/2/4/0": 338,
+        "train/2/4/1": 134,
+        "train/2/4/2": 594,
+        "train/4/0/0": 245,
+        "train/4/0/1": 5783,
+        "train/4/0/2": 18084,
+        "train/4/1/0": 2900,
+        "train/4/1/1": 63755,
+        "train/4/1/2": 165526,
+        "train/4/2/0": 422,
+        "train/4/2/1": 24574,
+        "train/4/2/2": 85898,
+        "train/4/3/0": 18043,
+        "train/4/3/1": 374996,
+        "train/4/3/2": 1122358,
+        "train/4/4/0": 582,
+        "train/4/4/1": 12035,
+        "train/4/4/2": 35430,
+        "train/5/0/0": 1173,
+        "train/5/0/1": 4260,
+        "train/5/0/2": 5536,
+        "train/5/1/0": 3772,
+        "train/5/1/1": 12204,
+        "train/5/1/2": 14801,
+        "train/5/2/0": 4087,
+        "train/5/2/1": 11524,
+        "train/5/2/2": 11936,
+        "train/5/3/0": 23993,
+        "train/5/3/1": 72424,
+        "train/5/3/2": 70612,
+        "train/5/4/0": 366,
+        "train/5/4/1": 896,
+        "train/5/4/2": 713,
+        "train/6/0/0": 22813,
+        "train/6/0/1": 73737,
+        "train/6/0/2": 368531,
+        "train/6/1/0": 1614,
+        "train/6/1/1": 1718,
+        "train/6/1/2": 9185,
+        "train/6/2/0": 1929,
+        "train/6/2/1": 1477,
+        "train/6/2/2": 8135,
+        "train/6/3/0": 8223,
+        "train/6/3/1": 11605,
+        "train/6/3/2": 54730,
+        "train/6/4/0": 602,
+        "train/6/4/1": 2524,
+        "train/6/4/2": 11358,
+        "train/8/0/0": 2,
+        "train/8/1/0": 76,
+        "train/8/1/1": 214,
+        "train/8/1/2": 1094,
+        "train/8/2/2": 17,
+        "train/8/3/0": 47,
+        "train/8/3/1": 184,
+        "train/8/3/2": 1122,
+        "train/8/4/0": 9,
+        "train/8/4/1": 30,
+        "train/8/4/2": 158,
+        "train/9/0/0": 20,
+        "train/9/0/1": 6047,
+        "train/9/0/2": 89,
+        "train/9/1/0": 180,
+        "train/9/1/1": 1374,
+        "train/9/1/2": 789,
+        "train/9/2/0": 216,
+        "train/9/2/1": 1448,
+        "train/9/2/2": 862,
+        "train/9/3/0": 5047,
+        "train/9/3/1": 14856,
+        "train/9/3/2": 12487,
+        "train/9/4/0": 77,
+        "train/9/4/1": 360,
+        "train/9/4/2": 258
+      },
+      "elapsed_s": 255.83349885884672,
+      "executable": "/home2/wyy/miniconda3/envs/graspenv/bin/python",
+      "files": 843700,
+      "fixed_conversion_expected_bytes": 182331193978,
+      "fixed_conversion_measured_bytes": 182331193978,
+      "fixed_conversion_receipt_bytes": 182331193978,
+      "git_commit": "a846c07014070d612ac5fa415b386fab0645aeae",
+      "host": "server",
+      "manifest_diff_from_brief47": {
+        "added_sequences": 0,
+        "added_windows": 0,
+        "fresh_partition_included": false,
+        "ordered_tuples_compared": "all shard rows versus full reader arrays",
+        "removed_sequences": 0,
+        "removed_windows": 0,
+        "same_manifest_path": true,
+        "same_manifest_sha256": "4e40b4ec0bd58d390f8d5cee6047530d1832c3d5acb6080232251236d934c4c3"
+      },
+      "manifest_sha256": "4e40b4ec0bd58d390f8d5cee6047530d1832c3d5acb6080232251236d934c4c3",
+      "materialized_all_point_clouds": false,
+      "measured_at": "2026-10-23T06:25:52.173440+00:00",
+      "metadata_checked": 118581,
+      "numpy": "1.24.4",
+      "python": "3.8.20 (default, Oct  3 2024, 15:24:27) \n[GCC 11.2.0]",
+      "reader": "PreparedWindows (data-only; production recipe still blocked)",
+      "sequences_read": {
+        "dev": 7694,
+        "train": 31833
+      },
+      "shard_hashes_checked": 39527,
+      "split_leaks": [],
+      "status": "PASS",
+      "training_updates": 0,
+      "tuple_rows_read": {
+        "dev": 1856282,
+        "train": 9341050
+      },
+      "zero_train_cells": [
+        {
+          "geometry": "elongated",
+          "phase": "approach",
+          "source_id": 8
+        },
+        {
+          "geometry": "compact",
+          "phase": "approach",
+          "source_id": 8
+        },
+        {
+          "geometry": "flat",
+          "phase": "contact",
+          "source_id": 8
+        },
+        {
+          "geometry": "elongated",
+          "phase": "contact",
+          "source_id": 8
+        },
+        {
+          "geometry": "flat",
+          "phase": "approach",
+          "source_id": 10
+        },
+        {
+          "geometry": "flat",
+          "phase": "close",
+          "source_id": 10
+        },
+        {
+          "geometry": "flat",
+          "phase": "contact",
+          "source_id": 10
+        },
+        {
+          "geometry": "flat",
+          "phase": "hold",
+          "source_id": 10
+        }
+      ]
+    },
+    "geometry": {
+      "algorithm": "SciPy brute-force cdist; independent of writer surface_contact/cKDTree",
+      "code_sha256": {
+        "src/task/ptv3-shared-wam-v6/src/ptv3_shared_wam_v6/prepared_reader.py": "a09905d82d512cae0e0baebbb1e64e9223d6d24dd17028dc465068dba68d55c9",
+        "src/task/ptv3-shared-wam-v6/tools/audit/verify_full_data_gates.py": "d58eeed2be81032385b747e5b8c16d1b1c3d3ec666010f2e0c4b7f330041e209"
+      },
+      "elapsed_s": 17.754189666360617,
+      "exact_distance_part_ties": 0,
+      "executable": "/home2/wyy/miniconda3/envs/graspenv/bin/python",
+      "frames_checked": 811,
+      "git_commit": "a846c07014070d612ac5fa415b386fab0645aeae",
+      "host": "server",
+      "invalid_frames_mask_checked": 53,
+      "manifest_sha256": "4e40b4ec0bd58d390f8d5cee6047530d1832c3d5acb6080232251236d934c4c3",
+      "maximum_contact_error": 0.0,
+      "measured_at": "2026-10-23T06:25:24.547348+00:00",
+      "numpy": "1.24.4",
+      "python": "3.8.20 (default, Oct  3 2024, 15:24:27) \n[GCC 11.2.0]",
+      "scope": "saved pose + saved surface -> saved contact/part; does not independently establish raw MANO joint convention",
+      "status": "PASS",
+      "training_updates": 0,
+      "windows": 288
+    },
+    "goal": {
+      "by_event_certification": {
+        "UNKNOWN_NO_INDEPENDENT_EVENT_INTENT": 26304
+      },
+      "by_goal_role": {
+        "reset_task_instruction": 26304
+      },
+      "code_sha256": {
+        "src/task/ptv3-shared-wam-v6/src/ptv3_shared_wam_v6/prepared_reader.py": "a09905d82d512cae0e0baebbb1e64e9223d6d24dd17028dc465068dba68d55c9",
+        "src/task/ptv3-shared-wam-v6/tools/audit/verify_full_data_gates.py": "1593f00f57d6e69fbd48f2882489c974bc59f6c922de6cbd813ed3766af70e2e"
+      },
+      "combined_catalog_exists": false,
+      "consumer_windows_checked": 192,
+      "elapsed_s": 6.361129093915224,
+      "executable": "/home2/wyy/miniconda3/envs/graspenv/bin/python",
+      "fresh_candidate_manifest_sha256": "b6aa273be84eeb1eade618965e9f4675d8569d6544b2b13e253dbe67f0f588e4",
+      "fresh_split": "unassigned candidate; official TRAIN assets only",
+      "full_legacy_certified_goal": 0,
+      "full_legacy_windows": 11197332,
+      "git_commit": "188bebd2ff0f8fcc6325ead9dcbfb4456bdd7cfa",
+      "host": "server",
+      "legal_goal_comparison_ready": false,
+      "manifest_sha256": "4e40b4ec0bd58d390f8d5cee6047530d1832c3d5acb6080232251236d934c4c3",
+      "measured_at": "2026-10-23T06:29:59.456314+00:00",
+      "missing": "frozen paired TRAIN/DEV recipe and independent intended-event certificate; legacy cannot be recertified from future poses",
+      "new_certified_goal_windows": 26304,
+      "new_rollouts": 96,
+      "numpy": "1.24.4",
+      "old6000_certified_goal": 0,
+      "python": "3.8.20 (default, Oct  3 2024, 15:24:27) \n[GCC 11.2.0]",
+      "status": "PASS",
+      "training_updates": 0
+    },
+    "hashes": {
+      "bytes_hashed": 2808837740,
+      "code_sha256": {
+        "src/task/ptv3-shared-wam-v6/src/ptv3_shared_wam_v6/prepared_reader.py": "a09905d82d512cae0e0baebbb1e64e9223d6d24dd17028dc465068dba68d55c9",
+        "src/task/ptv3-shared-wam-v6/tools/audit/verify_full_data_gates.py": "1a68a820d3f2ead72fd138ac2928984258946c2f87b0886b5e571fd5f5cd1d54"
+      },
+      "elapsed_s": 53.26041982881725,
+      "events_recomputed": 580,
+      "executable": "/home2/wyy/miniconda3/envs/graspenv/bin/python",
+      "files_hashed": 12760,
+      "fraction_scope": "all 22 fixed files of 1.5% newly converted sequences, stratified by source; excludes read-only reused roots",
+      "git_commit": "a846c07014070d612ac5fa415b386fab0645aeae",
+      "host": "server",
+      "manifest_sha256": "4e40b4ec0bd58d390f8d5cee6047530d1832c3d5acb6080232251236d934c4c3",
+      "measured_at": "2026-10-23T06:22:29.556259+00:00",
+      "missing_prior_payload_identity": [],
+      "numpy": "1.24.4",
+      "payload_bundles_compared": 1160,
+      "python": "3.8.20 (default, Oct  3 2024, 15:24:27) \n[GCC 11.2.0]",
+      "sampled_file_fraction": 0.015123859191655802,
+      "sampled_sequences": 580,
+      "seed": 20261023,
+      "status": "PASS",
+      "total_new_fixed_files": 843700,
+      "training_updates": 0
+    },
+    "hot3d": {
+      "crossing_windows": 0,
+      "differing_segment_boundaries": 10,
+      "native_payload_identity_equal": false,
+      "python": "3.8.20 (default, Oct  3 2024, 15:24:27) \n[GCC 11.2.0]",
+      "scope": "every local admitted HOT3D H4/K24 tested against actual remote native segment/time arrays",
+      "sequences": 287,
+      "status": "PASS",
+      "time_bad_edge_mismatches": 0,
+      "training_allowed": false,
+      "windows": 716080
+    },
+    "sample": {
+      "absolute_timestamp_limitation": "Sources0/1/2 export frame-rate contracts, not absolute timestamp arrays; not fabricated.",
+      "by_source": {
+        "0": 32,
+        "1": 32,
+        "10": 32,
+        "2": 32,
+        "4": 32,
+        "5": 32,
+        "6": 32,
+        "8": 32,
+        "9": 32
+      },
+      "by_split": {
+        "dev": 128,
+        "train": 160
+      },
+      "code_sha256": {
+        "src/task/ptv3-shared-wam-v6/src/ptv3_shared_wam_v6/prepared_reader.py": "a09905d82d512cae0e0baebbb1e64e9223d6d24dd17028dc465068dba68d55c9",
+        "src/task/ptv3-shared-wam-v6/tools/audit/verify_full_data_gates.py": "1a68a820d3f2ead72fd138ac2928984258946c2f87b0886b5e571fd5f5cd1d54"
+      },
+      "elapsed_s": 11.544798709452152,
+      "executable": "/home2/wyy/miniconda3/envs/graspenv/bin/python",
+      "field_nonzero_rates": {
+        "contact_target": {
+          "elements": 14155776,
+          "nonzero": 4914168,
+          "rate": 0.3471493191189236
+        },
+        "dense_hand": {
+          "elements": 1344384,
+          "nonzero": 1124988,
+          "rate": 0.8368055555555556
+        },
+        "dense_hand_part": {
+          "elements": 448128,
+          "nonzero": 313504,
+          "rate": 0.6995858326192517
+        },
+        "dense_hand_valid": {
+          "elements": 448128,
+          "nonzero": 374996,
+          "rate": 0.8368055555555556
+        },
+        "dense_history": {
+          "elements": 4033152,
+          "nonzero": 3373336,
+          "rate": 0.8364019010441461
+        },
+        "event_condition_dropout": {
+          "elements": 288,
+          "nonzero": 0,
+          "rate": 0.0
+        },
+        "event_delta_steps": {
+          "elements": 288,
+          "nonzero": 0,
+          "rate": 0.0
+        },
+        "event_hz": {
+          "elements": 288,
+          "nonzero": 288,
+          "rate": 1.0
+        },
+        "event_raw_invalid": {
+          "elements": 288,
+          "nonzero": 288,
+          "rate": 1.0
+        },
+        "event_type": {
+          "elements": 288,
+          "nonzero": 0,
+          "rate": 0.0
+        },
+        "event_valid": {
+          "elements": 288,
+          "nonzero": 0,
+          "rate": 0.0
+        },
+        "features": {
+          "elements": 10616832,
+          "nonzero": 7849758,
+          "rate": 0.7393691451461227
+        },
+        "geometry_object_future_gt": {
+          "elements": 42467328,
+          "nonzero": 42467328,
+          "rate": 1.0
+        },
+        "goal_object_delta": {
+          "elements": 27648,
+          "nonzero": 0,
+          "rate": 0.0
+        },
+        "goal_object_points": {
+          "elements": 27648,
+          "nonzero": 0,
+          "rate": 0.0
+        },
+        "interaction_normals": {
+          "elements": 1769472,
+          "nonzero": 1701287,
+          "rate": 0.961465906213831
+        },
+        "interaction_points": {
+          "elements": 1769472,
+          "nonzero": 1769363,
+          "rate": 0.9999383997034144
+        },
+        "interaction_query_valid": {
+          "elements": 589824,
+          "nonzero": 589824,
+          "rate": 1.0
+        },
+        "interaction_valid": {
+          "elements": 14155776,
+          "nonzero": 13326336,
+          "rate": 0.94140625
+        },
+        "object_goal_valid": {
+          "elements": 9216,
+          "nonzero": 0,
+          "rate": 0.0
+        },
+        "object_valid": {
+          "elements": 288,
+          "nonzero": 288,
+          "rate": 1.0
+        },
+        "part_target": {
+          "elements": 14155776,
+          "nonzero": 7579140,
+          "rate": 0.5354097154405382
+        },
+        "point_valid": {
+          "elements": 589824,
+          "nonzero": 589824,
+          "rate": 1.0
+        },
+        "sample_id": {
+          "elements": 864,
+          "nonzero": 637,
+          "rate": 0.7372685185185185
+        },
+        "scene_points": {
+          "elements": 27648,
+          "nonzero": 27639,
+          "rate": 0.9996744791666666
+        },
+        "scene_target": {
+          "elements": 663552,
+          "nonzero": 663543,
+          "rate": 0.9999864366319444
+        },
+        "scene_valid": {
+          "elements": 221184,
+          "nonzero": 221184,
+          "rate": 1.0
+        },
+        "source_id": {
+          "elements": 288,
+          "nonzero": 256,
+          "rate": 0.8888888888888888
+        },
+        "start_hand": {
+          "elements": 36288,
+          "nonzero": 30366,
+          "rate": 0.8368055555555556
+        },
+        "start_hand_history": {
+          "elements": 108864,
+          "nonzero": 90765,
+          "rate": 0.8337466931216931
+        },
+        "start_hand_valid": {
+          "elements": 12096,
+          "nonzero": 10122,
+          "rate": 0.8368055555555556
+        },
+        "start_object_points": {
+          "elements": 27648,
+          "nonzero": 27639,
+          "rate": 0.9996744791666666
+        },
+        "trajectory_target": {
+          "elements": 870912,
+          "nonzero": 725948,
+          "rate": 0.8335491990005879
+        },
+        "trajectory_valid": {
+          "elements": 290304,
+          "nonzero": 241983,
+          "rate": 0.8335503472222222
+        },
+        "xyz": {
+          "elements": 1769472,
+          "nonzero": 1769363,
+          "rate": 0.9999383997034144
+        }
+      },
+      "git_commit": "a846c07014070d612ac5fa415b386fab0645aeae",
+      "host": "server",
+      "independent_checks": [
+        "SciPy pose transform vs hand/scene labels",
+        "exact recorded contact/part values",
+        "raw event bounds",
+        "H4/K24 admission and numerical SE3",
+        "native time/segment where exported",
+        "canonical unknown input masks",
+        "dtype/shape/finiteness"
+      ],
+      "manifest_sha256": "4e40b4ec0bd58d390f8d5cee6047530d1832c3d5acb6080232251236d934c4c3",
+      "measured_at": "2026-10-23T06:21:47.840466+00:00",
+      "numpy": "1.24.4",
+      "python": "3.8.20 (default, Oct  3 2024, 15:24:27) \n[GCC 11.2.0]",
+      "raw_event_categories": {
+        "0/False": 9,
+        "0/True": 103,
+        "1/True": 64,
+        "2/True": 112
+      },
+      "sampling": "32/source; 16/split except source8 TRAIN32; uniform mother then admitted row",
+      "seed": 20261023,
+      "status": "PASS",
+      "training_updates": 0,
+      "windows": 288
+    },
+    "smoke": {
+      "backward_calls": 0,
+      "checkpoints_written": 0,
+      "code_sha256": {
+        "src/task/ptv3-shared-wam-v6/src/ptv3_shared_wam_v6/prepared_reader.py": "a09905d82d512cae0e0baebbb1e64e9223d6d24dd17028dc465068dba68d55c9",
+        "src/task/ptv3-shared-wam-v6/tools/audit/verify_full_data_gates.py": "1a68a820d3f2ead72fd138ac2928984258946c2f87b0886b5e571fd5f5cd1d54"
+      },
+      "config_sha256": "127cefbaf49370e18f54524202ef5224d77d2d3866c50778ecfeb0f8a8f45484",
+      "cuda": "12.1",
+      "device": "NVIDIA GeForce RTX 3090",
+      "elapsed_s": 16.479384447447956,
+      "examples": [
+        {
+          "components": {
+            "contact": {
+              "denominator": 49152.0,
+              "numerator": 33507.0625
+            },
+            "geometry_clearance": {
+              "denominator": 14336.0,
+              "numerator": 0.0
+            },
+            "geometry_contact": {
+              "denominator": 14336.0,
+              "numerator": 0.0
+            },
+            "hand": {
+              "denominator": 1008.0,
+              "numerator": 22.808218002319336
+            },
+            "part": {
+              "denominator": 0.0,
+              "numerator": 0.0
+            },
+            "scene": {
+              "denominator": 81.79122924804688,
+              "numerator": 1.204314947128296
+            }
+          },
+          "index": 0,
+          "loss": 0.7190543413162231,
+          "source_id": 0,
+          "tuple": [
+            0,
+            0,
+            3
+          ]
+        },
+        {
+          "components": {
+            "contact": {
+              "denominator": 49152.0,
+              "numerator": 33229.5703125
+            },
+            "geometry_clearance": {
+              "denominator": 14336.0,
+              "numerator": 0.0
+            },
+            "geometry_contact": {
+              "denominator": 14336.0,
+              "numerator": 0.0
+            },
+            "hand": {
+              "denominator": 1008.0,
+              "numerator": 12470.939453125
+            },
+            "part": {
+              "denominator": 0.0,
+              "numerator": 0.0
+            },
+            "scene": {
+              "denominator": 81.98431396484375,
+              "numerator": 1.2133703231811523
+            }
+          },
+          "index": 5412663,
+          "loss": 13.062820434570312,
+          "source_id": 1,
+          "tuple": [
+            498,
+            0,
+            3
+          ]
+        },
+        {
+          "components": {
+            "contact": {
+              "denominator": 49152.0,
+              "numerator": 33993.828125
+            },
+            "geometry_clearance": {
+              "denominator": 14336.0,
+              "numerator": 0.0
+            },
+            "geometry_contact": {
+              "denominator": 14336.0,
+              "numerator": 0.0
+            },
+            "hand": {
+              "denominator": 1008.0,
+              "numerator": 295.9742126464844
+            },
+            "part": {
+              "denominator": 0.0,
+              "numerator": 0.0
+            },
+            "scene": {
+              "denominator": 81.87449645996094,
+              "numerator": 1.1506519317626953
+            }
+          },
+          "index": 5700520,
+          "loss": 0.9992852807044983,
+          "source_id": 2,
+          "tuple": [
+            1538,
+            0,
+            3
+          ]
+        },
+        {
+          "components": {
+            "contact": {
+              "denominator": 49152.0,
+              "numerator": 33862.921875
+            },
+            "geometry_clearance": {
+              "denominator": 7217.0,
+              "numerator": 0.0
+            },
+            "geometry_contact": {
+              "denominator": 14336.0,
+              "numerator": 17912.05859375
+            },
+            "hand": {
+              "denominator": 504.0,
+              "numerator": 244.2201385498047
+            },
+            "part": {
+              "denominator": 12925.0,
+              "numerator": 35811.7421875
+            },
+            "scene": {
+              "denominator": 766.7896728515625,
+              "numerator": 227.61053466796875
+            }
+          },
+          "index": 6070882,
+          "loss": 4.303548812866211,
+          "source_id": 4,
+          "tuple": [
+            1805,
+            0,
+            3
+          ]
+        },
+        {
+          "components": {
+            "contact": {
+              "denominator": 49152.0,
+              "numerator": 33717.9375
+            },
+            "geometry_clearance": {
+              "denominator": 14213.0,
+              "numerator": 0.0
+            },
+            "geometry_contact": {
+              "denominator": 14336.0,
+              "numerator": 78.96920013427734
+            },
+            "hand": {
+              "denominator": 1008.0,
+              "numerator": 69.27066802978516
+            },
+            "part": {
+              "denominator": 0.0,
+              "numerator": 0.0
+            },
+            "scene": {
+              "denominator": 84.31790161132812,
+              "numerator": 1.2214021682739258
+            }
+          },
+          "index": 6667751,
+          "loss": 0.7694752216339111,
+          "source_id": 5,
+          "tuple": [
+            2289,
+            0,
+            3
+          ]
+        },
+        {
+          "components": {
+            "contact": {
+              "denominator": 49152.0,
+              "numerator": 33763.1953125
+            },
+            "geometry_clearance": {
+              "denominator": 14336.0,
+              "numerator": 0.0
+            },
+            "geometry_contact": {
+              "denominator": 14336.0,
+              "numerator": 0.0
+            },
+            "hand": {
+              "denominator": 1008.0,
+              "numerator": 856.952880859375
+            },
+            "part": {
+              "denominator": 0.0,
+              "numerator": 0.0
+            },
+            "scene": {
+              "denominator": 81.75826263427734,
+              "numerator": 1.184330940246582
+            }
+          },
+          "index": 6089570,
+          "loss": 1.551551342010498,
+          "source_id": 6,
+          "tuple": [
+            2061,
+            0,
+            3
+          ]
+        },
+        {
+          "components": {
+            "contact": {
+              "denominator": 49152.0,
+              "numerator": 33697.625
+            },
+            "geometry_clearance": {
+              "denominator": 12060.0,
+              "numerator": 0.0
+            },
+            "geometry_contact": {
+              "denominator": 14336.0,
+              "numerator": 21903.47265625
+            },
+            "hand": {
+              "denominator": 504.0,
+              "numerator": 2941.04248046875
+            },
+            "part": {
+              "denominator": 2879.0,
+              "numerator": 7985.1591796875
+            },
+            "scene": {
+              "denominator": 216.2322998046875,
+              "numerator": 3.187018871307373
+            }
+          },
+          "index": 6906048,
+          "loss": 9.385701179504395,
+          "source_id": 8,
+          "tuple": [
+            4109,
+            0,
+            3
+          ]
+        },
+        {
+          "components": {
+            "contact": {
+              "denominator": 49152.0,
+              "numerator": 33629.53125
+            },
+            "geometry_clearance": {
+              "denominator": 10628.0,
+              "numerator": 0.0
+            },
+            "geometry_contact": {
+              "denominator": 14336.0,
+              "numerator": 4093.6884765625
+            },
+            "hand": {
+              "denominator": 1008.0,
+              "numerator": 106.63008117675781
+            },
+            "part": {
+              "denominator": 5214.0,
+              "numerator": 14376.763671875
+            },
+            "scene": {
+              "denominator": 767.9971313476562,
+              "numerator": 327.1611328125
+            }
+          },
+          "index": 6909001,
+          "loss": 3.9875872135162354,
+          "source_id": 9,
+          "tuple": [
+            4209,
+            0,
+            3
+          ]
+        },
+        {
+          "components": {
+            "contact": {
+              "denominator": 24576.0,
+              "numerator": 16937.919921875
+            },
+            "geometry_clearance": {
+              "denominator": 2048.0,
+              "numerator": 0.0
+            },
+            "geometry_contact": {
+              "denominator": 2048.0,
+              "numerator": 0.0
+            },
+            "hand": {
+              "denominator": 504.0,
+              "numerator": 192.89578247070312
+            },
+            "part": {
+              "denominator": 0.0,
+              "numerator": 0.0
+            },
+            "scene": {
+              "denominator": 635.05859375,
+              "numerator": 15.647045135498047
+            }
+          },
+          "index": 8865054,
+          "loss": 1.0965741872787476,
+          "source_id": 10,
+          "tuple": [
+            30830,
+            0,
+            67
+          ]
+        }
+      ],
+      "executable": "/home2/wyy/miniconda3/envs/graspenv/bin/python",
+      "git_commit": "a846c07014070d612ac5fa415b386fab0645aeae",
+      "host": "server",
+      "manifest_sha256": "4e40b4ec0bd58d390f8d5cee6047530d1832c3d5acb6080232251236d934c4c3",
+      "measured_at": "2026-10-23T06:22:33.265269+00:00",
+      "numpy": "1.24.4",
+      "optimizer_created": false,
+      "parameter_count": 101353749,
+      "peak_cuda_bytes": 460811264,
+      "physical_gpu_env": "CUDA_VISIBLE_DEVICES=4",
+      "production_reader_rejection": "explicit admitted v6 event recipe required",
+      "production_recipe_ready": false,
+      "python": "3.8.20 (default, Oct  3 2024, 15:24:27) \n[GCC 11.2.0]",
+      "seed": 170,
+      "seed_sha256": "1d5174774cfa05ff9d7e16a4af34e4702b89a8c2cde2d49324f53c615dd8d46a",
+      "stats_path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/ptv3-shared-wam-v6/local-expanded-recipe-20261021-r1/stats.json",
+      "stats_sha256": "2bd4f7e553fc2e3ddffc0856b078790e4177aaae362d7ec6626d6a9ef3485d61",
+      "status": "PASS",
+      "torch": "2.4.1+cu121",
+      "training_updates": 0,
+      "weights": "seeded random initialization; contract smoke, not quality evaluation"
+    }
+  },
+  "storage": {
+    "atomic_partial_reserve_bytes": 1610612736,
+    "checkpoint_budget_bytes": 135291469824,
+    "checkpoint_interval": 500,
+    "checkpoint_upper_bound_each_bytes": 1610612736,
+    "configured_hard_cap_bytes": 146028888064,
+    "decision": "HOLD: NAS space/write probe passed, full frozen converted data and production recipe not yet present on NAS; do not use fast reconstruction until complete parity",
+    "extra_best_checkpoints_at_20_128": 2,
+    "fixed_conversion_transfer_days_at_small_probe_rate": 4.825719081235445,
+    "local_available_bytes": 72077053952,
+    "local_floor_bytes": 32212254720,
+    "log_budget_bytes": 2147483648,
+    "max_checkpoints": 84,
+    "metadata_margin_bytes": 2147483648,
+    "nas_free_bytes": 51657744318464,
+    "observed_checkpoint_bytes": 1217116001,
+    "output_plan": "/mnt/ugreen_nas/storage/oyx_storage/wam-nine-source-full-20261023-pending/training (proposed; not created or launched)",
+    "planned_updates": 40000,
+    "preserve_all_checkpoints": true,
+    "regular_checkpoint_count": 81,
+    "reused_dependency_bytes_from_prior_census": 6007523501,
+    "stop_margin_checkpoint_count": 1,
+    "total_peak_budget_bytes": 141197049856,
+    "upload_probe": {
+      "bytes": 4194304,
+      "compression": false,
+      "elapsed_s": 9.591238886117935,
+      "remote": "{\"bytes\": 4194304, \"path\": \"/mnt/ugreen_nas/storage/oyx_storage/ref2dex-data-gates-20261023-r1\", \"free_bytes\": 51657744318464}\n",
+      "returncode": 0,
+      "scope": "4MiB incompressible-under-disabled-SSH-compression transfer plus SSH setup and NAS fsync; single small probe, not sustained 182GB performance",
+      "stderr": "",
+      "training_updates": 0,
+      "upload_effective_MB_s": 0.4373057589119907
+    }
+  },
+  "training_updates": 0,
+  "verification": "17 passed (prepared reader, unknown goal/event, v6 goal contract, GT geometry); one initial invocation referenced nonexistent tests and collected 0, corrected invocation passed17",
+  "verification_global": "python3 tools/verify.py --changed failed on 30 pre-existing missing artifact links in four cm-pointflow-effect-pretrain 20261011 cards; no full repository PASS claimed. Targeted links of all four edited documents passed; directed contract tests17 passed."
+}

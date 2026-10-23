@@ -1,3 +1,13 @@
+## 2026-10-23 全量数据八门复核：读取/内容抽样通过，大训练HOLD
+
+全39,527 shard与11,197,332 ordered tuples逐行一致；TRAIN9,341,050/DEV1,856,282，母序列
+及完整hand payload跨split交集0；固定182,331,193,978B三方一致。288窗、811有效帧独立
+暴力contact/part复算、12,760文件SHA抽查（1.5124%）通过，九源真实PTv3/loss smoke通过。
+新96条26,304合法goal重验通过，独立event意图仍0。HOT3D两地segment有10条差异，但已读
+全部287条远端native segment/time，716,080准入窗跨边界0。全量生产recipe/采样绑定未接入、
+source8 DEV0、远端冻结成品未落地，继续HOLD；旧STOP/未完成去重保持，本轮0更新/0checkpoint。
+[八门报告/精确对账/覆盖8格/空间方案/修复估计](audit/full-data-gates-20261023.md)。
+
 ## 2026-10-23 brief47全量转换完成；brief47b STOP中止去重，未全量验收
 
 39,527条九源母序列全部准入，TRAIN9,341,050/DEV1,856,282窗；新转换38,350、复用1,177，

@@ -36,6 +36,9 @@ REGISTRY = ROOT/'outputs/ptv3-shared-wam-v5/object-surfaces-20261019-r2/manifest
 FRESH = ROOT/'outputs/ptv3-shared-wam-v6/rigid-source-bound-pilot-20261023-r2'
 PINNED = '4e40b4ec0bd58d390f8d5cee6047530d1832c3d5acb6080232251236d934c4c3'
 SEED = 20261023
+START_GIT_COMMIT = subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
+START_CODE_SHA256 = {str(p.relative_to(ROOT)):sha256(p) for p in
+    [Path(__file__).resolve(),TASK/'src/ptv3_shared_wam_v6/prepared_reader.py']}
 
 
 def write(path, value):
@@ -465,8 +468,7 @@ def main():
     started=time.monotonic()
     result=globals()[args.stage](args.output)
     result.update(measured_at=datetime.now(timezone.utc).isoformat(),elapsed_s=time.monotonic()-started,
-        git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
-        code_sha256={str(p.relative_to(ROOT)):sha256(p) for p in [Path(__file__).resolve(),TASK/'src/ptv3_shared_wam_v6/prepared_reader.py']},
+        git_commit=START_GIT_COMMIT,code_sha256=START_CODE_SHA256,
         host=platform.node(),python=sys.version,executable=sys.executable,numpy=np.__version__,
         manifest_sha256=sha256(MANIFEST),training_updates=0)
     write(args.output/(args.stage+'.json'),result)
