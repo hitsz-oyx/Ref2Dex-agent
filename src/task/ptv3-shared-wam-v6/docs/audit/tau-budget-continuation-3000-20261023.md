@@ -161,3 +161,11 @@ start_once的唯一训练入口为：
 补充统计在启动前固定：2500与3000同时对上一个500步点给配对CI（只处理既有NPZ，无新前向）；用于区分“累计仍好”与“最新一段仍有显著收益”。第6条成本估算在3000相对1500累计三项改善CI排除0时提供，同时必须列出3000−2500的显著性，不用累计改善冒充相邻改善，不据估算自行启动长跑。四行判据不变。
 
 启动前pull --rebase被未提交工作树拒绝（exit128）；不stash、不强推，仅显式提交本轮停止路径/入口/测试/预注册报告，随后普通push。
+
+## 真实续跑启动证据
+
+旧r4已正常收尾1768，本轮原生--resume于UTC06:30:37.886053（本地14:30:37）启动，supervisor1038793、torchrun1038828，GPU4/5/6，源码HEAD188bebd2ff0f8fcc6325ead9dcbfb4456bdd7cfa。新hard epoch1792744237.846317（16:30:37），3000或120分钟先到先停。运行config仍8c157ad4…，saved/current严格相等，只有manifest/checkpoint顶层独立effective_stop_budget扩展。
+
+CPU admission记录父step1768、617个optimizer state、3参数组、3 rank RNG；新首个checkpoint step001769.pt已实写，617个AdamW step计数min=max=1769，证明非optimizer清零后重训（后者会为1）。run-manifest.resume_binding确认bound-effective-batch、parent1768，原生Python/NumPy/Torch/CUDA RNG恢复路径不变。optimizer_restore的moved计数0表示该Torch已将scalar step放到正确设备，不是恢复失败；首版离线取证误将它要求>0，纠正为>=0后完成真实计数核对，未重启训练或改优化器。
+
+resume-live-proof.json采样累计1800、此次新增32步；累计source_draws从1769重放至1800逐项完全一致，包含旧采样器另一处1783/source4的容量越界修复，loader失败日志0。早期实际loss/速度在proof与progress原始JSON中，尚不提前宣布预算结论。父checkpoint读取不复制，resume-admission.json保留原parent数据身份3d0cb55b…（parent manifest+stats hash），curated manifest/ordered tuple另列，不能混为一个SHA。
