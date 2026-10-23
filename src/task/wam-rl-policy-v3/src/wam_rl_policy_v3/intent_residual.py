@@ -38,7 +38,7 @@ def apply_intent_residual(intent,latent):
                    preshape_q=intent.preshape_q+correction[6:],closure_q=intent.closure_q+correction[6:],approach_joint_angles=intent.approach_joint_angles if np.all(correction[3:6]==0) else None)
 
 
-def ppo_update(policy,optimizer,observations,latents,old_logp,rewards,values,*,bootstrap=0.,gamma=.96,lam=.95,epochs=2,target_kl=.03):
+def ppo_update(policy,optimizer,observations,latents,old_logp,rewards,values,*,bootstrap=0.,gamma=.96,lam=.95,epochs=2,target_kl=.03,audit=None):
     """Update one fixed-policy rollout with an exact, adaptive KL gate.
 
     ``old_logp`` is the log probability of the sampled action and is useful
@@ -58,6 +58,13 @@ def ppo_update(policy,optimizer,observations,latents,old_logp,rewards,values,*,b
     for t in reversed(range(len(rewards))):
         tail=rewards[t]+gamma*val[t+1]-val[t]+gamma*lam*tail;advantages[t]=tail
     returns=torch.as_tensor(advantages+np.asarray(values,dtype=np.float32),device=device,dtype=torch.float32)
+    # Optional persistence witness, captured before advantage normalization.
+    # These copies never feed back into the optimizer or GAE calculation.
+    if audit is not None:
+        audit.update(advantage_raw=advantages.copy(),target_return=returns.detach().cpu().numpy().copy(),
+                     V_old=np.asarray(values,dtype=np.float32).copy(),reward=np.asarray(rewards).copy(),
+                     next_value=val[1:].copy(),bootstrap_value=np.asarray(bootstrap),
+                     gamma=np.asarray(gamma),gae_lambda=np.asarray(lam))
     adv=torch.as_tensor(advantages,device=device);adv=(adv-adv.mean())/adv.std(unbiased=False).clamp_min(1e-6)
     with torch.no_grad():
         old_dist,_=policy.distribution(obs)

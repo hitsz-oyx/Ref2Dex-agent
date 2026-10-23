@@ -279,7 +279,8 @@ def main():
                             terminal_intent=grasp_intent_from_retargeter(np.asarray(state['q'])[0],palm,pose,target.object_path[-1],np.clip(terminal_adapter[0],-1,1),offset,scale,plan=plan,tau_valid=valid)
                             with torch.no_grad():_,terminal_value=residual(torch.tensor(residual_observation(observation,terminal_intent)[None],device='cuda'))
                             bootstrap=float(terminal_value[0])
-                        attempts[0]=0;update_started=time.monotonic();update=ppo_update(residual,optimizer,bootstrap=bootstrap,target_kl=.03,epochs=2,**rollout);update['wall_s']=time.monotonic()-update_started;update['cuda_peak_bytes']=torch.cuda.max_memory_allocated();update['optimizer_attempts']=attempts[0];update['rollback_retries']=attempts[0]-update['optimizer_updates'];row['ppo_update']=update;report['learning_updates']+=update['optimizer_updates']
+                        rollout_audit={}
+                        attempts[0]=0;update_started=time.monotonic();update=ppo_update(residual,optimizer,bootstrap=bootstrap,target_kl=.03,epochs=2,audit=rollout_audit,**rollout);update['wall_s']=time.monotonic()-update_started;update['cuda_peak_bytes']=torch.cuda.max_memory_allocated();update['optimizer_attempts']=attempts[0];update['rollback_retries']=attempts[0]-update['optimizer_updates'];row['ppo_update']=update;report['learning_updates']+=update['optimizer_updates']
                         for key in ('final_exact_kl','behavior_logprob_error','return_sum','return_mean'):
                             if not np.isfinite(update[key]):raise ValueError('nonfinite PPO '+key)
                         if not all(e['accepted'] and np.isfinite(list(v for v in e.values() if isinstance(v,float))).all() for e in update['epochs']):raise ValueError('PPO rejected/nonfinite update')
@@ -287,7 +288,18 @@ def main():
                         if not all(torch.isfinite(v).all() for v in residual.state_dict().values()):raise ValueError('nonfinite policy')
                         if (len(report['runs'])+1)%40==0:
                             torch.save(dict(model=residual.state_dict(),optimizer=optimizer.state_dict(),contract=RESIDUAL_CONTRACT),out/('residual-'+label+'.pt'))
-                        np.savez_compressed(folder/'ppo-rollout.npz',**{k:np.asarray(v) for k,v in rollout.items()});write(folder/'reward-parts.json',reward_parts)
+                        # One rollout is one episode (possibly time/budget truncated).
+                        # `done` marks every episode boundary; bootstrap is zero only
+                        # for actual task/physical terminals, not time limits.
+                        n=len(rollout['rewards']);done=np.zeros(n,dtype=bool);done[-1]=True
+                        endpoint='joint_safety_termination' if physical_abort=='physical_joint_limit' else 'real_termination' if safe['abort'] or row['final_success'] else 'truncation'
+                        bootstrap_mask=np.ones(n,dtype=bool);bootstrap_mask[-1]=endpoint=='truncation'
+                        termination_type=np.full(n,'continuing',dtype='<U32');termination_type[-1]=endpoint
+                        rollout_audit.update(done=done,bootstrap=bootstrap_mask,termination_type=termination_type,
+                                             budget_truncated=np.asarray(row['partial_budget_episode'] and endpoint=='truncation'))
+                        for phase in ('approach','contact','lift','hold'):
+                            rollout_audit['stage_'+phase]=np.asarray([s['current'][phase] for s in stage_info[1:]],dtype=bool)
+                        np.savez_compressed(folder/'ppo-rollout.npz',**{k:np.asarray(v) for k,v in rollout.items()},**rollout_audit);write(folder/'reward-parts.json',reward_parts)
                     write(folder/'reward-parts.json',reward_parts)
                     native.finish(send,receive);write(folder/'result.json',row);report['runs'].append(row);report.update(status='RUNNING',elapsed_s=time.monotonic()-started+report['carried_elapsed_s']);write(out/'manifest.json',report);print(json.dumps(row),flush=True)
                 except BaseException:
