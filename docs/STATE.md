@@ -1,3 +1,12 @@
+## 2026-10-23 brief45：任务级目标与局部waypoint分离，覆盖仍0/6,000
+
+τ要接回的是reset时可得的最终任务pose + task_completion阶段语义。ResetWaypointChannel
+保留来源/时间/落盘，主条件返回任务级目标，局部planner waypoint只作独立诊断；旧反例不变，
+没有机制理由不补测。幂等防重复与未来pose拒绝通过；6,000行来源join仍0认证/6,000缺证。
+合法任务级目标vs unknown对照未运行，成功差异null，无本轮训练/物理/模型推理。
+执行无收益只能说“该通道未通过执行落点”，不能推出任务信息无用。合同/缺口/预算见
+[修正实验卡](../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261023-reset-bound-goal-channel.md)。
+
 ## 2026-10-23 新τ已接入真实执行：成功持平，安全中止减少，暂不升主线
 
 | 20个既有reset配对（旧11000→新1223） | 解释 | 决定 |

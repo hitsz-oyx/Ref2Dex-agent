@@ -1,0 +1,83 @@
+{
+  "comparison_executed": false,
+  "cost_envelope": {
+    "aggregate_mother_stream_hours_at30": 2.412277777777778,
+    "aggregate_object_stream_hours_at30": 2.4233333333333333,
+    "event_only_bytes_16_aligned_per_object_tick": 4187520,
+    "event_only_bytes_7_per_object_tick": 1832040,
+    "expanded_raw_payload_bytes_2048_per_object_tick": 536002560,
+    "instruction_snapshots_geometry_overhead": "additional; raw payload only, not a total storage guarantee",
+    "minimal_raw_payload_bytes_512_per_object_tick": 134000640,
+    "mother_rollouts": 1064,
+    "mother_ticks": 260526,
+    "object_streams": 1067,
+    "object_ticks": 261720
+  },
+  "counts": {
+    "available_before_reset_proven_hits": 0,
+    "by_source": {
+      "0": 96,
+      "1": 5632,
+      "10": 46,
+      "2": 96,
+      "4": 30,
+      "5": 18,
+      "6": 66,
+      "8": 12,
+      "9": 4
+    },
+    "certified_legal": 0,
+    "missing_window_counts": {
+      "content_frozen_before_target_reset": 6000,
+      "explicit_instruction_source_role": 6000,
+      "independence_from_target_rollout": 6000,
+      "target_execution_and_reset_binding": 6000,
+      "waypoint_derivation_source_binding": 6000
+    },
+    "ordered_join": "PASS",
+    "proven_self_future": 0,
+    "source_role_explicit_hits": 0,
+    "uncertain": 6000,
+    "windows": 6000
+  },
+  "curated_manifest": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/ptv3-shared-wam-v6/tau-curated-20261023-r7/curated-manifest.json",
+  "disk_free_before_bytes": 132904448000,
+  "elapsed_s": 0.5749525493010879,
+  "environment": {
+    "device": "CPU provenance/state-machine only",
+    "executable": "/home2/wyy/miniconda3/envs/graspenv/bin/python",
+    "numpy": "1.24.4",
+    "platform": "Linux-5.15.0-139-generic-x86_64-with-glibc2.17",
+    "python": "3.8.20 (default, Oct  3 2024, 15:24:27) \n[GCC 11.2.0]"
+  },
+  "experiment_id": "P-20261023-reset-bound-goal-channel",
+  "git_commit": "23a11ca629156c71d663a7c1d8f1c7cad93cebc0",
+  "native_shadow_candidates": {
+    "certified_waypoints": 0,
+    "missing": "original execution/reset and scheduler binding",
+    "mothers": 3,
+    "windows": 30
+  },
+  "new_physical_rollouts": 0,
+  "new_raw_provenance_investigation": false,
+  "prior_certification": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/ptv3-shared-wam-v6/docs/audit/brief35-source-role-20261023-r1",
+  "run_id": "reset-goal-channel-20261023-brief45-r3",
+  "schema": "ref2dex.reset-goal-channel.audit.v2",
+  "status": "BLOCKED_ZERO_CERTIFIED_HISTORICAL_COVERAGE",
+  "synthetic_generation_chain": {
+    "artifact_bytes": 17733,
+    "condition_quantity": "task_level_goal",
+    "decisions": 4,
+    "exact_retries_no_duplicate_writes": true,
+    "historical_windows_certified": 0,
+    "new_physical_execution": false,
+    "nominal_anchor_preserved": true,
+    "persisted_instruction_and_receipts_replayed_bit_exact": true,
+    "status": "PASS",
+    "synthetic": true,
+    "target_stage": "task_completion",
+    "task_goal_distinct_from_planner_waypoint": true
+  },
+  "task_goal_minus_unknown_mm": null,
+  "training_updates": 0
+}

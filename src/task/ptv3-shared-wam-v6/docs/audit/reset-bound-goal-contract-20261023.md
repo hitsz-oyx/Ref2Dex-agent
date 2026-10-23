@@ -1,62 +1,69 @@
-# τ goal 契约第二期：reset-bound waypoint
+# τ goal 契约：reset 时已知的任务级目标（brief45 修正）
 
-本合同将 goal 定义为 **空间 waypoint + 有序几何阶段语义**：
-`spatial_path_waypoint / ordered_geometric_stage_no_arrival_deadline`。
-它是当前阶段希望到达的位姿，不是实测 t+24，也不保证在 t+24 到达。
-`reference_endpoint_time_s=null`；24 步 @30Hz 是 WAM 预测时域，scheduler 的
-`horizon_s=.8` 是 lookahead 尺度参数；reference_times 是计划参数化时钟，均不是到达承诺。
+撤回“把调度器 waypoint 变成 goal 通道”的方向。`ResetWaypointChannel` 的来源校验、
+落盘与训练/部署共享实现继续保留，但主条件改为**任务级目标**；局部 waypoint 单列诊断。
+此前 v1 的几何阶段合同只认证局部调度机制，不认证“物体最终该去哪”。
 
-## 第一步：可执行判据
+## 两个量
+
+| 名称 | 来源与语义 | 用途 |
+|---|---|---|
+| task-level goal / 任务级目标 | 场景/任务在 reset 前声明的最终物体位姿 + `task_completion` 阶段语义 | 要接回 τ 的任务信息 |
+| planner waypoint / 相位机局部 waypoint | `task_scheduler.SchedulerDecision.local_goal_pose`，执行器已有的当前阶段局部目标 | 可选诊断，不能代替任务级目标 |
+
+本 wrapper 的诊断值来自 `OrderedGoalScheduler` 路径子模块；缺完整任务阶段反馈，不能
+将其冒充完整 `TaskScheduler.local_goal_pose`。两者都属于局部规划目标，不是最终任务目标。
+旧 goal-chain 审计还给路径子模块提供了完整录制路径作为 oracle reference，不能认证成
+真实 reset 时已知的任务指令。历史反例与补测门槛见[实验卡](../experiments/probes/P-20261023-reset-bound-goal-channel.md)。
+
+## 可执行合同
 
 实现：[goal_channel.py](../../../wam-rl-policy-v3/src/wam_rl_policy_v3/goal_channel.py)。
-两端都用 `ResetWaypointChannel` → **同一个** `OrderedGoalScheduler / update_schedulers`。
-本版本支持事前声明的 fixed_world_translation，不按物体名称、身份或结果选规则。
-未声明的任务、一般路径以及 TaskScheduler 完整阶段反馈不在此生产器的认证范围内；
-未来若使用 `SchedulerDecision.local_goal_pose`，必须连同 TaskSpec、反馈来源和同一
-TaskScheduler 状态绑定，不能拿 terminal_goal_pose 或未来实测状态替代。
+v2 明确 `goal_semantics=task_level_terminal_waypoint`，
+`time_semantics=task_completion_stage_no_arrival_deadline`，`target_stage=task_completion`。
+这是完成任务时应到达的空间 waypoint，不是 t+24 实测终点；没有额外到达 deadline。
+24步/30Hz只表示预测时域，局部 scheduler 的 .8s 只是 lookahead 参数。
+
+当前支持场景事前声明的 `fixed_world_translation` 最终目标：绑定 anchor + 明示世界位移，
+规则必须显式声明 `target_stage=task_completion`。不按物体名称、身份或执行结果选规则。
+一般任务/完整路径/释放时刻不在这个生产器的认证范围，不凭局部 waypoint 补造最终意图。
 
 | 判据 | 执行方式 |
 |---|---|
-| reset 时可得的任务规则、anchor、query 和 interaction surface | 每项显式 source_role/source_kind/source_id、内容 hash、observed/available 时间、execution/reset/clock 身份；时间均 ≤ reset |
-| 任务指令与观测分开 | task_instruction 不能是 reset_measurement；当前 object pose 可作 reset_observation，不能独自变成任务意图 |
-| 禁止本次执行的未来真值 | future_realized_pose 角色拒绝；时间晚于 reset 拒绝；独立录制引用的 source_execution_id 必须不同于目标执行 |
-| 禁止改名后塞未来路径 | 消费时从绑定的 anchor + 明示世界位移重建路径并核对，不能只检查字段名或 hash |
-| 同一 scheduler 状态 | 从该 reset 连续逐 tick 重放；不在每个窗口重置 pointer/history；手 slot、物 slot、goal_type、SchedulerConfig 明示绑定 |
-| 在线因果性 | update 只收一帧 pose/hand11；observed ≤ available ≤ decision，且匹配 reset 的30Hz tick；不接受未来数组 |
-| 统一模型输入 | 两端都把 scheduler 位姿变成当前物体坐标系的32个同ID query delta；float32 delta/points + bool valid；与 v6 online/collate 比较 |
+| 任务级最终位姿完全由 reset 来源生成 | `task_goal_pose` 从绑定 anchor/rule 重建并核对；后续观测不改变最终目标 |
+| 指令与观测分开 | `task_instruction` 不能是 `reset_measurement`；当前物体 pose 合法作 anchor，但不能独自声明任务 |
+| reset 时可得 | 来源记录 role/kind/id、observed/available 时间和 execution/reset/clock；时间均 ≤ reset |
+| 未来真实 pose 是违规标签 | 拒绝 future role、晚于 reset 的时间、本执行冒充独立录制、重算 hash 后替换最终 pose/路径 |
+| 每 tick 因果消费 | observed ≤ available ≤ decision；当前 pose 只用于坐标编码，当前手/物观测推进单列诊断 scheduler |
+| 训推同实现 | 都调用 `ResetWaypointChannel.update`，返回任务级目标的32个同ID query delta、points、bool valid |
+| 局部 waypoint 隔离 | 仅写 `planner_waypoint_diagnostic`，不进入主条件；mode/index 是局部规划诊断 |
 
-“只用 reset 时可得信息”限定**任务规则、参考及其初始化**；之后 scheduler 允许消费
-截至当前 tick 的真实观测推进阶段，不能消费观测未来。如果要求之后连当前观测都不可
-使用，则不是现有闭环 scheduler 的定义，本合同不做这种隐藏改变。
+v6 `online()` / `predict()` 可显式指定任务级语义编码；默认 legacy planner 语义保留，
+禁止静默把旧语义或旧 checkpoint policy 当成已接通任务级条件。合同测试在非零平移/旋转下
+验证共享 producer 与真实 online/collate 三字段逐位相同；这不认证模型实际利用了该信息。
+生产训练 reader、缓存身份和真实 collector 接入仍须通过独立准入门，当前保持 HOLD。
 
-负控制与正控制见
-[test_reset_goal_channel.py](../../../wam-rl-policy-v3/tests/test_reset_goal_channel.py)：
-未来真实 pose 必须拒绝，当前物体 pose 必须合法；另测伪造合法 role 但未来 timestamp、
-自身执行冒充独立录制、重算 hash 后替换路径、跨 reset、跳历史与未来 live 观测。
-这些是通用来源判据，不依赖物体种类或指标。
+## 可认证落盘
 
-来源记录必须由可信 collector 在真实边界写出。时间戳和 hash 不能证明伪造 metadata
-真实，也不能替旧数据补造原 reset 历史。合成正控制只证明机制可执行，不计入6,000覆盖。
+每个新执行目录保存 `instruction.json` 和 `waypoints.jsonl`。前者保存 reset 规则、最终
+目标、阶段语义和来源；后者保存 observed_at_ns / available_at_ns / decision_at_ns、tick、
+instruction/reset 绑定、任务级 goal pose/delta，局部 waypoint 放在独立命名字段。
+`available_before_reset` 只证明指令/reset 来源；当前观测与局部诊断的可用时刻单独记录。
+同 tick 完全相同重试返回相同结果且不追加，冲突重试报错；已有目录拒绝覆盖，重启需内存
+重放或新目录，不自动续写。写入预算拒绝不推进 scheduler/tick。每执行指令≤1MiB、
+总记录≤16MiB，可用磁盘低于20GiB停止。
 
-## 第二步：来源与绑定
+来源必须在可信 collector 边界真实记录；hash/自报 metadata 不能证明伪造来源真实。
+合成写盘/重放只认证工程机制，不追认历史 reset，也不计入旧6,000窗口合法覆盖。
+覆盖审计复用 brief35 与冻结 r7 的逐窗口有序 join：当前0合法、6,000缺证、0确证未来违规。
+Shadow3母序列/30窗口仅有原生任务参数候选，缺完整原执行/reset/来源绑定，不升级为合法。
 
-新生成链在 reset 处保存完整 instruction（四项来源及内容）、每个 update 保存
-waypoint receipt（instruction hash、reset、tick、观测 hash/时间、mode、confirmed_index、
-target_reference_index、goal_type、goal pose/delta）。语义是几何阶段，不认证抓取/释放。
-instruction 的 available_before_reset=True 只指事前规则与 reset 来源；动态 waypoint
-receipt 显式保留 live_observation_available_before_reset 和 availability_scope，
-绝不声称 t>0 的测量在 reset 前已知。
+## 对照与结论
 
-Shadow 先例可以用 nominal_constructor anchor + 原声明 displacement + position_only
-生成；不拿 post-reset 观测替换 nominal anchor，不发明其余5,970窗口的任务规则。
-新生成链绑定新执行，不能倒贴给旧轨迹。既有 collector 尚未接入此 wrapper，必须在真实
-collector 的 reset/观测边界调用后，才有真实新执行证据。
+主比较固定为 **B合法任务级目标 vs A unknown goal**；同数据/预算/模型/面板，event均unknown。
+C局部 waypoint 为诊断格，沿用历史反例；补测前必须写出机制理由及旧反例不适用的依据，
+当前无该理由，不分配新预算。不得把 oracle 未来端点变成 B，亦不得把旧 C 算作干净 A/B。
 
-覆盖率审计直接复用 brief35 逐窗口证据与 r7 有序元组 join；不重新调查已核实事实。
-本轮结果及成本见同目录实验卡，缺绑定仍须判 unproven，不能填 True 或当作确证非法。
-
-## 第三步：干净对照边界
-
-当前不重训 v6、不换模型、不以历史 oracle/planner 替换作对照。合法-only 覆盖为零时
-不启动比较；先冻结 paired preregistration，待同一批训练和评价行都具备来源绑定才可运行。
-接回 goal 的任何后续训练须服从“不重训 v6”的本轮限制，不能以预注册自动获得授权。
+来源覆盖为零时不运行科学比较，不启动 v6 重训。即便未来合法任务级目标接回后成功率
+不升，也只能写“该通道未通过执行落点”；拇指限位、approach 未完成、约82mm残差等执行
+瓶颈，与 τ 是否知道目标独立。离线改善不等于执行成功；负结果不能推出“任务信息无用”。

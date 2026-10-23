@@ -1,5 +1,5 @@
 {
-  "schema": "ref2dex.reset-goal-vs-unknown.prereg.v1",
+  "schema": "ref2dex.reset-goal-vs-unknown.prereg.v2",
   "experiment_id": "P-20261023-reset-bound-goal-channel",
   "status": "BLOCKED_ZERO_CERTIFIED_HISTORICAL_COVERAGE",
   "execution_authorized_by_this_file": false,
@@ -14,10 +14,10 @@
   "required_dev_windows": 3356,
   "condition_arms": {
     "A": "canonical unknown: zero float32 delta/points and false bool validity",
-    "B": "certified ResetWaypointChannel spatial waypoint with ordered stage semantics"
+    "B": "certified reset-declared TASK terminal pose plus task_completion stage semantics; never SchedulerDecision.local_goal_pose",
+    "C_diagnostic": "planner local waypoint; historical counterexample only, no new compute allocated"
   },
   "controls": {
-    "event_policy_both_arms": "v6.event-free.unknown-invalid.frame30.v1",
     "same_weights": true,
     "same_rows_order_masks_and_targets": true,
     "same_train_only_normalizer": true,
@@ -37,20 +37,22 @@
     "physical_gpu_pool": [
       4,
       5,
-      6,
-      7
+      6
     ],
     "max_seconds_per_arm": 3600,
     "max_artifacts_bytes_total": 2147483648,
-    "stop_if_disk_free_below_bytes": 21474836480
+    "stop_if_disk_free_below_bytes": 21474836480,
+    "event_policy_all_arms": "v6.event-free.unknown-invalid.frame30.v1",
+    "gpu_authorization": "proposal only; fresh campaign/resource authorization required; no GPU7 allocation"
   },
   "gates": [
     "100 percent of frozen TRAIN6000 and both evaluation panels have collector-owned source/reset bindings",
-    "continuous reset-to-window causal replay; no target future pose dependencies",
+    "task terminal pose derived solely from reset-bound task/scene sources; continuous current-frame encoding; no realized future pose dependencies",
     "train and online post-collate three goal tensors agree bitwise",
     "B model-consumed goal tokens are valid and not erased by inherited UNKNOWN_GOAL_POLICY",
     "A actual model-consumed goal is canonical unknown; supervision and denominators unchanged",
-    "recipe, condition identity and checkpoint policy explicitly bind each arm; no silent overrides"
+    "recipe, condition identity and checkpoint policy explicitly bind each arm; no silent overrides",
+    "B quantity is task-level terminal goal with explicit completion-stage semantics, not planner local_goal_pose; preserve distinct condition/cache identities"
   ],
   "primary": {
     "panel": "full fixed DEV",
@@ -66,14 +68,15 @@
     "DEV nonoverlap core847, same membership across arms",
     "first8 object EPE and fixed contact-window hand EPE",
     "overall24 EPE and approach/close/contact/hold/unknown strata",
-    "per-window predictions, valid counts, scheduler mode and instruction/reset identity"
+    "per-window predictions, valid counts, scheduler mode and instruction/reset identity",
+    "physical task success separately from forecast metrics; success contrast remains null until same-executor matched execution is actually run"
   ],
   "decision": {
-    "positive": "B first8 hand improvement at least 5 percent and paired CI entirely below zero; contact hand improves at least 5 percent; object first8 worsens no more than 5 percent",
-    "positive_action": "reconnect only the certified goal channel; propose matched continuation under this contract; this delivery still forbids v6 retraining",
+    "positive": "offline screening only: B first8 hand improvement at least 5 percent and paired CI entirely below zero; contact hand improves at least 5 percent; object first8 worsens no more than 5 percent; physical success requires a separate execution result",
+    "positive_action": "advance the certified task-level goal channel to matched learning/execution qualification; offline EPE alone does not certify physical task success",
     "inconclusive": "CI crosses zero or endpoint/guard results disagree; report limited resolution or local effect, never equivalence or task-information uselessness",
-    "negative": "B is worse or fails the fixed improvement criterion; current checkpoint/architecture/consumption does not exploit this condition under this protocol",
-    "negative_action": "report injection, timing and scale diagnostics without changing acceptance; leave untested mechanisms unresolved"
+    "negative": "if task success does not improve: 该通道未通过执行落点; task information uselessness is not an admissible inference",
+    "negative_action": "separate goal knowledge from thumb joint limit, unfinished approach and about82mm residual execution bottlenecks; diagnose injection, timing and scale without claiming a root cause"
   },
   "matched_learning_followup_not_authorized": {
     "reason": "user forbids v6 retraining this round; frozen-checkpoint inference cannot test learnability",
@@ -94,6 +97,37 @@
     "certified_train_windows": 0,
     "certified_dev_windows": null,
     "comparison_run": false,
-    "B_minus_A_mm": null
+    "B_minus_A_mm": null,
+    "task_success_B_minus_A": null
+  },
+  "protocol_revision": "brief45-task-level-goal-correction",
+  "condition_contract": {
+    "goal_semantics": "task_level_terminal_waypoint",
+    "time_semantics": "task_completion_stage_no_arrival_deadline",
+    "target_stage": "task_completion",
+    "intent_available_at": "reset",
+    "prediction_horizon_is_not_arrival_deadline": true
+  },
+  "planner_diagnostic": {
+    "status": "HISTORICAL_COUNTEREXAMPLE_ONLY",
+    "new_budget_seconds": 0,
+    "new_run_allowed": false,
+    "mechanism_reason": null,
+    "prior_counterexample_not_applicable_reason": null,
+    "retest_gate": "before allocating compute, write why the local waypoint should help now and why the previous counterexample does not apply",
+    "historical_experiment": "P-20261022-wam-v6-goal-chain-audit",
+    "model": "healthy4371",
+    "panel": "DEV prefix8",
+    "original_metric": "GT/own-object contact distance mm (GT confidence > .25); not hand EPE or execution success",
+    "oracle_mm": [
+      14.709,
+      10.537
+    ],
+    "planner_mm": [
+      22.98,
+      11.287
+    ],
+    "gt_anchor_worsening_mm": 8.271,
+    "comparability": "legacy checkpoint, oracle recorded reference and recorded event label; do not count as clean A/B/C under corrected task-goal contract"
   }
 }

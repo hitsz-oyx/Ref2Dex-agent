@@ -1,12 +1,14 @@
-## 2026-10-23 τ goal契约第二期：可执行，历史覆盖仍0
+## 2026-10-23 brief45修正：任务级最终目标与局部waypoint分离
 
-reset-bound waypoint合同已明确空间目标与有序几何阶段，无t+24到达承诺。
-新producer复用OrderedGoalScheduler，写出source_role、事前可用性、来源hash/时间与reset绑定；
-未来真实pose负控制、当前pose正控制及真实online/collate逐位比较通过。
-合成写盘重放通过，但旧6,000窗口严格join仍0合法/6,000缺证，Shadow30条仅有原生参数候选。
-干净waypoint vs A unknown同数据/同预算/K8面板对照已预注册，因零覆盖未运行；不重训v6。
-92563d9a版本31项相关回归通过；无新物理rollout、训练或checkpoint。成本与缺项见
-[实验卡](experiments/probes/P-20261023-reset-bound-goal-channel.md)，运行代码92563d9a。
+撤回“把调度器waypoint变成goal通道”的方向。ResetWaypointChannel保留可认证落盘，
+主条件改为reset声明的最终pose + task_completion阶段；局部waypoint仅单列诊断。
+未来真实pose负控制、训推online/collate等价、幂等防重复及写入拒绝不推进通过。
+旧6,000窗口严格join仍0可认证/6,000缺证，不能把缺证算非法；Shadow30条仍只是候选。
+主对照改为合法任务级目标vs unknown；局部诊断沿用旧反例，无新机制理由则预算0。
+新语义/落盘工程通过不放行旧reader、来源缓存或训练；本轮无训练/物理/推理，成功差异null。
+任务级目标接回后若无执行提升只能说“该通道未通过执行落点”，不能说“任务信息无用”。
+代码23a11ca6；定向23通过，全套249通过/1个未改动fixture缺字段失败。
+[实验卡与复现](experiments/probes/P-20261023-reset-bound-goal-channel.md)。
 
 ## 2026-10-23 τ event contract also ununified; cluster CI primary; no training
 
