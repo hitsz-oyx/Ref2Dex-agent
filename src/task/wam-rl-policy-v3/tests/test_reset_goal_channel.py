@@ -31,6 +31,23 @@ def test_current_object_pose_is_legal_reset_input():
     validate_instruction(artifact)
 
 
+def test_explicit_current_pose_goal_is_valid_and_not_unknown():
+    from ptv3_shared_wam_v6.goal_policy import UNKNOWN_GOAL_POLICY, apply_goal_input_policy
+    artifact, reset, pose = inputs()
+    sources = artifact['sources']
+    rule = sources['rule'].copy()
+    rule['payload'] = dict(rule='fixed_world_translation', translation_m=[0., 0., 0.])
+    rule['source_sha256'] = digest(rule['payload'])
+    hold = instruction_from_displacement(sources['anchor'], rule, sources['query'], sources['surface'],
+        reset=reset, object_slot=0, hand_slot=0, goal_type='position_only')
+    channel = ResetWaypointChannel(hold, expected_reset=reset)
+    tensors, _ = channel.update(pose, np.zeros((11, 3)), tick=0,
+        observed_at_ns=reset['at_ns'], available_at_ns=reset['at_ns'], decision_at_ns=reset['at_ns'])
+    assert not tensors['goal_object_delta'].any() and tensors['object_goal_valid'].all()
+    assert tensors['goal_object_points'].any()
+    assert not apply_goal_input_policy(tensors, UNKNOWN_GOAL_POLICY)['object_goal_valid'].any()
+
+
 @pytest.mark.parametrize('attack', ['future_role', 'future_time', 'self_recording', 'observation_as_intent'])
 def test_future_realized_pose_and_observation_as_intent_are_rejected(attack):
     artifact, reset, _ = inputs()

@@ -181,6 +181,7 @@ class ResetWaypointChannel:
         self.instruction = json.loads(json.dumps(instruction))
         self.reset = dict(expected_reset)
         self.last_tick = -1
+        self.last_observed_at_ns = None
         self.scheduler = OrderedGoalScheduler(
             instruction['reference_poses'], instruction['reference_times_s'],
             instruction['sources']['query']['payload'],
@@ -209,13 +210,14 @@ class ResetWaypointChannel:
         if any(type(x) is not int for x in times) or not (
                 self.reset['at_ns'] <= observed_at_ns <= available_at_ns <= decision_at_ns):
             raise ValueError('future/unavailable live observation')
-        # tick is the WAM 30Hz clock, never native simulation control frequency.
-        expected = self.reset['at_ns'] + round(tick * 1e9 / 30)
-        if abs(observed_at_ns - expected) > 1:
-            raise ValueError('live observation does not match 30Hz tick/reset binding')
+        if self.last_observed_at_ns is not None and observed_at_ns <= self.last_observed_at_ns:
+            raise ValueError('live observation acquisition must advance')
+        # tick is the resampled WAM 30Hz frame clock, never native controls or
+        # wall time. Acquisition timestamps retain real sensor/collector jitter.
         decision = update_schedulers([self.scheduler], np.asarray(pose)[None],
             np.asarray([tick / 30.]), np.asarray(hand11)[None], fast_geometry=True)[0]
         self.last_tick = tick
+        self.last_observed_at_ns = observed_at_ns
         # Match online_runtime._goal_from_pose's arithmetic/rounding boundary,
         # including nonidentity world poses; this only encodes the scheduler's
         # pose and does not choose another waypoint.
