@@ -1,0 +1,535 @@
+{
+  "schema": "ref2dex.tau-condition-attribution.v1",
+  "experiment_id": "P-20261023-tau-fixed-panel-metric",
+  "run_id": "tau-condition-ab-20261023-r1",
+  "scope": "Fixed TRAIN anchors only; B uses future observations and is diagnostic, never deployment legal",
+  "metrics_order": [
+    "first8_hand",
+    "fixed_contact_hand",
+    "first8_object"
+  ],
+  "rows": 512,
+  "mothers": 124,
+  "bootstrap_repeats": 4000,
+  "bootstrap_seed": 170,
+  "counts": [
+    156135,
+    288960,
+    131072
+  ],
+  "cells": {
+    "init_a": {
+      "schema": "ref2dex.no-goal-no-event.fixed-panel.v1",
+      "scope": "TRAIN distribution only; no new rollout or executor benefit",
+      "checkpoint": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/ptv3-shared-wam-v6/tmp/tau-no-goal-no-event-20261023-r1/training/step000000.pt",
+      "step": 0,
+      "rows": 512,
+      "mothers": 124,
+      "metrics_order": [
+        "first8_hand",
+        "fixed_contact_hand",
+        "first8_object"
+      ],
+      "means_mm": [
+        16.16936885247714,
+        59.22188021099478,
+        11.2522877601466
+      ],
+      "cluster_ci95_mm": [
+        [
+          15.325963283084167,
+          17.00660818865864
+        ],
+        [
+          53.82933850441091,
+          64.75640930152754
+        ],
+        [
+          10.110079798158894,
+          12.39937805156577
+        ]
+      ],
+      "bootstrap_repeats": 4000,
+      "paired_vs_reference": null,
+      "same_A_conditions": true,
+      "goal_policy": "v6.no-goal.no-event.unknown-invalid.frame30.v1",
+      "event_policy": "v6.event-free.unknown-invalid.frame30.v1",
+      "event_valid_count": 0,
+      "goal_valid_count": 0,
+      "contact_definition": "future frames with any valid surface contact target > threshold",
+      "contact_threshold": 0.25,
+      "repeated_prediction_bit_exact": true,
+      "repeat_max_abs_hand_mm": 0.0,
+      "elapsed_s": 27.48286684602499,
+      "physical_gpu": 7,
+      "free_gpu_bytes_before": 20297285632,
+      "peak_allocated_bytes": 641889792,
+      "anchor_sha256": "440c00c8609a2e9c6276f328f1aa5136a04708294a09b5dab8321044e6caa706"
+    },
+    "trained_a": {
+      "schema": "ref2dex.no-goal-no-event.fixed-panel.v1",
+      "scope": "TRAIN distribution only; no new rollout or executor benefit",
+      "checkpoint": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/tmp/t38-r2/training/step001223.pt",
+      "step": 1223,
+      "rows": 512,
+      "mothers": 124,
+      "metrics_order": [
+        "first8_hand",
+        "fixed_contact_hand",
+        "first8_object"
+      ],
+      "means_mm": [
+        10.288421181087196,
+        31.759797991619184,
+        6.5043075949333655
+      ],
+      "cluster_ci95_mm": [
+        [
+          9.762270026257726,
+          10.79154003878989
+        ],
+        [
+          29.803598936791026,
+          33.679807092810215
+        ],
+        [
+          6.1439335188453565,
+          6.874373903341374
+        ]
+      ],
+      "bootstrap_repeats": 4000,
+      "paired_vs_reference": {
+        "epe_delta_mm": [
+          -5.880947671389945,
+          -27.4620822193756,
+          -4.747980165213235
+        ],
+        "paired_cluster_ci95_mm": [
+          [
+            -6.504099786374877,
+            -5.280063343984079
+          ],
+          [
+            -31.97886558091847,
+            -23.304865739880526
+          ],
+          [
+            -5.74235178839042,
+            -3.8140584728660327
+          ]
+        ],
+        "prediction_change_mm": [
+          12.320409421334102,
+          51.12665074750831,
+          9.737768173217773
+        ]
+      },
+      "same_A_conditions": true,
+      "goal_policy": "v6.no-goal.no-event.unknown-invalid.frame30.v1",
+      "event_policy": "v6.event-free.unknown-invalid.frame30.v1",
+      "event_valid_count": 0,
+      "goal_valid_count": 0,
+      "contact_definition": "future frames with any valid surface contact target > threshold",
+      "contact_threshold": 0.25,
+      "repeated_prediction_bit_exact": true,
+      "repeat_max_abs_hand_mm": 0.0,
+      "elapsed_s": 27.55261000432074,
+      "physical_gpu": 6,
+      "free_gpu_bytes_before": 25430065152,
+      "peak_allocated_bytes": 641889792,
+      "anchor_sha256": "440c00c8609a2e9c6276f328f1aa5136a04708294a09b5dab8321044e6caa706"
+    },
+    "init_b": {
+      "schema": "ref2dex.diagnostic-condition.fixed-panel.v1",
+      "scope": "TRAIN distribution only; no new rollout or executor benefit",
+      "checkpoint": "outputs/ptv3-shared-wam-v6/flowmatching-overnight-20261022-r2/training/step011000.pt",
+      "step": 11000,
+      "rows": 512,
+      "mothers": 124,
+      "metrics_order": [
+        "first8_hand",
+        "fixed_contact_hand",
+        "first8_object"
+      ],
+      "means_mm": [
+        9.35785338399,
+        19.834799670278258,
+        4.816335078837554
+      ],
+      "cluster_ci95_mm": [
+        [
+          8.967338326665704,
+          9.757838161962603
+        ],
+        [
+          19.283271676182366,
+          20.426535300495125
+        ],
+        [
+          4.586250353915266,
+          5.044267546041773
+        ]
+      ],
+      "bootstrap_repeats": 4000,
+      "paired_vs_reference": {
+        "epe_delta_mm": [
+          -6.811515468487142,
+          -39.387080540716525,
+          -6.435952681309047
+        ],
+        "paired_cluster_ci95_mm": [
+          [
+            -7.5303753451283795,
+            -6.079034020423931
+          ],
+          [
+            -44.68399145704699,
+            -34.25079129118016
+          ],
+          [
+            -7.444599669462646,
+            -5.468882410217262
+          ]
+        ],
+        "prediction_change_mm": [
+          12.969122073846352,
+          53.56446220930233,
+          10.138708114624023
+        ]
+      },
+      "same_A_conditions": false,
+      "condition": "B: diagnostic future endpoint plus legacy event",
+      "deployment_legal": false,
+      "goal_policy": null,
+      "event_policy": null,
+      "event_valid_count": 494,
+      "event_counts": {
+        "valid": 494,
+        "type_0": 71,
+        "type_1": 145,
+        "type_2": 278
+      },
+      "goal_valid_count": 16384,
+      "noncondition_fields_bit_exact_to_A": true,
+      "first_batch_A_bridge_bit_exact": true,
+      "git_commit": "baac96c7e2054c33f1a24722c6e8a1c437e898e1",
+      "run_id": "tau-condition-ab-20261023-r1",
+      "environment": {
+        "python": "3.8.20 (default, Oct  3 2024, 15:24:27) \n[GCC 11.2.0]",
+        "executable": "/home2/wyy/miniconda3/envs/dexplore_repro_py38_torch222_cu121/bin/python",
+        "torch": "2.4.1+cu121",
+        "cuda": "12.1"
+      },
+      "flow_eval_seed": 172,
+      "contact_definition": "future frames with any valid surface contact target > threshold",
+      "contact_threshold": 0.25,
+      "repeated_prediction_bit_exact": true,
+      "repeat_max_abs_hand_mm": 0.0,
+      "elapsed_s": 28.641116429120302,
+      "physical_gpu": 7,
+      "free_gpu_bytes_before": 25430065152,
+      "peak_allocated_bytes": 641889792,
+      "anchor_sha256": "440c00c8609a2e9c6276f328f1aa5136a04708294a09b5dab8321044e6caa706"
+    },
+    "trained_b": {
+      "schema": "ref2dex.diagnostic-condition.fixed-panel.v1",
+      "scope": "TRAIN distribution only; no new rollout or executor benefit",
+      "checkpoint": "tmp/t38-r2/training/step001223.pt",
+      "step": 1223,
+      "rows": 512,
+      "mothers": 124,
+      "metrics_order": [
+        "first8_hand",
+        "fixed_contact_hand",
+        "first8_object"
+      ],
+      "means_mm": [
+        12.131092110883982,
+        45.561236331448896,
+        7.861320368276324
+      ],
+      "cluster_ci95_mm": [
+        [
+          11.562868228923001,
+          12.719878017467842
+        ],
+        [
+          41.69407155723039,
+          49.5138718965194
+        ],
+        [
+          7.306834287790683,
+          8.4798630018326
+        ]
+      ],
+      "bootstrap_repeats": 4000,
+      "paired_vs_reference": {
+        "epe_delta_mm": [
+          1.8426709297967854,
+          13.801438339829712,
+          1.3570127733429587
+        ],
+        "paired_cluster_ci95_mm": [
+          [
+            1.453905411640244,
+            2.248391716532164
+          ],
+          [
+            10.978597493107626,
+            16.663843213374054
+          ],
+          [
+            0.9011986479613648,
+            1.874878331838032
+          ]
+        ],
+        "prediction_change_mm": [
+          10.380038908636756,
+          46.23553086932447,
+          7.721602439880371
+        ]
+      },
+      "same_A_conditions": false,
+      "condition": "B: diagnostic future endpoint plus legacy event",
+      "deployment_legal": false,
+      "goal_policy": null,
+      "event_policy": null,
+      "event_valid_count": 494,
+      "event_counts": {
+        "valid": 494,
+        "type_0": 71,
+        "type_1": 145,
+        "type_2": 278
+      },
+      "goal_valid_count": 16384,
+      "noncondition_fields_bit_exact_to_A": true,
+      "first_batch_A_bridge_bit_exact": true,
+      "git_commit": "baac96c7e2054c33f1a24722c6e8a1c437e898e1",
+      "run_id": "tau-condition-ab-20261023-r1",
+      "environment": {
+        "python": "3.8.20 (default, Oct  3 2024, 15:24:27) \n[GCC 11.2.0]",
+        "executable": "/home2/wyy/miniconda3/envs/dexplore_repro_py38_torch222_cu121/bin/python",
+        "torch": "2.4.1+cu121",
+        "cuda": "12.1"
+      },
+      "flow_eval_seed": 172,
+      "contact_definition": "future frames with any valid surface contact target > threshold",
+      "contact_threshold": 0.25,
+      "repeated_prediction_bit_exact": true,
+      "repeat_max_abs_hand_mm": 0.0,
+      "elapsed_s": 28.61345765646547,
+      "physical_gpu": 7,
+      "free_gpu_bytes_before": 25430065152,
+      "peak_allocated_bytes": 641889792,
+      "anchor_sha256": "440c00c8609a2e9c6276f328f1aa5136a04708294a09b5dab8321044e6caa706"
+    }
+  },
+  "contrasts": {
+    "init_B_minus_A": {
+      "delta_mm": [
+        -6.811515468487142,
+        -39.387080540716525,
+        -6.435952681309047
+      ],
+      "ci95_mm": [
+        [
+          -7.53037534512838,
+          -6.07903402042393
+        ],
+        [
+          -44.683991457047,
+          -34.25079129118016
+        ],
+        [
+          -7.4445996694626455,
+          -5.468882410217263
+        ]
+      ],
+      "relative_improvement_percent": [
+        42.126044192773925,
+        66.5076495382937,
+        57.19683693216531
+      ],
+      "clearly_better": [
+        true,
+        true,
+        true
+      ],
+      "equivalent_within_two_percent": [
+        false,
+        false,
+        false
+      ]
+    },
+    "trained_B_minus_A": {
+      "delta_mm": [
+        1.8426709297967854,
+        13.801438339829714,
+        1.3570127733429587
+      ],
+      "ci95_mm": [
+        [
+          1.453905411640244,
+          2.2483917165321645
+        ],
+        [
+          10.978597493107625,
+          16.663843213374054
+        ],
+        [
+          0.901198647961365,
+          1.8748783318380315
+        ]
+      ],
+      "relative_improvement_percent": [
+        -17.910142842753128,
+        -43.4556867882839,
+        -20.863293341170174
+      ],
+      "clearly_better": [
+        false,
+        false,
+        false
+      ],
+      "equivalent_within_two_percent": [
+        false,
+        false,
+        false
+      ]
+    },
+    "trained_minus_init_at_A": {
+      "delta_mm": [
+        -5.880947671389947,
+        -27.462082219375596,
+        -4.747980165213235
+      ],
+      "ci95_mm": [
+        [
+          -6.5040997863748755,
+          -5.28006334398408
+        ],
+        [
+          -31.978865580918473,
+          -23.30486573988053
+        ],
+        [
+          -5.74235178839042,
+          -3.814058472866032
+        ]
+      ],
+      "relative_improvement_percent": [
+        36.37091666994156,
+        46.371513571561934,
+        42.1956873697245
+      ],
+      "clearly_better": [
+        true,
+        true,
+        true
+      ],
+      "equivalent_within_two_percent": [
+        false,
+        false,
+        false
+      ]
+    },
+    "trained_minus_init_at_B": {
+      "delta_mm": [
+        2.773238726893981,
+        25.726436661170638,
+        3.0449852894387703
+      ],
+      "ci95_mm": [
+        [
+          2.2514862341558834,
+          3.3125938151198
+        ],
+        [
+          22.017020058317286,
+          29.519766556733416
+        ],
+        [
+          2.579161235987203,
+          3.5777897647923744
+        ]
+      ],
+      "relative_improvement_percent": [
+        -29.63541544301828,
+        -129.70353665694333,
+        -63.222039986754666
+      ],
+      "clearly_better": [
+        false,
+        false,
+        false
+      ],
+      "equivalent_within_two_percent": [
+        false,
+        false,
+        false
+      ]
+    },
+    "trained_A_minus_init_B": {
+      "delta_mm": [
+        0.9305677970971956,
+        11.924998321340926,
+        1.6879725160958117
+      ],
+      "ci95_mm": [
+        [
+          0.31078177050600586,
+          1.5205070656045638
+        ],
+        [
+          9.932812100451534,
+          13.8154739250958
+        ],
+        [
+          1.3803821357207078,
+          2.0223350373064926
+        ]
+      ],
+      "relative_improvement_percent": [
+        -9.944244250388333,
+        -60.12159698900369,
+        -35.04682478410975
+      ],
+      "clearly_better": [
+        false,
+        false,
+        false
+      ],
+      "equivalent_within_two_percent": [
+        false,
+        false,
+        false
+      ]
+    },
+    "condition_by_checkpoint_interaction": {
+      "delta_mm": [
+        8.654186398283928,
+        53.18851888054623,
+        7.7929654546520055
+      ],
+      "ci95_mm": [
+        [
+          7.790883288229489,
+          9.520499892463219
+        ],
+        [
+          45.843810448283854,
+          60.84395522252167
+        ],
+        [
+          6.58792147417749,
+          9.110546988623488
+        ]
+      ]
+    }
+  },
+  "limitations": [
+    "B jointly changes endpoint, goal token validity, and legacy event conditions",
+    "Training jointly changed conditions, data selection, and optimizer updates",
+    "No endpoint-only causal attribution, heldout or execution claim"
+  ]
+}

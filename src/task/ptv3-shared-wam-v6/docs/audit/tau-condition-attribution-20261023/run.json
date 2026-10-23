@@ -1,0 +1,55 @@
+{
+  "run_id": "tau-condition-ab-20261023-r1",
+  "experiment_id": "P-20261023-tau-fixed-panel-metric",
+  "branch": "main",
+  "preregistration_commit": "708b6e9b1d928d4be92683a185810319aedcbc2f",
+  "runtime_code_commit": "baac96c7e2054c33f1a24722c6e8a1c437e898e1",
+  "commands": [
+    [
+      "/home2/wyy/miniconda3/envs/dexplore_repro_py38_torch222_cu121/bin/python",
+      "src/task/ptv3-shared-wam-v6/tools/run/evaluate_tau_legacy_condition_panel.py",
+      "--checkpoint",
+      "outputs/ptv3-shared-wam-v6/flowmatching-overnight-20261022-r2/training/step011000.pt",
+      "--output",
+      "outputs/ptv3-shared-wam-v6/tau-condition-ab-20261023-r1/init-B",
+      "--reference",
+      "src/task/ptv3-shared-wam-v6/tmp/tau-no-goal-no-event-20261023-r1/panel-init-A",
+      "--gpu",
+      "7",
+      "--batch-size",
+      "4"
+    ],
+    [
+      "/home2/wyy/miniconda3/envs/dexplore_repro_py38_torch222_cu121/bin/python",
+      "src/task/ptv3-shared-wam-v6/tools/run/evaluate_tau_legacy_condition_panel.py",
+      "--checkpoint",
+      "tmp/t38-r2/training/step001223.pt",
+      "--output",
+      "outputs/ptv3-shared-wam-v6/tau-condition-ab-20261023-r1/trained-B",
+      "--reference",
+      "tmp/t38-r2/panel-trained-A",
+      "--gpu",
+      "7",
+      "--batch-size",
+      "4"
+    ]
+  ],
+  "estimated_artifact_bytes_before": 33554432,
+  "artifact_budget_bytes": 67108864,
+  "actual_artifact_bytes": 21931405,
+  "disk_free_bytes_after": 134187446272,
+  "physical_gpu": 7,
+  "gpu_after": "2 MiB, 0 %",
+  "old_training_data": {
+    "original_train_windows": 33672,
+    "expanded_actual_train_windows": 207579,
+    "sequences": 1177,
+    "actual_recipe": "outputs/ptv3-shared-wam-v6/local-expanded-recipe-20261021-r1/manifest.json"
+  },
+  "new_training_data": {
+    "curated_windows": 6000,
+    "sequences": 1064
+  },
+  "training_updates_this_diagnostic": 0,
+  "checkpoints_written_this_diagnostic": 0
+}

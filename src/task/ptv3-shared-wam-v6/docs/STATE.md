@@ -751,3 +751,16 @@ conditions, and keys identities by `(source_id, sample_id, window_start_frame,
 goal_semantics, condition_sha256)`. The equivalence tests pass, but scheduler
 coverage is 0% until a separate planned reference path is supplied. No training
 or checkpoint write was started.
+
+## 2026-10-23 τ 四格条件归因：旧B有益、新B有害
+
+同一512锚点/124母序列复用A、仅新增B，init A/B的三项EPE分别为
+16.169/59.222/11.252与9.358/19.835/4.816mm；trained A/B为
+10.288/31.760/6.504与12.131/45.561/7.861mm。旧模型恢复B降误差
+42.13/66.51/57.20%，新模型恢复B增误差17.91/43.46/20.86%，
+配对cluster CI均排除0。条件依赖是关键解释，不能说去掉意图天然更强；
+数据/训练与条件适应仍混杂，无法单独分摊端点或event贡献。提高合法且训推一致
+goal通道优先级，不直接给新权重接回旧B。B来自未来观测，仅诊断，禁止部署。
+本轮GPU7两格各约29s，无训练/新采样/物理，已释放，新增约21MiB。
+
+详见[四格归因报告](audit/tau-condition-attribution-20261023.md)。

@@ -7,6 +7,9 @@ task: ptv3-shared-wam-v6
 branch: main
 git_commit: f30e8d7ba803d1d1b64270636dd807bf1461a5fb
 classification: Decision
+claim_id: C3
+hypothesis_family: wam-v6-fixed-train-tau-quality
+probe_index_in_family: 1
 status: COMPLETED
 run_id: tau-fixed-panel-baseline-20261023-r1
 seed_pool: probe
@@ -16,6 +19,20 @@ decision_changed_if_negative: keep the checkpoint from being reported as an over
 ---
 
 # P-20261023-tau-fixed-panel-metric
+
+## 2026-10-23 四格条件归因补测
+
+run_id `tau-condition-ab-20261023-r1`，实现预注册 `708b6e9b`、实际评估源码
+`baac96c7`，同一512锚点/124母序列，无训练或重采样。新增 init@B 为
+9.357853/19.834800/4.816335mm，trained@B 为12.131092/45.561236/7.861320mm
+（前8手/接触窗手/前8物体）。旧模型 B 比 A 误差下降42.13/66.51/57.20%，
+新模型 B 比 A 误差上升17.91/43.46/20.86%，配对cluster95%CI均排除0。
+旧条件有效、继续训练适应A并损失B下表现；不能将+36~46%解释为无意图天然更强，
+也不能只用这两格将条件与数据贡献因果拆分。B联合改变goal与event，且端点来自
+未来观测，仅诊断、禁止作为部署配方；不支持直接给新权重接回端点。
+提高合法且训推一致goal消费的优先级，数据审计仍未被排除。
+协议、四格表、配对差及资源见[归因报告](../../audit/tau-condition-attribution-20261023.md)。
+GPU7串行两格各约29s，新增约21MiB，已释放；两格A均直接引用。
 
 ## 2026-10-23 CI 修正与 event 合同补审
 
