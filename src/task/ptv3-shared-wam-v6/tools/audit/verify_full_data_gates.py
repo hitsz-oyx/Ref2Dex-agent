@@ -310,7 +310,9 @@ def goal(out):
         instruction = read(row['goal_instruction']); validate_instruction(instruction)
         assert row['goal_certification'] == 'CERTIFIED_LEGAL'
         assert sha256(binding['intent_artifact']) == binding['source_artifact_sha256']
-        assert sha256(row['goal_instruction']) == binding['instruction_sha256']
+        # This field is the signed canonical instruction ID, not its JSON
+        # file-byte SHA. validate_instruction verifies the unsigned payload.
+        assert instruction['instruction_sha256'] == binding['instruction_sha256']
         assert sha256(row['geometry']) == row['geometry_sha256']
         assert binding['source_available_timestamp_ns'] < binding['reset_timestamp_ns']
         assert instruction['reset'] == binding['reset']
@@ -404,7 +406,7 @@ def main():
     result=globals()[args.stage](args.output)
     result.update(measured_at=datetime.now(timezone.utc).isoformat(),elapsed_s=time.monotonic()-started,
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
-        code_sha256={str(p.relative_to(ROOT)):sha256(p) for p in [Path(__file__),TASK/'src/ptv3_shared_wam_v6/prepared_reader.py']},
+        code_sha256={str(p.relative_to(ROOT)):sha256(p) for p in [Path(__file__).resolve(),TASK/'src/ptv3_shared_wam_v6/prepared_reader.py']},
         host=platform.node(),python=sys.version,executable=sys.executable,numpy=np.__version__,
         manifest_sha256=sha256(MANIFEST),training_updates=0)
     write(args.output/(args.stage+'.json'),result)
