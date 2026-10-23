@@ -85,7 +85,7 @@ def main():
             if time.monotonic()-start>180:raise TimeoutError('startup timeout')
             try:conn,_=server.accept()
             except socket.timeout:pass
-        conn.settimeout(120);hello=receive(conn);state=unpack_state(hello['state']);audit=hello['audit'];manifest['native_audit']=audit
+        conn.settimeout(120);hello=receive(conn);state=unpack_state(hello['state']);audit=hello['audit'];manifest['native_audit']=audit;manifest['status']='RUNNING'
         offset=np.asarray(audit['controller']['offset']);scale=np.asarray(audit['controller']['scale']);limits=audit['physical_joint_limits']
         roles=audit['tracking_body_roles'];names=audit['tracking_body_names']
         def rpc(command):
@@ -165,6 +165,7 @@ def main():
                 safety=physical_safety(state,0,points,bounds,limits);bad=collisions()
                 metrics.append(dict(tick=tick,time_s=now,reference_time_s=reference_time,position_error_m=err,orientation_error_rad=ang,drift_m=drift,drift_rad=rot_drift,
                                     margin_min=float(margins[j]),margin_joint=j,contact=contact,collision_pairs=bad,safety=safety,
+                                    native_contacts=state['tracking_contacts'],
                                     target_speed_m_s=float(np.linalg.norm(v)),target_omega_rad_s=float(np.linalg.norm(w)),
                                     joint_margins=[None if not np.isfinite(x) else float(x) for x in margins]))
                 captures.append({k:np.asarray(state[k]).copy() for k in ('q','dq','objects','palm_pose','hand','tick','contact_forces','object_contact_force','table_pose')})

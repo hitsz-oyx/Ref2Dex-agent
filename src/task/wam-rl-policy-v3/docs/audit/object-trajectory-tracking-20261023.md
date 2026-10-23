@@ -5,7 +5,11 @@
 | 小参数也撞关节限位 | **可达性/限位是主线 P0**，与轨迹无关 | 停止扩展轨迹形状，回到执行器 P0（joint-10 限位） |
 | 必须滑移/力反馈才不脱手 | 持握稳定是**必须新增件** | 列为下一项工程件（含最小可行实现方案） |
 
-**实测解读：** A无FF 0/45、有FF 8/45满足数值阈值；B无FF/有FF均0/45。真实持握通用跟踪尚未资格化；8格仅为运动学刚体上限候选，自碰撞未取证，不能升级成完整可用。
+**最终实测解读：** A无FF 0/45、有FF 8/45满足数值阈值；正确保留抓取PD预压后的B无FF/有FF均0/45，但90/90完整走完且持续持握。剩余主约束为跟踪精度，不能再称主要死于滑移；未建立完整可用资格。A是运动学刚体代理，自碰撞未取证。
+
+**brief48续跑核对：** 59/90是先前进度快照；本次读取r4的COMPLETED manifest，已存在90个唯一B格且全部完整执行，自有原生/客户端均已退出。因此本次不再启动仿真，不重跑任何格，不改写原始轨迹；只完成报告和已有收尾改动的提交。
+
+**预注册归类：四行均未完整命中，当前为“跟踪精度资格未通过”。** 第一行不成立（真实B为0/90，且自碰撞未知）；第二行只得到A的局部边界证据，不能完整成立（最低速直线也超姿态阈值，真实B尚无可用格）；第三行不成立（限位中止0/180）；第四行没有新增反馈必要性的证据（原有力保持加正确预压已维持B全部90格）。不把“低速也失败”事后改写成“只在高速/大曲率失败”。下一步只做实测物体SE3误差外环的最小工程修正，不扩形状、不重训；碰撞资格仍须独立补齐。
 
 # 通用物体 SE(3) 轨迹跟踪：预注册
 
@@ -40,148 +44,6 @@ r2入口实际将force_valid传False，两阶段均固定抓取时手指关节�
 
 r3只运行B：5形状×3尺寸×3速度×2FF=90格，初始物体参考从r2/reference-start.npy冻结复用；seed195，source-PD同源，空闲GPU5。同样小参数关节门停止扩形状，最大controls100000（实际入口仍共同总上限300000）、总wall7200秒与新增2GiB总预算不变；最终同时报告r2 B的偏差与r3实测，不抹去不利结果。该纠正恢复预注册，不增加新的学习/基线。
 
-## 结算：不是通用真实持握能力通过
-
-有效协议180格全部有数字：A来自r2的90格，B来自修正r3的90格；无缺格、无删样本、无学习、无模型/τ调用。r2额外90格固定手指B与r1故障完整保留，不并入约定B。
-
-| 组别（每组45格，非重复成功率） | 完成整条轨迹 | 数值阈值通过 | 各格位置P95中位 mm | 各格姿态P95中位 deg | canonical裁剪 | 物理关节/桌面中止 |
-|---|---:|---:|---:|---:|---:|---:|
-| A无FF | 45/45 | 0/45 | 27.378 | 8.534 | 0/6215 | 0/45；0/45 |
-| A有FF | 45/45 | 8/45 | 22.241 | 6.228 | 0/6215 | 0/45；0/45 |
-| B无FF | 3/45 | 0/45 | 10.556 | 39.060 | 0/309 | 0/45；0/45 |
-| B有FF | 3/45 | 0/45 | 10.566 | 39.276 | 0/316 | 0/45；0/45 |
-
-B的84/90路径因失持提前停止，位置/姿态分位数只覆盖已执行前缀，不与完整A作性能排名；6条短路径虽走完仍未达标，不能用短时未中止当持握成功。每组n=45是45个参数格，各格仅1次；不当作独立重复/泛化成功率，不补无意义的臂间显著性检验。
-
-### 可行格与前馈边界
-
-A有FF的8个候选全部在平均30mm/s档：circle尺度20/50/100mm，figure8尺度20mm，helix尺度20/50/100mm，固定seed随机样条尺度20mm。其实际速度峰值分别见CSV，整体范围 55.83–109.36mm/s；这不是“减速到几乎不动”。100/250mm/s档没有数值通过格；无FF任何档均0。离散域从0→8格（+8/45），不插值成连续可达边界。直线低速也未过姿态阈值，因此**不是只有高速/高曲率才失败**。
-
-45个同参考完整A配对：有FF−无FF的位置P95差中位 -6.423mm（范围 -22.459至0.023），姿态P95差中位 -1.995deg；位置P95跨格中位下降18.77%，姿态下降27.02%。个别格会变差，不挑最好值。相同reference的逐tick对照保存在两格的ticks.json/trajectory.npz。
-
-闭合circle/figure8共有18格/臂，A全执行完。闭合位置误差跨格中位：无FF3.358mm→有FF2.744mm；闭合姿态1.030deg→0.573deg。8个通过候选中的闭合4格，末端位置误差0.533–2.773mm、姿态0.129–0.607deg。B的闭合形状均未走完整环，**闭合误差未定义**；不拿中止点到起点的距离当闭合误差。
-
-### 持握完整性、限位、碰撞与失败分类
-
-- A相对漂移最大0.000105mm、0.000019deg是**施加的刚体假设和数值舍入**，不是实测抓力稳定。约束仅每控制tick作用在root状态，不能当作子步刚性焊接或负载验证；实际物体碰撞/惯性在tick间仍存在，不能称完全排除所有动态影响。
-- B无FF最大相对漂移6.147mm/41.443deg；有FF12.764mm/44.589deg。90/90在TRACK第1步（0.03333s）失去双指力接触；力+相对姿态同时合格的最长连续持握elapsed全部0s。两臂各42/45由连续0.2秒失持门中止；其余3/45为短路径（0.1–0.2s）完成，但也不合格。
-- 有效A最小nominal限位余量0.07888985rad，B最小0.06219673rad，均为native q[14] `thumb_proximal_yaw_joint`；超过预注册0.02rad余量。连续腕关节不套nominal有限边界。关节安全中止0/180，不能把此前其它初态的joint-10结论迁移到这一个已知持握初态。
-- 0 canonical裁剪不等于内部伺服未饱和：A无FF平移cap 87/6215、角cap0/6215；A有FF平移110/6215、角12/6215；B无FF均0/309，B有FF平移4/316、角6/316。caps沿用原位置±25mm/角±0.12rad每tick，未修改。
-- 原生筛选记录中的手/物-桌接触（lambda>0.1）及physical_table门中止均0；不能升级成严格“无碰撞”。本机绑定不提供initial_overlap，完整负接触对也未独立落盘。更关键：`third_party/DExplore/dexplore/env/tasks/dexplore_inspire.py:15` 的COLLISION_GROUP_SELF=1，`_apply_collision_filter:20` 又设shape filters 2/3；本机Isaac文档assets.html:198说明actor filter>0禁用self collisions。**自碰撞几何未取证**；没有为了通过去改filter，不认证无自碰撞。
-
-| 阶段 | 失败分母 | 限位/余量不足 | 滞后/姿态/闭合阈值 | 相对滑移或失持 | 记录到的碰撞 | 其它 |
-|---|---:|---:|---:|---:|---:|---:|
-| A | 82 | 0 | 82（100%） | 不适用：刚体假设 | 0（自碰撞未取证） | 0 |
-| B | 90 | 0 | 1（1.11%） | 89（98.89%） | 0（自碰撞未取证） | 0 |
-
-分类先用实际中止门，再看完成路径的相对漂移、限位和误差阈值；89含84个失持中止与5个已完成但姿态相对漂移超10deg，余1个短轨迹为跟踪误差超限。这是观测约束归类，不是因果识别。另保存“首次任一阈值越界”时间：它常先是姿态误差，不能从先后顺序证明滞后导致滑移。
-
-### 已查到的启动条件限制与下一件工程工作
-
-共同初态、共同源回放的交接速度并非静止：腕线速度0.855479m/s（90格完全相同），腕角速度约0.425rad/s；物体参考位置端点速度严格0。最后0.3秒手物相对几何变化约5.419mm/7.062deg（按已测palm/FK从保存q重建），未超10mm/10deg，但不等于静止持握。原XYZ腕FK与实测palm旋转的最大偏差2.73e-5deg，未看到Euler顺序错误证据。
-
-因此不能把B结果推成“任何物体轨迹都不能跟踪”，也不能宣布“力反馈是必要且充分新增件”：已有弱力保持已开启，仍未过；**交接瞬态/持握未资格化**与稳态轨迹难度混在一起。下一件最小工程件是通用GRASP→TRACK交接：用实测手物相对漂移、接触与速度门确认抓稳，保持真实接触下使初始设定点/一阶导连续（或用有界过渡段匹配live速度），然后再消费原轨迹。若仍滑移，再以物体相对手SE3误差与双指力作为持握反馈，限速并作抗饱和；不需模型、τ或训练。该方案本轮未实施/未验证，不用静止不接触来计通过。
-
-### 时间律、导数和通用输入
-
-T_HO=inv(T_WH)·T_WO在获取时固定；T_WH_des(t)=T_WO_ref(t)·inv(T_HO)。v_hand=v_object+ω_world×(p_hand−p_object)。s(u)=10u³−15u⁴+6u⁵，采样121个SE3 knot，弧长/平均速度决定时长，向上对齐1/30秒；实际执行位置CubicSpline(t)及其一阶导，角速度R(t)·RotationSpline(t,1)，以真实导数而非把24帧当时钟。`RotationSpline`返回body angular rate，世界旋转已转换，非单位混用。
-
-位置clamped端点导数严格0；RotationSpline不是强制角端点导数为0，原预注册“端点静止”对角度只是近似，本矩阵端点角速率最大 0.00752056rad/s，已与0.425rad/s交接速度分开，未悄悄改样条。实际速度、加速度、角速度峰值及实际曲率半径min/median全部在CSV；直线曲率0，半径空值=无穷/不适用，尺度不能冒充其曲率半径。
-
-通用入口支持`--reference-npz`（times秒、poses Nx4x4、world frame）；默认矩阵仅是该同一SE3消费通道的测试生成器。提交版另外处理任意终点不在30Hz网格上的输入：最后不足一tick的时间按原终点hold比较，不外推；这项仅CPU接口检查，未另加物理rollout。阶段信息为`phase=TRACK`，目标经原canonical→PD，无task schema变更。
-
-### 独立复核、版本与产物
-
-r2运行代码632a307c7b627ed753e5d06097d45b021ab8bb53，r3运行代码d057487daf8a4f02047b00746e3491075c4cd9f8；与交付后补的审计器/通用入口鲁棒性分开，不伪称后补代码参与了已跑物理。每轮runtime-code保存当时源码，native.log/physics/manifest.json保存环境和控制器属性；client graspenv，native Python3.8/Torch2.0.1+cu118，seed195，GPU4/5，GPU PhysX/CPU tensor exchange。
-
-两轮全部270格独立重算0不一致：r2位置误差最大差1.39e-17m、姿态2.98e-8rad、PD1.23e-7；r3分别6.94e-18m、2.98e-8rad、1.87e-7。90组有效A/B参考SE3与时间戳逐位一致；reset q/object、交接 q/object最大差均0。只认证所重算字段，不认证缺失的自碰撞真值。
-
-工程回归28 passed / 0 failed（5文件，1.79s），其中新跟踪12项；8/8故意错误被检出：导数符号、body/world角速度混淆、手物变换方向、漏杠杆臂、连续腕套有限门、缺失接触字段、漏前馈、真实runner关闭B力保持。测试不替代物理资格。
-
-计量：r1故障物理1control（client未收到回包计0）；r2实际22048，r3实际5125，共27174controls。有效协议A16930（含获取4500、TRACK12430）、B5125（含获取4500、TRACK625），另有r2偏差B5118与故障1，全部明列。r2/r3原生退出均0；运行耗时793.056s/182.953s，部分重叠；无训练更新，不混作学习样本效率。新增产物约59.5MiB，低于登记2GiB；磁盘最后检查约223GiB，未删任何历史产物。GPU4/5进程均退出/显存4MiB；未使用0–3/6/7，其余卡占用不干预。
-
-原始目录：`outputs/wam-rl-policy-v3/object-trajectory-tracking-20261023-r{1,2,3}/`。每格`trajectory.npz`为逐执行后物体/palm/q/dq/力，`ticks.json`为逐tick物体误差、相对漂移、限位、门；`reference.npz`为SE3+时间戳，`controls.npz`为raw action和实际PD target，`commands.json`为TRACK目标与前馈；`acquisition.json`含前置抓取。r3/qualified-matrix.csv为有效180格所有指标，r3/qualified-matrix.md为45组四格总表，r2/matrix.csv保留偏差B全部数字。outputs不入库。
-
-### 可复核diff与命令
-
-- `src/task/wam-rl-policy-v3/src/wam_rl_policy_v3/object_tracking.py:21`：通用SE3插值；:45 五种同机制测试生成器；:75固定手物映射及杠杆臂；:82复用位置式PD消费与FF；:10绑定dtype兼容。
-- `src/task/wam-rl-policy-v3/tools/run/inspire_physics_host.py:214`：opt-in运动学附件；:229原生接触诊断。默认未加flag不改变生产RPC/物理。
-- `src/task/wam-rl-policy-v3/tools/run/run_object_tracking.py:25`：通用入口、显式时间、阶段A/B、固定矩阵；r3恢复B既有实测力保持的调用已留diff。`git show d057487d -- src/task/wam-rl-policy-v3/tools/run/run_object_tracking.py`。
-- `src/task/wam-rl-policy-v3/tools/audit/audit_object_tracking.py:20`：独立误差/PD/判据/servo cap重算与全矩阵；:167后续增加的跨阶段join函数以当前源码为准。
-
-复核只读原始记录，重写派生CSV/JSON（不跑物理、不训练）：
-```bash
-PY=/home2/wyy/miniconda3/envs/graspenv/bin/python
-$PY src/task/wam-rl-policy-v3/tools/audit/audit_object_tracking.py --run outputs/wam-rl-policy-v3/object-trajectory-tracking-20261023-r2
-$PY src/task/wam-rl-policy-v3/tools/audit/audit_object_tracking.py --run outputs/wam-rl-policy-v3/object-trajectory-tracking-20261023-r3 --stage-a-run outputs/wam-rl-policy-v3/object-trajectory-tracking-20261023-r2
-PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES='' $PY outputs/wam-rl-policy-v3/object-trajectory-tracking-20261023-r3/check_mutations.py
-PYTHONPATH=src/task/wam-rl-policy-v3/src PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES='' $PY -m pytest -q -p no:cacheprovider src/task/wam-rl-policy-v3/tests/test_object_tracking.py src/task/wam-rl-policy-v3/tests/test_source_pd.py src/task/wam-rl-policy-v3/tests/test_continuous_wrist.py src/task/wam-rl-policy-v3/tests/test_inspire_state_codec.py src/task/wam-rl-policy-v3/tests/test_inspire_reset_submission.py
-```
-期望：两个audit_failures=[]；stage join reference_mismatches=[]、90组；mutants8/8；pytest28 passed/0 failed。时间与输出bytes可能因派生产物增加略变。
-
-实际物理命令（已有结果，不应因读报告再重跑；复现实验必须改新output，先查GPU）：
-```bash
-PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES='' /home2/wyy/miniconda3/envs/graspenv/bin/python -u src/task/wam-rl-policy-v3/tools/run/run_object_tracking.py --output outputs/wam-rl-policy-v3/object-trajectory-tracking-20261023-r2 --gpu 4 --matrix full --seconds 7200
-PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES='' /home2/wyy/miniconda3/envs/graspenv/bin/python -u src/task/wam-rl-policy-v3/tools/run/run_object_tracking.py --output outputs/wam-rl-policy-v3/object-trajectory-tracking-20261023-r3 --gpu 5 --matrix full --stages B --reference-start outputs/wam-rl-policy-v3/object-trajectory-tracking-20261023-r2/reference-start.npy --seconds 7200
-```
-r2须使用当时runtime-code的固定手指实现才能复现偏差B；当前入口已纠正，不能声称它会逐位复现旧偏差运行。r3命令对应纠正后的既有力保持。通用用户轨迹只需用`--reference-npz <输入.npz>`替换矩阵，创建新output；未另外运行。
-
-### 全45组×A/B×FF物体误差（每格n=1）
-
-下表每格“位置P95 mm / 姿态P95 deg”。“通过*”仅数值上满足，A的运动学假设与自碰撞缺口仍在；中止格是前缀分位数。所有P50/P90/max、逐tick、闭合、漂移、最小关节、实际速度/曲率、裁剪/伺服cap见qualified-matrix.csv，不删失败。空白闭合值仅不闭合/未走完整环。
-
-| 形状 | 尺度mm | 均速mm/s | A无FF P95 mm/deg | A有FF | B无FF | B有FF |
-|---|---:|---:|---|---|---|---|
-| straight | 20 | 30 | 9.60/10.40 未过阈值 | 9.63/7.95 未过阈值 | 10.51/44.53 中止:slip | 10.54/46.00 中止:slip |
-| straight | 20 | 100 | 12.61/10.41 未过阈值 | 10.23/10.10 未过阈值 | 15.16/11.11 未过阈值 | 11.78/10.60 未过阈值 |
-| straight | 20 | 250 | 14.21/10.71 未过阈值 | 12.47/11.70 未过阈值 | 19.04/28.21 未过阈值 | 18.16/23.26 未过阈值 |
-| straight | 50 | 30 | 10.86/9.86 未过阈值 | 8.38/7.24 未过阈值 | 10.56/40.03 中止:slip | 10.54/40.76 中止:slip |
-| straight | 50 | 100 | 26.27/10.87 未过阈值 | 18.44/8.22 未过阈值 | 17.82/40.17 中止:slip | 14.13/17.07 中止:slip |
-| straight | 50 | 250 | 36.07/10.41 未过阈值 | 27.93/10.10 未过阈值 | 40.73/31.81 未过阈值 | 34.33/25.65 未过阈值 |
-| straight | 100 | 30 | 11.96/7.52 未过阈值 | 8.83/5.48 未过阈值 | 10.56/39.03 中止:slip | 10.58/41.23 中止:slip |
-| straight | 100 | 100 | 37.33/10.66 未过阈值 | 27.29/7.88 未过阈值 | 10.50/38.92 中止:slip | 10.47/41.18 中止:slip |
-| straight | 100 | 250 | 62.97/10.62 未过阈值 | 51.42/8.90 未过阈值 | 51.04/44.41 中止:slip | 40.24/10.34 中止:slip |
-| circle | 20 | 30 | 16.43/6.53 未过阈值 | 10.83/4.68 通过* | 10.56/37.56 中止:slip | 10.58/40.21 中止:slip |
-| circle | 20 | 100 | 27.38/10.46 未过阈值 | 21.08/7.61 未过阈值 | 10.52/41.09 中止:slip | 10.52/41.43 中止:slip |
-| circle | 20 | 250 | 36.44/10.05 未过阈值 | 29.48/8.17 未过阈值 | 32.28/46.08 中止:slip | 38.83/45.83 中止:slip |
-| circle | 50 | 30 | 18.46/3.18 未过阈值 | 14.30/2.34 通过* | 10.55/38.11 中止:slip | 10.57/40.95 中止:slip |
-| circle | 50 | 100 | 42.67/7.68 未过阈值 | 32.20/5.66 未过阈值 | 10.55/39.68 中止:slip | 10.56/39.33 中止:slip |
-| circle | 50 | 250 | 65.71/10.51 未过阈值 | 50.22/7.61 未过阈值 | 12.82/40.47 中止:slip | 11.43/41.20 中止:slip |
-| circle | 100 | 30 | 18.73/1.67 未过阈值 | 14.53/1.24 通过* | 10.55/39.05 中止:slip | 10.56/37.62 中止:slip |
-| circle | 100 | 100 | 50.99/4.88 未过阈值 | 38.60/3.58 未过阈值 | 10.54/39.02 中止:slip | 10.58/39.71 中止:slip |
-| circle | 100 | 250 | 102.15/8.52 未过阈值 | 82.79/6.23 未过阈值 | 10.52/38.48 中止:slip | 10.54/38.68 中止:slip |
-| figure8 | 20 | 30 | 18.35/6.68 未过阈值 | 14.12/4.88 通过* | 10.56/37.14 中止:slip | 10.56/38.30 中止:slip |
-| figure8 | 20 | 100 | 25.42/10.46 未过阈值 | 19.00/7.78 未过阈值 | 10.57/38.98 中止:slip | 10.59/42.40 中止:slip |
-| figure8 | 20 | 250 | 26.92/10.90 未过阈值 | 22.24/8.26 未过阈值 | 18.17/45.27 中止:slip | 19.90/44.68 中止:slip |
-| figure8 | 50 | 30 | 22.12/3.27 未过阈值 | 16.43/2.37 未过阈值 | 10.55/38.11 中止:slip | 10.56/38.94 中止:slip |
-| figure8 | 50 | 100 | 46.00/7.82 未过阈值 | 34.70/5.73 未过阈值 | 10.56/38.61 中止:slip | 10.57/39.28 中止:slip |
-| figure8 | 50 | 250 | 58.42/10.48 未过阈值 | 43.99/7.80 未过阈值 | 18.29/40.92 中止:slip | 15.20/40.60 中止:slip |
-| figure8 | 100 | 30 | 23.06/1.72 未过阈值 | 17.71/1.27 未过阈值 | 10.55/39.46 中止:slip | 10.56/38.26 中止:slip |
-| figure8 | 100 | 100 | 59.80/5.01 未过阈值 | 45.34/3.67 未过阈值 | 10.55/40.49 中止:slip | 10.59/41.71 中止:slip |
-| figure8 | 100 | 250 | 95.96/8.64 未过阈值 | 73.50/6.32 未过阈值 | 10.57/39.58 中止:slip | 10.60/41.08 中止:slip |
-| helix | 20 | 30 | 16.40/6.47 未过阈值 | 12.73/4.76 通过* | 10.56/37.56 中止:slip | 10.57/39.42 中止:slip |
-| helix | 20 | 100 | 27.69/10.49 未过阈值 | 21.23/7.61 未过阈值 | 10.52/41.18 中止:slip | 10.52/40.10 中止:slip |
-| helix | 20 | 250 | 36.95/10.05 未过阈值 | 29.79/8.17 未过阈值 | 32.78/43.28 中止:slip | 30.99/19.26 中止:slip |
-| helix | 50 | 30 | 18.45/3.16 未过阈值 | 14.30/2.33 通过* | 10.55/38.11 中止:slip | 10.57/40.95 中止:slip |
-| helix | 50 | 100 | 42.13/7.65 未过阈值 | 32.34/5.66 未过阈值 | 10.55/39.89 中止:slip | 10.56/38.87 中止:slip |
-| helix | 50 | 250 | 66.19/10.51 未过阈值 | 50.03/7.61 未过阈值 | 12.80/41.81 中止:slip | 11.58/41.59 中止:slip |
-| helix | 100 | 30 | 18.71/1.66 未过阈值 | 14.53/1.23 通过* | 10.55/39.06 中止:slip | 10.56/37.88 中止:slip |
-| helix | 100 | 100 | 51.22/4.86 未过阈值 | 38.33/3.56 未过阈值 | 10.54/38.83 中止:slip | 10.58/39.96 中止:slip |
-| helix | 100 | 250 | 99.79/8.53 未过阈值 | 79.61/6.22 未过阈值 | 10.53/38.40 中止:slip | 10.54/39.45 中止:slip |
-| random_spline | 20 | 30 | 16.34/6.74 未过阈值 | 12.37/4.92 通过* | 10.56/40.66 中止:slip | 10.57/39.19 中止:slip |
-| random_spline | 20 | 100 | 23.02/10.43 未过阈值 | 17.54/7.58 未过阈值 | 10.56/40.64 中止:slip | 10.56/38.99 中止:slip |
-| random_spline | 20 | 250 | 25.21/10.87 未过阈值 | 22.49/8.22 未过阈值 | 16.61/43.05 中止:slip | 19.57/10.39 中止:slip |
-| random_spline | 50 | 30 | 21.64/3.32 未过阈值 | 16.20/2.32 未过阈值 | 10.55/37.52 中止:slip | 10.56/38.79 中止:slip |
-| random_spline | 50 | 100 | 44.88/7.88 未过阈值 | 35.50/5.76 未过阈值 | 10.55/37.10 中止:slip | 10.56/38.54 中止:slip |
-| random_spline | 50 | 250 | 55.42/10.44 未过阈值 | 49.36/7.55 未过阈值 | 10.56/40.69 中止:slip | 10.56/38.09 中止:slip |
-| random_spline | 100 | 30 | 24.41/1.63 未过阈值 | 17.34/1.29 未过阈值 | 10.55/39.38 中止:slip | 10.56/38.77 中止:slip |
-| random_spline | 100 | 100 | 73.00/5.06 未过阈值 | 60.98/3.72 未过阈值 | 10.56/37.20 中止:slip | 10.58/38.54 中止:slip |
-| random_spline | 100 | 250 | 115.62/8.68 未过阈值 | 110.24/6.36 未过阈值 | 10.56/38.35 中止:slip | 10.56/37.25 中止:slip |
-
-### Git与可信度边界
-
-推送前git pull --rebase被他人的未提交改动拒绝，未stash、未覆盖或加入他们的文件；使用显式路径commit --only与普通push。原始结果已冻结并可由上述命令独立复核。运行计数/model_calls=0由入口与native pure-host路径核对；碰撞完整性、rigid负载等未取证项明确不升级。最终HEAD/远端一致性在交付回答给出。
-
 ## r4交接预压修复（先登记，再只重测B）
 
 r3（已恢复force-valid调用）第一TRACK指令仍错误地用实测q初始化手指目标，从source实际PD [1.364090,1.050968,0.807545,1.385341,1.111492,0.426087]切为[0.721299,0.885526,0.730134,1.390613,1.072549,0.266685]rad，最大卸载0.642792rad。这是新增交接入口自己丢失预压，不能用其0/45否定保持原抓取时的执行能力。最小修复：B的初始手指状态继承最后实际施加的PD targets，后续沿用原force规则/原upper；A不改不重跑，原始B全部保留，最终结算以r4替代B资格。回归必须抓住“把PD目标替换成实测q”的故意错误。
@@ -189,3 +51,188 @@ r3（已恢复force-valid调用）第一TRACK指令仍错误地用实测q初始�
 期望变化：首TRACK手指目标最大突降0.642792rad→不超过原force一步更新及既有upper钳位（本初态thumb1.111492→1.10的0.011492rad），食指目标约1.364rad，不再重置0.721；实际B保持时长/跟踪成功是否改善以r4为准，不预设必升。
 
 r4只B、同90格/同参考文件/seed195/新output、空闲GPU5，参数与判据不改；允许joint P0停止，其余依照原预算300000controls/7200s/2GiB，不启动其它方法。
+
+## 结算：持握交接已修，精度仍未通过
+
+有效矩阵180格=5形状×3尺度×3速度×2FF×2阶段。A用r2的90格，B用r4的90格；相同object SE3/timestamps逐位核对90组，reset及交接q/object最大差均0。只选一只Inspire浮动腕手、一个已知抓取初态`s1_cylindersmall_pass_1`，不外推其它物体/机械臂；形状/控制均不按物体身份特化。
+
+| 组别（45个参数格，每格1次） | 走完整段 | 数值阈值通过 | 各格位置P95的中位 mm | 各格姿态P95的中位 deg | canonical裁剪/ TRACK controls |
+|---|---:|---:|---:|---:|---:|
+| A无FF | 45/45 | 0/45 | 27.378 | 8.534 | 0/6215 |
+| A有FF | 45/45 | 8/45 | 22.241 | 6.228 | 0/6215 |
+| B无FF | 45/45 | 0/45 | 33.267 | 7.861 | 0/6215 |
+| B有FF | 45/45 | 0/45 | 26.843 | 5.741 | 0/6215 |
+
+门限冻结为位置P95≤15mm、姿态P95≤5deg、闭合≤15mm/5deg、全程相对漂移≤10mm/10deg、nominal有限关节余量≥0.02rad/0.02m、无安全中止；不放宽。每组45是不同条件，不是同分布45次重复，不伪造独立成功率置信区间。完整路径上的逐tick误差/分位数均按物体计算，未用累计进展当成功。
+
+### 修复前后：不能把新入口的错误算作物理能力负证据
+
+r1新增诊断曾假定SDK有initial_overlap字段，实际缺失；原生执行1control后ValueError，跟踪0，保留FAILED目录。修复把缺字段记null，不是0，后端不变；先前GPU查询不兼容的猜测不成立。
+
+r2的B误把force_valid传False（固定手指）；r3恢复既有力保持，但又用实测q而非最后PD目标初始化手指，食指1.364090→0.721299rad，卸掉0.642792rad预压。两批都保留90格，各自0/90通过、84/90失持中止；只作旧入口结果，不用它们否定保留原持握设定点的执行器。
+
+最小物理修复只有B交接的手指初值：继承最后实际施加的PD目标，后续仍用原.25N/+0.0015rad、4N/−0.001rad以及原FINGER_UPPER，不改PD增益或物理门。
+
+| 指标（同初态/同参考） | r3修前 | r4修后 | 判读 |
+|---|---:|---:|---|
+| 首TRACK最大手指目标突降 | 0.642792rad | 0.011492rad（原thumb upper钳位） | 保留预压，食指不再归零到实测q |
+| 失持门中止 | 84/90 | 0/90 | 立即失持已修 |
+| 完整执行参考 | 6/90 | 90/90 | 未增加每格最大时域 |
+| 数值阈值通过 | 0/90 | 0/90 | 持握修复不等于轨迹精度通过 |
+
+r4的首TRACK手指PD独立复算最大差4.91e-08rad。旧80余例的失败不能继续称“必须新增滑移反馈才不脱手”；现有力保持加正确预压已持续持握全部参考。
+
+### 可行域与前馈：只报告离散格，不内插
+
+A有FF的8个候选均平均30mm/s：circle尺度20/50/100mm，figure8尺度20mm，helix尺度20/50/100mm，随机样条尺度20mm；实际峰速56.10–109.36mm/s，不是近乎静止。无FF0/45→有FF8/45（+8格），100/250mm/s档均未过；直线低速也会失败，不能说只有高速/高曲率失败。
+
+真实B两个FF条件均0/45，**本阈值下未找到已测真实持握的可用格**。前馈仍改善误差：位置P95跨格中位33.267→26.843mm（−19.31%），姿态7.861→5.741deg（−26.97%）；A对应27.378→22.241mm（−18.77%）、8.534→6.228deg（−27.02%）。不是每格、每项都改善，完整45组在下表。
+
+A的45组完整配对，有FF−无FF的位置P95差中位−6.423mm，范围−22.459至+0.023mm；姿态差中位−1.995deg。A候选是运动学假设下的上限，不能当作严格动态刚体持握的正控制：附件每control tick固定对象root，未验证子步焊接/负载惯性传递，A/B差异不能只归为滑移。
+
+### 闭合、持握完整性、限位与碰撞
+
+| 指标 | A无FF | A有FF | B无FF | B有FF |
+|---|---:|---:|---:|---:|
+| 最大相对位移 mm | 0.000097 | 0.000105 | 0.626261 | 0.631949 |
+| 最大相对转角 deg | 0.000019 | 0.000019 | 1.372214 | 1.381110 |
+| 最小有限关节余量 rad | 0.078890 | 0.078890 | 0.047011 | 0.047013 |
+| 闭合形状格数 | 18 | 18 | 18 | 18 |
+| 闭合位置中位 mm | 3.358 | 2.744 | 11.891 | 11.994 |
+| 闭合姿态中位 deg | 1.030 | 0.573 | 3.371 | 3.255 |
+
+A的零漂移是强加假设，不是抓力成果。B全程双指实测接触保持、手物相对漂移≤0.632mm/1.382deg；连续合格持握elapsed范围0.1–21.033s、中位2.533s，等于各参考时长。最短0.1s只对应短路径，不冒充长期持握。
+
+A最小余量在native q[14] `thumb_proximal_yaw_joint`=0.07888985rad，连续腕角不套有限门；全部关节逐tick余量在CSV/原始tick记录。
+
+B最小余量在native q[10] `pinky_proximal_joint`=0.04701114rad，连续腕角不套有限门；全部关节逐tick余量在CSV/原始tick记录。
+
+canonical裁剪0不等于servo未饱和：
+
+| 组别 | 平移±25mm cap命中 | 角±0.12rad cap命中 | TRACK controls |
+|---|---:|---:|---:|
+| A无FF | 87 | 0 | 6215 |
+| A有FF | 110 | 12 | 6215 |
+| B无FF | 94 | 0 | 6215 |
+| B有FF | 125 | 12 | 6215 |
+
+关节安全/physical_table中止均0/180；筛选到的手/物-桌接触对（native lambda>0.1）0。**不能认证无自碰撞**：既有`dexplore_inspire.py:15`设COLLISION_GROUP_SELF=1，:20的shape filter为2/3；本机Isaac文档assets.html:198说明actor filter>0关闭self collisions，未为本实验改filter。SDK缺overlap字段，当前已跑数据也未落完整负接触对；无接触记录不等于严格无碰撞。交付入口补全native_contacts落盘只适用于后续run，未伪造本轮缺失记录。
+
+### 每个失败的观测归类
+
+| 阶段 | 失败格/总格 | 限位 | 跟踪误差/滞后 | 滑移 | 记录的碰撞 | 其它 |
+|---|---:|---:|---:|---:|---:|---:|
+| A | 82/90 | 0 | 82（失败格100%） | 刚体假设 | 0，自碰撞未知 | 0 |
+| B | 90/90 | 0 | 90（失败格100%） | 0 | 0，自碰撞未知 | 0 |
+
+这里“滞后”是对象位置/姿态/闭合超阈值的观测类别，不是已识别的单一PD故障。B相对漂移远小于阈值，当前不支持“主要死于滑移”；也没有关节门证据支持回到joint-10。初始腕速0.855479m/s、角速约0.425rad/s，参考初速度0，仍有交接瞬态；但相同速度下保留预压已消除全部失持，不能再把速度断点当作失持的唯一原因。
+
+**下一项最小工程件（未实施/未验证）**：保留修好的抓取PD记忆，在实测物体SE3上增加带抗饱和/限速的误差外环，结合已有位置积分与姿态修正，保留样条速度前馈；先复用现有GoalServo思路消除对象误差，不调大PD硬顶、不因本轮结果重训模型。初速度不匹配可做一阶连续过渡，但这不是本轮已证实的唯一原因。若要认证A/B因果差异，还需保持负载/惯性的真正rigid fixture以及独立自碰撞几何检查。本轮不额外启动这些实验。
+
+### 通用输入与时间/导数契约
+
+T_HO=inv(T_WH)·T_WO在获取时固定；T_WH_des(t)=T_WO_ref(t)·inv(T_HO)。v_hand=v_object+ω_world×(p_hand−p_object)。控制明确为TRACK，位置/角度增益与阻尼沿用PoseConsumer（.45/.012、.40/.008），手指保持沿用MeasuredGraspConsumer，最后走原canonical→原生PD；R/WAM不调用。这个新TRACK适配器不等于所有历史执行链的上限。
+
+弧长/平均速度定总时长并向上对齐30Hz；s(u)=10u³−15u⁴+6u⁵生成121个knot。位置CubicSpline clamped，姿态RotationSpline；实际导数是position(t,1)、ω_world=R(t)·rotation(t,1)，不是把body rate误当world rate。FF是原位置目标中的v·dt与Euler-rate·dt一阶预补偿，不是另换原生速度/力矩驱动。实际峰速、峰加速度、峰角速度、曲率半径min/median均在CSV；直线半径为空=无穷/不适用，尺度是行程；非圆形的尺度也不冒充处处曲率半径。
+
+位置端点速度严格0；RotationSpline角端点不是严格0，本矩阵端点角速率最大0.00752056rad/s，原“端点静止”对姿态只是近似，未隐瞒。`--reference-npz`接受world poses Nx4x4+times秒；任意非圆轨迹同一入口。交付版对不在30Hz网格的终点作末端hold、不外推；这一通用边界只做CPU接口检查，本次已测矩阵全部原生对齐，不另跑。
+
+### 证据身份、环境与资源
+
+| run | 实际运行Git | 格数/范围 | controls | 结论用途 |
+|---|---|---|---:|---|
+| r1 | `33177f56` | 0 | 1 | 诊断故障，非物理能力 |
+| r2 | `632a307c` | 180 | 22048 | A90有效；B90固定手指偏差保留 |
+| r3 | `d057487d` | 90 | 5125 | B90丢预压偏差保留 |
+| r4 | `d65dee9e` | 90 | 16930 | B90保留实际PD预压，有效 |
+
+总实际44104controls，有效协议A16930+B16930=33860；其余旧偏差B与故障全部计入消耗，未删除。有效TRACK controls A12430+B12430，获取各4500controls。所有run learning_updates/model_calls=0，入口和native pure-host代码可核；这不是学习效率结论。
+
+client Python3.8.20/numpy1.24.4/scipy1.10.1，graspenv；native dexplore_v120_train/Torch2.0.1+cu118，GPU PhysX/CPU tensor exchange，seed195、assetScale1。只用GPU4/5，所有正常run原生退出0，GPU已释放；不影响0–3/6/7或任何训练。r2/r3/r4物理wall分别793.056/182.953/632.037s，部分重叠。输出合计约99.2MiB（写报告时，派生小文件后略增），低于2GiB；上轮盘余量约208GiB，本次brief48收尾核对约167GiB（共享盘快照，不能将差额归因于本任务），未删除历史outputs。
+
+### 独立重算、回归与可核对代码
+
+r2与r4独立重算均audit_failures=[]；r4位置误差最大差1.39e-17m、姿态2.98e-08rad、PD映射2.12e-07，判据与报告计数无不一致。跨run90组参考逐位一致，reset/交接q与object最大差均0。三个运行所用三份核心源码与所报commit共9/9逐字匹配，execution-proof.json留证；自有6个client/native PID均已退出。工程测试30 passed/0 failed（5文件，上轮1.91s，本次brief48复核2.70s；新跟踪14项），已有10/10故意错误被检出，含漏前馈、错导数/坐标/杠杆臂、连续腕套有限门、缺字段、caller关闭力保持、caller/class丢预压。测试不证明未取证的碰撞/动态rigid fixture。
+
+- `object_tracking.py:21`通用SE3插值、`:45`五形状生成器、`:75`固定手物映射/杠杆臂、`:82`TRACK/原控制律；`object_tracking.py:88`的ObjectPoseTracker.__init__新增held_finger_targets继承实际PD，None只用于rigid A。
+- `inspire_physics_host.py:214`opt-in运动学附件，`:229`接触诊断；默认不启用，不改task schema。
+- `run_object_tracking.py:25`通用入口；`:132`的last_acquisition_pd=step(...)捕获真实PD，`:152`继承并传入B。精确diff：`git show d65dee9e -- src/task/wam-rl-policy-v3/src/wam_rl_policy_v3/object_tracking.py src/task/wam-rl-policy-v3/tools/run/run_object_tracking.py`。
+- `tools/audit/audit_object_tracking.py:20`独立逐tick重算/首PD预压验收/全部格CSV，`:177`为A/B资格与参考一致性join。
+
+原始每格：trajectory.npz（物体/palm/q/dq/力/tick）、reference.npz（SE3+秒+固定手物变换）、controls.npz（raw action/实际PD）、ticks.json（每tick误差/余量/门）、commands.json（目标/FF）、acquisition.json、handoff.json（r4）。完整原始目录均在`outputs/wam-rl-policy-v3/object-trajectory-tracking-20261023-r{1,2,3,4}/`，不入库。r4/qualified-matrix.csv含有效180格所有指标，qualified-matrix.md含45行四臂总表，stage-join-audit.json记录90组一致性；旧r2/r3各自matrix.csv保留偏差数据，旧r3的qualified标签已失效，当前join会拒绝缺预压记录的B。
+
+复核命令（CPU，只重算派生文件，不跑物理/训练）：
+```bash
+PY=/home2/wyy/miniconda3/envs/graspenv/bin/python
+$PY src/task/wam-rl-policy-v3/tools/audit/audit_object_tracking.py --run outputs/wam-rl-policy-v3/object-trajectory-tracking-20261023-r2
+$PY src/task/wam-rl-policy-v3/tools/audit/audit_object_tracking.py --run outputs/wam-rl-policy-v3/object-trajectory-tracking-20261023-r4 --stage-a-run outputs/wam-rl-policy-v3/object-trajectory-tracking-20261023-r2
+PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES='' $PY outputs/wam-rl-policy-v3/object-trajectory-tracking-20261023-r4/check_mutations.py
+PYTHONPATH=src/task/wam-rl-policy-v3/src PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES='' $PY -m pytest -q -p no:cacheprovider src/task/wam-rl-policy-v3/tests/test_object_tracking.py src/task/wam-rl-policy-v3/tests/test_source_pd.py src/task/wam-rl-policy-v3/tests/test_continuous_wrist.py src/task/wam-rl-policy-v3/tests/test_inspire_state_codec.py src/task/wam-rl-policy-v3/tests/test_inspire_reset_submission.py
+```
+期望：两份audit_failures=[]，90组reference_mismatches=[]，mutants10/10，pytest30 passed/0 failed。
+
+实际物理命令（已完成；复跑必须新output且先查卡，不应覆盖）：
+```bash
+PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES='' /home2/wyy/miniconda3/envs/graspenv/bin/python -u src/task/wam-rl-policy-v3/tools/run/run_object_tracking.py --output outputs/wam-rl-policy-v3/object-trajectory-tracking-20261023-r2 --gpu 4 --matrix full --seconds 7200
+PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES='' /home2/wyy/miniconda3/envs/graspenv/bin/python -u src/task/wam-rl-policy-v3/tools/run/run_object_tracking.py --output outputs/wam-rl-policy-v3/object-trajectory-tracking-20261023-r3 --gpu 5 --matrix full --stages B --reference-start outputs/wam-rl-policy-v3/object-trajectory-tracking-20261023-r2/reference-start.npy --seconds 7200
+PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES='' /home2/wyy/miniconda3/envs/graspenv/bin/python -u src/task/wam-rl-policy-v3/tools/run/run_object_tracking.py --output outputs/wam-rl-policy-v3/object-trajectory-tracking-20261023-r4 --gpu 5 --matrix full --stages B --reference-start outputs/wam-rl-policy-v3/object-trajectory-tracking-20261023-r2/reference-start.npy --seconds 7200
+```
+r2/r3旧偏差需对应runtime-code才能复现，不能把当前修正入口说成同一代码。通用任意轨迹用`--reference-npz <times+poses.npz>`取代生成矩阵；该CLI边界仅CPU验证，不虚构另一次物理结果。
+
+### 完整45组×A/B×FF（每格n=1）
+
+每格为物体“位置P95 mm / 姿态P95 deg”。通过*仅指A运动学代理满足数值阈值，自碰撞和子步rigid负载仍未资格化；本表全都走完整段。P50/P90/max、每tick、闭合、相对漂移、关节名/余量、真实速度/曲率、servo cap都在qualified-matrix.csv及原始数据。
+
+| 形状 | 尺度mm | 均速mm/s | A无FF P95 mm/deg | A有FF | B无FF | B有FF |
+|---|---:|---:|---|---|---|---|
+| straight | 20 | 30 | 9.60/10.40 未过阈值 | 9.63/7.95 未过阈值 | 10.28/9.71 未过阈值 | 10.31/7.33 未过阈值 |
+| straight | 20 | 100 | 12.61/10.41 未过阈值 | 10.23/10.10 未过阈值 | 11.39/10.24 未过阈值 | 11.00/9.85 未过阈值 |
+| straight | 20 | 250 | 14.21/10.71 未过阈值 | 12.47/11.70 未过阈值 | 13.85/10.56 未过阈值 | 12.24/11.56 未过阈值 |
+| straight | 50 | 30 | 10.86/9.86 未过阈值 | 8.38/7.24 未过阈值 | 10.11/9.06 未过阈值 | 10.13/6.59 未过阈值 |
+| straight | 50 | 100 | 26.27/10.87 未过阈值 | 18.44/8.22 未过阈值 | 22.48/10.24 未过阈值 | 15.18/7.56 未过阈值 |
+| straight | 50 | 250 | 36.07/10.41 未过阈值 | 27.93/10.10 未过阈值 | 33.96/10.24 未过阈值 | 26.37/9.84 未过阈值 |
+| straight | 100 | 30 | 11.96/7.52 未过阈值 | 8.83/5.48 未过阈值 | 10.54/6.93 未过阈值 | 11.21/5.10 未过阈值 |
+| straight | 100 | 100 | 37.33/10.66 未过阈值 | 27.29/7.88 未过阈值 | 32.26/9.87 未过阈值 | 22.41/7.18 未过阈值 |
+| straight | 100 | 250 | 62.97/10.62 未过阈值 | 51.42/8.90 未过阈值 | 58.64/10.10 未过阈值 | 47.59/8.26 未过阈值 |
+| circle | 20 | 30 | 16.43/6.53 未过阈值 | 10.83/4.68 通过* | 26.02/6.04 未过阈值 | 22.43/4.64 未过阈值 |
+| circle | 20 | 100 | 27.38/10.46 未过阈值 | 21.08/7.61 未过阈值 | 33.27/9.66 未过阈值 | 26.84/6.91 未过阈值 |
+| circle | 20 | 250 | 36.44/10.05 未过阈值 | 29.48/8.17 未过阈值 | 40.34/9.39 未过阈值 | 32.66/7.48 未过阈值 |
+| circle | 50 | 30 | 18.46/3.18 未过阈值 | 14.30/2.34 通过* | 28.13/3.80 未过阈值 | 24.11/3.55 未过阈值 |
+| circle | 50 | 100 | 42.67/7.68 未过阈值 | 32.20/5.66 未过阈值 | 51.39/7.09 未过阈值 | 40.98/5.26 未过阈值 |
+| circle | 50 | 250 | 65.71/10.51 未过阈值 | 50.22/7.61 未过阈值 | 70.53/9.67 未过阈值 | 55.79/6.91 未过阈值 |
+| circle | 100 | 30 | 18.73/1.67 未过阈值 | 14.53/1.24 通过* | 28.46/3.47 未过阈值 | 24.39/3.36 未过阈值 |
+| circle | 100 | 100 | 50.99/4.88 未过阈值 | 38.60/3.58 未过阈值 | 60.60/4.62 未过阈值 | 48.03/4.02 未过阈值 |
+| circle | 100 | 250 | 102.15/8.52 未过阈值 | 82.79/6.23 未过阈值 | 112.66/7.86 未过阈值 | 92.67/5.74 未过阈值 |
+| figure8 | 20 | 30 | 18.35/6.68 未过阈值 | 14.12/4.88 通过* | 28.37/6.16 未过阈值 | 24.13/4.70 未过阈值 |
+| figure8 | 20 | 100 | 25.42/10.46 未过阈值 | 19.00/7.78 未过阈值 | 31.46/9.65 未过阈值 | 25.36/7.09 未过阈值 |
+| figure8 | 20 | 250 | 26.92/10.90 未过阈值 | 22.24/8.26 未过阈值 | 30.72/10.26 未过阈值 | 25.65/7.58 未过阈值 |
+| figure8 | 50 | 30 | 22.12/3.27 未过阈值 | 16.43/2.37 未过阈值 | 32.37/3.83 未过阈值 | 27.35/3.58 未过阈值 |
+| figure8 | 50 | 100 | 46.00/7.82 未过阈值 | 34.70/5.73 未过阈值 | 55.12/7.20 未过阈值 | 43.67/5.31 未过阈值 |
+| figure8 | 50 | 250 | 58.42/10.48 未过阈值 | 43.99/7.80 未过阈值 | 64.83/9.67 未过阈值 | 50.31/7.11 未过阈值 |
+| figure8 | 100 | 30 | 23.06/1.72 未过阈值 | 17.71/1.27 未过阈值 | 33.44/3.48 未过阈值 | 28.12/3.37 未过阈值 |
+| figure8 | 100 | 100 | 59.80/5.01 未过阈值 | 45.34/3.67 未过阈值 | 69.89/4.71 未过阈值 | 55.42/4.07 未过阈值 |
+| figure8 | 100 | 250 | 95.96/8.64 未过阈值 | 73.50/6.32 未过阈值 | 105.21/7.95 未过阈值 | 82.85/5.82 未过阈值 |
+| helix | 20 | 30 | 16.40/6.47 未过阈值 | 12.73/4.76 通过* | 26.14/5.99 未过阈值 | 22.53/4.63 未过阈值 |
+| helix | 20 | 100 | 27.69/10.49 未过阈值 | 21.23/7.61 未过阈值 | 33.50/9.66 未过阈值 | 27.03/6.91 未过阈值 |
+| helix | 20 | 250 | 36.95/10.05 未过阈值 | 29.79/8.17 未过阈值 | 40.79/9.39 未过阈值 | 33.04/7.48 未过阈值 |
+| helix | 50 | 30 | 18.45/3.16 未过阈值 | 14.30/2.33 通过* | 28.29/3.80 未过阈值 | 24.24/3.55 未过阈值 |
+| helix | 50 | 100 | 42.13/7.65 未过阈值 | 32.34/5.66 未过阈值 | 51.73/7.09 未过阈值 | 41.28/5.26 未过阈值 |
+| helix | 50 | 250 | 66.19/10.51 未过阈值 | 50.03/7.61 未过阈值 | 71.10/9.67 未过阈值 | 55.48/6.91 未过阈值 |
+| helix | 100 | 30 | 18.71/1.66 未过阈值 | 14.53/1.23 通过* | 28.57/3.47 未过阈值 | 24.49/3.36 未过阈值 |
+| helix | 100 | 100 | 51.22/4.86 未过阈值 | 38.33/3.56 未过阈值 | 60.74/4.60 未过阈值 | 48.18/4.01 未过阈值 |
+| helix | 100 | 250 | 99.79/8.53 未过阈值 | 79.61/6.22 未过阈值 | 109.82/7.86 未过阈值 | 89.17/5.74 未过阈值 |
+| random_spline | 20 | 30 | 16.34/6.74 未过阈值 | 12.37/4.92 通过* | 19.96/6.21 未过阈值 | 17.75/4.72 未过阈值 |
+| random_spline | 20 | 100 | 23.02/10.43 未过阈值 | 17.54/7.58 未过阈值 | 24.79/9.62 未过阈值 | 19.76/6.88 未过阈值 |
+| random_spline | 20 | 250 | 25.21/10.87 未过阈值 | 22.49/8.22 未过阈值 | 27.49/10.24 未过阈值 | 25.20/7.55 未过阈值 |
+| random_spline | 50 | 30 | 21.64/3.32 未过阈值 | 16.20/2.32 未过阈值 | 23.65/3.84 未过阈值 | 19.93/3.59 未过阈值 |
+| random_spline | 50 | 100 | 44.88/7.88 未过阈值 | 35.50/5.76 未过阈值 | 45.52/7.26 未过阈值 | 34.45/5.34 未过阈值 |
+| random_spline | 50 | 250 | 55.42/10.44 未过阈值 | 49.36/7.55 未过阈值 | 56.33/9.61 未过阈值 | 46.62/6.86 未过阈值 |
+| random_spline | 100 | 30 | 24.41/1.63 未过阈值 | 17.34/1.29 未过阈值 | 26.65/3.49 未过阈值 | 21.78/3.37 未过阈值 |
+| random_spline | 100 | 100 | 73.00/5.06 未过阈值 | 60.98/3.72 未过阈值 | 65.41/4.78 未过阈值 | 52.36/4.08 未过阈值 |
+| random_spline | 100 | 250 | 115.62/8.68 未过阈值 | 110.24/6.36 未过阈值 | 110.73/7.98 未过阈值 | 104.24/5.84 未过阈值 |
+
+### 实测/自报/待定与Git
+
+实测：本轮物理pose/q/接触与实际PD返回、180格全路径指标、缺陷前后持握改善。独立核算：误差/判据/PD/首目标/同参考同初态。自报且入口可查：0模型/训练调用、资源预算与进程退出。待定：真实子步刚体固定的载荷、自碰撞、剩余跟踪误差的动力学单因、其它初态/物体；不把它们写成PASS，也不拿本轮否定τ或学习路线。
+
+提交只含本轮显式路径；pull --rebase被他人脏文件拒绝，未stash/覆盖/加入他人修改，普通push。最终HEAD/origin/main一致证明在交付回答给出。

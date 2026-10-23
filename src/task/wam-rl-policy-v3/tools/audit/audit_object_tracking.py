@@ -31,6 +31,15 @@ def audit(run):
         with np.load(folder/'trajectory.npz') as z:states={k:z[k].copy() for k in z.files}
         with np.load(folder/'reference.npz') as z:knots=z['poses'].copy();times=z['times'].copy();local=z['hand_object'].copy()
         with np.load(folder/'controls.npz') as z:raw=z['raw_action'].copy();pd=z['pd_target'].copy()
+        handoff_delta=None
+        if result['stage']=='B' and (folder/'handoff.json').is_file():
+            handoff=json.loads((folder/'handoff.json').read_text())
+            held=np.asarray(handoff['last_actual_pd'])[[6,8,10,12,14,15]]
+            force=np.linalg.norm(states['contact_forces'][0,0],axis=-1);finger_force=np.r_[force[:4],force[4],force[4]]
+            expected_held=np.clip(held+np.where(finger_force<.25,.0015,np.where(finger_force>4.,-.001,0.)),.06,[1.55,1.55,1.55,1.55,1.10,.50])
+            handoff_delta=float(np.max(np.abs(pd[0,[6,8,10,12,14,15]]-expected_held)))
+            maximums['handoff_first_finger_PD']=max(maximums['handoff_first_finger_PD'],handoff_delta)
+            if handoff_delta>2e-6:failures.append([result['index'],'grasp preload handoff',handoff_delta])
         with np.load(folder/'initial.npz') as z:initials.append(z['q'].copy())
         tick_rows=json.loads((folder/'ticks.json').read_text());clock=np.asarray([x['time_s'] for x in tick_rows]);n=len(clock)
         if len(raw)+1!=n or not np.all(np.diff(states['tick'][:,0])==1):failures.append([result['index'],'post-state/control clock'])
@@ -117,6 +126,7 @@ def audit(run):
                     reference_min_curvature_radius_m=None if not len(radius) else float(radius.min()),reference_median_curvature_radius_m=None if not len(radius) else float(np.median(radius)),
                     initial_wrist_speed_m_s=float(np.linalg.norm(states['dq'][0,0,:3])),initial_wrist_speed_rad_s=float(np.linalg.norm(states['dq'][0,0,3:6])))
         record.update(first_double_contact_loss_s=first(~contact),longest_force_coupled_relative_hold_s=None if result['stage']=='A' else longest)
+        record['handoff_finger_pd_max_error_rad']=handoff_delta
         if not result['pass_tracking']:counts[(result['stage'],primary)]+=1
         rows.append(record);by_arm[(result['stage'],result['feedforward'])].append(record)
     if len(results)+len(manifest['unmeasured'])!=len(expected):failures.append(['incomplete matrix accounting'])
@@ -169,6 +179,9 @@ def merge_stages(a_run,b_run):
     a_rows=[r for r in csv.DictReader((a_run/'matrix.csv').open()) if r['stage']=='A']
     b_rows=[r for r in csv.DictReader((b_run/'matrix.csv').open()) if r['stage']=='B']
     if len(a_rows)!=90 or len(b_rows)!=90:raise ValueError('full 90+90 matrix required')
+    b_summary=json.loads((b_run/'audit-summary.json').read_text())
+    if not b_summary['real_contact_existing_force_holding'] or not all((b_run/('case%03d'%int(r['index']))/'handoff.json').is_file() for r in b_rows):
+        raise ValueError('B eligibility requires existing force holding AND recorded preceding actual PD preload')
     def key(r):return tuple(r[k] for k in ('shape','scale_m','requested_mean_speed_m_s','feedforward'))
     cross=[];initial_differences=defaultdict(float);post_grasp_differences=defaultdict(float)
     for ar in a_rows:
@@ -193,7 +206,7 @@ def merge_stages(a_run,b_run):
         table+='| {} | {:.0f} | {:.0f} | {} |\n'.format(shape,float(scale)*1000,float(speed)*1000,' | '.join(cells))
     (b_run/'qualified-matrix.md').write_text(table)
     receipt=dict(reference_comparisons=len(a_rows),reference_mismatches=cross,initial_max_difference=dict(initial_differences),post_grasp_max_difference=dict(post_grasp_differences),
-                 valid_A_run=str(a_run),valid_B_run=str(b_run),valid_cases=180,excluded_scope='r2 B is preserved fixed-finger instrumentation deviation, not qualified B')
+                 valid_A_run=str(a_run),valid_B_run=str(b_run),valid_cases=180,excluded_scope='r2 B fixed-finger and r3 B lost-preload results preserved; B eligibility checked explicitly')
     (b_run/'stage-join-audit.json').write_text(json.dumps(receipt,indent=2)+'\n')
     if cross:raise ValueError('cross-run reference mismatch')
     return receipt

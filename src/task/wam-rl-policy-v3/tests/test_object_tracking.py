@@ -101,3 +101,16 @@ def test_handoff_keeps_actual_pd_preload_instead_of_measured_deflection():
     reconstructed=(raw[6:]+1)/2
     np.testing.assert_allclose(reconstructed,held,atol=1e-7)
     assert abs(reconstructed[0]-q[FINGER_ACTIVE][0])>.5
+
+
+def test_real_runner_carries_last_actual_pd_to_tracker_constructor():
+    import ast
+    from pathlib import Path
+    runner=Path(__file__).resolve().parents[1]/'tools/run/run_object_tracking.py'
+    tree=ast.parse(runner.read_text())
+    assignment=next(n for n in ast.walk(tree)if isinstance(n,ast.Assign)and any(isinstance(t,ast.Name)and t.id=='held_fingers' for t in n.targets))
+    value=compile(ast.Expression(assignment.value),str(runner),'eval')
+    previous=np.linspace(0,1,18);ids=np.array([6,8,10,12,14,15])
+    np.testing.assert_array_equal(eval(value,{'last_acquisition_pd':previous,'finger_ids':ids,'case':{'stage':'B'}}),previous[ids])
+    constructor=next(n for n in ast.walk(tree)if isinstance(n,ast.Call)and isinstance(n.func,ast.Name)and n.func.id=='ObjectPoseTracker')
+    assert any(k.arg=='held_finger_targets' and isinstance(k.value,ast.Name)and k.value.id=='held_fingers' for k in constructor.keywords)
