@@ -206,6 +206,18 @@ def install_bound_reset(cls, frozen, before_reset):
     cls.reset_target_pose = reset_target_pose
 
 
+def reuse_prepared(out, previous):
+    """Reuse immutable prepared assets after a failed pre-control initialization."""
+    if out.exists(): raise FileExistsError(out)
+    guard(out.parent,2*GIB);out.mkdir();(out/'tmp').mkdir()
+    plan=json.loads((previous/'plan.json').read_text())
+    for name in ('assets','registry'):(out/name).symlink_to(previous/name,target_is_directory=True)
+    plan.update(run_id=out.name,prepared_from=str(previous),prepared_plan_sha256=sha(previous/'plan.json'))
+    write(out/'plan.json',plan)
+    write(out/'storage-preflight.json',dict(free_before_bytes=guard(out,2*GIB),floor_bytes=30*GIB,
+        output_cap_bytes=2*GIB,estimated_tick_payload_gib=[.44,.88],checked_at_ns=time.time_ns(),prepared_assets_reused_read_only=True))
+
+
 def worker(out, object_index, gpu):
     # Preserve required Isaac-before-Torch import order.
     from isaacgym import gymapi, gymutil
@@ -249,10 +261,16 @@ def worker(out, object_index, gpu):
             goal_semantics='spatial_path_waypoint', independent_of_target_rollout=True) for e,j in enumerate(jobs)]
         write(batch/'intent-before-reset.json',intents); intent_hash=sha(batch/'intent-before-reset.json')
         geo = dict(np.load(out/asset['registry'],allow_pickle=False))
-        channels = {}; reset_rows = {}
+        channels = {}; reset_rows = {}; initializing = [True]
         def on_reset(native, ids, stamp):
             for env in ids.cpu().tolist():
-                if env in channels: raise ValueError('unexpected second reset; never splice rollouts')
+                if env in channels:
+                    if not initializing[0]: raise ValueError('unexpected second reset; never splice rollouts')
+                    if not torch.equal(native.goal_states[env],frozen[env]): raise ValueError('repeated logical reset changed goal')
+                    write(out/jobs[env]['rollout_id']/'repeated-initial-reset.json',dict(at_ns=stamp,
+                        logical_reset=reset_rows[env]['reset'],restored_goal_state=native.goal_states[env].cpu().tolist(),
+                        before_first_physics_control=True))
+                    continue
                 reset = dict(execution_id=intents[env]['target_execution_id'],reset_id='reset-0', clock_id='host-realtime-ns',at_ns=stamp)
                 pose = np.eye(4); pose[:3,3]=frozen_np[env,:3]; pose[:3,:3]=Rotation.from_quat(frozen_np[env,3:7]).as_matrix()
                 def bound(payload,role,name):
@@ -273,6 +291,7 @@ def worker(out, object_index, gpu):
                 write(folder/'reset-binding.json',row); reset_rows[env]=row
         install_bound_reset(cls,frozen,on_reset)
         task.reset_buf[:]=1; task.step(torch.zeros((n,24),device='cuda:0'),-1)
+        initializing[0] = False
         widths=[300,1024,1024,512,512,24]; layers=[]
         for i,(a,b) in enumerate(zip(widths,widths[1:])):
             layers.append(torch.nn.Linear(a,b))
@@ -505,9 +524,12 @@ def audit(out):
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('stage',choices=['prepare','collect','worker','audit'])
     p.add_argument('--output',type=Path,required=True);p.add_argument('--gpu',type=int,default=4);p.add_argument('--object-index',type=int)
+    p.add_argument('--prepared-from',type=Path)
     a=p.parse_args();out=a.output.resolve()
     if ROOT/'outputs/ptv3-shared-wam-v6' not in out.parents: raise ValueError('task-owned output required')
-    if a.stage=='prepare':prepare(out)
+    if a.stage=='prepare':
+        if a.prepared_from: reuse_prepared(out,a.prepared_from.resolve())
+        else: prepare(out)
     elif a.stage=='collect':collect(out,a.gpu)
     elif a.stage=='worker':worker(out,a.object_index,a.gpu)
     else:audit(out)
