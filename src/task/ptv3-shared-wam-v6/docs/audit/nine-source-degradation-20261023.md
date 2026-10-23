@@ -156,3 +156,103 @@ New immutable preregistration: preregistration-v2.json. C1->C2->C3->C4(source1/1
 Gate rejects1590/9341050 (0.0170%) windows:source10=1299 (0.2730%),source6=291 (0.0503%),source4/8=0. All sources retain>=200 windows. The actual24-step hand objective mask is used; absent other-hand slots are retained. Object targets remain valid in these zero-hand windows, so these are not wholly unsupervised examples. C5 filters every source internally and preserves each source1/9, including the additionally found291 source6 zero-hand windows. This is a real but small gate intervention, not the supposed46-50% removal.
 
 C5 gate SHA256: `2c74830476af4c93c17737ad11300e5b83649d5293dcb33aa4340d14c2dca20f`; composite data identity: `d56531259b33ecd747c688c3bec599a00641bbf5dafac5b1a102f57fda773d03`. Gate identity is included in checkpoints/receipts. CPU4800-draw gate/determinism/worker-state checks passed; evidence C5-support-engineering.json.
+
+## C1 completed (measured)
+
+Progress: `{"automatic_restart": false, "elapsed_s": 1230.9634535420046, "global_batch": 384, "status": "COMPLETED", "step": 500, "updates": 500}`
+
+Panel summary:
+```json
+{
+  "anchor_sha256": "440c00c8609a2e9c6276f328f1aa5136a04708294a09b5dab8321044e6caa706",
+  "bootstrap_repeats": 4000,
+  "bootstrap_seed": 170,
+  "cluster_ci95_mm": [
+    [
+      7.744489619109408,
+      8.428222479738272
+    ],
+    [
+      18.61123934768469,
+      20.153199449617702
+    ],
+    [
+      4.665338230031405,
+      5.2475048861264595
+    ]
+  ],
+  "means_mm": [
+    8.080901486311399,
+    19.366286934735157,
+    4.959187217480348
+  ],
+  "metrics_order": [
+    "first8_hand",
+    "fixed_contact_hand",
+    "first8_object"
+  ],
+  "mothers": 124,
+  "panel_attention_backend": "math",
+  "repeat_bit_exact": true,
+  "rows": 512,
+  "same_A_conditions": true,
+  "scope": "fixed TRAIN panel only; no generalization or execution conclusion",
+  "status": "PASS",
+  "step": 500,
+  "training_attention_backend": "efficient",
+  "versus_local3000": {
+    "delta_mm": [
+      -0.8999179289457846,
+      -5.293062317326584,
+      -0.680216192712237
+    ],
+    "paired_mother_cluster_ci95_mm": [
+      [
+        -1.1279194208713992,
+        -0.6740164440313804
+      ],
+      [
+        -6.0285278637516875,
+        -4.49344285664408
+      ],
+      [
+        -0.871183341717069,
+        -0.49631058216425683
+      ]
+    ],
+    "winner": [
+      "remote",
+      "remote",
+      "remote"
+    ]
+  }
+}
+```
+
+by_source
+
+|group|rows/mothers|first8 hand mm (delta)|contact hand mm (delta)|first8 object mm (delta)|
+|---|---:|---:|---:|---:|
+|0|27/3|6.4015 (+0.1343)|11.8025 (+0.4576)|3.5315 (-0.0305)|
+|1|347/101|8.2859 (-1.3490)|19.7491 (-6.5922)|4.8986 (-1.0545)|
+|10|78/3|9.9167 (+0.3319)|26.3856 (+0.5988)|6.3351 (+0.1208)|
+|2|16/3|6.0061 (+0.5277)|13.9588 (+0.6420)|3.7310 (+0.1239)|
+|4|10/3|9.7997 (+0.6161)|17.6942 (+0.9849)|6.4638 (+0.1727)|
+|5|7/2|5.8212 (+0.9484)|12.7840 (+1.7127)|3.9946 (+0.1564)|
+|6|18/3|5.8597 (+0.5274)|9.8830 (+0.4320)|3.4377 (-0.0537)|
+|8|6/3|5.8893 (+1.3003)|14.8593 (+3.1111)|3.9177 (+0.4085)|
+|9|3/3|4.7959 (+0.6375)|11.0808 (+1.5526)|4.0350 (+0.9206)|
+
+by_phase
+
+|group|rows/mothers|first8 hand mm (delta)|contact hand mm (delta)|first8 object mm (delta)|
+|---|---:|---:|---:|---:|
+|approach|105/79|8.9069 (-1.2562)|20.0824 (-2.6544)|3.9147 (-0.1908)|
+|close|105/100|7.4517 (-0.9023)|19.4194 (-4.7505)|4.5963 (-0.5945)|
+|contact|105/104|6.7293 (-0.7698)|14.6053 (-2.9459)|4.4767 (-0.9265)|
+|hold|105/102|7.5948 (-1.1598)|21.8109 (-8.5536)|5.7464 (-1.6569)|
+|unknown|92/17|11.3741 (+0.0891)|26.3480 (+0.5430)|6.2177 (+0.0592)|
+
+Full reproducible paired group CIs and relative changes: `/mnt/ugreen_nas/storage/oyx_storage/wam-nine-source-full-20261023-pending/diagnosis/C1/grouped-panel.json`.
+
+Preregistered interpretation: All three stable/improve: continuation cleared under matched C1; inspect distribution via C2.
