@@ -7,6 +7,17 @@ from .pose_consumer import closest_wrist_angles, FINGER_ACTIVE, FINGER_UPPER
 SHAPES = ('straight', 'circle', 'figure8', 'helix', 'random_spline')
 
 
+def contact_records(contacts):
+    """Use the installed binding dtype; absent overlap is unknown, never zero."""
+    result=[]
+    for contact in contacts:
+        fields=contact.dtype.names
+        result.append(dict(body0=int(contact['body0']),body1=int(contact['body1']),
+                           force=float(contact['lambda']),
+                           initial_overlap=float(contact['initial_overlap']) if 'initial_overlap' in fields else None))
+    return result
+
+
 class ObjectTrajectory:
     def __init__(self, times, poses):
         self.times, self.poses = np.asarray(times, float), np.asarray(poses, float)

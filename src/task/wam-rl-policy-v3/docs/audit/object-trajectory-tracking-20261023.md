@@ -27,3 +27,7 @@
 ## 实测结果
 
 PENDING。最终写明矩阵实际执行/未执行、每 tick 原始文件、FF成对差值与局限，不以工程测试 PASS 替代物理资格。
+
+## 记录接口故障与修复（不是物理能力结果）
+
+r1（33177f56）原生执行1control后记录转换失败：`ValueError('no field of name initial_overlap')`，client未收到回包所以client.controls=0；跟踪0。原始故障目录保留。初始“GPU接口不兼容”的猜测被明确异常否证：本机实际接触dtype缺文档字段；没有证据指向GPU PhysX不能查询接触。修复仅让缺失overlap为null（不伪造0），body0/body1/lambda照常记录；回归构造相同缺字段结构。8 passed/0 failed；物理后端仍gpu-cpu。新输出r2，控制、门槛、矩阵不改。

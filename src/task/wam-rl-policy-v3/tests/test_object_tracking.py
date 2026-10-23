@@ -35,3 +35,13 @@ def test_continuous_wrist_not_a_limited_joint():
     margins=joint_margin(q,limits)
     assert np.isinf(margins[3:6]).all();assert margins[10]==pytest.approx(-.12)
     assert np.argmin(margins)==10
+
+
+def test_installed_contact_binding_without_documented_overlap():
+    from wam_rl_policy_v3.object_tracking import contact_records
+    contacts=np.array([(2,25,1.2)],dtype=[('body0','i4'),('body1','i4'),('lambda','f4')])
+    row=contact_records(contacts)[0]
+    assert row['initial_overlap'] is None
+    assert row['body0']==2 and row['body1']==25 and row['force']==pytest.approx(1.2)
+    richer=np.array([(2,25,1.2,.003)],dtype=contacts.dtype.descr+[('initial_overlap','f4')])
+    assert contact_records(richer)[0]['initial_overlap']==pytest.approx(.003)

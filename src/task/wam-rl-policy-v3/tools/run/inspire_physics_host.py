@@ -236,7 +236,9 @@ def main():
                 result.update(episodes=episodes.tolist(),sequences=[Path(task.motion_file[i]).name for i in task.data_id.cpu().tolist()])
                 if a.object_tracking_probe:
                     contacts=task.gym.get_env_rigid_contacts(task.envs[0]) if bool(force_valid[0]) else []
-                    result['tracking_contacts']=[dict(body0=int(c['body0']),body1=int(c['body1']),force=float(c['lambda']),initial_overlap=float(c['initial_overlap'])) for c in contacts]
+                    from wam_rl_policy_v3.object_tracking import contact_records
+                    result['tracking_contacts']=contact_records(contacts)
+                    if len(contacts):audit['tracking_contact_dtype']=list(contacts.dtype.names)
                     result['tracking_rigid_attachment']=attachment is not None
                     result['tracking_body_pose']=bodies[0,:,:7].cpu().tolist()
                 if a.extended_state:
