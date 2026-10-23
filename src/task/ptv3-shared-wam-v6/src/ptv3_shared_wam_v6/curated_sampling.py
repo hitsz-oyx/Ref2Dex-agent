@@ -66,6 +66,28 @@ class CuratedTauSampler:
             by_source[source][sequence][phase].append(row)
         self.by_source = by_source
         self.sources = tuple(sorted(by_source))
+        self.source_capacities = {
+            source: len(by_source[source]) * self.max_per_sequence
+            for source in self.sources
+        }
+
+    def _draw_source_counts(self, count: int, rng) -> dict[int, int]:
+        if count > sum(self.source_capacities.values()):
+            raise ValueError(f"batch {count} exceeds sequence cap across all sources")
+        chosen = rng.choice(self.sources, size=count, replace=True)
+        per_source = {int(s): int((chosen == s).sum()) for s in self.sources}
+        # Preserve every previously feasible draw and its RNG stream exactly.
+        # Only impossible overflow is reassigned, uniformly among sources with
+        # remaining sequence capacity. No source/seed/step-specific exception.
+        excess = 0
+        for source, capacity in self.source_capacities.items():
+            excess += max(0, per_source[source] - capacity)
+            per_source[source] = min(per_source[source], capacity)
+        for _ in range(excess):
+            available = [s for s in self.sources
+                         if per_source[s] < self.source_capacities[s]]
+            per_source[int(rng.choice(available))] += 1
+        return per_source
 
     def draw(self, count: int, *, step: int = 0, rank: int = 0) -> list[dict]:
         """Draw one deterministic batch and enforce the sequence cap."""
@@ -73,16 +95,11 @@ class CuratedTauSampler:
             raise ValueError("count must be positive")
         rng = np.random.default_rng(np.random.SeedSequence(
             [self.seed, int(step), int(rank), 20261023]))
-        chosen = rng.choice(self.sources, size=count, replace=True)
-        per_source = {int(s): int((chosen == s).sum()) for s in self.sources}
+        per_source = self._draw_source_counts(count, rng)
         out: list[dict] = []
         for source in self.sources:
             need = per_source[source]
             sequences = tuple(sorted(self.by_source[source]))
-            if need > len(sequences) * self.max_per_sequence:
-                raise ValueError(
-                    f"batch {count} exceeds sequence cap for source {source}: "
-                    f"need={need}, capacity={len(sequences) * self.max_per_sequence}")
             counts = defaultdict(int)
             for _ in range(need):
                 available = tuple(s for s in sequences
