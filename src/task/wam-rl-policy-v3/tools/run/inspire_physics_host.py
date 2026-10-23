@@ -52,6 +52,7 @@ def main():
     p.add_argument('--sequence',help='Exact TRAIN motion for bounded canonical-command replay')
     p.add_argument('--fixed-motions-json',type=Path,help='Engineering replay only: exact collection batch membership, no object sampler')
     p.add_argument('--extended-state',action='store_true',help='Measured DOF/contact forces and per-episode validity; legacy actor input is unchanged')
+    p.add_argument('--object-tracking-probe',action='store_true',help='Opt-in rigid attachment and native contact-pair diagnostics; no task schema changes')
     a=p.parse_args();a.cache=a.cache.resolve();a.output=a.output.resolve();a.socket=a.socket.resolve()
     if a.output.exists() or ROOT/'outputs/wam-rl-policy-v3' not in a.output.parents or not 1<=a.envs<=512:
         raise ValueError('fresh bounded native host required')
@@ -197,6 +198,34 @@ def main():
             table_indices=[task.gym.get_actor_index(env, handle, gymapi.DOMAIN_ENV)
                            for env,handle in zip(task.envs,task._table_handles)]
             table_indices=torch.tensor(table_indices,device=task.device,dtype=torch.long)
+            attachment=None
+            if a.object_tracking_probe:
+                if a.envs!=1 or a.physics_backend!='gpu-cpu':
+                    raise ValueError('tracking contact diagnostics require one env and GPU PhysX/CPU exchange')
+                audit['tracking_body_names']=[]
+                audit['tracking_body_roles']=[]
+                for handle,role in ((task.humanoid_handles[0],'hand'),(task._table_handles[0],'table'),(task._target_handles[0],'object')):
+                    actor_names=task.gym.get_actor_rigid_body_names(task.envs[0],handle)
+                    audit['tracking_body_names'].extend(actor_names)
+                    audit['tracking_body_roles'].extend([role]*len(actor_names))
+                audit['tracking_table_body']=task.gym.get_actor_rigid_body_index(task.envs[0],task._table_handles[0],0,gymapi.DOMAIN_ENV)
+                audit['tracking_object_body']=task.gym.get_actor_rigid_body_index(task.envs[0],task._target_handles[0],0,gymapi.DOMAIN_ENV)
+            original_post=task.post_physics_step
+            def tracking_post():
+                original_post()
+                if attachment is not None:
+                    from utils import torch_utils
+                    bodies=task._rigid_body_state.view(a.envs,-1,13)
+                    palm=bodies[:,hand_ids[0]]
+                    local_p,local_q=attachment
+                    lever=torch_utils.quat_rotate(palm[:,3:7],local_p)
+                    task._target_states[:,:3]=palm[:,:3]+lever
+                    task._target_states[:,3:7]=torch_utils.quat_mul(palm[:,3:7],local_q)
+                    task._target_states[:,7:10]=palm[:,7:10]+torch.cross(palm[:,10:13],lever,dim=-1)
+                    task._target_states[:,10:13]=palm[:,10:13]
+                    actor_ids=task._tar_actor_ids.to(torch.int32).contiguous()
+                    task.gym.set_actor_root_state_tensor_indexed(task.sim,gymtorch.unwrap_tensor(task._root_states),gymtorch.unwrap_tensor(actor_ids),len(actor_ids))
+            if a.object_tracking_probe:task.post_physics_step=tracking_post
             def packet():
                 packet_started=time.perf_counter()
                 bodies=task._rigid_body_state.view(a.envs,-1,13)
@@ -205,6 +234,11 @@ def main():
                 result=(pack_state({k:v.cpu().numpy() for k,v in values.items()}) if a.state_transport=='packed'
                         else {k:v.cpu().tolist() for k,v in values.items()})
                 result.update(episodes=episodes.tolist(),sequences=[Path(task.motion_file[i]).name for i in task.data_id.cpu().tolist()])
+                if a.object_tracking_probe:
+                    contacts=task.gym.get_env_rigid_contacts(task.envs[0]) if bool(force_valid[0]) else []
+                    result['tracking_contacts']=[dict(body0=int(c['body0']),body1=int(c['body1']),force=float(c['lambda']),initial_overlap=float(c['initial_overlap'])) for c in contacts]
+                    result['tracking_rigid_attachment']=attachment is not None
+                    result['tracking_body_pose']=bodies[0,:,:7].cpu().tolist()
                 if a.extended_state:
                     roots=task._root_states.view(a.envs,task.get_num_actors_per_env(),-1)
                     result.update(dof_force=torch.where(force_valid[:,None],task.dof_force_tensor,0.).cpu().tolist(),
@@ -234,6 +268,7 @@ def main():
                     command=receive(connection);op=command['op']
                     if op=='close':send(connection,dict(ok=True));break
                     if op=='reset':
+                        attachment=None
                         selected=np.asarray(command['ids'],np.int64)
                         if len(selected)!=len(np.unique(selected)) or (selected<0).any() or (selected>=a.envs).any():raise ValueError('invalid indexed reset')
                         reset_started=time.perf_counter()
@@ -241,6 +276,11 @@ def main():
                         force_valid[torch.as_tensor(selected,device=task.device)]=False
                         audit['last_reset_s']=time.perf_counter()-reset_started
                         audit['indexed_resets']+=len(selected)
+                    elif op=='tracking_attachment':
+                        if not a.object_tracking_probe:raise ValueError('tracking fixture disabled')
+                        value=np.asarray(command['hand_object'],np.float32)
+                        if value.shape!=(7,) or not np.isfinite(value).all() or abs(np.linalg.norm(value[3:])-1)>1e-5:raise ValueError('finite local pose7 required')
+                        attachment=(torch.tensor(value[:3][None],device=task.device),torch.tensor(value[3:][None],device=task.device)) if command['enabled'] else None
                     elif op=='step':
                         if command['episodes']!=episodes.tolist():
                             audit['episode_action_mismatches']+=1;raise ValueError('cross-episode action')
