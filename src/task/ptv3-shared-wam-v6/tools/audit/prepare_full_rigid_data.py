@@ -49,6 +49,13 @@ def read(p):
     return json.loads(Path(p).read_text())
 
 
+def read_receipt(path):
+    # write(..., fixed=True) puts JSON on the first line, then pads to64KiB.
+    # Avoid rereading gigabytes of padding during a full sequence census.
+    with Path(path).open() as stream:
+        return json.loads(stream.readline())
+
+
 def digest(p):
     h = hashlib.sha256()
     with Path(p).open('rb') as f:
@@ -245,7 +252,7 @@ def process_one(args):
     out, row, job, old, old_event = args
     out=Path(out); key=row['key']; receipt=out/'receipts'/(key+'.json')
     if receipt.exists():
-        existing=read(receipt)
+        existing=read_receipt(receipt)
         if existing.get('status') in ['ADMITTED','REJECTED']:
             if existing['input_plan_sha256']!=_PLAN_SHA:raise ValueError('resume plan changed')
             if existing['status']=='ADMITTED':

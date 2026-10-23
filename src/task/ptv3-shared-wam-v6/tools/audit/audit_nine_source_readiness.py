@@ -120,7 +120,7 @@ def audit(run,out):
     if (run/'additional-local-jobs.json').exists():
         for r in p.read(run/'additional-local-jobs.json')['rows']:
             rows[r['job']['key']]=r['inventory'];jobs[r['job']['key']]=r['job']
-    receipts=[p.read(f) for f in sorted((run/'receipts').glob('*.json'))]
+    receipts=[p.read_receipt(f) for f in sorted((run/'receipts').glob('*.json'))]
     if len({r['key'] for r in receipts})!=len(receipts):raise ValueError('duplicate receipt key')
     if any(r['input_plan_sha256']!=inventory['plan_sha256'] for r in receipts):
         raise ValueError('receipt plan drift')

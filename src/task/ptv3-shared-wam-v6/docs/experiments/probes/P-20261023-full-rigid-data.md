@@ -7,7 +7,7 @@ task: ptv3-shared-wam-v6
 branch: main
 git_commit: recorded-in-run-manifest
 classification: Blocker
-status: PRE_REGISTERED
+status: PREPARED_WITH_GAPS
 run_id: full-rigid-20261023-brief47-r1
 claim_id: full-local-rigid-data-coverage
 hypothesis_family: full-local-rigid-preparation
@@ -64,3 +64,16 @@ surface778、surface2048/normals/query32、contact/part/valid与event及metadata
 数据准备产物和完整全量报告在上述run目录；版本与实际命令以run-manifest.json为准。
 此工程数据审计不随机抽样；manifest排序seed170、已有手表面采样seed20261019明确记录，
 不额外领取训练/评估seed，不将来源认证失败升级成数据非法或模型效果结论。
+
+## 2026-10-23 12:0x 全量转换/独立census终态
+
+转换39,527/39,527母序列、TRAIN9,341,050/DEV1,856,282窗口；独立clock全量PASS。
+固定转换字节182,331,193,978，receipt/实际文件一致；剩余0、partial0。九源TRAIN齐，
+source8 DEV=0；TRAIN零格61→8，旧6k全部存在，新增9,335,050行，旧身份不变。
+来源认证仍0/11,197,332；第一版保持A，goal独立消融后置。完整数表与预注册见
+[准入报告](../../audit/nine-source-training-admission-20261023.md)及其机器收据。
+
+本卡全量内容去重阶段未完成：full-manifest-r1在legacy官方TEST MANO view无
+view_manifest时失败，原输出/日志保留；路径兼容已修并独立重放1,335母序列/633view，
+未自动重启。独立readiness-manifest-r1覆盖全部窗口，不能把它称去重后manifest。
+全量reader、内容/split、保守磁盘、GPU4/5/6门未全PASS，大训练HOLD，本轮0updates。

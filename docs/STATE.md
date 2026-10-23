@@ -1,3 +1,12 @@
+## 2026-10-23 九源转换已完成，训练准入仍HOLD
+
+39,527条母序列全量准入，TRAIN9,341,050/DEV1,856,282窗；九源TRAIN齐，source8 DEV=0。
+固定转换182,331,193,978B与receipt/实际文件一致、剩余0；原6k/512身份不动，TRAIN净增
+9,335,050行，覆盖零格61→8。旧goal认证仍0/11,197,332；新采96条source4独立。
+独立审计后可用70.252GiB，扣后续summary/并发训练/新run上界后不足30GiB；全量reader、
+内容去重、空间和GPU门未全PASS。本轮不开训，A保持无goal/no-event，合法goal留独立消融。
+[九源数表、精确对账、可补性、预注册准入](../src/task/ptv3-shared-wam-v6/docs/audit/nine-source-training-admission-20261023.md)。
+
 ## 2026-10-23 新采刚体96条：来源绑定认证通过，零格61→51
 
 source4/Shadow新采96×10s@30Hz，28,800输出ticks；96/96条及26,304/26,304窗口准入，

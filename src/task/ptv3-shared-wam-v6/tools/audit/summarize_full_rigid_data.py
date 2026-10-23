@@ -198,6 +198,16 @@ def matrix(counter,path):
         requested_cells=108,zero_cells=[r for r in rows if r['windows']==0 and r['phase']!='unknown' and r['geometry_class']!='unknown'])
 
 
+def legacy_view_folder(root,row):
+    if row.get('view_manifest'):return Path(row['view_manifest']).parent,'declared_view_manifest'
+    folder=Path(root)/row['path']
+    if folder.is_dir():return folder,'declared_relative_path'
+    if row.get('geometry_root'):
+        native=Path(row['geometry_root']).parent
+        if native.is_dir():return native,'declared_geometry_parent'
+    return folder,'declared_path_missing'
+
+
 def legacy_census(out,receipts):
     data=Path('/home2/wyy/oyx_ws/Ref2Dex/data/processed_data')
     by_parent={r['source_sequence']:r for r in receipts if r['source_id']==1}
@@ -225,11 +235,14 @@ def legacy_census(out,receipts):
             for split,rows in prep.read(path)['sequences'].items():
                 for row in rows:
                     parent=row.get('parent_seq_id',row['id'])
-                    folder=Path(row['view_manifest']).parent if name=='cm_decoder_v2' else path.parent/row['path']
+                    # Official TEST MANO views have a relative path but no
+                    # view_manifest; retain their explicit audit verdict too.
+                    folder,resolution=legacy_view_folder(path.parent,row)
                     required=['joints.npy','joint_valid.npy','surface_offsets.npy','surface_valid.npy','surface_parts.npy','object_poses.npy','object_pose_valid.npy']
                     missing=[p for p in required if not (folder/p).is_file()]
                     reasons=[]
-                    if any(k in missing for k in ['joints.npy','joint_valid.npy']):reasons.append('native_robot_hand21_semantics_or_validity_missing')
+                    if row.get('qualitative_only'):reasons.append('declared_qualitative_only_view_not_training_source')
+                    if any(k in missing for k in ['joints.npy','joint_valid.npy']):reasons.append('native_hand21_semantics_or_validity_missing')
                     if any(k.startswith('surface') for k in missing):reasons.append('native_hand_surface778_part16_adapter_missing')
                     if 'object_pose_valid.npy' in missing:reasons.append('annotation_pose_validity_missing')
                     if not (folder/'contact/meta.json').is_file():reasons.append('bound_v6_contact_part_valid_missing')
@@ -238,6 +251,7 @@ def legacy_census(out,receipts):
                     windows=max(0,int(row['frame_count'])-27);candidate+=windows
                     views[name]+=1;view_reasons.update(reasons)
                     jsonline(f,dict(root=name,parent_sequence_id=parent,split=split,path=str(folder),
+                        path_resolution=resolution,variant=row.get('variant'),native_source=row.get('source'),
                         status='REJECTED',reasons=reasons,missing_files=missing,candidate_windows=windows,admitted_windows=0,
                         no_human_parent_labels_substituted=True))
     return dict(unique_mothers=len(details),mother_status=dict(counts),views_by_root=dict(views),
@@ -251,7 +265,7 @@ def summarize(run,out,workers=1):
     if out.exists():raise FileExistsError('fresh summary attempt required; preserve prior artifacts')
     prep.guard(run,256*1024**2);out.mkdir()
     prep._GEOMETRY_ROWS={r['key']:r for r in prep.read(prep.REGISTRY/'manifest.json')['objects']}
-    receipts=[prep.read(p) for p in sorted((run/'receipts').glob('*.json'))]
+    receipts=[prep.read_receipt(p) for p in sorted((run/'receipts').glob('*.json'))]
     inventory=prep.read(run/'inventory.json')
     additional=len(prep.read(run/'additional-local-jobs.json')['rows']) if (run/'additional-local-jobs.json').exists() else 0
     if len(receipts)!=inventory['total_sequences']+additional:raise ValueError('incomplete receipts')
