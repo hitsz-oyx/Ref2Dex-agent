@@ -24,9 +24,25 @@ ROOT=Path(__file__).resolve().parents[5]
 NAS=Path('/mnt/ugreen_nas/storage/oyx_storage')
 BASE=NAS/'ptv3-shared-wam-v5-20261019-r1'
 DATA=BASE/'data'
+OWN_OUTPUT=None
 
-def read(p):return json.loads(Path(p).read_text())
-def write(p,x):Path(p).write_text(json.dumps(x,indent=2,allow_nan=False)+'\n')
+def owned_text(p):
+    p=Path(p)
+    try:return p.read_text()
+    except PermissionError:
+        if OWN_OUTPUT is None or OWN_OUTPUT not in p.resolve().parents:raise
+        # The existing NAS storage adapter observes mode000 on derived files.
+        # Never use this permission repair for shared/raw input directories.
+        p.chmod(0o664);return p.read_text()
+
+def read(p):return json.loads(owned_text(p))
+def write(p,x):
+    p=Path(p)
+    if OWN_OUTPUT is None or OWN_OUTPUT not in p.resolve().parents:raise ValueError('only own NAS output may be written')
+    try:p.write_text(json.dumps(x,indent=2,allow_nan=False)+'\n')
+    except PermissionError:
+        p.chmod(0o664);p.write_text(json.dumps(x,indent=2,allow_nan=False)+'\n')
+    p.chmod(0o664)
 def digest(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 
 def allocation(counts,total=32):
@@ -163,7 +179,7 @@ def sample():
 
 def smoke(out,workers,device):
     audit=read(out/'input-audit.json');assert audit['registry_exact_match'] and not audit['geometry_missing'] and not audit['asset_missing']
-    rows=[json.loads(line) for line in (out/'input-rows.jsonl').read_text().splitlines()]
+    rows=[json.loads(line) for line in owned_text(out/'input-rows.jsonl').splitlines()]
     selected=[r for r in rows if r['key'] in audit['selected']];assert len(selected)==32 and not any(r['missing'] for r in selected)
     dest=out/'smoke';dest.mkdir(exist_ok=False)
     for name in ('hands/sequences','contacts','events','receipts','windows','batches'):(dest/name).mkdir(parents=True,exist_ok=True)
@@ -214,7 +230,7 @@ def smoke(out,workers,device):
 def summarize(out):
     import numpy as np
     m=read(out/'smoke-manifest.json');a=read(out/'input-audit.json');coverage=read(out/'input-coverage-after-repair.json')
-    rows=[json.loads(x) for x in (out/'sequence-times.jsonl').read_text().splitlines()]
+    rows=[json.loads(x) for x in owned_text(out/'sequence-times.jsonl').splitlines()]
     assert m['status']=='COMPLETED' and len(rows)==32 and m['admitted']==32
     source=[];weighted=0.;frame_weighted=0.;weighted_cpu=0.
     for sid,pop in sorted(a['by_source'].items(),key=lambda x:int(x[0])):
@@ -224,11 +240,11 @@ def summarize(out):
         source.append(dict(source_id=int(sid),population=pop['parents'],n=len(rs),frames=frames,
                            task_wall_sum_s=wall,task_cpu_sum_s=cpu,p50_s=float(np.median([r['wall_s'] for r in rs])),
                            extrapolated_service_s=service,frame_extrapolated_service_s=frame_service))
-    telemetry=[json.loads(x) for x in (out/'telemetry.jsonl').read_text().splitlines()];rates=[]
+    telemetry=[json.loads(x) for x in owned_text(out/'telemetry.jsonl').splitlines()];rates=[]
     for first,last in zip(telemetry,telemetry[1:]):
         dt=last['monotonic']-first['monotonic']
         rates.append({k:(last['nfs'][op][field]-first['nfs'][op][field])/dt/1e6 for k,op,field in [('read','READ','received'),('write','WRITE','sent')]})
-    input_rows=[json.loads(x) for x in (out/'input-rows.jsonl').read_text().splitlines()]
+    input_rows=[json.loads(x) for x in owned_text(out/'input-rows.jsonl').splitlines()]
     p=production();block=os.statvfs(out).f_frsize
     allocated=sum(sum(((size+block-1)//block)*block for size in p.fixed_conversion_file_sizes(r['frames'],r['objects'])) for r in input_rows)
     candidate=sum(max(0,r['frames']-27)*(r['objects'] if r['source_id']<3 else 1) for r in input_rows)
@@ -287,13 +303,16 @@ def summarize(out):
         boundary=read(out/'hot3d-segment-boundaries.json')
         lines.append('\n**输入语义差异，不在本轮修：** 10个HOT3D的RLG segment均为单一0，NAS保留共%d个段界，不能称仅压缩差异。其余数组一致，当前转换未消费segment，所以本轮计时仍沿用同合同；但合同忽略段界可能造成跨段未来窗。本轮没有统计影响窗数，不据此放行训练，正式全量前应裁决段界合同，保留NAS原始信号。证据hot3d-segment-boundaries.json，未改任一原件。\n'%sum(x['transitions'] for x in boundary))
     lines.append('\n## 实际命令与边界\n\n```bash\ncd /home/wbcd/workspace/oyx_ws/Ref2Dex-agent\ngit fetch origin main\ngit pull --ff-only --no-stat origin main\nPYTHONDONTWRITEBYTECODE=1 /home/wbcd/miniconda3/envs/graspenv/bin/python -u src/task/ptv3-shared-wam-v6/tools/audit/remote_rigid_throughput.py --output /mnt/ugreen_nas/storage/oyx_storage/remote-rigid-throughput-20261023-r1 --mode audit\n# 已完成，禁止覆盖重跑：\nPYTHONDONTWRITEBYTECODE=1 /home/wbcd/miniconda3/envs/graspenv/bin/python -u src/task/ptv3-shared-wam-v6/tools/audit/remote_rigid_throughput.py --output /mnt/ugreen_nas/storage/oyx_storage/remote-rigid-throughput-20261023-r1 --mode smoke --workers 12 --device cuda:0\n# 仅离线重算摘要，可复跑，不做转换：\nPYTHONDONTWRITEBYTECODE=1 /home/wbcd/miniconda3/envs/graspenv/bin/python src/task/ptv3-shared-wam-v6/tools/audit/remote_rigid_throughput.py --output /mnt/ugreen_nas/storage/oyx_storage/remote-rigid-throughput-20261023-r1 --mode summarize\n```\n\n原始input-audit保留补齐前状态；不要把再次audit覆盖它当“最初就齐”。metadata参考frozen-census.json.gz来自RLG冻结计划+recovery+唯一新增母序列；仅输入metadata，不含182GB转换数组。tmp/r49是指向NAS的短链接，scratch实际落NAS。home-cache-audit.json核到本次之后CUDA/torch/torch_extensions默认home缓存新增文件0。允许的系统盘写入是Git代码；没有系统盘数据产物。远端只fetch/pull、0次push；工具在RLG修改提交推送。未动他人进程/目录、未删除历史、0训练更新。\n')
-    prefix=(out/'report.md').read_text().split('\n## 实测结算')[0]
+    prefix=owned_text(out/'report.md').split('\n## 实测结算')[0]
     (out/'report.md').write_text(prefix+''.join(lines))
+    (out/'report.md').chmod(0o664)
     print(json.dumps({k:v for k,v in result.items() if k not in ('per_source','input_coverage')},indent=2))
 
 def main():
+    global OWN_OUTPUT
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);p.add_argument('--mode',choices=['audit','smoke','summarize'],required=True);p.add_argument('--workers',type=int,default=12);p.add_argument('--device',default='cpu');a=p.parse_args()
     out=a.output.resolve();assert NAS in out.parents and out.is_dir();assert 1<=a.workers<=12
+    OWN_OUTPUT=out
     if shutil.disk_usage(out).free<30*2**30+4*2**30+256*2**20:raise RuntimeError('NAS space budget')
     short=ROOT/'tmp/r49';assert short.resolve()==out,'short TMPDIR must point to the NAS run'
     os.environ.update(TMPDIR=str(short/'scratch'),OMP_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1',MKL_NUM_THREADS='1',XDG_CACHE_HOME=str(out/'cache'),TORCH_HOME=str(out/'cache/torch'),CUDA_CACHE_PATH=str(out/'cache/cuda'),MPLCONFIGDIR=str(out/'cache/mpl'))
