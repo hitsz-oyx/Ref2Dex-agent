@@ -221,6 +221,10 @@ def summarize(run,out,workers=1):
         _,geo=prep.geometry(r['object'],r['source_id'])
         old_coverage[(r['phase'],prep.geometry_class(pca_shape(geo['surface'])),r['source_id'])]+=1
     matrix(old_coverage,out/'coverage-old-6000.csv')
+    old_sources=Counter(str(r['source_id']) for r in old_rows)
+    old_phases=Counter(r['phase'] for r in old_rows)
+    old_shapes=Counter()
+    for (phase,gc,sid),v in old_coverage.items():old_shapes[gc]+=v
     # DEV representatives take priority. Remove matching TRAIN content and
     # audit each cross-split deletion; no held-out row is moved into TRAIN.
     admitted=sorted([r for r in receipts if r['status']=='ADMITTED'],key=lambda r:(r['split']!='dev',r['sequence_id']))
@@ -229,6 +233,7 @@ def summarize(run,out,workers=1):
     arrays={s:np.lib.format.open_memmap(out/(s+'-all.npy'),mode='w+',dtype=np.int32,
             shape=(sum(r['admitted_windows'] for r in admitted if r['split']==s),3)) for s in ['train','dev']}
     keep_arrays={s:np.lib.format.open_memmap(out/(s+'-keep-mask.npy'),mode='w+',dtype=bool,shape=(len(arrays[s]),)) for s in arrays}
+    old_membership=np.lib.format.open_memmap(out/'train-membership-in-old6000.npy',mode='w+',dtype=bool,shape=(len(arrays['train']),))
     db=sqlite3.connect(str(out/'dedup-index.sqlite'))
     db.execute('CREATE TABLE representatives (signature BLOB, sequence_id INTEGER, slot INTEGER, tick INTEGER, phase INTEGER)')
     db.execute('CREATE INDEX signature_index ON representatives(signature)')
@@ -300,6 +305,7 @@ def summarize(run,out,workers=1):
                     cov[split][stage][cell]+=1;sources[split][stage][str(r['source_id'])]+=1
                     shapes[split][stage][prep.CLASSES[gc]]+=1;phases[split][stage][prep.PHASES[phase]]+=1
                 oldkey=(r['key'],slot,tick)
+                if split=='train':old_membership[start+i]=oldkey in old_keys
                 if split=='train' and oldkey in old_keys:
                     old_present.add(oldkey)
                     if retained:old_kept.add(oldkey)
@@ -321,6 +327,9 @@ def summarize(run,out,workers=1):
     for split in arrays:
         arrays[split].flush();keep_arrays[split].flush()
         np.save(out/(split+'-deduplicated.npy'),arrays[split][keep_arrays[split]])
+    old_membership.flush()
+    np.save(out/'train-added-vs6000-before.npy',arrays['train'][~old_membership])
+    np.save(out/'train-added-vs6000-after.npy',arrays['train'][(~old_membership)&keep_arrays['train']])
     cover={s:{stage:matrix(cov[s][stage],out/('coverage-'+s+'-'+stage+'.csv')) for stage in ['before','after']} for s in arrays}
     with (out/'sequence-verdicts.jsonl').open('x') as f:
         for r in sorted(receipts,key=lambda r:r['sequence_id']):jsonline(f,r)
@@ -329,6 +338,9 @@ def summarize(run,out,workers=1):
     previous_active={r['sequence_key'] for r in old_rows}
     rejection=Counter(reason for r in receipts if r['status']=='REJECTED' for reason in r['reasons'])
     files={p.name:dict(sha256=prep.digest(p),bytes=p.stat().st_size) for p in out.iterdir() if p.is_file() and p.name!='progress.json'}
+    def deltas(old,full,keys):
+        return [dict(category=k,old6000=old.get(k,0),full_before=full['before'].get(k,0),full_after=full['after'].get(k,0),
+            difference_before=full['before'].get(k,0)-old.get(k,0),difference_after=full['after'].get(k,0)-old.get(k,0)) for k in keys]
     result=dict(schema='ref2dex.full-local-rigid-manifest.v1',experiment_id=prep.EXPERIMENT,run_id=run.name,
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),branch='main',
         status='FULL_LOCAL_CENSUS_PREPARED_WITH_EXPLICIT_GAPS',training_allowed=False,training_updates=0,
@@ -338,7 +350,9 @@ def summarize(run,out,workers=1):
         native_recovery=prep.read(run/'recovered-inputs.json')['parity_checks'] if (run/'recovered-inputs.json').exists() else None,
         recovered_input_sequences=len(prep.read(run/'recovered-inputs.json')['rows']) if (run/'recovered-inputs.json').exists() else 0,
         source0_restored_sequences=prep.read(run/'recovered-inputs.json').get('restored_source0',0) if (run/'recovered-inputs.json').exists() else 0,
-        sequence_status=dict(Counter(r['status'] for r in receipts)),sequence_rejection_reasons=dict(rejection),
+        sequence_status=dict(Counter(r['status'] for r in receipts)),
+        sequence_status_by_source={str(s):dict(Counter(r['status'] for r in receipts if r['source_id']==s)) for s in prep.SOURCES},
+        sequence_rejection_reasons=dict(rejection),
         pending6000=dict(total=len(pending_results),status=dict(Counter(r['status'] for r in pending_results)),
             conversion_started=sum(r['conversion_started'] for r in pending_results)),
         windows_before=dict(count),windows_after={s:count[s]-removed[s] for s in arrays},
@@ -353,6 +367,11 @@ def summarize(run,out,workers=1):
             label_hash_and_mtime='per-window target-label traceability only; not pre-reset availability proof',
             missing=['reset timestamp','pre-reset independent task intent source','source role attestation','pre-reset availability timestamp/hash']),
         versus_6000=dict(baseline_windows=len(old_rows),baseline_mothers=len(previous_active),
+            train_mothers_before=len(np.unique(arrays['train'][:,0])),
+            train_mothers_after=len(np.unique(arrays['train'][keep_arrays['train'],0])),
+            source_delta=deltas(old_sources,sources['train'],[str(s) for s in prep.SOURCES]),
+            geometry_delta=deltas(old_shapes,shapes['train'],prep.CLASSES),
+            phase_delta=deltas(old_phases,phases['train'],prep.PHASES),
             baseline_rows_present_before_dedup=len(old_present),baseline_rows_present_after_dedup=len(old_kept),
             baseline_rows_missing=[dict(sequence_key=k[0],slot=k[1],tick=k[2]) for k in sorted(old_keys-old_present)],
             train_added_before_dedup=count['train']-len(old_present),train_added_after_dedup=count['train']-removed['train']-len(old_kept),
