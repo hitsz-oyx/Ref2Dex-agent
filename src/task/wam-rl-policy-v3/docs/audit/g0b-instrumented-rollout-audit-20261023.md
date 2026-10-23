@@ -1,8 +1,8 @@
 # G0b：仪器化 rollout 逐样本自洽审计（2026-10-23）
 
-**v2 计算/软件边界验收：G0b PASS；最新追加的物理边界覆盖：待验收。**真实新数据 807 PPO samples 与 24 个确定性边界样本通过计算/记录自洽验收；不表示 PPO 学习有效。BC/PPO 实际 controls 为643/807，物理采样后的更新0/4。旧14,400 controls永久 INVALID_INSTRUMENTATION；08:12失败attempt也保持INVALID，均不追认。
+**当前单一裁决：G0b INVALID（最新物理边界覆盖不足）。** v2的计算/软件边界检查已通过，v3新增1,395样本也未发现计算错误；但可逐样本核验的真实关节终止仍0例，未达到每类至少2例，不能把较窄范围的PASS升级为本次扩展验收PASS。此前v2的807个PPO样本与24个软件边界样本通过计算/记录自洽验收；不表示PPO学习有效。v2阶段BC/PPO controls为643/807，更新0/4；v3新增BC/PPO controls为1299/96，更新0/4。旧14,400 controls永久 INVALID_INSTRUMENTATION；08:12失败attempt也保持INVALID，均不追认。
 
-本轮新增：仅持久化补丁、同一旧批次的补丁前后等价性核对，以及新目录中最多每臂 1,500 controls 的 BC/PPO 最小物理复跑与逐样本 G0 重算。引用而不重跑：brief42 的旧 36 回合/14,400 samples 及 INVALID_INSTRUMENTATION；brief39 的 G1/G2/G3 和 B2/B3。旧读数不作为本轮新数据证据。
+本轮新增（brief45及追加）：仅持久化补丁、同一旧批次的补丁前后等价性核对、v2最小物理复跑与v3六个物理边界选点；累计BC 1,942/PPO 903 controls，各低于追加允许的3,000/臂。引用而不重跑：brief42的旧36回合/14,400 samples及INVALID_INSTRUMENTATION，brief39的G1/G2/G3和B2/B3；旧读数不冒充本轮新数据。v1失败、v2计算通过、v3物理覆盖不足均分别保留。
 
 ## 结果解读表（运行前预注册；不得事后改判）
 
@@ -225,9 +225,9 @@ target_t = value_t + A_t
 
 **覆盖自评：预算cutoff mask在本轮真实短跑中未被覆盖，joint safety也未在新PPO片段出现；它们在生产函数的确定性fixture中被覆盖，不是额外物理回合。** 本轮没有“靠随机初态凑齐终点”或延长到14,400 controls；G0b PASS由新真实落盘与明确构造的边界两层共同支持。
 
-## R3 落地：裁决及优势信号的适用范围
+## v2 历史 R3：裁决及优势信号的适用范围
 
-**当前单一裁决：G0b PASS，仅认证所验计算与落盘。** 原14,400 controls永久INVALID_INSTRUMENTATION；v1启动失败仍INVALID。均不因本次结果追认，也不把brief39的旧优势分布/信号读数冒充本轮新值。
+**v2既定范围裁决：G0b PASS，仅认证当时所验计算与软件边界落盘；最新物理覆盖裁决见文首及下节。** 原14,400 controls永久INVALID_INSTRUMENTATION；v1启动失败仍INVALID。均不因本次结果追认，也不把brief39的旧优势分布/信号读数冒充本轮新值。
 
 “同recipe”仅限原计算表达式、γ/λ、Adam设置、lr=1e-5、两epochs、KL gate与相同checkpoint/数据来源/执行相关路径。由于只取两个初态并缩短采集，**新短跑不是原训练的等价结果**，不比较学习收益。单旧批次的逐位等价只证明该批计算未改变，不证明整段训练、GPU物理轨迹或其他buffer长度逐位重现。没有证据触发针对性较长复跑，本轮不扩预算。
 
@@ -309,4 +309,107 @@ v2产物快照 **22,681,641 bytes**，477个实体文件，约21.6309MiB；新at
 
 无构造基线不是随机初态抽样：v2固定前两初态的PPO终点经验频率 real 1/2、joint 0/2、truncation 1/2；BC为real0/2、joint1/2、truncation1/2。真正随机初态总体出现率未取证，不能把这四回合当总体概率。旧brief42的36回合类别也仅可作固定面板历史频率引用，不作新G0证明。
 
-状态：V3_PHYSICAL_BOUNDARIES_PRE_REGISTERED。
+状态：六个预注册v3物理案例已执行，无临时换点或追加回合；当前扩展验收INVALID（覆盖），结果见下。
+
+
+## 确定性边界覆盖（08:20 追加要求的最终实测）
+
+本节严格区分“想构造的类别”“实测终点”“按预期命中”。只通过选取原冻结面板初态和收窄预算，不改奖励、GAE、γ/λ、优化器、lr、收敛门、关节门或PD。每个case从同一原BC residual权重启动；2个PPO样本保持原随机采样与更新，4个BC样本保持原均值控制、0更新，只读记录GAE。
+
+### 逐例台账
+
+| sample id | 构造操作与理由 | 上限 / 实际controls | 预期 → 实际 | 末步b/c | bootstrap | 按预期命中 |
+|---|---|---:|---|---|---:|---|
+| cut32/cut32-A1 | 将原600时域的已观测长回合收窄到32 | 32 / 32 | truncation → rollout_cutoff | 1/0 | 0.116355091333 | 是 |
+| cut64/cut64-A1 | 同一冻结初态收窄到64 | 64 / 64 | truncation → rollout_cutoff | 1/0 | 0.31010478735 | 是 |
+| joint-alarm/joint-alarm-A1 | 选旧268/v2 43步joint初态，cap400 | 400 / 400 | joint_safety_termination → rollout_cutoff | 1/0 | 0.189175367355 | 否 |
+| joint-banana/joint-banana-A1 | 选旧346步joint初态，cap400 | 400 / 99 | joint_safety_termination → real_termination | 0/0 | 0 | 否 |
+| real-cube-1/real-cube-1-A1 | 选旧224步table初态，cap400 | 400 / 400 | real_termination → rollout_cutoff | 1/0 | 0.307653129101 | 否 |
+| real-cube-2/real-cube-2-A1 | 同一冻结table条件重复一次，cap400 | 400 / 400 | real_termination → rollout_cutoff | 1/0 | 0.58116710186 | 否 |
+
+32/64两例明确在已观测自然时域之前耗尽预算，实际均为cutoff且bootstrap非零，完成了主动收窄构造。其余历史终点标签未稳定复现：alarm到400仍未触发关节门；banana在99步先触发table gate；两次cube均到400被截断。因此关节预选0/2命中、真实终止预选0/2命中；banana的真实终止保留其实际标签，不伪装成按预期的关节构造。预期命中总计2/6。
+
+### 三类终点的真实覆盖与逐样本mask
+
+| v3新增实测类 | 终点样本/回合数 | controls | 应有末步b/c | mask不一致 | 解释 |
+|---|---:|---:|---|---|---|
+| 预算/时间截断 | 5 | 1296 | 1/0 | 0/1296 | 达到2例（其中主动cut构造2，其余为未命中其他目标后的实际截断） |
+| 真实终止 | 1 | 99 | 0/0 | 0/99 | 仅1例，少1例 |
+| 关节安全终止 | 0 | 0 | 0/0 | N/A（无样本） | 未覆盖，少2例 |
+
+这里“样本”是一个终点transition/回合；不能把同一个终点之前的数百个continuing controls计成数百个边界案例。软件fixture的1个joint案例也不能补成物理joint案例。
+
+按完整brief45已有仪器化新数据复用（v2 PPO + v3 BC/PPO），实际看到的类别如下；这只复用现有记录，不增加仿真、不重评分旧14,400：
+
+| 全部有GAE sidecar的新数据 | 回合数 | controls | 距每类2例的缺口 |
+|---|---:|---:|---:|
+| 截断 | 6 | 1896 | 0 |
+| 真实终止 | 2 | 306 | 0 |
+| 关节安全终止 | 0 | 0 | 2 |
+
+v2的BC曾有43步joint终止，但当时未保存BC的GAE/双mask，故它只能提供历史选点依据，不能追认成已完成逐样本仪器化joint验收。
+
+### 不做构造时各类终点出现率：只能报告固定面板经验频率
+
+| 未构造的v2原两初态（不是随机初态总体） | n | real | joint | truncation |
+|---|---:|---:|---:|---:|
+| BC | 2 | 0/2=0% | 1/2=50% | 1/2=50% |
+| PPO | 2 | 1/2=50% | 0/2=0% | 1/2=50% |
+
+**真正随机初态分布下的出现率：未取证。** 初态来自预定冻结顺序，不能把上述n=2当成随机总体率；没有为估计该率新增随机rollout，也不把v3人为缩短预算后的终点频率当自然发生率。旧brief42的36回合标签只作为已引用历史背景，不重算B2/B3、不追认其缺失字段。
+
+### 计算链结果：新数据通过，覆盖门未通过
+
+| v3新增逐样本检查 | 不一致/总数 | 最大绝对差 |
+|---|---:|---:|
+| target_return == value_t + advantage_raw | 0/1395 | 0.0 |
+| 独立双mask GAE | 0/1395 | 5.15478786323e-08 |
+| done/terminated/truncated/b/c与实测终点 | 各0/1395 | 布尔一致 |
+
+预更新critic重建最大差2.68220901489e-07；末状态bootstrap重建最大差5.96046447754e-08。每个case原生episode恒定、末tick等于controls、截断observation对应reset前最后状态；所有样本reward分项之和与reward一致。对原始q/URDF界限及CAD/table几何独立复算终止原因，与记录一致；table原因不是凭文件名/预期类别推断。
+
+BC新增raw GAE仅为审计值，不参与训练或BC损失；本节不会把它叫作“BC实际优化过的target”。各cohort分别报，不将短截断与普通回合混成学习效果：
+
+| v3 cohort | 样本 | mean | std | P50 | P90 | IQR | 截断置零优势差占比 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| bc | 1299 | -0.1189927713 | 0.3194521179 | -0.1467878968 | 0.3174773991 | 0.3171001896 | 1.65814215% |
+| ppo | 96 | 0.1336320204 | 0.3052994063 | 0.1193088107 | 0.5392192900 | 0.3944479339 | 8.81275531% |
+
+两cohort该比值均低于50%，未触发预注册critic校准线；这不是critic正确性或PPO有效性的证明。v3 PPO正优势62/96，BC审计正优势346/1299，但approach/contact/lift/hold认证均0，因此四阶段内正优势计数也均0；这是构造样本的观测，不外推性能。v2的807样本分布及阶段计数保持上文，不混算。
+
+### 为什么未覆盖、最小额外规模与停止点
+
+**当前单一裁决：G0b INVALID（物理关节类别覆盖不足），不是G0b FAIL（计算链）。** 阈值没有修改：已有数值比较都在rtol=1e-4/atol=1e-5内，但没有两个真实joint端点可以执行该类逐样本核对。原v2较窄范围的计算/软件边界PASS保留为历史事实，不顶替这次扩展验收；旧14,400仍永久INVALID_INSTRUMENTATION。
+
+未覆盖原因是本次“历史终点标签→冻结初态选点”没有提供稳定的类别构造条件；具体物理分歧根因本轮未取证，不能径称PD、门阈或GAE的bug。现有生产reset只从该motion规定初态开始，没有在本轮允许范围内恢复旧关节终止前完整物理/控制历史的入口。没有更改门/PD去强行造终止，也没有随机换初态重试。
+
+最小缺口明确区分口径：**若v3新增6例单独验收，还差1个真实终止+2个关节终止，至少3个有落盘的终点回合；复用v2已有真实终止后，完整brief仍至少缺2个真实关节终止回合。** 按预期构造的目标条件另未获资格（真实终止与joint预选均未命中），不能承诺重跑同点就能补齐。
+
+实际需要的control数/保证覆盖的上界**未取证**；至少2个终点transition只是数学下界，不是可执行预算保证。若有可预先认证的joint reset点，下一次可预注册2例×≤400 controls（最多新增800，累计BC≤2742、PPO903，仍≤3000/臂）；但本轮尚无这样的已认证选点，**800不是保证覆盖的估计**。当前剩余预算不是继续随机凑数的理由。按追加要求在此收口，不启动长任务，不调lr/奖励/执行器。
+
+### 补丁、身份、规模与复核
+
+源码只改`run_bc_ppo_probe.py`：导入原`gae_targets`；`:300`新增默认关闭的`record_frozen_bc_gae`审计分支，`:312`调用原GAE，`:315`调用共享保存函数；物理结束后才读出原BC缓存并调用共享GAE/保存函数，0优化更新。原PPO更新if-body AST逐节点完全相同，GAE模块字节完全相同；因此此前297样本的6项逐位等价证明仍适用于未改的计算模块，不声称整个物理轨迹等价。所有6份预更新残差模型与原BC checkpoint逐参数相同；R/WAM仍为原checkpoint/step11000。
+
+```json
+{
+  "src/task/wam-rl-policy-v3/tools/run/run_bc_ppo_probe.py": "c0e57004d0815925e0207f731e5d3d490588480914211d69fe47c16a7cf0f773",
+  "src/task/wam-rl-policy-v3/src/wam_rl_policy_v3/intent_residual.py": "97dd0562d3c266ea135a7e741160ff25e3c8ed262eaccb50beaee47034a1831f"
+}
+```
+
+精确diff与复核命令：
+
+```sh
+git show 83f6d428 -- src/task/wam-rl-policy-v3/tools/run/run_bc_ppo_probe.py
+# 已执行的唯一v3物理启动命令；现有目录不可覆盖，不要当作自动重试命令：
+PYTHONDONTWRITEBYTECODE=1 /home2/wyy/miniconda3/envs/graspenv/bin/python -u outputs/wam-rl-policy-v3/ppo-instrumented-audit-20261023-r1/v3-physical-boundaries/supervise.py
+# 只重算本轮已保存数据，不产生物理交互或训练：
+PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES='' /home2/wyy/miniconda3/envs/graspenv/bin/python outputs/wam-rl-policy-v3/ppo-instrumented-audit-20261023-r1/v3-physical-boundaries/audit_physical_boundaries.py
+```
+
+预期读数：新增1395样本、calculation_errors为空、真实终点truncation5/real1/joint0、G0b INVALID。`plans.json`保留所有选点和上限，`supervisor.jsonl`逐例记录expected/actual与GPU等待；`preflight.json`记录原PPO AST与GAE字节不变、起始字节估计；每例`native-audit.json/trajectory.npz/critic-before-update.pt/ppo-rollout.npz`可独立核对。源码以六case冻结runner SHA一致为准，活动main期间他人提交不改变本轮冻结模块。
+
+本次新增BC **1299 controls/0更新**，PPO **96 controls/4更新**；连同v2累计BC **1942**、PPO **903**，PPO总更新8≤72。BC审计不额外训练，没有新控制基线，没有重跑14,400。6个原生进程退出码均0、6个policy client均退出，审计存活检查全False；GPU7终态2MiB，其他卡未使用。无OOM/loader/非有限/磁盘故障，未删历史输出。
+
+v3产物快照 **25,324,535 bytes**（527实体文件，约24.1514MiB），低于预估64MiB及硬上限512MiB；磁盘可用254.38GiB。outputs不入库。仍只显式路径commit；pull --rebase因他人脏文件被拒绝后未stash，普通push。
