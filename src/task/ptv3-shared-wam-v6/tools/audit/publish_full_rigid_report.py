@@ -71,8 +71,16 @@ def main():
     dev_matrices=[load_cov(summary/name) for name in ['coverage-old-dev.csv','coverage-dev-before.csv','coverage-dev-after.csv']]
     coverage_plot(dev_matrices,['DEV old version','DEV full before dedup','DEV full after dedup'],support/'coverage-dev.png')
     minimum=min(m['disk_free_after_bytes'],p.shutil.disk_usage(run).free)
-    receipts=[p.read(path) for path in sorted((run/'receipts').glob('*.json'))]
+    receipts=[p.read_receipt(path) for path in sorted((run/'receipts').glob('*.json'))]
     minimum=min([minimum]+[r['disk_free_bytes'] for r in receipts if 'disk_free_bytes' in r])
+    # Include intermediate journal/derived-index peaks, not just final free
+    # space after SQLite has closed its transaction journal.
+    for log in run.glob('full-manifest-*.log'):
+        for line in log.open():
+            try: observation=json.loads(line)
+            except (ValueError,TypeError): continue
+            if isinstance(observation,dict) and 'disk_free_bytes' in observation:
+                minimum=min(minimum,observation['disk_free_bytes'])
     counts=Counter(r['split'] for r in receipts if r['status']=='ADMITTED')
     sha=p.digest(summary/'manifest.json');rel='../../../../../'+str(run.relative_to(p.ROOT))
     link=lambda name,label=None:'['+(label or name)+']('+rel+'/'+name+')'
