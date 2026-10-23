@@ -62,3 +62,42 @@ def test_no_feedforward_is_existing_pose_consumer_wrist_law():
     np.testing.assert_array_equal(raw,baseline)
     ff,_=tracker.step(q,dq,palm,target,[.03,0,0],[0,0,0],np.zeros((5,3)),False,True)
     assert float(ff[0]-raw[0])==pytest.approx(.03/30,abs=1e-8)
+
+
+@pytest.mark.parametrize('force',[.2,5.])
+def test_real_contact_finger_hold_matches_existing_consumer(force):
+    from types import SimpleNamespace
+    from wam_rl_policy_v3.object_tracking import ObjectPoseTracker
+    from wam_rl_policy_v3.pose_consumer import MeasuredGraspConsumer,GraspIntent,FINGER_ACTIVE
+    q=np.zeros(18);q[6:]=.3;dq=np.zeros(18);palm=np.eye(4);offset=np.zeros(18);scale=np.ones(18)
+    forces=np.zeros((5,3));forces[:,0]=force
+    tracker=ObjectPoseTracker(q,palm,offset,scale)
+    actual,_=tracker.step(q,dq,palm,palm,np.zeros(3),np.zeros(3),forces,True,False)
+    existing=MeasuredGraspConsumer(q,palm,offset,scale);existing.phase='hold';existing.close_pose=palm.copy();existing.fingers=q[FINGER_ACTIVE].copy()
+    intent=GraspIntent(palm,palm,q[FINGER_ACTIVE],q[FINGER_ACTIVE],palm,'tracking',False)
+    feedback=SimpleNamespace(force_valid=True,contact_observed=True,grasp_lost=False,grasp_established=True)
+    expected,_=existing.step(q=q,dq=dq,palm=palm,object_pose=palm,object_velocity=np.zeros(6),forces=forces,feedback=feedback,
+                             near_fingers=2,fingertip_gap_m=0.,intent=intent,now=1.)
+    np.testing.assert_array_equal(actual[6:],expected[6:])
+
+
+def test_real_runner_passes_force_valid_to_B_and_not_rigid_fixture():
+    import ast
+    from pathlib import Path
+    runner=Path(__file__).resolve().parents[1]/'tools/run/run_object_tracking.py'
+    tree=ast.parse(runner.read_text())
+    call=next(n for n in ast.walk(tree) if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute) and isinstance(n.func.value,ast.Name) and n.func.value.id=='tracker' and n.func.attr=='step')
+    argument=compile(ast.Expression(call.args[-2]),str(runner),'eval')
+    for stage,valid,expected in [('A',True,False),('B',True,True),('B',False,False)]:
+        assert bool(eval(argument,{'case':{'stage':stage},'state':{'contact_force_valid':[valid]}}))==expected
+
+
+def test_handoff_keeps_actual_pd_preload_instead_of_measured_deflection():
+    from wam_rl_policy_v3.object_tracking import ObjectPoseTracker
+    from wam_rl_policy_v3.pose_consumer import FINGER_ACTIVE
+    q=np.zeros(18);q[6:]=.3;palm=np.eye(4);held=np.array([1.36,1.05,.807,1.385,1.10,.426])
+    tracker=ObjectPoseTracker(q,palm,np.zeros(18),np.ones(18),held_finger_targets=held)
+    raw,_=tracker.step(q,np.zeros(18),palm,palm,np.zeros(3),np.zeros(3),np.ones((5,3)),True,False)
+    reconstructed=(raw[6:]+1)/2
+    np.testing.assert_allclose(reconstructed,held,atol=1e-7)
+    assert abs(reconstructed[0]-q[FINGER_ACTIVE][0])>.5

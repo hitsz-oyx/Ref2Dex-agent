@@ -35,7 +35,7 @@ def audit(run):
         tick_rows=json.loads((folder/'ticks.json').read_text());clock=np.asarray([x['time_s'] for x in tick_rows]);n=len(clock)
         if len(raw)+1!=n or not np.all(np.diff(states['tick'][:,0])==1):failures.append([result['index'],'post-state/control clock'])
         actual=matrix_pose(states['objects'][:,0]);palms=matrix_pose(states['palm_pose'][:,0]);position=CubicSpline(times,knots[:,:3,3],bc_type='clamped');rotation=RotationSpline(times,Rotation.from_matrix(knots[:,:3,:3]))
-        desired_pos=position(clock);desired_rot=rotation(clock).as_matrix();e=np.linalg.norm(actual[:,:3,3]-desired_pos,axis=-1);a=angle(desired_rot.transpose(0,2,1)@actual[:,:3,:3])
+        reference_clock=np.minimum(clock,times[-1]);desired_pos=position(reference_clock);desired_rot=rotation(reference_clock).as_matrix();e=np.linalg.norm(actual[:,:3,3]-desired_pos,axis=-1);a=angle(desired_rot.transpose(0,2,1)@actual[:,:3,:3])
         relative=np.linalg.inv(palms)@actual;drift=np.linalg.norm(relative[:,:3,3]-local[:3,3],axis=-1);da=angle(local[:3,:3].T@relative[:,:3,:3])
         for key,recomputed in [('position_error_m',e),('orientation_error_rad',a),('drift_m',drift),('drift_rad',da)]:
             delta=float(np.max(np.abs(recomputed-np.asarray([x[key] for x in tick_rows]))));maximums[key]=max(maximums[key],delta)
@@ -45,6 +45,25 @@ def audit(run):
         meaningful=(speed>max(speed.max()*1e-3,1e-7))&(curvature>1e-5)
         radius=1/curvature[meaningful] if meaningful.any() else np.array([])
         v_peak=float(speed.max());acc_peak=float(np.linalg.norm(acc,axis=-1).max())
+        omega_peak=float(np.linalg.norm(rotation(dense,1),axis=-1).max())
+        commands=json.loads((folder/'commands.json').read_text())
+        mount=Rotation.from_euler('XYZ',q[0,3:6]).as_matrix().T@palms[0,:3,:3]
+        def nearby(rot,current):
+            value=Rotation.from_matrix(rot@mount.T).as_euler('XYZ')
+            choices=np.asarray([value,[value[0]+np.pi,np.pi-value[1],value[2]+np.pi]])
+            choices+=2*np.pi*np.round((current-choices)/(2*np.pi))
+            return choices[np.argmin(np.linalg.norm(choices-current,axis=-1))]
+        translation_caps=angular_caps=0
+        for t,command in enumerate(commands):
+            target=np.asarray(command['wrist_target']);dq=states['dq'][t,0]
+            angles=nearby(target[:3,:3],q[t,3:6])
+            trans=.45*(target[:3,3]-palms[t,:3,3])-.012*dq[:3]
+            angular=.4*(angles-q[t,3:6])-.008*dq[3:6]
+            if case['feedforward']:
+                trans+=np.asarray(command['velocity_ff_world'])/30
+                advanced=Rotation.from_rotvec(np.asarray(command['angular_velocity_ff_world'])*1e-5).as_matrix()@target[:3,:3]
+                angular+=(nearby(advanced,angles)-angles)/1e-5/30
+            translation_caps+=int(np.any(np.abs(trans)>.025+1e-10));angular_caps+=int(np.any(np.abs(angular)>.12+1e-10))
         expanded=np.zeros((len(raw),18));expanded[:,active]=np.clip(raw,-1,1)
         expected_pd=(expanded+1)/2*scale+offset;expected_pd[:,:6]=q[:-1,:6]+offset[:6]+expanded[:,:6]*scale[:6]
         for dst,src,ratio in ((7,6,1.05),(9,8,1.05),(11,10,1.05),(13,12,1.05),(16,15,.6),(17,15,.8)):expected_pd[:,dst]=expected_pd[:,src]*ratio
@@ -59,6 +78,14 @@ def audit(run):
         min_index=np.unravel_index(np.argmin(margin),margin.shape);min_value=float(margin[min_index]);min_joint=int(min_index[1])
         def first(mask):
             ids=np.flatnonzero(mask);return float(clock[ids[0]]) if len(ids) else None
+        contact=np.asarray([t['contact'] for t in tick_rows],bool)
+        intact=contact&(drift<=.01)&(da<=np.deg2rad(10))
+        since=None;longest=0.
+        for time_value,valid in zip(clock,intact):
+            if not valid:since=None
+            else:
+                if since is None:since=time_value
+                longest=max(longest,float(time_value-since))
         firsts=dict(limit=first(np.any(margin<.02,axis=-1)),lag=first((e>.015)|(a>np.deg2rad(5))),
                     slip=None if result['stage']=='A' else first((drift>.01)|(da>np.deg2rad(10))),collision=first(np.asarray([bool(t['collision_pairs']) or t['safety']['reason']=='physical_table_penetration' for t in tick_rows])))
         causes=[(v,k) for k,v in firsts.items() if v is not None]
@@ -82,11 +109,14 @@ def audit(run):
                     slip_max_mm=float(drift.max()*1000),slip_max_deg=float(np.rad2deg(da.max())),
                     min_margin=min_value,min_margin_joint=min_joint,min_margin_joint_name=manifest['native_audit']['native_dof_names'][min_joint],
                     safety_abort=None if result['abort'] is None else result['abort']['kind'],clipped_controls=int(np.any(np.abs(raw)>1,axis=-1).sum()),
+                    translation_servo_cap_controls=translation_caps,angular_servo_cap_controls=angular_caps,
                     collision_ticks=sum(bool(t['collision_pairs']) for t in tick_rows),primary_cause=primary,failure_class=failure_class,
                     first_limit_s=firsts['limit'],first_lag_s=firsts['lag'],first_slip_s=firsts['slip'],first_collision_s=firsts['collision'],
                     reference_peak_speed_m_s=v_peak,reference_peak_acceleration_m_s2=acc_peak,
+                    reference_peak_angular_speed_rad_s=omega_peak,
                     reference_min_curvature_radius_m=None if not len(radius) else float(radius.min()),reference_median_curvature_radius_m=None if not len(radius) else float(np.median(radius)),
                     initial_wrist_speed_m_s=float(np.linalg.norm(states['dq'][0,0,:3])),initial_wrist_speed_rad_s=float(np.linalg.norm(states['dq'][0,0,3:6])))
+        record.update(first_double_contact_loss_s=first(~contact),longest_force_coupled_relative_hold_s=None if result['stage']=='A' else longest)
         if not result['pass_tracking']:counts[(result['stage'],primary)]+=1
         rows.append(record);by_arm[(result['stage'],result['feedforward'])].append(record)
     if len(results)+len(manifest['unmeasured'])!=len(expected):failures.append(['incomplete matrix accounting'])
@@ -96,7 +126,8 @@ def audit(run):
                              abort_causes=dict(Counter(r['safety_abort'] for r in data if r['safety_abort'])),
                              median_case_position_p95_mm=float(np.median([r['position_p95_mm'] for r in data])),median_case_orientation_p95_deg=float(np.median([r['orientation_p95_deg'] for r in data])),
                              maximum_slip_mm=max(r['slip_max_mm'] for r in data),maximum_slip_deg=max(r['slip_max_deg'] for r in data),
-                             min_joint_margin=min(r['min_margin'] for r in data),clipped_controls=sum(r['clipped_controls'] for r in data))
+                             min_joint_margin=min(r['min_margin'] for r in data),clipped_controls=sum(r['clipped_controls'] for r in data),controls=sum(r['controls'] for r in data),
+                             translation_servo_cap_controls=sum(r['translation_servo_cap_controls'] for r in data),angular_servo_cap_controls=sum(r['angular_servo_cap_controls'] for r in data))
     pairs=[]
     for key in references:
         for stage in ('A','B'):
@@ -132,5 +163,42 @@ def audit(run):
     print(json.dumps({k:v for k,v in summary.items() if k!='paired_ff_comparisons'},indent=2))
     return summary
 
+
+def merge_stages(a_run,b_run):
+    """Join qualified A/B only; keep rejected fixed-finger B in its own run."""
+    a_rows=[r for r in csv.DictReader((a_run/'matrix.csv').open()) if r['stage']=='A']
+    b_rows=[r for r in csv.DictReader((b_run/'matrix.csv').open()) if r['stage']=='B']
+    if len(a_rows)!=90 or len(b_rows)!=90:raise ValueError('full 90+90 matrix required')
+    def key(r):return tuple(r[k] for k in ('shape','scale_m','requested_mean_speed_m_s','feedforward'))
+    cross=[];initial_differences=defaultdict(float);post_grasp_differences=defaultdict(float)
+    for ar in a_rows:
+        br=next(r for r in b_rows if key(r)==key(ar));af=a_run/('case%03d'%int(ar['index']));bf=b_run/('case%03d'%int(br['index']))
+        with np.load(af/'reference.npz') as x,np.load(bf/'reference.npz') as y:
+            if not np.array_equal(x['poses'],y['poses']) or not np.array_equal(x['times'],y['times']):cross.append(key(ar))
+        for file,result in [('initial.npz',initial_differences),('trajectory.npz',post_grasp_differences)]:
+            with np.load(af/file) as x,np.load(bf/file) as y:
+                for field in ('q','objects'):
+                    xv,yv=(x[field],y[field]) if file=='initial.npz' else (x[field][0],y[field][0])
+                    result[field]=max(result[field],float(np.abs(xv-yv).max()))
+    rows=[dict(r,source_run=str(a_run)) for r in a_rows]+[dict(r,source_run=str(b_run)) for r in b_rows]
+    with (b_run/'qualified-matrix.csv').open('w') as f:
+        fields=sorted({k for r in rows for k in r});writer=csv.DictWriter(f,fieldnames=fields);writer.writeheader();writer.writerows(rows)
+    table='| 形状 | 尺度mm | 均速mm/s | A无FF P95 mm/deg | A有FF | B无FF | B有FF |\n|---|---:|---:|---|---|---|---|\n'
+    grid=list(dict.fromkeys(tuple(r[k] for k in ('shape','scale_m','requested_mean_speed_m_s')) for r in a_rows))
+    for shape,scale,speed in grid:
+        cells=[]
+        for stage,ff in [('A','False'),('A','True'),('B','False'),('B','True')]:
+            r=next(r for r in rows if (r['shape'],r['scale_m'],r['requested_mean_speed_m_s'],r['stage'],r['feedforward'])==(shape,scale,speed,stage,ff))
+            cells.append('{:.2f}/{:.2f} {}'.format(float(r['position_p95_mm']),float(r['orientation_p95_deg']),'通过*' if r['pass_tracking']=='True' else '中止:'+r['safety_abort'] if r['status']=='ABORT' else '未过阈值'))
+        table+='| {} | {:.0f} | {:.0f} | {} |\n'.format(shape,float(scale)*1000,float(speed)*1000,' | '.join(cells))
+    (b_run/'qualified-matrix.md').write_text(table)
+    receipt=dict(reference_comparisons=len(a_rows),reference_mismatches=cross,initial_max_difference=dict(initial_differences),post_grasp_max_difference=dict(post_grasp_differences),
+                 valid_A_run=str(a_run),valid_B_run=str(b_run),valid_cases=180,excluded_scope='r2 B is preserved fixed-finger instrumentation deviation, not qualified B')
+    (b_run/'stage-join-audit.json').write_text(json.dumps(receipt,indent=2)+'\n')
+    if cross:raise ValueError('cross-run reference mismatch')
+    return receipt
+
 if __name__=='__main__':
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--run',type=Path,required=True);args=parser.parse_args();result=audit(args.run.resolve());sys.exit(bool(result['audit_failures']))
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--run',type=Path,required=True);parser.add_argument('--stage-a-run',type=Path);args=parser.parse_args();result=audit(args.run.resolve())
+    if args.stage_a_run:print(json.dumps(merge_stages(args.stage_a_run.resolve(),args.run.resolve()),indent=2))
+    sys.exit(bool(result['audit_failures']))

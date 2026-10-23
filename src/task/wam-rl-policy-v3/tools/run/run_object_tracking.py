@@ -118,7 +118,7 @@ def main():
             if stop_p0:
                 manifest['unmeasured'].append(dict(case,reason='NOT_RUN_P0'));continue
             folder=out/('case%03d'%case_index);folder.mkdir();rpc(dict(op='reset',ids=[0]));np.savez_compressed(folder/'initial.npz',q=state['q'],dq=state['dq'],objects=state['objects'],hand=state['hand'],tick=state['tick'])
-            held_since=None;acquisition=[];acquired=False;abort=None;initial_z=float(state['objects'][0][2])
+            held_since=None;acquisition=[];acquired=False;abort=None;initial_z=float(state['objects'][0][2]);last_acquisition_pd=None
             for tick in range(len(source)+120):
                 safety=physical_safety(state,0,points,bounds,limits)
                 if safety['abort']:abort=dict(kind='ACQUISITION_FAILURE',safety=safety,tick=tick);break
@@ -129,7 +129,7 @@ def main():
                 held_since=tick if held and held_since is None else held_since if held else None
                 acquisition.append(dict(tick=tick,q=np.asarray(state['q'])[0].tolist(),object=obj.tolist(),forces=force.tolist(),supported=supported,held=held))
                 if held_since is not None and (tick-held_since)/30>=.3-1e-10:acquired=True;break
-                action,_,_=source_pd_action(source[min(tick,len(source)-1)][None],np.asarray(state['q']),offset,scale);step(action[0])
+                action,_,_=source_pd_action(source[min(tick,len(source)-1)][None],np.asarray(state['q']),offset,scale);last_acquisition_pd=step(action[0])
             write(folder/'acquisition.json',acquisition)
             if not acquired:
                 result=dict(case,index=case_index,status='ACQUISITION_FAILURE',abort=abort,acquisition_controls=len(acquisition),tracked_controls=0)
@@ -145,17 +145,25 @@ def main():
                 meta=dict(duration_s=float(curve.times[-1]),closed=end_error[0]<1e-8 and end_error[1]<1e-8,reference_input=str(a.reference_npz.resolve()))
             if meta['duration_s']>90:raise ValueError('trajectory physical-time cap')
             np.savez_compressed(folder/'reference.npz',times=curve.times,poses=curve.poses,hand_object=relative)
-            tracker=ObjectPoseTracker(np.asarray(state['q'])[0],palm,offset,scale)
+            # Real grasp inherits the actual preceding setpoints, not measured
+            # deflected joints: resetting targets to q discards contact preload.
+            if last_acquisition_pd is None:raise ValueError('missing actual acquisition PD target')
+            finger_ids=np.array([6,8,10,12,14,15])
+            held_fingers=last_acquisition_pd[finger_ids] if case['stage']=='B' else None
+            tracker=ObjectPoseTracker(np.asarray(state['q'])[0],palm,offset,scale,held_finger_targets=held_fingers)
+            write(folder/'handoff.json',dict(measured_q=np.asarray(state['q'])[0].tolist(),last_actual_pd=last_acquisition_pd.tolist(),held_finger_targets=tracker.fingers.tolist()))
             if case['stage']=='A':
                 rpc(dict(op='tracking_attachment',enabled=True,hand_object=np.r_[relative[:3,3],Rotation.from_matrix(relative[:3,:3]).as_quat()].tolist()))
-            captures=[];metrics=[];details=[];raw_actions=[];pds=[];N=int(round(meta['duration_s']*30));last_lost=None
+            captures=[];metrics=[];details=[];raw_actions=[];pds=[];N=int(np.ceil(meta['duration_s']*30-1e-9));last_lost=None
             for tick in range(N+1):
-                now=tick/30;desired,v,w=curve.evaluate(now);actual=pose7(np.asarray(state['objects'])[0]);palm=pose7(np.asarray(state['palm_pose'])[0]);err,ang=errors(actual,desired);drift,rot_drift=errors(np.linalg.inv(palm)@actual,relative)
+                now=tick/30;reference_time=min(now,meta['duration_s']);desired,v,w=curve.evaluate(reference_time)
+                if now>meta['duration_s']:v,w=np.zeros(3),np.zeros(3)
+                actual=pose7(np.asarray(state['objects'])[0]);palm=pose7(np.asarray(state['palm_pose'])[0]);err,ang=errors(actual,desired);drift,rot_drift=errors(np.linalg.inv(palm)@actual,relative)
                 margins=joint_margin(np.asarray(state['q'])[0],limits);j=int(np.argmin(margins))
                 force=np.linalg.norm(np.asarray(state['contact_forces'])[0],axis=-1);contact=bool(state['contact_force_valid'][0] and (force>=.1).sum()>=2)
                 last_lost=now if not contact and last_lost is None else last_lost if not contact else None
                 safety=physical_safety(state,0,points,bounds,limits);bad=collisions()
-                metrics.append(dict(tick=tick,time_s=now,position_error_m=err,orientation_error_rad=ang,drift_m=drift,drift_rad=rot_drift,
+                metrics.append(dict(tick=tick,time_s=now,reference_time_s=reference_time,position_error_m=err,orientation_error_rad=ang,drift_m=drift,drift_rad=rot_drift,
                                     margin_min=float(margins[j]),margin_joint=j,contact=contact,collision_pairs=bad,safety=safety,
                                     target_speed_m_s=float(np.linalg.norm(v)),target_omega_rad_s=float(np.linalg.norm(w)),
                                     joint_margins=[None if not np.isfinite(x) else float(x) for x in margins]))

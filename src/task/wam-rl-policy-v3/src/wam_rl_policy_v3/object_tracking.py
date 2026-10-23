@@ -85,10 +85,12 @@ class ObjectPoseTracker:
     No model, schema, goal inference or gain tuning. FF is the first-order
     velocity*dt increment in the native position-target interface, not torque.
     """
-    def __init__(self, q, palm, offset, scale):
+    def __init__(self, q, palm, offset, scale, *, held_finger_targets=None):
         self.offset, self.scale = np.asarray(offset), np.asarray(scale)
         self.mount = Rotation.from_euler('XYZ', q[3:6]).as_matrix().T @ palm[:3,:3]
-        self.fingers = np.asarray(q)[FINGER_ACTIVE].copy()
+        self.fingers = np.asarray(q)[FINGER_ACTIVE].copy() if held_finger_targets is None else np.asarray(held_finger_targets,dtype=float).copy()
+        if self.fingers.shape!=(6,) or not np.isfinite(self.fingers).all():
+            raise ValueError('six finite actual preceding PD finger targets required')
 
     def step(self, q, dq, palm, target, velocity, omega_world, forces, force_valid, feedforward):
         q, dq = np.asarray(q), np.asarray(dq)
