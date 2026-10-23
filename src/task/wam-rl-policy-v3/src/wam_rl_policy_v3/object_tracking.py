@@ -79,13 +79,63 @@ def hand_setpoint(object_pose, velocity, omega_world, hand_object):
     return target, np.asarray(velocity)+np.cross(omega_world, lever), np.asarray(omega_world)
 
 
+def _norm_cap(vector, maximum):
+    vector = np.asarray(vector, float)
+    return vector * min(1., maximum / max(float(np.linalg.norm(vector)), 1e-15))
+
+
+class ObjectSteadyCorrection:
+    """Bounded world-frame object-error integrals; no axis-specific tuning.
+
+    Offsets bias the object reference, never the measured pose or scoring target.
+    Conditional integration rejects growth when the existing command caps bind.
+    Invalid contact or a finite joint near its inner boundary clears the offsets.
+    A fresh instance belongs to exactly one TRACK episode.
+    """
+    position_gain = 1.0  # 1/s
+    rotation_gain = .7  # 1/s
+    position_limit = .040  # m, Euclidean norm
+    rotation_limit = .14  # rad, rotation-vector norm
+    position_rate = .015  # m/s
+    rotation_rate = .08  # rad/s
+    dt = 1. / 30
+
+    def __init__(self):
+        self.position = np.zeros(3)
+        self.rotation = np.zeros(3)
+
+    def clear(self):
+        self.position[:] = 0.
+        self.rotation[:] = 0.
+
+    def propose(self, measured, desired):
+        if not np.isfinite(np.r_[measured.ravel(), desired.ravel()]).all():
+            raise ValueError('finite measured/reference object SE3 required')
+        ep = desired[:3, 3] - measured[:3, 3]
+        er = Rotation.from_matrix(desired[:3, :3] @ measured[:3, :3].T).as_rotvec()
+        old = (self.position.copy(), self.rotation.copy())
+        self.position = _norm_cap(self.position + self.dt * _norm_cap(self.position_gain * ep, self.position_rate), self.position_limit)
+        self.rotation = _norm_cap(self.rotation + self.dt * _norm_cap(self.rotation_gain * er, self.rotation_rate), self.rotation_limit)
+        return old, dict(position_error_world_m=ep.tolist(), rotation_error_world_rad=er.tolist())
+
+    def restore(self, saved):
+        self.position, self.rotation = (x.copy() for x in saved)
+
+    def apply(self, desired):
+        corrected = desired.copy()
+        corrected[:3, 3] += self.position
+        corrected[:3, :3] = Rotation.from_rotvec(self.rotation).as_matrix() @ desired[:3, :3]
+        return corrected
+
+
 class ObjectPoseTracker:
     """TRACK with PoseConsumer's existing gains, action units and native PD.
 
     No model, schema, goal inference or gain tuning. FF is the first-order
     velocity*dt increment in the native position-target interface, not torque.
     """
-    def __init__(self, q, palm, offset, scale, *, held_finger_targets=None, joint_limits=None, predictive_braking=False):
+    def __init__(self, q, palm, offset, scale, *, held_finger_targets=None, joint_limits=None, predictive_braking=False,
+                 object_steady_correction=False, correction_joint_limits=None):
         self.offset, self.scale = np.asarray(offset), np.asarray(scale)
         self.mount = Rotation.from_euler('XYZ', q[3:6]).as_matrix().T @ palm[:3,:3]
         self.fingers = np.asarray(q)[FINGER_ACTIVE].copy() if held_finger_targets is None else np.asarray(held_finger_targets,dtype=float).copy()
@@ -95,20 +145,80 @@ class ObjectPoseTracker:
         if joint_limits is not None:
             from .reference_admission import JointEnvelope
             self.envelope=JointEnvelope(joint_limits,offset,scale)
+        self.steady = ObjectSteadyCorrection() if object_steady_correction else None
+        self.correction_envelope = self.envelope
+        if self.steady is not None and self.correction_envelope is None:
+            from .reference_admission import JointEnvelope
+            if correction_joint_limits is None:
+                raise ValueError('steady correction requires measured native joint limits')
+            self.correction_envelope = JointEnvelope(correction_joint_limits, offset, scale)
 
-    def step(self, q, dq, palm, target, velocity, omega_world, forces, force_valid, feedforward):
+    def step(self, q, dq, palm, target, velocity, omega_world, forces, force_valid, feedforward,
+             *, measured_object=None, desired_object=None, hand_object=None):
         q, dq = np.asarray(q), np.asarray(dq)
         if self.envelope is not None:
             self.envelope.pose_configuration(target,q,palm,self.fingers)
-        angles = closest_wrist_angles(target[:3, :3], q[3:6], self.mount)
-        translation = .45*(target[:3,3]-palm[:3,3])-.012*dq[:3]
-        angular = .40*(angles-q[3:6])-.008*dq[3:6]
-        if feedforward:
-            eps = 1e-5
-            advanced = Rotation.from_rotvec(np.asarray(omega_world)*eps).as_matrix() @ target[:3,:3]
-            derivative = (closest_wrist_angles(advanced, angles, self.mount)-angles)/eps
-            translation += np.asarray(velocity)/30
-            angular += derivative/30
+        def wrist_law(pose, linear_ff, angular_ff):
+            angles = closest_wrist_angles(pose[:3, :3], q[3:6], self.mount)
+            translation = .45*(pose[:3,3]-palm[:3,3])-.012*dq[:3]
+            angular = .40*(angles-q[3:6])-.008*dq[3:6]
+            if feedforward:
+                eps = 1e-5
+                advanced = Rotation.from_rotvec(np.asarray(angular_ff)*eps).as_matrix() @ pose[:3,:3]
+                derivative = (closest_wrist_angles(advanced, angles, self.mount)-angles)/eps
+                translation += np.asarray(linear_ff)/30
+                angular += derivative/30
+            return translation, angular
+        correction = None
+        original_target = target.copy()
+        if self.steady is not None:
+            if any(x is None for x in (measured_object, desired_object, hand_object)):
+                raise ValueError('measured object, original object reference and fixed grasp required')
+            env = self.correction_envelope
+            contact = bool(force_valid and (np.linalg.norm(forces, axis=-1) >= .1).sum() >= 2)
+            near = env.mask & ((q <= env.lower) | (q >= env.upper))
+            predicted = q + .10*dq
+            approaching = env.mask & (((predicted <= env.lower) & (dq < 0)) | ((predicted >= env.upper) & (dq > 0)))
+            correction = dict(enabled=True, accepted=False, reason=None)
+            if not contact or near.any() or approaching.any():
+                self.steady.clear()
+                correction['reason'] = 'contact_invalid' if not contact else 'finite_joint_boundary' if near.any() else 'finite_joint_approaching'
+            else:
+                saved, residual = self.steady.propose(np.asarray(measured_object), np.asarray(desired_object))
+                correction.update(residual)
+                # Differentiate the original time law with the bias held fixed.
+                # Integral updates are feedback, not extra velocity feedforward.
+                object_velocity = np.asarray(velocity) - np.cross(omega_world, original_target[:3,3]-desired_object[:3,3])
+                corrected_omega = Rotation.from_rotvec(self.steady.rotation).as_matrix() @ omega_world
+                candidate, candidate_v, candidate_w = hand_setpoint(self.steady.apply(np.asarray(desired_object)), object_velocity, corrected_omega, hand_object)
+                ct, ca = wrist_law(candidate, candidate_v, candidate_w)
+                from .reference_admission import UnreachableReference
+                try:
+                    env.pose_configuration(candidate, q, palm, self.fingers)
+                    # Check the ACTUAL incremental position target, before any
+                    # clipping, including the retained FF and native damping.
+                    pd = q.copy();pd[:3] += ct
+                    if ((pd[:3] < env.lower[:3]) | (pd[:3] > env.upper[:3])).any():
+                        raise UnreachableReference('corrected incremental PD outside inner bounds')
+                except UnreachableReference:
+                    self.steady.clear()
+                    correction['reason'] = 'corrected_target_rejected'
+                else:
+                    units = np.r_[ct, ca]
+                    raw_wrist = (units-self.offset[:6])/self.scale[:6]
+                    if (np.abs(ct) > .025).any() or (np.abs(ca) > .12).any() or (np.abs(raw_wrist) > 1).any():
+                        # Clear the applied bias while saturated; retain no
+                        # stale integral that could keep driving a boundary.
+                        self.steady.restore(saved)
+                        correction['reason'] = 'command_saturated'
+                    else:
+                        target = candidate
+                        velocity, omega_world = candidate_v, candidate_w
+                        correction.update(accepted=True, reason='integrating')
+            correction.update(position_bias_m=self.steady.position.tolist(), rotation_bias_rad=self.steady.rotation.tolist(),
+                              position_at_limit=bool(np.linalg.norm(self.steady.position) >= self.steady.position_limit-1e-10),
+                              rotation_at_limit=bool(np.linalg.norm(self.steady.rotation) >= self.steady.rotation_limit-1e-10))
+        translation, angular = wrist_law(target, velocity, omega_world)
         # Existing pose consumer caps, unchanged in both FF conditions.
         translation = np.clip(translation, -.025, .025)
         angular = np.clip(angular, -.12, .12)
@@ -126,7 +236,8 @@ class ObjectPoseTracker:
             self.fingers=np.asarray(admission['executed_pd'])[FINGER_ACTIVE].copy()
         return raw, dict(phase='TRACK',wrist_target=target.tolist(),velocity_ff_world=np.asarray(velocity).tolist(),
                          angular_velocity_ff_world=np.asarray(omega_world).tolist(),feedforward=bool(feedforward),
-                         clipped=bool(np.any(np.abs(raw)>1)),admission=admission)
+                         clipped=bool(np.any(np.abs(raw)>1)),admission=admission,
+                         original_wrist_target=original_target.tolist(),object_steady_correction=correction)
 
 
 def errors(measured, desired):

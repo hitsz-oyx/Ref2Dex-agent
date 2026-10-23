@@ -41,6 +41,7 @@ def main():
     p.add_argument('--reference-start',type=Path,help='Reuse frozen world object start for a paired stage-only run')
     p.add_argument('--legacy-unchecked',action='store_true',help='Explicit historical reproduction only; bypass new admission/watchdog')
     p.add_argument('--predictive-braking',action='store_true',help='Experimental: stop approach on q+0.10s*dq risk; not qualified as default')
+    p.add_argument('--object-steady-correction',action='store_true',help='TRACK-only bounded measured-object SE3 integral; original scoring/FF/PD unchanged')
     a=p.parse_args();out=a.output.resolve()
     if ROOT/'outputs/wam-rl-policy-v3' not in out.parents or not 60<=a.seconds<=7200 or not 1<=a.max_controls<=300000:raise ValueError('bounded task-local output required')
     out.mkdir(parents=True,exist_ok=True)
@@ -84,7 +85,8 @@ def main():
          '--fixed-motions-json',str(fixed),'--state-transport','packed','--extended-state','--synchronize-setters','--physics-backend','gpu-cpu','--object-tracking-probe']
     manifest=dict(status='STARTING',git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),native_command=cmd,
                   sequence=a.sequence,policy_updates=0,model_calls=0,tau_used=False,maximum_controls=a.max_controls,maximum_new_bytes=2*2**30,
-                  disk_free_before=disk.free,gpu=a.gpu,client_python=sys.executable,controls=0,results=[],unmeasured=[],limit_aware=not a.legacy_unchecked,predictive_braking=a.predictive_braking,rigid_A_scope='kinematic grasp constraint at control samples; not load-bearing welded dynamics')
+                  disk_free_before=disk.free,gpu=a.gpu,client_python=sys.executable,controls=0,results=[],unmeasured=[],limit_aware=not a.legacy_unchecked,predictive_braking=a.predictive_braking,
+                  object_steady_correction=a.object_steady_correction,rigid_A_scope='kinematic grasp constraint at control samples; not load-bearing welded dynamics')
     write(out/'manifest.json',manifest)
     log=(out/'native.log').open('x');environment=dict(os.environ,REF2DEX_RUN_ROOT=str(ROOT))
     child=subprocess.Popen(cmd,env=environment,stdout=log,stderr=subprocess.STDOUT,start_new_session=True,cwd=ROOT)
@@ -177,7 +179,8 @@ def main():
             finger_ids=np.array([6,8,10,12,14,15])
             held_fingers=last_acquisition_pd[finger_ids] if case['stage']=='B' or a.unloaded_probe else None
             if not continuation:
-                tracker=ObjectPoseTracker(np.asarray(state['q'])[0],palm,offset,scale,held_finger_targets=held_fingers,joint_limits=limits if envelope is not None else None,predictive_braking=a.predictive_braking)
+                tracker=ObjectPoseTracker(np.asarray(state['q'])[0],palm,offset,scale,held_finger_targets=held_fingers,joint_limits=limits if envelope is not None else None,predictive_braking=a.predictive_braking,
+                                          object_steady_correction=a.object_steady_correction,correction_joint_limits=limits)
             else:
                 # Keep even the original wrist mounting calibration unchanged.
                 tracker.fingers=held_fingers.copy()
@@ -220,7 +223,8 @@ def main():
                 target,hv,hw=hand_setpoint(desired,v,w,relative)
                 # Rigid fixture A fixes the grasp. Real-contact B retains the
                 # existing MeasuredGraspConsumer's force-based finger holding.
-                try:raw,info=tracker.step(np.asarray(state['q'])[0],np.asarray(state['dq'])[0],palm,target,hv,hw,np.asarray(state['contact_forces'])[0],case['stage']=='B' and bool(state['contact_force_valid'][0]),case['feedforward'])
+                try:raw,info=tracker.step(np.asarray(state['q'])[0],np.asarray(state['dq'])[0],palm,target,hv,hw,np.asarray(state['contact_forces'])[0],case['stage']=='B' and bool(state['contact_force_valid'][0]),case['feedforward'],
+                                         measured_object=actual,desired_object=desired,hand_object=relative)
                 except UnreachableReference as error:abort=dict(kind='unreachable_reference',tick=tick,reason=str(error));break
                 raw_actions.append(raw);details.append(info);pds.append(step(np.clip(raw,-1,1)))
             if captures:np.savez_compressed(folder/'trajectory.npz',**{k:np.stack([s[k] for s in captures]) for k in captures[0]})
@@ -238,6 +242,9 @@ def main():
                         pass_tracking=bool(not abort and np.quantile(e,.95)<=.015 and np.quantile(angles,.95)<=np.deg2rad(5) and max(m['drift_m'] for m in metrics)<=.01 and max(m['drift_rad'] for m in metrics)<=np.deg2rad(10) and all(all(v is None or v>=.02 for v in m['joint_margins']) for m in metrics) and (not meta['closed'] or close_pos<=.015 and close_rot<=np.deg2rad(5))))
             manifest['results'].append(result);write(folder/'result.json',result);write(out/'manifest.json',manifest)
             print(json.dumps(result),flush=True)
+            if a.object_steady_correction and abort and abort['kind'] in ('limit','collision'):
+                stop_p0=True
+                manifest['stop_reason']='Correction risk: stop remaining cases; default correction remains disabled'
         send(conn,dict(op='close'));receive(conn);child.wait(timeout=30)
         if child.returncode:raise RuntimeError('native exit '+str(child.returncode))
         manifest.update(status='STOPPED_P0' if stop_p0 else 'COMPLETED',elapsed_s=time.monotonic()-start,native_returncode=child.returncode)
