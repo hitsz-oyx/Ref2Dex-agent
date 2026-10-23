@@ -376,3 +376,13 @@ C1 recovers; C2 with identical source weights regresses. Question: does expanded
 First256 source1 draws replayed from each actual rank0 sampler: C1 first8 coordinate RMS63.718mm (inherited z RMS1.741), C2 RMS91.505mm (z RMS2.520), ratio1.436. Observed input velocity coordinate RMS0.361 versus0.533m/s. C1/C2 sampled230/233 mothers,253/256 distinct windows. This DOES NOT meet the preregistered >=2x dominant-source scale criterion. Phase counts and axis tails remain in C1-C2-source1-scale-audit.json. Do not overclaim a causal source1 normalization failure from this result.
 
 The source1 window support expands5632->287955 (51.13x) with the same source probability/update budget; average repeated exposure per available source1 window therefore falls51.13x before mother/phase nonuniformity. Thus C2 failure establishes that restoring source weights alone is insufficient on this old TRAIN panel; it does not isolate toxic newly added source IDs, nor distinguish broader support/retention/optimization from label-semantic mismatch. No extra training baseline was run.
+
+C3-r2 FAILED exit 1; no restart. See /mnt/ugreen_nas/storage/oyx_storage/wam-nine-source-full-20261023-pending/diagnosis/C3-r2/console.log
+
+## C3-r2 terminal input-range fault (no mechanistic EPE verdict)
+
+At step104/rank2, production fixed_workspace_grid rejects valid points beyond fixed origin -2m. Last logged successful progress is step100; control flow implies103 completed updates before the forward104 failure, but no final checkpoint/panel was saved. Do NOT classify as C3 recovery or C3 degradation. Runtime failure is distinct from model-quality outcome. No further C3 retry is launched.
+
+Exact CPU production-reader/validator replay: `workspace-fault-reproduction.json`. Offender source4/key s4-34183/remote sequence29105/slot0/tick61, native trajectories/episode-00-env-179.npz, existing HALF shard.799 valid hand points (21 joints+778 surface) have x=-2.724..-2.612m versus fixed lower bound -2m; object surface points are in range. Hand future supervision is valid, so C5 validity gate retains this sample. The full batch error exactly reproduces grid_min[-145,172,229]/grid_max[584,683,583]. This confirms an input-range admission failure missed by sampled p1/p99, not a demonstrated target-unit bug. Workspace/normalizer/data masks are unchanged. C4/C5 prescribed sampling ranges are being preflighted on CPU before spending additional GPU budget.
+
+Reproduce: `PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/wbcd/miniconda3/envs/graspenv/bin/python src/task/ptv3-shared-wam-v6/tools/audit/reproduce_workspace_fault.py` (existing output is immutable; remove the final write or choose a fresh output to rerun; no original artifact is overwritten).
