@@ -28,14 +28,18 @@ def main():
                   ['DEV old3356','Full DEV before dedup','Full DEV after dedup'],support/'dev-coverage.png')
     rel='../../../../../'+str(catalog.relative_to(p.ROOT));link=lambda file,label=None:'['+(label or file)+']('+rel+'/'+file+')'
     gaps=[]
-    for (phase,gc,sid),n in after.items():
-        if phase=='unknown' or gc=='unknown' or n:continue
-        if before[(phase,gc,sid)]:reason='removed_as_near_duplicate_of_actual_retained_content'
-        elif not sum(v for (q,g,s),v in before.items() if g==gc and s==sid):reason='geometry_class_absent_in_admitted_source'
-        else:reason='phase_not_observed_in_admitted_source_geometry'
-        gaps.append(dict(phase=phase,geometry_class=gc,source_id=sid,windows=0,reason=reason))
+    for split in ['train','dev']:
+        split_before=read_cov(catalog/('coverage-'+split+'-before.csv'))
+        split_after=read_cov(catalog/('coverage-'+split+'-after.csv'))
+        for (phase,gc,sid),n in split_after.items():
+            if phase=='unknown' or gc=='unknown' or n:continue
+            if split_before[(phase,gc,sid)]:reason='removed_as_near_duplicate_of_actual_retained_content'
+            elif not sum(v for (q,g,s),v in split_before.items() if s==sid):reason='source_absent_from_split'
+            elif not sum(v for (q,g,s),v in split_before.items() if g==gc and s==sid):reason='geometry_class_absent_in_admitted_source'
+            else:reason='phase_not_observed_in_admitted_source_geometry'
+            gaps.append(dict(split=split,phase=phase,geometry_class=gc,source_id=sid,windows=0,reason=reason))
     with (support/'zero-gaps.csv').open('x') as f:
-        writer=csv.DictWriter(f,fieldnames=['phase','geometry_class','source_id','windows','reason']);writer.writeheader();writer.writerows(gaps)
+        writer=csv.DictWriter(f,fieldnames=['split','phase','geometry_class','source_id','windows','reason']);writer.writeheader();writer.writerows(gaps)
     names={0:'OakInk2',1:'GRAB',2:'ARCTIC rigid slots',4:'Shadow replay',5:'TACO',6:'HOT3D',8:'DexYCB',9:'H2O',10:'HOI4D'}
     sources=[];old_sources=Counter()
     for (q,g,s),n in old.items():old_sources[str(s)]+=n
@@ -117,6 +121,11 @@ source0 dense slot扩展含背景物体样本，窗口量不能直接当成独�
 {link('report-support/zero-gaps.csv','全部0格及原因')}逐项列出；当前零格原因
 `{dict(Counter(r['reason'] for r in gaps))}`。新source4记录不能填source8/10的空格。
 后续补数据要按更新后的全量缺口决定，不能仅沿旧6k的source4缺口自动扩采。
+
+TRAIN剩余0格逐项如下；DEV有{m['coverage']['dev']['after']['zero_requested_cells']}个0格，
+也逐项包含在上述带split字段的CSV中。source8 DEV整源缺失单列为split缺口，不假装源数据没有这些相位。
+
+{table(['source','phase','几何类','窗口数','原因'],[[str(r['source_id'])+' '+names[r['source_id']],r['phase'],r['geometry_class'],0,r['reason']] for r in gaps if r['split']=='train'])}
 
 ## 来源认证、哈希和消费合同
 

@@ -171,6 +171,9 @@ TRAIN/DEV各有去重前后全表：{link('full-manifest-r1/coverage-train-befor
 {link('full-manifest-r1/coverage-dev-after.csv','DEV后')}。
 {link('report-support/coverage-gaps-explained.csv','零格逐项原因')}：
 `{json.dumps(dict(Counter(g['reason'] for g in gaps)))}`。
+
+{table(['source','phase','几何类','前','后','原因'],[[str(g['source_id'])+' '+source_names[g['source_id']],g['phase'],g['geometry_class'],g['windows_before'],0,g['reason']] for g in gaps])}
+
 可视化：{link('report-support/coverage-train.png','TRAIN覆盖热图')}、{link('report-support/coverage-dev.png','DEV覆盖热图')}。
 “0”表示当前合同下没有准入样本；原本有样本但被内容去重移到其他保留代表的格子
 不算原始数据结构性缺失。仅有unknown相位的格子先列标注缺口，不伪装成相位阳性。
