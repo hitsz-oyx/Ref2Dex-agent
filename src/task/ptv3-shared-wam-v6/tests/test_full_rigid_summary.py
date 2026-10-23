@@ -37,8 +37,9 @@ def test_complete_manifest_cross_split_dedup_and_unknown_certification(tmp_path,
     if nontransitive:
         train=np.load(run/'hand0/joints.npy');train[:]=.0009;train[28]=.0025;np.save(run/'hand0/joints.npy',train)
         dev=np.load(run/'hand1/joints.npy');dev[:]=-.0009;np.save(run/'hand1/joints.npy',dev)
+    for i in [0,1]:np.savez(run/('clock'+str(i)+'.npz'),framerate=np.float64(120),n_frames=np.int64(128))
     fixture_plan=tmp_path/'plan.json'
-    prep.write(fixture_plan,dict(jobs=[dict(key='s1-'+str(i),source_id=1,source_sequence='different_mother_'+str(i),sequence_folder=str(run/('hand'+str(i)))) for i in [0,1]]))
+    prep.write(fixture_plan,dict(jobs=[dict(key='s1-'+str(i),source_id=1,source_sequence='different_mother_'+str(i),sequence_folder=str(run/('hand'+str(i))),raw_path=str(run/('clock'+str(i)+'.npz'))) for i in [0,1]]))
     monkeypatch.setattr(prep,'PLAN',fixture_plan)
     prep.write(run/'progress.json',dict(status='CONVERSION_AND_ADMISSION_COMPLETED'))
     prep.write(run/'inventory.json',dict(total_sequences=2,by_status=dict(REUSE=2),seeds=dict(full_manifest=170)))
@@ -58,3 +59,13 @@ def test_complete_manifest_cross_split_dedup_and_unknown_certification(tmp_path,
     assert (out/'manifest.sha256').read_text().split()[0]==prep.digest(out/'manifest.json')
     assert np.load(out/'train-deduplicated.npy').shape==(1 if nontransitive else 0,3)
     summary.sequence.cache_clear();prep._GEOS.clear()
+
+
+def test_timing_gate_rejects_a_boundary_inside_the_full_horizon(tmp_path):
+    clock=tmp_path/'clock.npz'
+    t=np.arange(32,dtype=np.float64)/30
+    segment=np.zeros(32,np.int32);segment[20:]=1
+    np.savez(clock,time=t,segment=segment)
+    record=dict(key='example',clock_kind='packed_grid30',clock_uri=str(clock))
+    with pytest.raises(ValueError,match='clock/segment boundary'):
+        summary.timing_gate(record,np.array([[0,0,3]],np.int32),32)

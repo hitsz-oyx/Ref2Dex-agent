@@ -132,7 +132,8 @@ TRAIN/DEV各有去重前后全表：{link('full-manifest-r1/coverage-train-befor
 {link('full-manifest-r1/train-added-vs6000-after.npy','新增tuples后')}给出全部逐项差集；
 {link('full-manifest-r1/train-membership-in-old6000.npy','旧6k membership mask')}、
 {link('full-manifest-r1/dedup-pairs.jsonl','删除代表逐项账本')}可回溯每一行。
-旧curated manifest和固定512 TRAIN锚点保持原样。没有重新拟合normalizer或修改训练配方。
+旧curated manifest和固定512 TRAIN锚点保持原样。没有重新拟合normalizer或修改训练配方。全量准入窗口另逐条核对30Hz时钟/segment，
+不允许H4/K24跨不连续边界；source0全部568条frame_id核对0断点。
 
 ## 来源认证与实际缺口
 
@@ -186,7 +187,7 @@ source0-copy-receipt*.json和remaining-legacy-budget.json；逐序列receipt在`
 **manifest SHA256：`{sha}`**；文件级SHA与字节数在其`files`表，
 {link('full-manifest-r1/manifest.sha256','SHA文件')}可直接校验。
 
-工程核验：刚体准入/精确NPY字节公式/磁盘floor及serial/spawn并行全量manifest测试合计15项通过；
+工程核验：刚体准入/精确NPY字节公式/磁盘floor及serial/spawn并行全量manifest测试合计16项通过；
 真实9source的18个首尾窗口通过实际sample_window reader、形状与有限值检查，
 {link('actual-reader-smoke.json','reader receipt')}明确保留legacy future-goal事实、不当成部署认证。
 仓库`tools/verify.py --changed`另有腾盘后历史cm-pointflow outputs链接缺失，未为了过检查

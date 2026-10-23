@@ -93,10 +93,42 @@ def init_local_worker(registry):
     prep._GEOMETRY_ROWS={r['key']:r for r in prep.read(prep.REGISTRY/'manifest.json')['objects']}
 
 
+def timing_gate(record,tuples,n):
+    """Dense ticks must not cross a clock gap or an existing segment edge."""
+    kind=record['clock_kind'];bad=np.zeros(max(0,n-1),bool)
+    if kind=='source0_observed_stride4':
+        if record['clock_frames']!=n:raise ValueError('source0 clock length changed')
+        bad[np.asarray(record['clock_bad_edges'],np.int64)]=True
+    elif kind=='grab_native120_stride4':
+        with np.load(record['clock_uri'],allow_pickle=False) as z:
+            if float(z['framerate'])!=120 or (int(z['n_frames'])+3)//4!=n:
+                raise ValueError('GRAB native clock changed')
+    elif kind=='arctic_native30':
+        if len(np.load(record['clock_uri'],mmap_mode='r',allow_pickle=False))!=n:
+            raise ValueError('ARCTIC native clock length changed')
+    elif kind=='packed_grid30':
+        with np.load(record['clock_uri'],allow_pickle=False) as z:
+            t=z['time']
+            if t.shape!=(n,) or not np.isfinite(t).all():raise ValueError('invalid native clock')
+            bad |= ~np.isclose(np.diff(t),1/30,rtol=0,atol=1e-5)
+            if 'segment' in z:
+                segment=z['segment']
+                if segment.shape!=(n,):raise ValueError('invalid segment shape')
+                bad |= np.diff(segment)!=0
+    else:raise ValueError('unknown clock contract')
+    ticks=tuples[:,2];prefix=np.r_[0,np.cumsum(bad,dtype=np.int64)]
+    legal=prefix[ticks+24]==prefix[ticks-3]
+    if not legal.all():
+        raise ValueError('dense admission crossed native clock/segment boundary: %s windows=%d' % (record['key'],int((~legal).sum())))
+    return int(bad.sum())
+
+
 def local_dedup(args):
     """Parallel per-sequence work; global representatives remain serial/strict."""
     r,folder=args;folder=Path(folder)
     shard=np.load(r['window_shard'],allow_pickle=False);tuples=shard['tuples'];phases=shard['phase']
+    source,_,_=sequence(r['path'],r['contact_path'])
+    bad_edges=timing_gate(r,tuples,len(source['joints']))
     keep=np.ones(len(tuples),bool);representatives=np.full(len(tuples),-1,np.int32)
     keys=np.zeros((len(tuples),20),np.uint8);previous={}
     for i,(_,slot,tick) in enumerate(tuples):
@@ -108,7 +140,8 @@ def local_dedup(args):
             keys[i]=np.frombuffer(feature_signature(f),np.uint8)
             previous[slot]=(i,tick,phase,f)
     target=folder/(r['key']+'.npz');pending=target.with_name(target.name+'.part')
-    with pending.open('wb') as f:np.savez(f,keep=keep,representatives=representatives,signatures=keys)
+    with pending.open('wb') as f:np.savez(f,keep=keep,representatives=representatives,signatures=keys,
+        timing_checked_windows=np.int64(len(tuples)),native_bad_edges=np.int64(bad_edges))
     pending.replace(target)
     return str(target)
 
@@ -196,6 +229,13 @@ def summarize(run,out,workers=1):
     if additional:
         plan_jobs.update({r['job']['key']:r['job'] for r in prep.read(run/'additional-local-jobs.json')['rows']})
     origins={r['key']:(r.get('raw_path') if r['key'].startswith('s1-local-extra') else r.get('source_row',{}).get('source_path',r.get('sequence_folder'))) for r in plan_jobs.values()}
+    clocks={r['key']:r for r in prep.read(run/'source0-clock-audit.json')['rows']} if any(r['source_id']==0 for r in receipts) else {}
+    for r in receipts:
+        job=plan_jobs[r['key']];sid=r['source_id']
+        if sid==0:r.update(clock_kind='source0_observed_stride4',clock_frames=clocks[r['key']]['frames'],clock_bad_edges=clocks[r['key']]['bad_edge_indices'])
+        elif sid==1:r.update(clock_kind='grab_native120_stride4',clock_uri=job['raw_path'])
+        elif sid==2:r.update(clock_kind='arctic_native30',clock_uri=job['raw_path'].replace('.mano.npy','.object.npy'))
+        else:r.update(clock_kind='packed_grid30',clock_uri=job['source_row']['source_path'])
     canonical=Counter((r['source_id'],origins[r['key']]) for r in receipts)
     if any(v!=1 for v in canonical.values()):raise ValueError('duplicate canonical mother payload URI; cannot count as independent mothers')
     with (out/'mother-identities.jsonl').open('x') as stream:
@@ -368,6 +408,7 @@ def summarize(run,out,workers=1):
             dev_before_and_after=[count['dev'],count['dev']-removed['dev']],
             note='Old6000 and fixed512 anchor are unchanged; full sequence IDs refer to frozen39526 plan order. Join uses stable sequence_key,slot,tick.'),
         randomness=dict(manifest='deterministic original-plan order; no RNG consumed',dedup='deterministic representative order; no RNG consumed',shadow_surface_sampling=20261019,geometry='frozen registry; no resampling'),
+        timing=dict(status='PASS',checked_admitted_windows=n,rule='H4/K24 cannot cross a non30Hz edge or declared source segment boundary',source0_full_clock_audit='../source0-clock-audit.json'),
         seeds=inventory['seeds'],inventory='../inventory.json',receipt_directory='../receipts',batch_receipt_directory='../batches',
         command=sys.argv,files=files,elapsed_s=round(time.monotonic()-started,3),
         disk_free_after_bytes=prep.shutil.disk_usage(run).free,historical_outputs_deleted=0)
