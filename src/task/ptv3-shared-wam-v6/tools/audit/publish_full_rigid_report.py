@@ -101,6 +101,8 @@ def main():
         [f'可认证独立条件窗口0/{sum(m["windows_before"].values()):,}','有目标标签不等于reset前独立指令证据','UNKNOWN/null逐窗保留；不能把缺证算非法或伪造事前可得']])
     text=f'''# 全量刚体数据准备 — brief47 / 2026-10-23
 
+**结果解读表**
+
 {opening}
 
 本报告中的“全量”包含全部 **1,335条本地legacy母序列**、旧6k覆盖的
@@ -230,7 +232,12 @@ batch receipt带attempt ID，运行manifest按attempt留档。调整输入/并�
 原STOP/receipt保留并命名归档，没有杀未知进程或删历史outputs。预算版本保留，没有用新数字
 覆盖历史预检。环境为graspenv/Python{environment['python'].split()[0]}、Torch{environment['packages']['torch']} / CUDA{environment['cuda']}、
 NumPy{environment['packages']['numpy']}；完整版本在environment-record.json。MANO使用GPU7，
-KD-tree/审计最多12个CPU worker，全量去重8个CPU worker。GPU4/5/6上的其他作业未触碰。
+KD-tree/审计最多12个CPU worker，本次完成的全量去重使用{m['dedup']['local_workers']}个CPU worker。
+缓存优化对照阶段两份派生审计合计12个worker，转换产物不重算；具体launch/日志保留在run目录。
+派生索引存储参数为`{m['dedup'].get('derived_index_storage', 'original SQLite defaults')}`；
+{link('cache-output-prefix-check-r1.json','真实逐窗/代表账本公共前缀核对')}与
+{link('index-cache-regression.log','14项serial/spawn等价回归')}均PASS。
+GPU4/5/6上的其他作业未触碰。
 seed：manifest/dedup登记值170，本次确定性排序/去重不消耗RNG；已有Shadow表面采样20261019。
 geometry registry不重采样。没有随机抽样、优化器更新。
 
@@ -244,7 +251,7 @@ PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 \\
 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 \\
  /home2/wyy/miniconda3/envs/graspenv/bin/python \\
  src/task/ptv3-shared-wam-v6/tools/audit/summarize_full_rigid_data.py \\
- --workers 8 --run outputs/ptv3-shared-wam-v6/full-rigid-20261023-brief47-r1 \\
+ --workers {m['dedup']['local_workers']} --run outputs/ptv3-shared-wam-v6/full-rigid-20261023-brief47-r1 \\
  --output outputs/ptv3-shared-wam-v6/full-rigid-20261023-brief47-r1/full-manifest-r1
 # summary必须使用新目录；既有完成manifest不覆盖。
 ```

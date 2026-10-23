@@ -427,10 +427,10 @@ def summarize(run,out,workers=1):
             for ticks in retained_ticks.values():temporal_after+=temporal_fraction(ticks)
             positions[split]+=len(tuples);count[split]+=len(tuples)
             if number%64==0:
-                # This is a derived index, published only after the whole
-                # audit. Group journal syncs; per-window semantics/order stay
-                # unchanged and conversion receipts remain independently durable.
-                db.commit()
+                # Progress is not a published index checkpoint. Commit this
+                # bounded-cache, rebuildable index once below, after the full
+                # audit; per-batch commits rewrite many random B-tree pages.
+                # Authoritative conversion receipts remain independently durable.
                 status=dict(stage='full_manifest',sequences=number,total_sequences=len(admitted),windows=dict(count),removed=dict(removed),
                     elapsed_s=round(time.monotonic()-started,2),disk_free_bytes=prep.shutil.disk_usage(run).free)
                 prep.write(out/'progress.json',status);print(json.dumps(status),flush=True)
@@ -480,6 +480,7 @@ def summarize(run,out,workers=1):
             temporal_near_repeat_percent_after=100*temporal_after/(n-sum(removed.values())) if n>sum(removed.values()) else 0,
             baseline_6000_temporal_percent=61.23,
             derived_index_storage=dict(cache_mib=1024,journal_mode='MEMORY',
+                publication_commit='once after full audit; progress is not a resumable index checkpoint',
                 incomplete_index='unpublished and rebuildable; conversion receipts unchanged')),
         provenance=dict(certified_legal=0,uncertifiable=n,source_role='UNKNOWN',available_before_reset=None,
             native_candidate_mothers=dict(native_candidate_mothers),native_candidate_windows=dict(native_candidate_windows),

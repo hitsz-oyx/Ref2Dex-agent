@@ -57,6 +57,8 @@ def main():
     sha=p.digest(catalog/'manifest.json');free=p.shutil.disk_usage(catalog).free;f=m['fresh'];pr=m['provenance']
     text=f'''# 全量数据准备总报告 — brief47 / 2026-10-23
 
+**结果解读表**
+
 {table(['观测','含义','决定'],[
 [f'108格中TRAIN零格：旧6k {oldzero} → 全量准入 {m["coverage"]["train"]["before"]["zero_requested_cells"]} → 去重后 {zero}','原冻结九源全量恢复后，覆盖缺口显著减少（报具体格数，不推断模型收益）','可进入全量数据重训/续训排期；本轮0updates，不自动启动'],
 [f'仍有{zero}个0格；source8 DexYCB DEV=0','本地准入数据仍存在特定来源/几何/相位缺口','逐格列清，由机主决定补采集/补标注/开发集设计，不用source4冒充其他源'],
