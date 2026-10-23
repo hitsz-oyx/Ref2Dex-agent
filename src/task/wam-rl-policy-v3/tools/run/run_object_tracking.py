@@ -37,6 +37,7 @@ def main():
     p.add_argument('--feedforward',choices=['both','off','on'],default='both')
     p.add_argument('--repeats',type=int,choices=range(1,4),default=1)
     p.add_argument('--unloaded-probe',action='store_true',help='Diagnostic A only: disable object gravity/collisions; preserve hand gravity')
+    p.add_argument('--paired-unload-tail',action='store_true',help='Diagnostic constant reference: continue B as unloaded A without reset or reestimating hand-object transform')
     p.add_argument('--reference-start',type=Path,help='Reuse frozen world object start for a paired stage-only run')
     p.add_argument('--legacy-unchecked',action='store_true',help='Explicit historical reproduction only; bypass new admission/watchdog')
     p.add_argument('--predictive-braking',action='store_true',help='Experimental: stop approach on q+0.10s*dq risk; not qualified as default')
@@ -65,6 +66,8 @@ def main():
     if a.reference_npz:
         with np.load(a.reference_npz) as z:external=ObjectTrajectory(z['times'],z['poses'])
         if external.times[0]!=0 or external.times[-1]>90:raise ValueError('external reference requires t0=0 and <=90 seconds')
+    if a.paired_unload_tail and (external is None or a.stages!='B' or a.feedforward!='off' or not a.unloaded_probe or not np.array_equal(external.poses,np.repeat(external.poses[:1],len(external.poses),axis=0))):
+        raise ValueError('paired unload requires constant external reference, B/off/unloaded-probe')
     rows=json.loads(a.declarations.read_text())['records'];row=next(r for r in rows if r['sequence']==a.sequence)
     with np.load(Path(row['source'])/'trajectory.npz') as z:source=z['pd_targets'].copy()
     with np.load(Path(row['source'])/'canonical.npz') as z:points=z['points'].copy()
@@ -129,15 +132,20 @@ def main():
         stages=('A','B') if a.stages=='both' else (a.stages,)
         ff_values=(False,True) if a.feedforward=='both' else (a.feedforward=='on',)
         plan=[dict(shape=s,scale_m=r,requested_mean_speed_m_s=v,stage=stage,feedforward=ff,repeat=rep) for s,r,v in cells for stage in stages for ff in ff_values for rep in range(a.repeats)]
+        if a.paired_unload_tail:
+            plan=[item for case in plan for item in (case,dict(case,stage='A',paired_unload_tail=True))]
         manifest['unloaded_probe']=a.unloaded_probe
         write(out/'registered-matrix.json',plan)
         stop_p0=False
         for case_index,case in enumerate(plan):
             if stop_p0:
                 manifest['unmeasured'].append(dict(case,reason='NOT_RUN_P0'));continue
-            folder=out/('case%03d'%case_index);folder.mkdir();rpc(dict(op='reset',ids=[0]));current_phase='ACQUIRE';np.savez_compressed(folder/'initial.npz',q=state['q'],dq=state['dq'],objects=state['objects'],hand=state['hand'],tick=state['tick'])
-            held_since=None;acquisition=[];acquired=False;abort=None;initial_z=float(state['objects'][0][2]);last_acquisition_pd=None
-            for tick in range(len(source)+120):
+            folder=out/('case%03d'%case_index);folder.mkdir();continuation=case.get('paired_unload_tail',False)
+            if not continuation:rpc(dict(op='reset',ids=[0]))
+            elif manifest['results'][-1]['status']!='COMPLETED':raise ValueError('paired unload requires completed B')
+            current_phase='ACQUIRE';np.savez_compressed(folder/'initial.npz',q=state['q'],dq=state['dq'],objects=state['objects'],hand=state['hand'],tick=state['tick'])
+            held_since=None;acquisition=[];acquired=continuation;abort=None;initial_z=float(state['objects'][0][2]);last_acquisition_pd=pds[-1].copy() if continuation else None
+            for tick in (() if continuation else range(len(source)+120)):
                 safety=physical_safety(state,0,points,bounds,limits)
                 if safety['abort']:abort=dict(kind='ACQUISITION_FAILURE',safety=safety,tick=tick);break
                 obj=np.asarray(state['objects'])[0];pose=pose7(obj)
@@ -153,7 +161,7 @@ def main():
                 result=dict(case,index=case_index,status='ACQUISITION_FAILURE',abort=abort,acquisition_controls=len(acquisition),tracked_controls=0)
                 manifest['results'].append(result);write(folder/'result.json',result)
                 stop_p0=True;manifest['stop_reason']='No qualified initial grasp; do not expand trajectory shapes';write(out/'manifest.json',manifest);continue
-            obj=pose7(np.asarray(state['objects'])[0]);palm=pose7(np.asarray(state['palm_pose'])[0]);relative=np.linalg.inv(palm)@obj
+            obj=pose7(np.asarray(state['objects'])[0]);palm=pose7(np.asarray(state['palm_pose'])[0]);relative=relative.copy() if continuation else np.linalg.inv(palm)@obj
             if initial_reference is None:
                 initial_reference=obj.copy() if external is None else external.poses[0].copy()
                 np.save(out/'reference-start.npy',initial_reference)
@@ -217,7 +225,7 @@ def main():
             e=np.asarray([m['position_error_m'] for m in metrics]);angles=np.asarray([m['orientation_error_rad'] for m in metrics]);min_margin=min(metrics,key=lambda m:m['margin_min'])
             close_pos,close_rot=errors(pose7(np.asarray(state['objects'])[0]),initial_reference) if meta['closed'] else (None,None)
             result=dict(case,**{k:v for k,v in meta.items() if k not in case},index=case_index,status='ABORT' if abort else 'COMPLETED',abort=abort,
-                        acquisition_controls=len(acquisition)-1,tracked_controls=len(pds),knots_file=str(folder/'reference.npz'),
+                        acquisition_controls=max(0,len(acquisition)-1),tracked_controls=len(pds),knots_file=str(folder/'reference.npz'),
                         position_quantiles_m=np.quantile(e,[0,.5,.9,.95,1]).tolist(),orientation_quantiles_deg=np.rad2deg(np.quantile(angles,[0,.5,.9,.95,1])).tolist(),
                         closure_error_m=close_pos,closure_error_deg=None if close_rot is None else float(np.rad2deg(close_rot)),
                         drift_max_m=max(m['drift_m'] for m in metrics),drift_max_deg=float(np.rad2deg(max(m['drift_rad'] for m in metrics))),
