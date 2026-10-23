@@ -1,5 +1,7 @@
 # G0b：仪器化 rollout 逐样本自洽审计（2026-10-23）
 
+**当前唯一裁决：G0b PASS（brief45 增补 v2）**。真实新数据 807 PPO samples 与 24 个确定性边界样本通过计算/记录自洽验收；不表示 PPO 学习有效。BC/PPO 实际 controls 为643/807，物理采样后的更新0/4。旧14,400 controls永久 INVALID_INSTRUMENTATION；08:12失败attempt也保持INVALID，均不追认。
+
 本轮新增：仅持久化补丁、同一旧批次的补丁前后等价性核对，以及新目录中最多每臂 1,500 controls 的 BC/PPO 最小物理复跑与逐样本 G0 重算。引用而不重跑：brief42 的旧 36 回合/14,400 samples 及 INVALID_INSTRUMENTATION；brief39 的 G1/G2/G3 和 B2/B3。旧读数不作为本轮新数据证据。
 
 ## 结果解读表（运行前预注册；不得事后改判）
@@ -22,7 +24,7 @@ BC/PPO 各最多 1,500 controls，总计最多 3,000；PPO 更新最多原实验
 
 状态：预注册先落盘，随后提交补丁 `64f04603` 并启动一次最小复跑；启动故障后按门禁停止，未自动重试。最终裁决见下。
 
-## 补丁与运行前等价性证据
+## 历史 v1：补丁与运行前等价性证据
 
 `src/task/wam-rl-policy-v3/src/wam_rl_policy_v3/intent_residual.py::ppo_update` 增加可选 `audit` 接收器；在原始 GAE 算完、标准化之前复制 `advantage_raw`、实际进入 value loss 的 `target_return`、`V_old`、reward、next value、γ/λ 和末状态 bootstrap 值。原计算表达式、PPO 损失、Adam、KL gate、两 epochs 均未修改。runner 仅把这些副本与每样本 done/bootstrap/终点标签及已存在的实测阶段一起写入 `ppo-rollout.npz`。
 
@@ -56,9 +58,9 @@ PYTHONDONTWRITEBYTECODE=1 /home2/wyy/miniconda3/envs/graspenv/bin/python -u outp
 }
 ```
 
-## 实际复跑：故障停止，无新 rollout
+## 历史 v1（08:12）：故障停止，无新 rollout
 
-**单一裁决：G0b INVALID。** 新数据不存在，无法判定 GAE 计算链 PASS 或 FAIL；这次失败属于我新增的运行包装/产物准备错误，不是 PPO 能力、奖励或学习率的负证据。源码的逐样本落盘分支尚未被新物理 rollout 执行验收，不能用 CPU 等价性 PASS 代替 G0b PASS。
+**历史 v1 attempt 裁决：G0b INVALID（保留，不追认）。** 新数据不存在，无法判定 GAE 计算链 PASS 或 FAIL；这次失败属于我新增的运行包装/产物准备错误，不是 PPO 能力、奖励或学习率的负证据。源码的逐样本落盘分支尚未被新物理 rollout 执行验收，不能用 CPU 等价性 PASS 代替 G0b PASS。
 
 实际启动时间 2026-10-23 08:12:42 +0800，08:13:12 监督器记录 STOPPED_NO_RETRY。GPU7 进入和退出均 `7, 2, 0`（MiB / utilization %）。没有使用其他 GPU，没有启动 native 物理进程，没有重试，没有 assessment rollout。
 
@@ -77,7 +79,7 @@ PYTHONDONTWRITEBYTECODE=1 /home2/wyy/miniconda3/envs/graspenv/bin/python -u outp
 
 监督器摘要中的首条错误是 output cap，worker 日志另有 loader TypeError；不能只看 supervisor-result.json 而遗漏后者。由于用户硬规定“最小复跑出现 … loader failure … 立即停、**不自动重跑**”，本轮未修包装器后再次启动，也没有改预算、γ/λ、奖励或模型来绕过故障。
 
-## 新数据 G0 三项及 mask 覆盖（不以旧数据补数）
+## 历史 v1：新数据 G0 三项及 mask 覆盖（不以旧数据补数）
 
 | 逐样本比较 | 不一致样本 / 总数 | 最大绝对偏差 | 结论 |
 |---|---|---|---|
@@ -136,7 +138,7 @@ Git：第一次提交补丁与预注册后，`git pull --rebase origin main` 因
 
 先修上一轮包装器的位置参数签名；新 frozen runtime 保留软链接，实体字节启动前核算。GPU7占用>2GiB等60秒，不换卡。上轮1.57GB证据保留，**新v2子目录**单独≤512MiB预计/1GiB硬限额，不把已冻结失败证据误计入新attempt上限。新attempt遇OOM/非有限/loader failure/可用磁盘<20GiB即停不自动重试。继续使用 long-running-tasks 操作规范（单次阻塞≤60秒遵循上级限制）。
 
-状态：v2 预注册先落盘；源码、CPU 等价性、生产路径边界注入和启动预检已完成，v2物理采样尚未启动。
+状态：v2 预注册先落盘，随后通过源码/CPU/边界/启动预检并完成2初态×2臂；实际数字与裁决见下。
 
 ### v2 运行前验收（新增，非 brief39/42 复算）
 
@@ -166,3 +168,119 @@ cat outputs/wam-rl-policy-v3/ppo-instrumented-audit-20261023-r1/v2/boundaries-re
 # 本轮实际短跑启动命令（后续故障不得自动重试）：
 PYTHONDONTWRITEBYTECODE=1 /home2/wyy/miniconda3/envs/graspenv/bin/python -u outputs/wam-rl-policy-v3/ppo-instrumented-audit-20261023-r1/v2/supervise.py
 ```
+
+
+## R1 落地：字段、定义式、生产入口与新数据核对
+
+仅记录代码允许的显式单环境、每次一个回合片段。生产实现位置：
+
+- `src/task/wam-rl-policy-v3/src/wam_rl_policy_v3/intent_residual.py:41::gae_targets`：原 GAE 表达式与运算顺序原样抽取；`:55::final_state_value`：只查询 reset 前末 observation；`:63::save_ppo_rollout`：实际生产保存函数；`:102::ppo_update` 使用同一 GAE 结果更新，`:107` 额外复制实际进入损失的 target tensor。
+- `src/task/wam-rl-policy-v3/tools/run/run_bc_ppo_probe.py:273`：构造末状态输入；`:281` 调用 bootstrap 选择；`:282` 保存其来源 tick/native episode；`:287` 保存更新前 critic；`:296` 分类终点；`:297` 调用同一保存函数。
+
+新增必需字段全部为每样本长度 n：`episode_id/env_id/timestep/sample_index`、`reward/value_t/bootstrap_value`、`advantage_raw/target_return`、`terminated/truncated/endpoint_type`、`bootstrap_mask/gae_continuation_mask`。本轮2个PPO文件共807样本，全部15个字段逐样本形状、身份、次序和 mask 验证通过；保存总字段数35。`bootstrap_value[t]` 明确定义为该 transition 使用的 `V_old(s_{t+1})`（真正终止时原程序使用0），不是整个片段共享的一个标量。另存 `bootstrap_terminal_value` 标量以保留原调用实参证据。
+
+```text
+b_t = 1 - terminated_t
+c_t = 1 - (terminated_t OR truncated_t)
+delta_t = reward_t + gamma * b_t * bootstrap_value_t - value_t
+A_t = delta_t + gamma * lambda * c_t * A_{t+1}
+target_t = value_t + A_t
+```
+
+中间样本 b=c=1；真正终止（含关节安全、桌面物理失败、实际成功）末步 b=c=0；time-limit 与 rollout/budget cutoff 末步 b=1,c=0。最后一个 A_next=0。现有生产 GAE 逐片段调用，末端 tail=0 已隐式停止递推；本补丁只把该语义显式记录，未把 mask 作为新算法塞入旧公式。timestep 是 action 的前状态tick（0..n−1），阶段标签是该action执行后的实测状态（stages[1:n+1]）；两者时间口径明确分开。sample_index 在该arm累计递增0..806，env_id=0，episode_id包括arm/回合名。
+
+| 新数据逐样本检查 | 不一致 / 总数 | 最大绝对偏差 |
+|---|---:|---:|
+| target_return == value_t + advantage_raw | **0/807** | **0.0** |
+| 同γ=.96、λ=.95、b/c独立重算GAE | **0/807** | **5.74435918832e-08** |
+| bootstrap_mask / gae_continuation_mask / terminated / truncated | **各0/807** | 布尔逐位一致 |
+
+独立检查器 `v2/audit_utils.py` 不导入生产 GAE，按上述双mask公式用float64逐步重算，与实际保存数组按 rtol=1e-4/atol=1e-5 比较；还对 γ/λ 与注册值核对，不能仅靠落库参数的内部自洽。old critic snapshot 在807个原observation上的CPU前向与GPU落库 value 全部在容差内，最大差 **2.45869159698e-07**。
+
+### 新物理样本逐回合台账（不是旧14,400的重评分）
+
+| 回合 / 初态 | native seed | controls | endpoint | 末步 b/c | bootstrap | GAE最大偏差 |
+|---|---:|---:|---|---|---:|---:|
+| p0000-A1 / s1_cylindersmall_pass_1 | 294 | 600 | time_limit_truncation | 1/0 | -0.0234384164214 | 2.91904190819e-08 |
+| p0001-A1 / s10_alarmclock_pass_1 | 295 | 207 | real_termination | 0/0 | 0 | 5.74435918832e-08 |
+
+| 终点类 | 真实新PPO回合数 | controls | endpoint / per-sample mask 错误 | 覆盖解释 |
+|---|---:|---:|---|---|
+| real_termination | 1 | 207 | 0/0 | 已实测 |
+| joint_safety_termination | 0 | 0 | N/A（零样本） | 真实短跑未覆盖；另见确定性边界 |
+| time_limit_truncation | 1 | 600 | 0/0 | 已实测 |
+| rollout_cutoff | 0 | 0 | N/A（零样本） | 真实短跑未覆盖；另见确定性边界 |
+
+此处 real_termination 是207步的 `physical_table_penetration`，不宣称任务成功。BC另有643 controls，但不进行PPO更新、不产生GAE张量，不能混入807个PPO样本分母。
+
+## R2 落地：三类边界、reset前价值与故意错误
+
+上方六案例台账是本轮真实调用生产 `gae_targets/final_state_value/save_ppo_rollout` 得到，true-success 只是测试案例ID、不是仿真成功轨迹；奖励与values是明确构造的软件fixture。每例 rewards=`[.1,−.02,.3,−1]`（真正终止）或`[.1,−.02,.3,.04]`（两种截断），values=`[.2,−.1,.4,.15]`。三大类：真正终止2例（普通终止与关节物理失败各1）、time limit 2例、rollout/budget cutoff 2例，共24样本。终止类的critic调用数0，截断类各1；有意设置完全不同的reset-state value（17/−19/101/102/201/202）作反例。ValueProbe只是无训练的软件测试替身，不是新增物理基线。
+
+**6 cases passed / 0 failed，8 mutants killed / 0 survived**。复核模式 `--verify-existing` 会在内存重新调用同一生产计算/保存函数，与既有npz逐数组一致后独立重算并重做8个错误注入；不会覆盖原边界文件，也不会训练或采集。cross-episode c 突变另在拼接序列上造成4/24超差，最大0.5550143867，证明检查能识别接到下一回合优势的问题。
+
+生产 reset 合同的代码证据在本次冻结的 `runtime-code/src/task/wam-rl-policy-v3/tools/run/inspire_physics_host.py:190` 附近：post_physics_step 清零 reset_buf；`:236` 的显式 reset 才改变 episode；`:244` step 必须匹配所带episode。runner 的每步PD/clock合同还要求 episode不变、tick+1。不能由此推断其他自动reset环境也正确。
+
+实际有bootstrap的time-limit回合：来源native episode=1、tick=600，保存observation前686维与原始轨迹最后一状态逐位一致；冻结的更新前critic重新前向，末状态价值与保存bootstrap差 **7.45058059692e-08**，在容差内。另一真正终止回合来源tick=207、episode=1，bootstrap=0，未查询末状态critic（对应observation检查为N/A，不能虚报通过一次查询）。两个回合的所有native episode在各自片段内恒定。
+
+**覆盖自评：预算cutoff mask在本轮真实短跑中未被覆盖，joint safety也未在新PPO片段出现；它们在生产函数的确定性fixture中被覆盖，不是额外物理回合。** 本轮没有“靠随机初态凑齐终点”或延长到14,400 controls；G0b PASS由新真实落盘与明确构造的边界两层共同支持。
+
+## R3 落地：裁决及优势信号的适用范围
+
+**当前单一裁决：G0b PASS，仅认证所验计算与落盘。** 原14,400 controls永久INVALID_INSTRUMENTATION；v1启动失败仍INVALID。均不因本次结果追认，也不把brief39的旧优势分布/信号读数冒充本轮新值。
+
+“同recipe”仅限原计算表达式、γ/λ、Adam设置、lr=1e-5、两epochs、KL gate与相同checkpoint/数据来源/执行相关路径。由于只取两个初态并缩短采集，**新短跑不是原训练的等价结果**，不比较学习收益。单旧批次的逐位等价只证明该批计算未改变，不证明整段训练、GPU物理轨迹或其他buffer长度逐位重现。没有证据触发针对性较长复跑，本轮不扩预算。
+
+新raw advantage分布来自807个实际保存样本：
+
+| n | mean | std | P50 | P90 | IQR |
+|---:|---:|---:|---:|---:|---:|
+| 807 | -0.0619103837 | 0.3641086425 | -0.0863712654 | 0.4000180066 | 0.4805949554 |
+
+截断bootstrap置零对照：`sum|A_boot−A_zero|=0.255695874626`，分母两版绝对量之和`476.658811415`，比值 **0.05364338%**；低于预注册50%触发线。分母定义与brief42一致（不是brief39的单版分母）。这里只报告反事实GAE差异，不推断critic已校准或PPO有效。
+
+正优势共329/807。下表按action后实测阶段标志，阶段可嵌套、不是互斥分区；无阶段认证不等于无正优势：
+
+| stage | 认证controls | 正优势controls | 该阶段内正优势比例 | 正优势和 |
+|---|---:|---:|---:|---:|
+| approach | 48 | 22 | 45.8333% | 7.0827064514 |
+| contact | 2 | 2 | 100.0000% | 0.8864048719 |
+| lift | 0 | 0 | N/A（零认证样本） | 0.0000000000 |
+| hold | 0 | 0 | N/A（零认证样本） | 0.0000000000 |
+
+## R4 落地：实际规模、源码身份、空间与复现命令
+
+| arm | 初态/回合 | controls | 物理采样后更新 | worker elapsed |
+|---|---:|---:|---:|---:|
+| bc | 2/2 | 643 | 0 | 193.235s |
+| ppo | 2/2 | 807 | 4 | 186.737s |
+
+总物理controls **1,450**；PPO4 updates≤72，边界测试0controls/0训练。两个初态是原注册顺序前两项、native seeds294/295、model seed293；没有重新筛选初态或更换模型。旧注册的其他面板/成功判据文字仅作来源元数据保留，`g0b_scope`覆盖其研究目标，本轮不做其成功率比较或assessment。检查BC两个初态的native关节界、PD参数、offset/scale、DOF名称、dt与旧运行5项全部一致；不声称物理轨迹逐位重现。
+
+两worker manifest记录git_commit不同（BC92563d9a、PPOfcc108e6），期间共享main发生他人提交；本轮实际runner.py与frozen GAE module在两臂**分别逐字一致**，SHA如下，实际代码以这两个文件及冻结runtime为准，不靠活动main的名字推定身份。对应证明见`v2/execution-receipt.json`。
+
+```json
+{
+  "src/task/wam-rl-policy-v3/src/wam_rl_policy_v3/intent_residual.py": "97dd0562d3c266ea135a7e741160ff25e3c8ed262eaccb50beaee47034a1831f",
+  "src/task/wam-rl-policy-v3/tools/run/run_bc_ppo_probe.py": "2bf14bec975f66ab2f54cfbf06e060ef9fd13bced77ffbb508f968bbae713076",
+  "patch_sha256": "9f621ada2502cfa1b4d213bfc17af602eaf596078f9345b48052a991ed5ca94d"
+}
+```
+
+限定路径 diff（整体补丁含v1记录扩展及v2双mask；不含并行会话文件）：
+
+```sh
+git diff 64f04603^ 6cfb1d51 -- src/task/wam-rl-policy-v3/src/wam_rl_policy_v3/intent_residual.py src/task/wam-rl-policy-v3/tools/run/run_bc_ppo_probe.py
+PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES='' /home2/wyy/miniconda3/envs/graspenv/bin/python outputs/wam-rl-policy-v3/ppo-instrumented-audit-20261023-r1/v2/check_boundaries.py --verify-existing
+PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES='' /home2/wyy/miniconda3/envs/graspenv/bin/python outputs/wam-rl-policy-v3/ppo-instrumented-audit-20261023-r1/v2/audit_new_rollouts.py
+```
+
+预期：边界`PASS cases=6 samples=24 mutants=8/8`；新数据`G0b PASS total_PPO_samples=807`，target/GAE/四种终止mask不一致均0。reader/边界脚本及audit_utils在输出目录，仅源码与本报告入库；scripts不产生新物理rollout。实际物理启动命令已在上节登记，supervise只成功执行一次v2，不可直接覆盖已存在目录。
+
+所有4个native退出码0、两个policy client已退出，已知PID逐个存活检查均False；GPU7终态2MiB，其他卡未使用。无OOM/loader/非有限/磁盘故障；早前v1证据未删除。
+
+### 提交并发的透明说明
+
+v2源码提交6cfb1d51在共享暂存区碰到另一会话已暂存的5个文件，实际并入同一提交；另一会话随后推进92563d9a并推送。尝试只用独立index更正本地提交时HEAD已被推进，产生的临时amend已立即撤回，分支恢复到92563d9a并与远端核对，未强推、未覆盖工作文件；临时amend未进入远端历史。已发布历史不重写。后续本报告使用`git commit --only -- <本报告>`避免再次消费共享index；不能把6cfb1d51描述成仅含本轮文件的提交。原v1提交路径记录仅描述v1，不代表本次并发未发生。
+
+v2产物快照 **22,681,641 bytes**，477个实体文件，约21.6309MiB；新attempt低于1GiB。运行结束磁盘余量约123.77GiB，旧v1的1.57GB单独保留，不把它当成本轮新增写盘。产物根为`outputs/wam-rl-policy-v3/ppo-instrumented-audit-20261023-r1/v2/`，不入库。
