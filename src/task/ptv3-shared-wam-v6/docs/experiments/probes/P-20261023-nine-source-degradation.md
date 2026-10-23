@@ -7,6 +7,13 @@ task: ptv3-shared-wam-v6
 branch: main
 git_commit: recorded-in-receipts
 classification: Decision
+claim_id: nine-source-degradation-mechanism
+hypothesis_family: nine-source-supervision-distribution
+probe_index_in_family: 1
+seed_pool: probe
+seeds: [170, 171, 172]
+decision_changed_if_positive: retain only source recipes supported by paired panel controls
+decision_changed_if_negative: repair input and supervision contracts before further scale
 status: RUNNING
 run_id: diagnosis-C1-C2-C3-C4-20261023
 ---
