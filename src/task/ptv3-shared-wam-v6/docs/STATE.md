@@ -1,3 +1,13 @@
+## 2026-10-23 τ goal契约第二期：可执行，历史覆盖仍0
+
+reset-bound waypoint合同已明确空间目标与有序几何阶段，无t+24到达承诺。
+新producer复用OrderedGoalScheduler，写出source_role、事前可用性、来源hash/时间与reset绑定；
+未来真实pose负控制、当前pose正控制及真实online/collate逐位比较通过。
+合成写盘重放通过，但旧6,000窗口严格join仍0合法/6,000缺证，Shadow30条仅有原生参数候选。
+干净waypoint vs A unknown同数据/同预算/K8面板对照已预注册，因零覆盖未运行；不重训v6。
+92563d9a版本31项相关回归通过；无新物理rollout、训练或checkpoint。成本与缺项见
+[实验卡](experiments/probes/P-20261023-reset-bound-goal-channel.md)，运行代码92563d9a。
+
 ## 2026-10-23 τ event contract also ununified; cluster CI primary; no training
 
 当前 TRAIN207,579 窗口中 event raw-valid207,561，CONTACT19,740/RELEASE185,439，

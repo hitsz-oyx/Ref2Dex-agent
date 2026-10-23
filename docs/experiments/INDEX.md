@@ -1208,6 +1208,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261011-rbo-wrench-auxiliary](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-rbo-wrench-auxiliary.md) | RBO measured-wrench auxiliary Probe | 见原卡 | 见原卡 | probes/UNPROMISING |
 
+## reset-bound-goal-channel
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261023-reset-bound-goal-channel](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261023-reset-bound-goal-channel.md) | P-20261023-reset-bound-goal-channel | 见原卡 | 见原卡 | probes/BLOCKED |
+
 ## simulator-chord-wrench-action-ranking
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

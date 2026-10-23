@@ -1,0 +1,99 @@
+{
+  "schema": "ref2dex.reset-goal-vs-unknown.prereg.v1",
+  "experiment_id": "P-20261023-reset-bound-goal-channel",
+  "status": "BLOCKED_ZERO_CERTIFIED_HISTORICAL_COVERAGE",
+  "execution_authorized_by_this_file": false,
+  "training_updates_this_delivery": 0,
+  "model": "SharedWAMV6 unchanged architecture, weights fixed for diagnostic",
+  "train_manifest": "outputs/ptv3-shared-wam-v6/tau-curated-20261023-r7/curated-manifest.json",
+  "required_train_windows": 6000,
+  "diagnostic_checkpoint": "outputs/ptv3-shared-wam-v6/flowmatching-overnight-20261022-r2/training/step011000.pt",
+  "fixed_train_panel": "outputs/ptv3-shared-wam-v6/tau-curated-20261023-r2/train-anchor.json",
+  "fixed_dev_panel": "outputs/ptv3-shared-wam-v6/goal-chain-audit-20261022-r1/panels.json",
+  "dev_selector": "evaluate=true and panel=heldout_sequence",
+  "required_dev_windows": 3356,
+  "condition_arms": {
+    "A": "canonical unknown: zero float32 delta/points and false bool validity",
+    "B": "certified ResetWaypointChannel spatial waypoint with ordered stage semantics"
+  },
+  "controls": {
+    "event_policy_both_arms": "v6.event-free.unknown-invalid.frame30.v1",
+    "same_weights": true,
+    "same_rows_order_masks_and_targets": true,
+    "same_train_only_normalizer": true,
+    "same_geometry_and_precision": true,
+    "shared_noise_seeds": [
+      172,
+      181,
+      182,
+      183,
+      184,
+      185,
+      186,
+      187
+    ],
+    "prediction_horizon_steps": 24,
+    "fps": 30,
+    "physical_gpu_pool": [
+      4,
+      5,
+      6,
+      7
+    ],
+    "max_seconds_per_arm": 3600,
+    "max_artifacts_bytes_total": 2147483648,
+    "stop_if_disk_free_below_bytes": 21474836480
+  },
+  "gates": [
+    "100 percent of frozen TRAIN6000 and both evaluation panels have collector-owned source/reset bindings",
+    "continuous reset-to-window causal replay; no target future pose dependencies",
+    "train and online post-collate three goal tensors agree bitwise",
+    "B model-consumed goal tokens are valid and not erased by inherited UNKNOWN_GOAL_POLICY",
+    "A actual model-consumed goal is canonical unknown; supervision and denominators unchanged",
+    "recipe, condition identity and checkpoint policy explicitly bind each arm; no silent overrides"
+  ],
+  "primary": {
+    "panel": "full fixed DEV",
+    "metric": "first8 valid hand-point mean EPE mm, average over paired K8 draws",
+    "contrast": "B minus A",
+    "bootstrap_unit": "native_capture_id; all related windows and K8 draws stay together",
+    "bootstrap_repeats": 4000,
+    "bootstrap_seed": 170,
+    "ci": "paired percentile 95 percent"
+  },
+  "report_also": [
+    "fixed TRAIN512 separately, no generalization claim",
+    "DEV nonoverlap core847, same membership across arms",
+    "first8 object EPE and fixed contact-window hand EPE",
+    "overall24 EPE and approach/close/contact/hold/unknown strata",
+    "per-window predictions, valid counts, scheduler mode and instruction/reset identity"
+  ],
+  "decision": {
+    "positive": "B first8 hand improvement at least 5 percent and paired CI entirely below zero; contact hand improves at least 5 percent; object first8 worsens no more than 5 percent",
+    "positive_action": "reconnect only the certified goal channel; propose matched continuation under this contract; this delivery still forbids v6 retraining",
+    "inconclusive": "CI crosses zero or endpoint/guard results disagree; report limited resolution or local effect, never equivalence or task-information uselessness",
+    "negative": "B is worse or fails the fixed improvement criterion; current checkpoint/architecture/consumption does not exploit this condition under this protocol",
+    "negative_action": "report injection, timing and scale diagnostics without changing acceptance; leave untested mechanisms unresolved"
+  },
+  "matched_learning_followup_not_authorized": {
+    "reason": "user forbids v6 retraining this round; frozen-checkpoint inference cannot test learnability",
+    "same_initial_weights_and_fresh_optimizer": true,
+    "same_sample_order_seed": 170,
+    "updates_per_arm": 500,
+    "max_seconds_per_arm": 3600,
+    "global_batch": 288,
+    "train_config_base": "src/task/ptv3-shared-wam-v6/configs/tau_no_goal_no_event_train_v1.json",
+    "differences_allowed": [
+      "three goal input tensors and explicit goal condition policy/identity"
+    ],
+    "evaluation": "same frozen TRAIN512 and DEV3356 K8, final update only, no best-checkpoint selection",
+    "early_stop": "if either arm cannot reach update500 within budget, comparison is incomplete; no asymmetric extensions",
+    "data_change": "new recording requires a new preregistration version before observing model outcomes"
+  },
+  "current_results": {
+    "certified_train_windows": 0,
+    "certified_dev_windows": null,
+    "comparison_run": false,
+    "B_minus_A_mm": null
+  }
+}
