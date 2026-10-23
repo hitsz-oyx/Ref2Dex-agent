@@ -775,6 +775,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261010-egotouch-label-schema](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-egotouch-label-schema.md) | EgoTouch original label schema sample | UNCLEAR for training readiness. Acquisition completed in129.97s, with | keep tactile training gated. Next cheap tactile probe should select | probes/UNCLEAR |
 
+## HF-tau-execution-ab
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261023-tau-execution-ab](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261023-tau-execution-ab.md) | 结果解读表 | paired20 OLD2/20 NEW2/20; safety14→9, joint8→6, table6→3; contact-not-certified3→8; exact initial20/20 and raw safety40/40. | no main-tau promotion; inspect approach-to-close progression and the first8-frame R wrist/finger consumption. | probes/COMPLETED |
+
 ## HF-trajectory-conditioned-evaluator
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

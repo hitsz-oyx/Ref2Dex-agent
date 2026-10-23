@@ -74,6 +74,9 @@ def main():
     parser.add_argument('--gpu', type=int, choices=[4, 5, 6], required=True)
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
+    if args.output.exists():
+        raise ValueError('fresh output required; preserve existing evidence')
+    args.output.parent.mkdir(parents=True, exist_ok=True)
     registration = json.loads(args.registration.read_text())
     if len(registration['jobs']) != 20 or registration['maximum_controls'] != 24000:
         raise ValueError('exact registered 20-pair / 24000-control envelope required')

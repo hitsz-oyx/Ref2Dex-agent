@@ -5,20 +5,33 @@ experiment_id: P-20261023-tau-execution-ab
 date: 2026-10-23
 task: wam-rl-policy-v3
 branch: main
-git_commit: recorded-in-run-manifest
+git_commit: 98d115327215a5922028861c25174b579ac4b55b
 claim_id: C1
 hypothesis_family: HF-tau-execution-ab
 probe_index_in_family: 1
 seed_pool: probe
 seeds: [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199]
 classification: Decision
-status: RUNNING
+status: COMPLETED
 run_id: tau-checkpoint-ab-20261023-r1
 decision_changed_if_positive: use step001223 as main tau and queue component decomposition with it if net successes improve without more safety aborts
 decision_changed_if_negative: locate the execution stage reached; if successes decrease stop EPE-only tau acceptance and inspect consumed trajectory segment
 ---
 
 # 结果解读表
+
+| 本轮结果（旧11000→新1223） | 执行环节解释 | 决定 |
+|---|---|---|
+| 成功2/20→2/20；新增1/丢失1 | 无净成功收益 | 不提升新τ为主线 |
+| 安全14→9；joint8→6/table6→3；contact未认证3→8 | 减少安全中止，但接近到闭合仍未打通 | 定位R前8帧腕指联合与闭合准入 |
+| stage approach6→4，contact/lift/hold均4/2/2；进入close11→4 | 阶段收益未形成，不能把不abort当成功 | 不凭EPE改善替代执行验收 |
+
+Result: paired20 OLD2/20 NEW2/20; safety14→9, joint8→6, table6→3; contact-not-certified3→8; exact initial20/20 and raw safety40/40.
+Decision: no main-tau promotion; inspect approach-to-close progression and the first8-frame R wrist/finger consumption.
+
+[完整逐例、首触限/阶段/误差分布、实际消费段与复现](../../audit/tau-checkpoint-execution-ab-20261023.md)。14,775controls、0updates，17回归通过；独立汇总一致。
+
+事前固定判定规则：
 
 | 配对结果 | 解释 | 决定 |
 |---|---|---|
