@@ -13,6 +13,23 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[5]
 EVIDENCE = ROOT / "tmp/s40-deathcause/evidence.json"
+ACTIVE = np.asarray((0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 14, 15))
+
+
+def _pd_target(action, q, offset, scale):
+    """Replay the frozen native action->PD conversion without importing it."""
+    action = np.asarray(action, dtype=float)
+    q = np.asarray(q, dtype=float)
+    full = np.zeros(action.shape[:-1] + (18,), dtype=float)
+    full[..., ACTIVE] = np.clip(action, -1.0, 1.0)
+    full[..., 6:] = (1.0 + full[..., 6:]) / 2.0
+    target = np.asarray(offset, dtype=float) + np.asarray(scale, dtype=float) * full
+    target[..., :6] += q[..., :6]
+    for dst, src, ratio in ((7, 6, 1.05), (9, 8, 1.05),
+                            (11, 10, 1.05), (13, 12, 1.05),
+                            (16, 15, .6), (17, 15, .8)):
+        target[..., dst] = target[..., src] * ratio
+    return target
 
 
 def _guard(q, lower, upper, has_limits):
@@ -36,13 +53,21 @@ def _case(record, root):
     lower = np.asarray(limits["lower"], dtype=float)
     upper = np.asarray(limits["upper"], dtype=float)
     assert not has_limits[3:6].any()
+    offset = np.asarray(audit["controller"]["offset"], dtype=float)
+    scale = np.asarray(audit["controller"]["scale"], dtype=float)
     with np.load(trajectory) as archive:
         q = np.asarray(archive["q"][:, 0], dtype=float)
+        action = np.asarray(archive["action"], dtype=float)
         pd = np.asarray(archive["pd_targets_actual"], dtype=float)
     tick = int(record["terminal_tick"])
     assert tick == len(q) - 1 == len(pd)
     q_before, q_after = q[tick - 1], q[tick]
     target = pd[tick - 1, 3:6]
+    # The command at state tick-1 is action[tick-1].  Recompute the full
+    # native target (including finger coupling) before any representation
+    # transform, and require agreement with the archived target.
+    recomputed = _pd_target(action[tick - 1], q_before, offset, scale)
+    assert np.allclose(recomputed, pd[tick - 1], atol=1e-5, rtol=0)
     g_before, i_before = _guard(q_before, lower, upper, has_limits)
     g_after, i_after = _guard(q_after, lower, upper, has_limits)
     assert g_before <= 0.0 and g_after > 0.0
@@ -52,7 +77,8 @@ def _case(record, root):
                q_before=q_before[3:6].tolist(), q_after=q_after[3:6].tolist(),
                q_target=target.tolist(), guard_before=g_before,
                guard_after=g_after, guard_indices_before=i_before,
-               guard_indices_after=i_after)
+               guard_indices_after=i_after,
+               archived_pd_replay_abs_error=float(np.max(np.abs(recomputed - pd[tick - 1]))))
     for label, multiple in (("2pi", 1), ("4pi", 2)):
         period = 2.0 * math.pi * multiple
         unwrapped = np.unwrap(q[:, 3:6], axis=0, period=period)
@@ -63,6 +89,10 @@ def _case(record, root):
         shift_after = q_u_after - q_after[3:6]
         target_u_before = target + shift_before
         target_u_after = target + shift_after
+        recomputed_u = _pd_target(action[tick - 1],
+                                  np.r_[q_before[:3], q_u_before, q_before[6:]],
+                                  offset, scale)
+        assert np.allclose(recomputed_u[3:6], target_u_before, atol=1e-5, rtol=0)
         guard_u_before, i_u_before = _guard(
             np.r_[q_before[:3], q_u_before, q_before[6:]], lower, upper,
             has_limits)
@@ -113,6 +143,8 @@ def analyze(root=ROOT):
             not np.allclose(c["4pi"]["command_error_before"], c["4pi"]["command_error_after"], atol=1e-12, rtol=0)
             or not np.allclose(c["4pi"]["post_error_before"], c["4pi"]["post_error_after"], atol=1e-12, rtol=0)
             for c in cases),
+        "max_archived_pd_replay_abs_error": max(
+            c["archived_pd_replay_abs_error"] for c in cases),
         "cases": cases,
     }
     return summary
