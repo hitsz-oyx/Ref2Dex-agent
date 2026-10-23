@@ -33,7 +33,7 @@ def sequence(folder,contact):
     # Per-frame part fractions are computed once, not once per overlapping H28.
     n,slots=c['valid'].shape;fractions=np.zeros((n,slots,16),np.float32)
     for slot in range(slots):
-        positive=np.asarray(c['contact'][:,slot])>=.25
+        positive=(np.asarray(c['contact'][:,slot])>=.25)&np.asarray(c['valid'][:,slot,None])
         labels=np.asarray(c['part'][:,slot])
         frame,point=np.nonzero(positive)
         bins=frame*16+labels[frame,point]
@@ -269,6 +269,8 @@ def summarize(run,out):
         full_definition='all1335 legacy parents plus every39526 frozen nine-source planned mother, including all1177 cached and original6000 pending sequence batch; dense H4/K24 tick census, no6000-window cap',
         total_recipe_mothers=len(receipts),legacy=legacy,existing_cached_mothers=inventory['by_status'].get('REUSE',0),
         existing_6000_active_mothers=len(previous_active),
+        native_recovery=prep.read(run/'recovered-inputs.json')['parity_checks'] if (run/'recovered-inputs.json').exists() else None,
+        native_recovered_sequences=len(prep.read(run/'recovered-inputs.json')['rows']) if (run/'recovered-inputs.json').exists() else 0,
         sequence_status=dict(Counter(r['status'] for r in receipts)),sequence_rejection_reasons=dict(rejection),
         pending6000=dict(total=len(pending_results),status=dict(Counter(r['status'] for r in pending_results)),
             conversion_started=sum(r['conversion_started'] for r in pending_results)),

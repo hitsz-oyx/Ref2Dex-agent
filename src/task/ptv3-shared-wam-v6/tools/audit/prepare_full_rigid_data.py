@@ -125,7 +125,7 @@ def inventory(out):
     # Upper bound, separately labelled from exact conversion bytes.
     candidates = sum(max(0,r['frames']-27)*(r['objects'] if r['source_id']<3 else 1) for r in rows if r['status']!='REJECT')
     manifest_budget = candidates*2048+len(rows)*(META_BYTES+8192)+512*1024**2
-    staging = max((r['conversion_bytes'] for r in converted),default=0)*4
+    staging = max((r['conversion_bytes'] for r in converted),default=0)*8
     free = shutil.disk_usage(out).free
     budget = dict(schema='ref2dex.full-rigid-budget.v1', experiment_id=EXPERIMENT,
         run_id=out.name, work_version='full-rigid-preparation.v1', git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
@@ -360,6 +360,7 @@ def execute(out,workers,device):
                 jobs[row['key']]=mapping[row['key']]['job']
     started=time.monotonic();total=len(inventory['rows']);done=Counter();windows=0;minimum=shutil.disk_usage(out).free
     commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+    attempt_id=str(time.time_ns())
     run_manifest_path=out/('run-manifest.json' if not (out/'run-manifest.json').exists() else 'run-manifest-resume-%d.json'%time.time_ns())
     write(run_manifest_path,dict(experiment_id=EXPERIMENT,run_id=out.name,work_version='full-rigid-preparation.v1',
         git_commit=commit,branch='main',command=sys.argv,environment=dict(python=sys.version,executable=sys.executable,numpy=np.__version__,device=device,
@@ -384,7 +385,7 @@ def execute(out,workers,device):
                 elapsed_s=round(time.monotonic()-started,2),disk_free_bytes=shutil.disk_usage(out).free,minimum_free_bytes=minimum,
                 estimated_remaining_s=(time.monotonic()-started)*(total-offset-len(batch))/(offset+len(batch)),
                 conversion_started=True,training_allowed=False)
-            write(out/'batches'/('batch-%05d.json'%(offset//64)),dict(progress,keys=[r['key'] for r in batch],receipts=['receipts/'+r['key']+'.json' for r in batch]))
+            write(out/'batches'/('batch-%05d-attempt-%s.json'%(offset//64,attempt_id)),dict(progress,keys=[r['key'] for r in batch],receipts=['receipts/'+r['key']+'.json' for r in batch]))
             write(out/'progress.json',progress);print(json.dumps(progress),flush=True)
     write(out/'progress.json',dict(progress,status='CONVERSION_AND_ADMISSION_COMPLETED'))
 
@@ -397,7 +398,7 @@ def main():
     parser.add_argument('--device',default='cpu')
     a=parser.parse_args();out=a.output.resolve()
     if out.parent!=(ROOT/'outputs/ptv3-shared-wam-v6').resolve():raise ValueError('task-owned output required')
-    if not 1<=a.workers<=4:raise ValueError('1..4 bounded workers')
+    if not 1<=a.workers<=8:raise ValueError('1..8 bounded workers')
     if a.mode=='inventory':inventory(out)
     else:
         try:execute(out,a.workers,a.device)
