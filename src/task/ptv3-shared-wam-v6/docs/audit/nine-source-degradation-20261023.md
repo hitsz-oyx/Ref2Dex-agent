@@ -494,3 +494,103 @@ by_phase
 Full reproducible paired group CIs and relative changes: `/mnt/ugreen_nas/storage/oyx_storage/wam-nine-source-full-20261023-pending/diagnosis/C4-source10/grouped-panel.json`.
 
 Preregistered interpretation: Other-source EPE worsening>=50% observed; strong interference under owner threshold.
+
+## C4-source0 completed (measured)
+
+Progress: `{"automatic_restart": false, "elapsed_s": 1147.3677557160117, "global_batch": 96, "status": "COMPLETED", "step": 500, "updates": 500}`
+
+Panel summary:
+```json
+{
+  "anchor_sha256": "440c00c8609a2e9c6276f328f1aa5136a04708294a09b5dab8321044e6caa706",
+  "bootstrap_repeats": 4000,
+  "bootstrap_seed": 170,
+  "cluster_ci95_mm": [
+    [
+      11.702798342902348,
+      12.765941325374216
+    ],
+    [
+      42.462500550607295,
+      50.171209645616656
+    ],
+    [
+      6.896114127555456,
+      8.110115236220002
+    ]
+  ],
+  "means_mm": [
+    12.237180291174335,
+    46.30037399613418,
+    7.495198640482542
+  ],
+  "metrics_order": [
+    "first8_hand",
+    "fixed_contact_hand",
+    "first8_object"
+  ],
+  "mothers": 124,
+  "panel_attention_backend": "math",
+  "repeat_bit_exact": true,
+  "rows": 512,
+  "same_A_conditions": true,
+  "scope": "fixed TRAIN panel only; no generalization or execution conclusion",
+  "status": "PASS",
+  "step": 500,
+  "training_attention_backend": "efficient",
+  "versus_local3000": {
+    "delta_mm": [
+      3.256360875917151,
+      21.641024744072435,
+      1.8557952302899565
+    ],
+    "paired_mother_cluster_ci95_mm": [
+      [
+        2.8704748543791605,
+        3.6486153010195768
+      ],
+      [
+        18.57652127567687,
+        24.805359486427474
+      ],
+      [
+        1.4187584969756204,
+        2.3425607338444787
+      ]
+    ],
+    "winner": [
+      "local",
+      "local",
+      "local"
+    ]
+  }
+}
+```
+
+by_source
+
+|group|rows/mothers|first8 hand mm (delta)|contact hand mm (delta)|first8 object mm (delta)|
+|---|---:|---:|---:|---:|
+|0|27/3|8.6796 (+2.4124)|17.9970 (+6.6520)|3.4255 (-0.1365)|
+|1|347/101|12.5583 (+2.9233)|50.0431 (+23.7018)|7.9034 (+1.9503)|
+|10|78/3|12.5217 (+2.9368)|31.2206 (+5.4337)|7.4952 (+1.2809)|
+|2|16/3|10.6623 (+5.1840)|25.4330 (+12.1162)|5.5059 (+1.8989)|
+|4|10/3|12.0836 (+2.9000)|22.0253 (+5.3159)|10.0173 (+3.7262)|
+|5|7/2|15.1395 (+10.2668)|30.2769 (+19.2056)|13.1536 (+9.3154)|
+|6|18/3|11.3915 (+6.0593)|16.1650 (+6.7140)|3.6533 (+0.1619)|
+|8|6/3|14.3090 (+9.7199)|67.2636 (+55.5154)|7.2939 (+3.7848)|
+|9|3/3|8.3329 (+4.1745)|21.7786 (+12.2505)|9.3563 (+6.2419)|
+
+by_phase
+
+|group|rows/mothers|first8 hand mm (delta)|contact hand mm (delta)|first8 object mm (delta)|
+|---|---:|---:|---:|---:|
+|approach|105/79|17.0226 (+6.8595)|62.9216 (+40.1848)|3.7776 (-0.3279)|
+|close|105/100|10.3241 (+1.9701)|40.6438 (+16.4739)|4.8429 (-0.3479)|
+|contact|105/104|9.1798 (+1.6808)|23.0057 (+5.4544)|8.7262 (+3.3230)|
+|hold|105/102|11.6535 (+2.8989)|71.0932 (+40.7286)|12.9401 (+5.5368)|
+|unknown|92/17|13.6360 (+2.3510)|30.6643 (+4.8593)|7.1459 (+0.9874)|
+
+Full reproducible paired group CIs and relative changes: `/mnt/ugreen_nas/storage/oyx_storage/wam-nine-source-full-20261023-pending/diagnosis/C4-source0/grouped-panel.json`.
+
+Preregistered interpretation: Other-source EPE worsening>=50% observed; strong interference under owner threshold.
