@@ -38,6 +38,12 @@ def jsonline(stream,value):
     stream.write(json.dumps(value,sort_keys=True,separators=(',',':'),allow_nan=False)+'\n')
 
 
+def eager_npz(path):
+    # NpzFile is lazy: repeated member indexing reloads the complete array.
+    # Materialize once per sequence before entering a dense window loop.
+    with np.load(path,allow_pickle=False) as z:return {name:z[name] for name in z.files}
+
+
 @lru_cache(maxsize=6)
 def sequence(folder,contact):
     s=prep.load_arrays(folder,['joints','joint_valid','object_poses','object_pose_valid'])
@@ -343,7 +349,7 @@ def summarize(run,out,workers=1):
             if (run/'STOP').exists():raise InterruptedError('owner STOP')
             split=r['split']
             shard=np.load(r['window_shard'],allow_pickle=False)
-            local=np.load(local_path,allow_pickle=False)
+            local=eager_npz(local_path)
             native_evidence=json.loads(local['native_evidence_json'].item())
             jsonline(evidence_stream,dict(sequence_id=r['sequence_id'],sequence_key=r['key'],source_id=r['source_id'],**native_evidence))
             for name in native_evidence['candidate_fields']:

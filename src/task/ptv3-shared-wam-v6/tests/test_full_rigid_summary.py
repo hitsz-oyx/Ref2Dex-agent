@@ -96,3 +96,18 @@ def test_legacy_view_path_can_be_missing_without_keyerror(tmp_path):
     assert folder==root/'missing' and resolution=='declared_path_missing'
     folder,resolution=summary.legacy_view_folder(root,dict(path='stale',view_manifest=str(native/'view.json')))
     assert folder==native and resolution=='declared_view_manifest'
+
+
+def test_local_npz_members_are_loaded_once_independent_of_window_count(tmp_path,monkeypatch):
+    from collections import Counter
+    counts=Counter();original=np.lib.npyio.NpzFile.__getitem__
+    def counted(self,key):
+        counts[key]+=1
+        return original(self,key)
+    monkeypatch.setattr(np.lib.npyio.NpzFile,'__getitem__',counted)
+    for n in [5,500]:
+        path=tmp_path/('local-'+str(n)+'.npz')
+        np.savez(path,keep=np.ones(n,bool),signatures=np.zeros((n,20),np.uint8),representatives=np.arange(n))
+        counts.clear();loaded=summary.eager_npz(path)
+        for i in range(n):assert loaded['keep'][i] and len(loaded['signatures'][i])==20
+        assert counts==dict(keep=1,signatures=1,representatives=1)
