@@ -33,6 +33,7 @@ from ptv3_shared_wam_v6.geometry_consistency import validate_geometry_config
 from ptv3_shared_wam_v6.precision import ActivationMonitor
 from ptv3_shared_wam_v6.flow_matching import validate_flow_config
 from ptv3_shared_wam_v6.local_subset import initialize_flow_weights
+from ptv3_shared_wam_v6.stop_budget import resolve_stop_budget, validation_budget_view, stop_budget_exhausted
 from ptv3_shared_wam_v5.training_contract import execution_contract,validate_resume,loader_options,restore_optimizer_state
 from ptv3_shared_wam_v5.selection import trajectory_score,bootstrap_trajectory,TAU_SELECTION
 from ptv3_shared_wam_v4.objectives import normalized_components
@@ -115,6 +116,8 @@ def main():
     p.add_argument('--loader-timeout',type=int,default=120)
     p.add_argument('--recovery-probe-updates',type=int)
     p.add_argument('--continuation-updates',type=int)
+    p.add_argument('--resume-run-seconds',type=float)
+    p.add_argument('--resume-hard-stop-epoch',type=float)
     p.add_argument('--capacity-probe-updates',type=int)
     p.add_argument('--resume',type=Path);p.add_argument('--initialize-from',type=Path)
     p.add_argument('--initialize-geometry-from',type=Path)
@@ -147,6 +150,7 @@ def main():
         # the reader boundary before CUDA/optimizer initialization.
         dataset[0]
     last=config['updates'] if a.steps is None else a.steps
+    stop_budget=resolve_stop_budget(config,last,a.resume,a.resume_run_seconds,a.resume_hard_stop_epoch)
     batch_size=config['batch_size'] if a.batch_size is None else a.batch_size
     if a.recovery_probe_updates is not None and (not a.resume or a.smoke or not 1<=a.recovery_probe_updates<=16):
         raise ValueError('recovery probe requires a checkpoint and1..16 actual updates')
@@ -159,7 +163,7 @@ def main():
         raise ValueError('full training requires a complete, explicitly admitted frozen v6 recipe')
     if last<1 or batch_size<1:raise ValueError('positive bounded steps/batch required')
     world=int(os.environ.get('WORLD_SIZE','1'));rank=int(os.environ.get('RANK','0'));local=int(os.environ.get('LOCAL_RANK','0'))
-    validate_local_execution(config,recipe,world,last,batch_size)
+    validate_local_execution(validation_budget_view(config,stop_budget),recipe,world,last,batch_size)
     if recipe.get('local_subset_scope') in LOCAL_SCOPES and not (a.resume or a.initialize_from or a.initialize_geometry_from or a.initialize_flow_from or a.initialize_condition_from):
         raise ValueError('local subset requires admitted initialization or its own strict resume')
     if recipe.get('local_subset_scope') == EXPANDED_SCOPE and world==1 and not a.capacity_probe_updates:
@@ -269,7 +273,7 @@ def main():
             loader=dict(context=a.loader_context,workers=a.workers,timeout_s=a.loader_timeout),
             trajectory_selection_protocol=TAU_SELECTION,recovery_probe=bool(a.recovery_probe_updates),continuation_updates=a.continuation_updates,
             event_recipe=recipe,capacity_probe_updates=a.capacity_probe_updates,
-            checkpoint_preservation=dict(all=a.preserve_all_checkpoints,budget_gib=a.checkpoint_budget_gib),
+            checkpoint_preservation=dict(all=a.preserve_all_checkpoints,budget_gib=a.checkpoint_budget_gib),effective_stop_budget=stop_budget,
             source_ids=dataset.meta['source_ids'],max_seconds=config['max_seconds'],min_free_gib=20,config=config))
     start=time.monotonic();times=[];events=[];seen=set();draws=Counter();loss_value=None;step=first-1;completed_step=first-1;checkpoints_written=0;last_saved=None
 
@@ -290,7 +294,7 @@ def main():
                 execution_contract=contract,resume_binding=resume_binding,migration_binding=migration_binding,topology_transition=topology_transition,initialization_binding=initialization_binding,
                 elapsed_s=previous_elapsed+time.monotonic()-start,
                 selection=dict(score=best_score,step=best_step,checkpoint=best_path,trajectory=tau_best),
-                model=model.state_dict(),optimizer=optimizer.state_dict(),random_state=states),pending)
+                model=model.state_dict(),optimizer=optimizer.state_dict(),random_state=states,effective_stop_budget=stop_budget),pending)
             pending.replace(target);target.chmod(0o664);checkpoints_written+=1
             for name,path in [('best',best_path),('trajectory-best',tau_best.get('checkpoint') if tau_best else None)]:
                 if path:
@@ -318,7 +322,7 @@ def main():
     wrapped.train()
     iterator=iter(loader);loader_failure=None
     for step in range(first,last+1):
-        stop=(a.output/'STOP').exists() or previous_elapsed+time.monotonic()-start>config['max_seconds'] or shutil.disk_usage(a.output).free<20*2**30 or time.time()>=config.get('hard_stop_epoch',float('inf'))
+        stop=(a.output/'STOP').exists() or stop_budget_exhausted(stop_budget,time.monotonic()-start,previous_elapsed,time.time()) or shutil.disk_usage(a.output).free<20*2**30
         flag=torch.tensor(int(stop),device=device)
         if world>1:dist.all_reduce(flag,op=dist.ReduceOp.MAX)
         if flag.item():break
@@ -432,7 +436,7 @@ def main():
         result=dict(status='FAILED_DATA_LOADER' if loader_failure else ('COMPLETED' if completed_step==last else 'STOPPED'),
             loader_failure=loader_failure,engineering_smoke=a.smoke,recovery_probe=bool(a.recovery_probe_updates),continuation_updates=a.continuation_updates,optimizer_updates=completed_step-first+1,
             last_step=completed_step,last_loss=loss_value,elapsed_s=time.monotonic()-start,source_ids_seen=sorted(seen),
-            capacity_probe=bool(a.capacity_probe_updates),
+            capacity_probe=bool(a.capacity_probe_updates),effective_stop_budget=stop_budget,
             steady_updates_per_s=(len(times)-2)/(times[-1]-times[1]) if len(times)>2 else None,
             peak_reserved_gib=torch.cuda.max_memory_reserved()/2**30 if device.startswith('cuda') else None,
             peak_allocated_gib=torch.cuda.max_memory_allocated()/2**30 if device.startswith('cuda') else None,
