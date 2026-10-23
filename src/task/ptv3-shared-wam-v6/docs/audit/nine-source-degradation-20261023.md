@@ -392,3 +392,105 @@ Reproduce: `PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /
 C4 source1/source10/source0: all500 prescribed single-card batches preflighted on CPU with0 out-of-range windows (41566/39015/44438 distinct windows, respectively); raw input reconstruction is vectorized from the same native arrays. C5 actual valid-gated sampler still selects the production-confirmed bad source4 window at step104/rank2, so it is BLOCKED_FIXED_WORKSPACE at0 updates; this is not a C5 quality outcome and cannot enter recovery/degradation rules. Workspace, sampler support and masks are not relaxed to obtain a result. C4 proceeds unchanged.
 
 A separately reviewable proposal workspace-repair-proposal.json would move fixed voxel origin[-2,-2,-2] to[-4,-4,-4] for a NEW no-optimizer preflight only (known fault plus initializer panel equivalence). It is not executed or mixed into the original controls without owner exception.
+
+C4-source1 FAILED exit 1; no restart. See /mnt/ugreen_nas/storage/oyx_storage/wam-nine-source-full-20261023-pending/diagnosis/C4-source1/console.log
+
+## C4-source10 completed (measured)
+
+Progress: `{"automatic_restart": false, "elapsed_s": 1141.9332626570103, "global_batch": 96, "status": "COMPLETED", "step": 500, "updates": 500}`
+
+Panel summary:
+```json
+{
+  "anchor_sha256": "440c00c8609a2e9c6276f328f1aa5136a04708294a09b5dab8321044e6caa706",
+  "bootstrap_repeats": 4000,
+  "bootstrap_seed": 170,
+  "cluster_ci95_mm": [
+    [
+      19.36710647333797,
+      22.7186542334276
+    ],
+    [
+      43.947638179205256,
+      50.42613712974833
+    ],
+    [
+      6.888554698277872,
+      7.979402306936917
+    ]
+  ],
+  "means_mm": [
+    21.014957817647055,
+    47.18389448248668,
+    7.409144082742074
+  ],
+  "metrics_order": [
+    "first8_hand",
+    "fixed_contact_hand",
+    "first8_object"
+  ],
+  "mothers": 124,
+  "panel_attention_backend": "math",
+  "repeat_bit_exact": true,
+  "rows": 512,
+  "same_A_conditions": true,
+  "scope": "fixed TRAIN panel only; no generalization or execution conclusion",
+  "status": "PASS",
+  "step": 500,
+  "training_attention_backend": "efficient",
+  "versus_local3000": {
+    "delta_mm": [
+      12.034138402389871,
+      22.524545230424938,
+      1.7697406725494886
+    ],
+    "paired_mother_cluster_ci95_mm": [
+      [
+        10.571918763112388,
+        13.565597679739792
+      ],
+      [
+        19.880663879287464,
+        25.207281331481468
+      ],
+      [
+        1.3703937823645302,
+        2.2265425301440103
+      ]
+    ],
+    "winner": [
+      "local",
+      "local",
+      "local"
+    ]
+  }
+}
+```
+
+by_source
+
+|group|rows/mothers|first8 hand mm (delta)|contact hand mm (delta)|first8 object mm (delta)|
+|---|---:|---:|---:|---:|
+|0|27/3|16.4257 (+10.1584)|22.6676 (+11.3226)|3.7690 (+0.2070)|
+|1|347/101|22.6959 (+13.0609)|50.0476 (+23.7064)|7.9189 (+1.9658)|
+|10|78/3|14.5080 (+4.9232)|30.3550 (+4.5682)|6.8392 (+0.6248)|
+|2|16/3|17.7668 (+12.2884)|30.5389 (+17.2221)|4.9400 (+1.3330)|
+|4|10/3|22.8277 (+13.6441)|49.2275 (+32.5182)|9.9626 (+3.6715)|
+|5|7/2|17.9362 (+13.0634)|35.5559 (+24.4846)|13.2509 (+9.4127)|
+|6|18/3|12.7850 (+7.4527)|16.3681 (+6.9171)|3.5778 (+0.0864)|
+|8|6/3|29.6162 (+25.0271)|58.4195 (+46.6713)|6.4139 (+2.9047)|
+|9|3/3|14.0716 (+9.9132)|37.0889 (+27.5607)|12.0310 (+8.9166)|
+
+by_phase
+
+|group|rows/mothers|first8 hand mm (delta)|contact hand mm (delta)|first8 object mm (delta)|
+|---|---:|---:|---:|---:|
+|approach|105/79|40.3687 (+30.2056)|36.5991 (+13.8623)|4.6642 (+0.5587)|
+|close|105/100|17.3136 (+8.9596)|46.1058 (+21.9358)|5.3917 (+0.2009)|
+|contact|105/104|12.4565 (+4.9575)|29.2926 (+11.7413)|8.6711 (+3.2679)|
+|hold|105/102|14.5460 (+5.7914)|64.4275 (+34.0630)|11.5173 (+4.1140)|
+|unknown|92/17|19.1277 (+7.8428)|32.2943 (+6.4893)|6.7157 (+0.5571)|
+
+Full reproducible paired group CIs and relative changes: `/mnt/ugreen_nas/storage/oyx_storage/wam-nine-source-full-20261023-pending/diagnosis/C4-source10/grouped-panel.json`.
+
+Preregistered interpretation: Other-source EPE worsening>=50% observed; strong interference under owner threshold.
