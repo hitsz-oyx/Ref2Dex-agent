@@ -31,6 +31,9 @@ def main():
     p.add_argument('--sequence',default='s1_cylindersmall_pass_1')
     p.add_argument('--declarations',type=Path,default=ROOT/'outputs/wam-rl-policy-v3/inspire-teacher-rollout-audit-20261020-r3/manifest.json')
     p.add_argument('--matrix',choices=['sentinel','full'],default='full')
+    p.add_argument('--reference-npz',type=Path,help='Generic world-frame object SE3: arrays times (seconds) and poses (N,4,4); overrides shape matrix')
+    p.add_argument('--stages',choices=['A','B','both'],default='both')
+    p.add_argument('--reference-start',type=Path,help='Reuse frozen world object start for a paired stage-only run')
     a=p.parse_args();out=a.output.resolve()
     if ROOT/'outputs/wam-rl-policy-v3' not in out.parents or not 60<=a.seconds<=7200:raise ValueError('bounded task-local output required')
     out.mkdir(parents=True,exist_ok=True)
@@ -50,7 +53,11 @@ def main():
     from wam_rl_policy_v3.pose_consumer import pose7
     from wam_rl_policy_v3.physical_safety import physical_safety
     from wam_rl_policy_v3.teacher_quality import table_support
-    from wam_rl_policy_v3.object_tracking import ObjectPoseTracker,make_trajectory,hand_setpoint,errors,joint_margin,SHAPES
+    from wam_rl_policy_v3.object_tracking import ObjectPoseTracker,ObjectTrajectory,make_trajectory,hand_setpoint,errors,joint_margin,SHAPES
+    external=None
+    if a.reference_npz:
+        with np.load(a.reference_npz) as z:external=ObjectTrajectory(z['times'],z['poses'])
+        if external.times[0]!=0 or external.times[-1]>90:raise ValueError('external reference requires t0=0 and <=90 seconds')
     rows=json.loads(a.declarations.read_text())['records'];row=next(r for r in rows if r['sequence']==a.sequence)
     with np.load(Path(row['source'])/'trajectory.npz') as z:source=z['pd_targets'].copy()
     with np.load(Path(row['source'])/'canonical.npz') as z:points=z['points'].copy()
@@ -99,10 +106,12 @@ def main():
                 if relevant and c['force']>.1:
                     bad.append(dict(c,roles=[ri,rj],names=[names[i] if i>=0 else 'ground',names[j] if j>=0 else 'ground']))
             return bad
-        initial_reference=None
+        initial_reference=None if a.reference_start is None else np.load(a.reference_start)
         cells=[(s,r,v) for s in SHAPES for r in (.02,.05,.10) for v in (.03,.10,.25)]
         if a.matrix=='sentinel':cells=cells[:1]
-        plan=[dict(shape=s,scale_m=r,requested_mean_speed_m_s=v,stage=stage,feedforward=ff) for s,r,v in cells for stage in ('A','B') for ff in (False,True)]
+        if external is not None:cells=[('external',0.,0.)]
+        stages=('A','B') if a.stages=='both' else (a.stages,)
+        plan=[dict(shape=s,scale_m=r,requested_mean_speed_m_s=v,stage=stage,feedforward=ff) for s,r,v in cells for stage in stages for ff in (False,True)]
         write(out/'registered-matrix.json',plan)
         stop_p0=False
         for case_index,case in enumerate(plan):
@@ -127,8 +136,13 @@ def main():
                 manifest['results'].append(result);write(folder/'result.json',result)
                 stop_p0=True;manifest['stop_reason']='No qualified initial grasp; do not expand trajectory shapes';write(out/'manifest.json',manifest);continue
             obj=pose7(np.asarray(state['objects'])[0]);palm=pose7(np.asarray(state['palm_pose'])[0]);relative=np.linalg.inv(palm)@obj
-            if initial_reference is None:initial_reference=obj.copy();np.save(out/'reference-start.npy',obj)
-            curve,meta=make_trajectory(case['shape'],case['scale_m'],case['requested_mean_speed_m_s'],initial_reference)
+            if initial_reference is None:
+                initial_reference=obj.copy() if external is None else external.poses[0].copy()
+                np.save(out/'reference-start.npy',initial_reference)
+            if external is None:curve,meta=make_trajectory(case['shape'],case['scale_m'],case['requested_mean_speed_m_s'],initial_reference)
+            else:
+                curve=external;end_error=errors(curve.poses[-1],curve.poses[0])
+                meta=dict(duration_s=float(curve.times[-1]),closed=end_error[0]<1e-8 and end_error[1]<1e-8,reference_input=str(a.reference_npz.resolve()))
             if meta['duration_s']>90:raise ValueError('trajectory physical-time cap')
             np.savez_compressed(folder/'reference.npz',times=curve.times,poses=curve.poses,hand_object=relative)
             tracker=ObjectPoseTracker(np.asarray(state['q'])[0],palm,offset,scale)
@@ -155,8 +169,9 @@ def main():
                 if case['stage']=='B' and (drift>.05 or last_lost is not None and now-last_lost>=.2-1e-10):abort=dict(kind='slip',tick=tick,drift_m=drift);break
                 if tick==N:break
                 target,hv,hw=hand_setpoint(desired,v,w,relative)
-                # Same fixed grasp targets in A/B: no new grip feedback invented.
-                raw,info=tracker.step(np.asarray(state['q'])[0],np.asarray(state['dq'])[0],palm,target,hv,hw,np.asarray(state['contact_forces'])[0],False,case['feedforward'])
+                # Rigid fixture A fixes the grasp. Real-contact B retains the
+                # existing MeasuredGraspConsumer's force-based finger holding.
+                raw,info=tracker.step(np.asarray(state['q'])[0],np.asarray(state['dq'])[0],palm,target,hv,hw,np.asarray(state['contact_forces'])[0],case['stage']=='B' and bool(state['contact_force_valid'][0]),case['feedforward'])
                 raw_actions.append(raw);details.append(info);pds.append(step(np.clip(raw,-1,1)))
             if captures:np.savez_compressed(folder/'trajectory.npz',**{k:np.stack([s[k] for s in captures]) for k in captures[0]})
             if pds:np.savez_compressed(folder/'controls.npz',raw_action=np.asarray(raw_actions),pd_target=np.asarray(pds))

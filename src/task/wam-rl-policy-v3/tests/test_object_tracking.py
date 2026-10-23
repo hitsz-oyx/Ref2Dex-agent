@@ -45,3 +45,20 @@ def test_installed_contact_binding_without_documented_overlap():
     assert row['body0']==2 and row['body1']==25 and row['force']==pytest.approx(1.2)
     richer=np.array([(2,25,1.2,.003)],dtype=contacts.dtype.descr+[('initial_overlap','f4')])
     assert contact_records(richer)[0]['initial_overlap']==pytest.approx(.003)
+
+
+def test_no_feedforward_is_existing_pose_consumer_wrist_law():
+    from wam_rl_policy_v3.object_tracking import ObjectPoseTracker
+    from wam_rl_policy_v3.pose_consumer import PoseConsumer,WristPlan,FINGER_ACTIVE
+    q=np.zeros(18);q[6:]=.3;dq=np.zeros(18);palm=np.eye(4);target=palm.copy();target[0,3]=.04
+    target[:3,:3]=Rotation.from_rotvec([.02,0,0]).as_matrix()
+    offset=np.zeros(18);scale=np.ones(18)
+    tracker=ObjectPoseTracker(q,palm,offset,scale)
+    raw,_=tracker.step(q,dq,palm,target,[0,0,0],[0,0,0],np.zeros((5,3)),False,False)
+    prior=np.r_[np.zeros(6),2*q[FINGER_ACTIVE]-1]
+    plan=WristPlan(np.repeat(target[None],4,axis=0),'contact_window',3,.1,np.array([1,0,0]))
+    old=PoseConsumer(0,q,palm,offset,scale)
+    baseline,_=old.step(q=q,dq=dq,palm=palm,object_pose=np.eye(4),forces=np.zeros((5,3)),stage={'current':{'contact':False}},plan=plan,prior_action=prior,now=0.)
+    np.testing.assert_array_equal(raw,baseline)
+    ff,_=tracker.step(q,dq,palm,target,[.03,0,0],[0,0,0],np.zeros((5,3)),False,True)
+    assert float(ff[0]-raw[0])==pytest.approx(.03/30,abs=1e-8)

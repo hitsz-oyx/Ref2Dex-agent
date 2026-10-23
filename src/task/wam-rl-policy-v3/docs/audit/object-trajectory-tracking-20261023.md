@@ -31,3 +31,9 @@ PENDING。最终写明矩阵实际执行/未执行、每 tick 原始文件、FF�
 ## 记录接口故障与修复（不是物理能力结果）
 
 r1（33177f56）原生执行1control后记录转换失败：`ValueError('no field of name initial_overlap')`，client未收到回包所以client.controls=0；跟踪0。原始故障目录保留。初始“GPU接口不兼容”的猜测被明确异常否证：本机实际接触dtype缺文档字段；没有证据指向GPU PhysX不能查询接触。修复仅让缺失overlap为null（不伪造0），body0/body1/lambda照常记录；回归构造相同缺字段结构。8 passed/0 failed；物理后端仍gpu-cpu。新输出r2，控制、门槛、矩阵不改。
+
+## r2阶段B协议偏差与定向纠正（追加登记，保留原数据）
+
+r2入口实际将force_valid传False，两阶段均固定抓取时手指关节目标；这与上方冻结协议中“B保留既有实测力闭合保持”不一致。r2 A仍为约定的刚体探针；r2 B保留为固定关节持握的工程记录，不计作约定的B。不能把r2 B失败推成“现有力闭合保持无效”。修复仅B的调用条件：`case['stage']=='B' and contact_force_valid`，复用既有 .25N/+0.0015rad、4N/−0.001rad规则与FINGER_UPPER，不调PD、不改阈值；A不重跑。
+
+r3只运行B：5形状×3尺寸×3速度×2FF=90格，初始物体参考从r2/reference-start.npy冻结复用；seed195，source-PD同源，空闲GPU5。同样小参数关节门停止扩形状，最大controls100000（实际入口仍共同总上限300000）、总wall7200秒与新增2GiB总预算不变；最终同时报告r2 B的偏差与r3实测，不抹去不利结果。该纠正恢复预注册，不增加新的学习/基线。
