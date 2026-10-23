@@ -55,7 +55,7 @@ def panel(model,panel_manifest,directory,step,reference=None):
                 repeat=model(batch);repeated=bool(torch.equal(pred['trajectory'],repeat['trajectory']) and torch.equal(pred['scene'],repeat['scene']))
             hv=batch['trajectory_valid']&batch['start_hand_valid'][:,None]
             sv=batch['scene_valid']&batch['object_valid'][:,:,None,None]
-            cf=(batch['interaction_valid']&(batch['contact_target']>.25)).any((1,3))
+            cf=(batch['interaction_valid']&(batch['contact_target']>.25)).any(dim=3).any(dim=1)
             first=torch.arange(24,device='cuda')[None]<8
             masks=[hv&first[:,:,None,None],hv&cf[:,:,None,None],sv&first[:,None,:,None]]
             errors=[(pred['trajectory']-batch['trajectory_target']).norm(dim=-1)*1000]*2+[(pred['scene']-batch['scene_target']).norm(dim=-1)*1000]

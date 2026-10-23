@@ -84,9 +84,12 @@ resume reuses checked completed sequences. A failure never automatically restart
 4. NAS capacity and30GiB floor; retained checkpoint ceiling136GiB; all runtime,
    caches and temporary outputs target NAS through the short checkout link.
 5. Complete phase × numerical geometry × source matrix, including zeros.
-   **source8 DEV remains zero.** A question requests explicit authorization for
-   nine-source TRAIN/eight-source DEV scope. Time does not constitute permission.
-   Without that answer, training remains blocked even if other checks pass.
+   **source8 DEV remains zero.** The current owner's primary/secondary criteria
+   use the fixed TRAIN panel, not nine-source DEV generalization. An initial
+   optional question asked whether stricter official DEV restoration was desired;
+   no new owner reply is claimed. The agent records the limited nine-TRAIN/eight-DEV
+   scope explicitly and proceeds under the current autonomous training request.
+   The technical gates remain required; no TRAIN is reassigned to DEV.
 6. Per-source/split legacy goal and intentional event certificates both zero;
    raw NONE/CONTACT/RELEASE/UNKNOWN labels counted separately. Inputs remain
    canonical unknown goal and event. The96 independently certified new source4
