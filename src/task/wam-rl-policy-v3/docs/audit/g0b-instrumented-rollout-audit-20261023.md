@@ -20,7 +20,7 @@ BC/PPO 各最多 1,500 controls，总计最多 3,000；PPO 更新最多原实验
 
 新产物根：`outputs/wam-rl-policy-v3/ppo-instrumented-audit-20261023-r1/`。预估总写盘<512MiB，硬限额1GiB；磁盘<20GiB、OOM、loader failure 或非有限量立即停止且不自动重跑。源码只增加 PPO 落盘所需记录，不改计算语义。覆盖自评必须依据实际终点；任何未观测类别明确标未覆盖。
 
-状态：预注册已先落盘，随后完成仅持久化补丁与 CPU 等价性核对；物理复跑待启动。
+状态：预注册先落盘，随后提交补丁 `64f04603` 并启动一次最小复跑；启动故障后按门禁停止，未自动重试。最终裁决见下。
 
 ## 补丁与运行前等价性证据
 
@@ -36,7 +36,7 @@ PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES='' /home2/wyy/miniconda3/envs/gra
 
 预期：`equivalence.json::status=PASS`，所有 checks=true，两侧 updates=2，raw/参数最大差=0。该核对不新增环境交互。
 
-运行环境：policy Python3.8.20 / torch2.4.1+cu121 / NumPy1.24.4，native 使用原 Python3.8.10 / torch2.0.1+cu118 环境。冻结旧 PPO runtime，唯一算法包差异为上述落盘副本；原 R、v6、BC residual 权重与数据源均保持。输出根 scratch 替代 runner 原来的仓库 tmp，以符合本轮写入边界；路径超过 AF_UNIX 的 108-byte 限制时，输出目录内 `short_unix.py` 只在 socket bind/connect 系统调用处使用同一文件的 `/proc/self/fd` 短别名，137-byte 路径的原样 payload 往返已通过。native wrapper 仅安装此传输适配，不修改物理或模型代码。实际子进程命令另存 `*-native-commands.jsonl`。
+运行环境：policy Python3.8.20 / torch2.4.1+cu121 / NumPy1.24.4，native 使用原 Python3.8.10 / torch2.0.1+cu118 环境。冻结旧 PPO runtime，唯一算法包差异为上述落盘副本；原 R、v6、BC residual 权重路径与数据源均保持；本轮在 WAM 依赖导入时失败，未完成模型加载与物理启动。输出根 scratch 替代 runner 原来的仓库 tmp，以符合本轮写入边界；路径超过 AF_UNIX 的 108-byte 限制时，输出目录内 `short_unix.py` 只在 socket bind/connect 系统调用处使用同一文件的 `/proc/self/fd` 短别名，137-byte 路径的原样 payload 往返已通过。native wrapper 仅安装此传输适配，不修改物理或模型代码。实际子进程命令另存 `*-native-commands.jsonl`。
 
 ```sh
 PYTHONDONTWRITEBYTECODE=1 /home2/wyy/miniconda3/envs/graspenv/bin/python -u outputs/wam-rl-policy-v3/ppo-instrumented-audit-20261023-r1/supervise.py
@@ -55,3 +55,71 @@ PYTHONDONTWRITEBYTECODE=1 /home2/wyy/miniconda3/envs/graspenv/bin/python -u outp
   "old_residual_sha256": "d0f5efd2c6e0360b46edf7ddee3733b0e16bec84daca156b1713e2de74aef0df"
 }
 ```
+
+## 实际复跑：故障停止，无新 rollout
+
+**单一裁决：G0b INVALID。** 新数据不存在，无法判定 GAE 计算链 PASS 或 FAIL；这次失败属于我新增的运行包装/产物准备错误，不是 PPO 能力、奖励或学习率的负证据。源码的逐样本落盘分支尚未被新物理 rollout 执行验收，不能用 CPU 等价性 PASS 代替 G0b PASS。
+
+实际启动时间 2026-10-23 08:12:42 +0800，08:13:12 监督器记录 STOPPED_NO_RETRY。GPU7 进入和退出均 `7, 2, 0`（MiB / utilization %）。没有使用其他 GPU，没有启动 native 物理进程，没有重试，没有 assessment rollout。
+
+| 项目 | 预注册上限 | 本轮实际 |
+|---|---:|---:|
+| BC controls | 1,500 | **0** |
+| PPO controls | 1,500 | **0** |
+| PPO 物理采样后的 learning_updates | 72 | **0** |
+| native process.json / trajectory.npz / ppo-rollout.npz | 按需要 | **0 / 0 / 0** |
+| CPU 旧批次等价性核对 | 1 批、两版各一次 | **297 样本；6 checks passed / 0 failed；两版各 2 updates** |
+
+两处独立故障均保留：
+
+1. **Loader 启动失败。** `launch_arm.py:15::mkdtemp` 使用 `*args` 转发，并额外传入 `dir=...`；`wandb` 导入中 `TemporaryDirectory` 通过 `mkdtemp(suffix, prefix, dir)` 传入第三个位置参数，导致 `TypeError: mkdtemp() got multiple values for argument 'dir'`。调用链在 `run_bc_ppo_probe.py:124 → OnlineV6Runtime.__init__ → model.py → PointWorld/timm → wandb`。此时尚无物理进程、轨迹或 PPO 更新。`bc-worker.log` 留有完整堆栈。
+2. **产物上限故障。** 旧 frozen runtime 的 `third_party` 是指向仓库 `third_party` 的软链接。预估只数了旧树的普通文件，约 2.29MB；`shutil.copytree` 默认展开软链接，实际复制了依赖仓库/历史 checkpoint 等约 1.57GB，超过预注册 1GiB。监督器首轮检查因此报 `RuntimeError('storage/wall/update fault')`。这是我的写盘估计与复制方式错误，不是磁盘<20GiB。停止时仍可用 127.70GiB；保留产物，未删除任何历史输出，也未擅自删除本轮证据。
+
+监督器摘要中的首条错误是 output cap，worker 日志另有 loader TypeError；不能只看 supervisor-result.json 而遗漏后者。由于用户硬规定“最小复跑出现 … loader failure … 立即停、**不自动重跑**”，本轮未修包装器后再次启动，也没有改预算、γ/λ、奖励或模型来绕过故障。
+
+## 新数据 G0 三项及 mask 覆盖（不以旧数据补数）
+
+| 逐样本比较 | 不一致样本 / 总数 | 最大绝对偏差 | 结论 |
+|---|---|---|---|
+| `target_return == V_old + advantage_raw` | **未取证 / 0** | **N/A** | 无新 rollout |
+| 三类 endpoint 的 done/bootstrap mask | **未取证 / 0** | 不适用 | 无新 rollout |
+| 同 reward/γ/λ/done/bootstrap 独立重算 GAE | **未取证 / 0** | **N/A** | 无新 rollout |
+
+| 终点类 | 新回合数 | controls | mask 不一致数 | 覆盖 |
+|---|---:|---:|---|---|
+| real_termination | **0** | **0** | N/A | 未覆盖 |
+| joint_safety_termination | **0** | **0** | N/A | 未覆盖 |
+| truncation（含预算截断） | **0** | **0** | N/A | 未覆盖 |
+
+**最小规模自评：该类预算截断 mask 在本轮规模下未被覆盖。** 1,500 非 600 整数倍，并不保证出现预算截断：途中物理中止可能改变余数，且本次在首个控制前已失败。不能由注册预算的余数冒充观测到的边界。本轮三类终点均未覆盖。
+
+新数据两版优势绝对差占比 `sum|A_boot−A_zero| / (sum|A_boot|+sum|A_zero|)`：**N/A（0 样本）**，不触发或否定 50% 的 critic 条件。新 raw advantage 均值 / std / P50 / P90 / IQR：**全部 N/A**。正优势按 approach/contact/lift/hold 的数量与比例：**全部未取证（总样本 0）**。没有把 brief42 的旧 0.9876% 或任何旧分布填入新数据栏。
+
+## 产物、diff 与复核命令
+
+根目录：`outputs/wam-rl-policy-v3/ppo-instrumented-audit-20261023-r1/`，outputs 不入库。`source-sha256.json` 与 `instrumentation.patch` 固定源码/补丁；`equivalence.json` 固定旧批次等价性；`bc-worker.log`、`supervisor.jsonl`、`supervisor-result.json`、`audit-result.json` 保留故障与零采样证据。上面的 supervise 命令是**已执行的历史命令**，不是授权重试命令，现有子目录也不满足 runner 的 fresh-output 条件。
+
+可复核的最小 diff（源码提交 `64f04603`）：
+
+```sh
+git show 64f04603 -- src/task/wam-rl-policy-v3/src/wam_rl_policy_v3/intent_residual.py src/task/wam-rl-policy-v3/tools/run/run_bc_ppo_probe.py
+```
+
+精确位置：`intent_residual.py:41::ppo_update` 可选接收器，`:63` 复制标准化前 witness；`run_bc_ppo_probe.py:282` 传入接收器，`:294` 构造逐样本边界，`:300` 对齐 action 后 stages，`:302` 一并落盘。旧 GAE 仍在 `intent_residual.py:57`，旧 bootstrap 分支仍在 runner `:273`；本轮均未改表达式。
+
+只读复核故障与零样本（预期 audit-result verdict INVALID，counts 全 0）：
+
+```sh
+cat outputs/wam-rl-policy-v3/ppo-instrumented-audit-20261023-r1/audit-result.json
+cat outputs/wam-rl-policy-v3/ppo-instrumented-audit-20261023-r1/supervisor-result.json
+tail -n 10 outputs/wam-rl-policy-v3/ppo-instrumented-audit-20261023-r1/bc-worker.log
+nvidia-smi -i 7 --query-gpu=index,memory.used,utilization.gpu --format=csv,noheader,nounits
+```
+
+## 卡点与下一轮最小补救（本轮不执行重试）
+
+下次获得复跑指令后，先仅修运行包装器：显式采用 `mkdtemp(suffix=None, prefix=None, dir=None)` 签名，内部只传一次受限 dir；先以 `TemporaryDirectory` 的同一位置参数调用做无 GPU 启动检查。冻结树必须 `copytree(..., symlinks=True)` 保留原依赖链接，并在任何进程启动前核对实体字节数≤1GiB。当前错误包装器与展开的树保留作证据，不覆盖；新 attempt 使用本轮根内新子目录且不再物化 third_party。两项补救不触及 reward/GAE/模型/执行器。通过后才能在 GPU7 按原上限重新申请最小 rollout；不能把本次 0 samples 算作 G0 验收完成。
+
+Git：第一次提交补丁与预注册后，`git pull --rebase origin main` 因他人未暂存修改被拒绝；未 stash/未改他人文件，普通 push 成功。只提交本轮两个持久化源码文件与本报告。最终报告提交同样显式路径推送，并在答复中给出 HEAD / origin/main / ls-remote 的终态核对。
+
+终态产物快照：**1572847334 bytes**（9259 个实体文件；不重复累计 `bc/runtime-code` 目录软链接目标），约 1.464828GiB。磁盘剩余 127.68GiB。该超限已如实列为本轮故障；未删除产物。
