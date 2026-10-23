@@ -360,3 +360,9 @@ by_phase
 Full reproducible paired group CIs and relative changes: `/mnt/ugreen_nas/storage/oyx_storage/wam-nine-source-full-20261023-pending/diagnosis/C2/grouped-panel.json`.
 
 Preregistered interpretation: C2 does not recover all three: new-source supervision remains implicated by owner rubric; inspect C3/C5 and scale evidence.
+
+C3 FAILED exit 1; no restart. See /mnt/ugreen_nas/storage/oyx_storage/wam-nine-source-full-20261023-pending/diagnosis/C3/console.log
+
+## C3 initial run: terminal reader fault,0 updates
+
+NAS diagnosis/full-census/sequences.jsonl had mode000; all ranks stopped while opening the reader, before first update/panel/checkpoint. Original controller stopped and all failure logs/receipts remain under C3/. Only this diagnostic task's artifact permissions were restored to0664; every census file byte size and SHA binding is unchanged. This is an engineering fault, not C3 outcome. After explicit diagnosis and permission repair, a separate one-shot C3-r2 run is manually admitted with original initialization/config/data and full500-update budget (previous0 updates). No automatic retry loop is added. Remaining C4/C5 retain original preregistration.

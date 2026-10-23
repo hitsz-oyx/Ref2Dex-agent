@@ -13,7 +13,7 @@ def launch(arm,gpus):
  folder=OUT/arm;r=read(folder/'recipe-v2.json');assert not (folder/'launch-receipt.json').exists()
  command=[PY,'-m','torch.distributed.run','--standalone','--nnodes=1','--nproc_per_node='+str(r['world_size']),str(TASK/'tools/run/train_diagnosis.py'),'--recipe',str(folder/'recipe-v2.json'),'--output',str(folder)]
  with (folder/'console.log').open('x') as log:p=subprocess.Popen(command,cwd=ROOT,env=environment(gpus),stdout=log,stderr=subprocess.STDOUT,stdin=subprocess.DEVNULL,start_new_session=True)
- write(folder/'launch-receipt.json',dict(command=command,pid=p.pid,pgid=p.pid,gpus=gpus,config_sha256=r['config_sha256'],data_identity_sha256=r.get('data_identity_sha256',r['manifest_sha256']),recipe_sha256=sha(folder/'recipe-v2.json'),git_commit=r['git_commit'],initialization_sha256=r['initialization_sha256'],automatic_restart=False,at=time.time()),immutable=True)
+ write(folder/'launch-receipt.json',dict(command=command,pid=p.pid,pgid=p.pid,gpus=gpus,config_sha256=r['config_sha256'],data_identity_sha256=r.get('data_identity_sha256',r['manifest_sha256']),recipe_sha256=sha(folder/'recipe-v2.json'),git_commit=r['git_commit'],git_head_at_launch=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),initialization_sha256=r['initialization_sha256'],automatic_restart=False,at=time.time()),immutable=True)
  return p
 
 def stop(p):
@@ -45,8 +45,8 @@ def watch(active):
   if pending:time.sleep(30)
 
 def main():
- p=argparse.ArgumentParser();p.add_argument('--arms',nargs='+',default=['C1','C2','C3','C4-source1','C4-source10','C4-source0','C5']);a=p.parse_args()
- lock=OUT/'DIAGNOSIS_V2_ONE_SHOT.lock';fd=os.open(str(lock),os.O_EXCL|os.O_CREAT|os.O_WRONLY,0o664);os.write(fd,str(os.getpid()).encode());os.close(fd)
+ p=argparse.ArgumentParser();p.add_argument('--session',default='v2');p.add_argument('--arms',nargs='+',default=['C1','C2','C3','C4-source1','C4-source10','C4-source0','C5']);a=p.parse_args()
+ assert all(c.isalnum() or c in '-_' for c in a.session);lock=OUT/('DIAGNOSIS_'+a.session.upper()+'_ONE_SHOT.lock');fd=os.open(str(lock),os.O_EXCL|os.O_CREAT|os.O_WRONLY,0o664);os.write(fd,str(os.getpid()).encode());os.close(fd)
  active={}
  try:
   gpus=subprocess.check_output(['nvidia-smi','--query-compute-apps=pid','--format=csv,noheader,nounits'],text=True);assert not gpus.strip(),'GPU process preflight failed'
@@ -61,8 +61,8 @@ def main():
      subprocess.run([PY,str(TASK/'tools/run/prepare_diagnosis_v2.py')],cwd=ROOT,env=environment(''),check=True)
     active={arm:launch(arm,'0,1,2,3' if not arm.startswith('C4') else '0')}
    watch(active);active={}
-  write(OUT/'driver-result.json',dict(status='COMPLETED',automatic_restart=False))
+  write(OUT/('driver-'+a.session+'-result.json'),dict(status='COMPLETED',automatic_restart=False))
  except BaseException as e:
   for proc in active.values():stop(proc)
-  write(OUT/'driver-failure.json',dict(reason=repr(e),automatic_restart=False,at=time.time()),immutable=True);raise
+  write(OUT/('driver-'+a.session+'-failure.json'),dict(reason=repr(e),automatic_restart=False,at=time.time()),immutable=True);raise
 if __name__=='__main__':main()

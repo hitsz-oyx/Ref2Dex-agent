@@ -24,7 +24,7 @@ def append(arm):
  with np.load(panels[-1].parent/'paired-panel.npz') as z: s,c,m=[z[k] for k in ('sums','counts','mothers')]
  with np.load(D/'half-training/panel-step000000/paired-panel.npz') as z:ref=z['sums'];assert np.array_equal(c,z['counts']) and np.array_equal(m,z['mothers'])
  rows=read(D/'fixed-panel/manifest.json')['rows'];report=dict(summary=final,by_source=groups(s,c,m,ref,rows,'source_id'),by_phase=groups(s,c,m,ref,rows,'phase'))
- if arm=='C3':
+ if arm.split('-r')[0]=='C3':
   import torch
   initial=torch.load(D/'local3000-weights.pt',map_location='cpu',weights_only=False)['model']
   checkpoint=torch.load(folder/('step%06d.pt'%step),map_location='cpu',weights_only=False)['model']
@@ -44,7 +44,7 @@ def append(arm):
  delta=final['versus_local3000']['delta_mm'];stable=all(v<=0 for v in delta)
  if arm=='C1':verdict='All three stable/improve: continuation cleared under matched C1; inspect distribution via C2.' if stable else 'C1 does not recover all three; compare magnitude with half before assigning H3 (large batch/fresh optimizer).'
  elif arm=='C2':verdict='All three stable/improve: source sampling weights implicated by preregistered rule.' if stable else 'C2 does not recover all three: new-source supervision remains implicated by owner rubric; inspect C3/C5 and scale evidence.'
- elif arm=='C3':verdict='All three stable/improve: freezing shared/backbone protects panel; shared-parameter damage implicated.' if stable else 'C3 does not recover all three: flow-only update can still shift predictions; inspect target semantics/scales.'
+ elif arm.split('-r')[0]=='C3':verdict='All three stable/improve: freezing shared/backbone protects panel; shared-parameter damage implicated.' if stable else 'C3 does not recover all three: flow-only update can still shift predictions; inspect target semantics/scales.'
  elif arm=='C5':
   audit=read(OUT/'C5-validity-audit.json')
   verdict=('All three stable/improve: invalid-window attribution under owner rule.' if stable else 'C5 does not recover all three: return to weights/scales under owner rule.')
@@ -74,6 +74,8 @@ def append_matrix_if_ready():
  (OUT/'README.md').chmod(0o664)
 
 def commit_snapshot(arm):
+ for artifact in (OUT/arm).rglob('*'):
+  if artifact.is_file() and not artifact.is_symlink():artifact.chmod(0o664)
  report=ROOT/'src/task/ptv3-shared-wam-v6/docs/audit/nine-source-degradation-20261023.md'
  report.write_text((OUT/'README.md').read_text())
  r=read(OUT/arm/'recipe-v2.json');result=read(OUT/arm/'result.json')
