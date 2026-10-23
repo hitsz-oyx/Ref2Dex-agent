@@ -10,6 +10,7 @@ import csv
 import hashlib
 import json
 from pathlib import Path
+import shutil
 import sys
 import time
 import numpy as np
@@ -33,6 +34,7 @@ def audit(out,check_only=False):
     from scipy.spatial.transform import Rotation
     from ptv3_shared_wam_v5.shadow import ShadowSurface
     from ptv3_shared_wam_v5.preparation import surface_contact
+    from ptv3_shared_wam_v5.event_labels import proximity_counts,annotate_events
     started=time.monotonic();plan=read(out/'plan.json');summary=read(out/'audit-summary.json')
     surface=ShadowSurface(out/'assets/mjcf/open_ai_assets/hand/robot.xml')
     assert len(plan['jobs'])==96 and len({j['rollout_id'] for j in plan['jobs']})==96
@@ -74,6 +76,9 @@ def audit(out,check_only=False):
         admission=read(folder/'admission.json')
         assert admission['joint_semantics']==list(JOINT_NAMES) and admission['part_semantics']==list(PART_NAMES)
         assert admission['label_semantics']==LABEL_SEMANTICS
+        enter,leave=proximity_counts(contact['contact'],contact['valid'])
+        regenerated=annotate_events(enter,leave,contact['valid'])
+        assert all(np.array_equal(value,event[key]) for key,value in regenerated.items())
         instruction=read(folder/'goal-channel/instruction.json');validate_instruction(instruction)
         assert instruction['reset']==binding['reset']
         intents=read(binding['intent_artifact'])
@@ -126,8 +131,9 @@ def audit(out,check_only=False):
         checked=['all saved windows through existing admission predicate','source hash and producer reset order',
                  'every native target reset restoration','goal instruction derivation','raw measured21 versus saved21',
                  'all saved surfaces and part IDs reconstructed from source asset','three contact/part frames per rollout recomputed',
-                 'actual class and phase coverage','reset and native clock continuity'],elapsed_s=time.monotonic()-started)
+                 'all events recomputed from saved contact','actual class and phase coverage','reset and native clock continuity'],elapsed_s=time.monotonic()-started)
     if not check_only:
+        if shutil.disk_usage(out).free<30*2**30:raise RuntimeError('30GiB free-space floor')
         with (out/'independent-audit.json').open('x') as f:json.dump(result,f,indent=2);f.write('\n')
     print(json.dumps(result))
 
