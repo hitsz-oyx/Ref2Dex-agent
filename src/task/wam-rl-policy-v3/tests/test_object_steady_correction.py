@@ -127,6 +127,18 @@ def test_unreachable_corrected_target_never_drives_outer_boundary():
     assert np.linalg.norm(tracker.steady.position) == 0
 
 
+def test_outward_measured_velocity_clears_bias_before_inner_boundary():
+    tracker, q = fixture(object_steady_correction=True)
+    desired=np.eye(4);desired[0,3]=.01
+    step(tracker,q,desired=desired)
+    assert np.linalg.norm(tracker.steady.position)>0
+    q[10]=.04;dq=np.zeros(18);dq[10]=-.5
+    _,info=tracker.step(q,dq,np.eye(4),desired,np.zeros(3),np.zeros(3),np.ones((5,3)),True,False,
+                        measured_object=np.eye(4),desired_object=desired,hand_object=np.eye(4))
+    assert info['object_steady_correction']['reason']=='finite_joint_approaching'
+    assert np.linalg.norm(tracker.steady.position)==0
+
+
 def test_finger_actions_unchanged_and_scoring_reference_not_mutated():
     tracker, q = fixture(object_steady_correction=True);off, _ = fixture()
     desired = np.eye(4);desired[0, 3] = .01;snapshot = desired.copy()
@@ -142,7 +154,7 @@ def test_retained_ff_includes_corrected_rotation_lever_derivative():
     tracker, q = fixture(object_steady_correction=True)
     measured = np.eye(4);desired = np.eye(4);relative = np.eye(4);relative[0, 3] = .1
     tracker.steady.rotation[:] = [.01, -.02, .03]
-    v = np.array([.01, .02, .03]);w = np.array([.1, -.2, .3])
+    v = np.array([.01, .02, .03]);w = np.array([.3, .1, -.2])
     target, hv, hw = hand_setpoint(desired, v, w, relative)
     q[:3] = target[:3, 3];palm = target.copy()
     _, info = tracker.step(q, q*0, palm, target, hv, hw, np.ones((5, 3)), True, True,

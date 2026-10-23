@@ -207,8 +207,8 @@ class ObjectPoseTracker:
                     units = np.r_[ct, ca]
                     raw_wrist = (units-self.offset[:6])/self.scale[:6]
                     if (np.abs(ct) > .025).any() or (np.abs(ca) > .12).any() or (np.abs(raw_wrist) > 1).any():
-                        # Clear the applied bias while saturated; retain no
-                        # stale integral that could keep driving a boundary.
+                        # Do not apply a bias on a saturated tick. Restore the
+                        # prior integral so rejected growth cannot accumulate.
                         self.steady.restore(saved)
                         correction['reason'] = 'command_saturated'
                     else:
