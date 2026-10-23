@@ -594,3 +594,35 @@ by_phase
 Full reproducible paired group CIs and relative changes: `/mnt/ugreen_nas/storage/oyx_storage/wam-nine-source-full-20261023-pending/diagnosis/C4-source0/grouped-panel.json`.
 
 Preregistered interpretation: Other-source EPE worsening>=50% observed; strong interference under owner threshold.
+
+## C4-source1 terminal launcher isolation failure
+
+C4-source10 and C4-source0 completed500 updates and have final checkpoints/panels; their reports were appended and committed individually. C4-source1 last logged480 updates, no final checkpoint/panel. Torch2.0 installed run.py lines771-774 shows --standalone forcibly sets localhost:29400 despite separate random run IDs. Concurrent independent agents therefore share a TCPStore server; one completed arm closed the store and interrupted source1 via RendezvousConnectionError/Broken pipe. This is a launcher isolation mistake, not source1 quality outcome. No retry/model update is performed, no original output deleted. Source1 interference row is NA. Future launcher uses explicit c10d localhost:0 and arm-specific rendezvous ID; original receipts/commands retained.
+
+## C4 partial interference matrix (measured; source1 row unavailable)
+
+Cells are signed EPE delta mm (relative percent). Positive=worse; off-diagonal>=50% worsening hits owner interference threshold. Source1 row is NA because final weights/panel were lost to launcher failure.
+
+first8_hand
+
+|trained source|0|1|2|4|5|6|8|9|10|
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+|1|NA|NA|NA|NA|NA|NA|NA|NA|NA|
+|10|+10.158 (+162.1%)|+13.061 (+135.6%)|+12.288 (+224.3%)|+13.644 (+148.6%)|+13.063 (+268.1%)|+7.453 (+139.8%)|+25.027 (+545.4%)|+9.913 (+238.4%)|+4.923 (+51.4%)|
+|0|+2.412 (+38.5%)|+2.923 (+30.3%)|+5.184 (+94.6%)|+2.900 (+31.6%)|+10.267 (+210.7%)|+6.059 (+113.6%)|+9.720 (+211.8%)|+4.174 (+100.4%)|+2.937 (+30.6%)|
+
+fixed_contact_hand
+
+|trained source|0|1|2|4|5|6|8|9|10|
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+|1|NA|NA|NA|NA|NA|NA|NA|NA|NA|
+|10|+11.323 (+99.8%)|+23.706 (+90.0%)|+17.222 (+129.3%)|+32.518 (+194.6%)|+24.485 (+221.2%)|+6.917 (+73.2%)|+46.671 (+397.3%)|+27.561 (+289.3%)|+4.568 (+17.7%)|
+|0|+6.652 (+58.6%)|+23.702 (+90.0%)|+12.116 (+91.0%)|+5.316 (+31.8%)|+19.206 (+173.5%)|+6.714 (+71.0%)|+55.515 (+472.5%)|+12.250 (+128.6%)|+5.434 (+21.1%)|
+
+first8_object
+
+|trained source|0|1|2|4|5|6|8|9|10|
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+|1|NA|NA|NA|NA|NA|NA|NA|NA|NA|
+|10|+0.207 (+5.8%)|+1.966 (+33.0%)|+1.333 (+37.0%)|+3.672 (+58.4%)|+9.413 (+245.2%)|+0.086 (+2.5%)|+2.905 (+82.8%)|+8.917 (+286.3%)|+0.625 (+10.1%)|
+|0|-0.137 (-3.8%)|+1.950 (+32.8%)|+1.899 (+52.6%)|+3.726 (+59.2%)|+9.315 (+242.7%)|+0.162 (+4.6%)|+3.785 (+107.9%)|+6.242 (+200.4%)|+1.281 (+20.6%)|

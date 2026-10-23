@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 TASK=Path(__file__).resolve().parents[2];ROOT=TASK.parents[2];sys.path.insert(0,str(TASK/'tools/run'))
 from remote_staged_data import read,write
-OUT=ROOT/'tmp/rh/diagnosis';DONE=['C1','C2','C4-source1','C4-source10','C4-source0']
+OUT=ROOT/'tmp/rh/diagnosis';DONE=['C1','C2','C4-source10','C4-source0']
 def main():
  assert all((OUT/a/'grouped-panel.json').exists() for a in DONE)
  summary={};lines=['\n## Final measured synthesis with terminal blockers\n','\n|arm|status|updates|GPUs/global batch|first8 hand mm (delta)|contact mm (delta)|first8 object mm (delta)|','|---|---|---:|---|---:|---:|---:|']
@@ -13,6 +13,9 @@ def main():
    result=read(OUT/arm/'result.json');r=read(OUT/arm/'recipe-v2.json');g=read(OUT/arm/'grouped-panel.json');s=g['summary'];d=s['versus_local3000']['delta_mm'];ci=s['versus_local3000']['paired_mother_cluster_ci95_mm']
    summary[arm]=dict(status='COMPLETED',updates=result['updates'],means_mm=s['means_mm'],delta_mm=d,paired_ci95_mm=ci,all_three_stable_or_improved=all(x<=0 for x in d),global_batch=r['global_batch'],world_size=r['world_size'],data_identity_sha256=r['data_identity_sha256'],report_commit=read(OUT/arm/'report-commit.json')['commit'])
    cell=lambda i:'%.4f (%+.4f)'%(s['means_mm'][i],d[i]);lines.append('|%s|completed|%d|%d/%d|%s|%s|%s|'%(arm,result['updates'],r['world_size'],r['global_batch'],cell(0),cell(1),cell(2)))
+  elif arm=='C4-source1':
+   summary[arm]=dict(status='FAILED_RENDEZVOUS_ISOLATION',last_logged_step=480,final_checkpoint=False,quality_outcome=None)
+   lines.append('|C4-source1|rendezvous store failure|480 logged|1/96|NA|NA|NA|')
   elif arm=='C3':
    summary[arm]=dict(status='FAILED_FIXED_WORKSPACE',initial_run_updates=0,repaired_run='C3-r2',last_logged_step=100,last_attempted_step=104,completed_updates_inferred=103,final_checkpoint=False,quality_outcome=None)
    lines.append('|C3 / C3-r2|reader fault then input-range failure|0;100 logged/failed104|4/384|NA|NA|NA|')
@@ -30,7 +33,7 @@ def main():
     if x is not None and x>=50:strong.append(dict(trained_source=trained,evaluated_source=source,metric_index=i,EPE_worsening_percent=x,rows=v['rows'],mothers=v['mothers']))
  with np.load(ROOT/'tmp/rh/half-training/panel-step000000/paired-panel.npz') as z:reference=z['sums'];counts=z['counts']
  rows=read(ROOT/'tmp/rh/fixed-panel/manifest.json')['rows'];pooled={}
- for arm in ('C4-source1','C4-source10','C4-source0'):
+ for arm in ('C4-source10','C4-source0'):
   trained=int(arm.split('source')[1]);mask=np.array([r['source_id']!=trained for r in rows]);step=summary[arm]['updates']
   with np.load(OUT/arm/('panel-step%06d/paired-panel.npz'%step)) as z:final=z['sums']
   a=reference[mask].sum(0)/counts[mask].sum(0);b=final[mask].sum(0)/counts[mask].sum(0);pooled[arm]=dict(baseline_mm=a.tolist(),final_mm=b.tolist(),delta_mm=(b-a).tolist(),relative_change_percent=((b/a-1)*100).tolist())
@@ -44,9 +47,9 @@ def main():
  with (OUT/'README.md').open('a') as f:f.write('\n'.join(lines)+'\n')
  (OUT/'README.md').chmod(0o664)
  report=ROOT/'src/task/ptv3-shared-wam-v6/docs/audit/nine-source-degradation-20261023.md';report.write_text((OUT/'README.md').read_text())
- card=ROOT/'src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261023-nine-source-degradation.md';s=card.read_text().replace('status: RUNNING','status: HOLD');card.write_text(s+'\nResult: C1 recovers; C2 regresses; C4 measured; C3 input-range failure and C5 blocked.\nDecision: repair workspace admission under a separate contract before retrying uniform controls; no original-arm quality verdict for C3/C5.\n')
- state=ROOT/'src/task/ptv3-shared-wam-v6/docs/STATE.md';state.write_text('## 2026-10-23 remote C1-C5 diagnosis: partial, input-contract blocker\n\nC1 matched global384/fresh-optimizer500updates improves panel8.081/19.366/4.959mm; C2 curated weights/full support500updates regresses11.417/34.071/6.779mm, all paired CI95 positive. C4 three single-source arms completed, full matrix in diagnosis report. C3 initial0-update NAS permission fault repaired in C3-r2, then valid source4 hand pointsx=-2.724m violate fixed voxel origin-2m at step104; no final C3 quality panel. C5 deterministically retains/hits same valid-supervision window, blocked0updates. Do not equate missing other-hand slots with invalid windows (exact whole-window gate removes0.017%). No workspace/model/LR/threshold change or automatic retry. [Report](audit/nine-source-degradation-20261023.md).\n\n'+state.read_text())
+ card=ROOT/'src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261023-nine-source-degradation.md';s=card.read_text().replace('status: RUNNING','status: HOLD');card.write_text(s+'\nResult: C1 recovers; C2 regresses; C4-s10/s0 measured; C4-s1 lost; C3 input-range failure/C5 blocked.\nDecision: repair workspace admission under a separate contract before retrying uniform controls; no original-arm quality verdict for C3/C5.\n')
+ state=ROOT/'src/task/ptv3-shared-wam-v6/docs/STATE.md';state.write_text('## 2026-10-23 remote C1-C5 diagnosis: partial, input-contract blocker\n\nC1 matched global384/fresh-optimizer500updates improves panel8.081/19.366/4.959mm; C2 curated weights/full support500updates regresses11.417/34.071/6.779mm, all paired CI95 positive. C4 source10/source0 completed500 updates; source1 lost at480 logged due shared rendezvous-store launcher fault; partial matrix in report. C3 initial0-update NAS permission fault repaired in C3-r2, then valid source4 hand pointsx=-2.724m violate fixed voxel origin-2m at step104; no final C3 quality panel. C5 deterministically retains/hits same valid-supervision window, blocked0updates. Do not equate missing other-hand slots with invalid windows (exact whole-window gate removes0.017%). No workspace/model/LR/threshold change or automatic retry. [Report](audit/nine-source-degradation-20261023.md).\n\n'+state.read_text())
  subprocess.run(['git','add',str(report),str(card),str(state)],cwd=ROOT,check=True)
- subprocess.run(['git','commit','-m','Summarize C1/C2/C4 each500 updates; C3 workspace fault/C5 blocked; data5a89c571e072'],cwd=ROOT,check=True)
+ subprocess.run(['git','commit','-m','Summarize C1/C2/C4-s10/C4-s0 each500; C3/C4-s1 faults/C5 blocked; data5a89c571e072'],cwd=ROOT,check=True)
  print(json.dumps(summary,indent=2))
 if __name__=='__main__':main()
