@@ -76,6 +76,7 @@ def write(p, data, fixed=False, durable=True):
         f.write(raw); f.flush()
         if durable:os.fsync(f.fileno())
     pending.replace(p)
+    p.chmod(0o664)
 
 
 def guard(root, need=0):
@@ -312,7 +313,8 @@ def process_one(args):
                 values=annotate_events(enter,leave,c['valid'],observation_stride=OBSERVATION_STRIDE_BY_SOURCE.get(row['source_id'],1))
                 values.pop('transitions'); values.update(enter_count=enter,leave_count=leave,raw_valid=np.asarray(c['valid']))
                 pending=ef.with_name(ef.name+'.partial-'+str(os.getpid()));pending.mkdir()
-                for name,value in values.items():np.save(pending/(name+'.npy'),value)
+                for name,value in values.items():
+                    target=pending/(name+'.npy');np.save(target,value);target.chmod(0o664)
                 write(pending/'meta.json',dict(key=key,status='COMPLETED',protocol=DEFAULT_PROTOCOL,
                     contact_meta_identity=metadata_identity(cf/'meta.json')),fixed=True,durable=False)
                 pending.rename(ef)
@@ -337,6 +339,7 @@ def process_one(args):
         with pending.open('wb') as f:
             np.savez(f,tuples=np.asarray(tuples,np.int32).reshape(-1,3),phase=np.asarray(phase_rows,np.uint8),geometry_class=np.asarray(classes,np.uint8))
         pending.replace(shard)
+        shard.chmod(0o664)
         conversion_files=[p for parent in [folder,cf,ef] for p in parent.iterdir() if p.is_file()]
         result=dict(base,status='ADMITTED' if tuples else 'REJECTED',reasons=[] if tuples else ['no_valid_h4_k24_windows'],
             candidate_windows=candidate,admitted_windows=len(tuples),rejected_windows=candidate-len(tuples),window_rejection_reasons=dict(counts),
