@@ -57,6 +57,9 @@ def test_complete_manifest_cross_split_dedup_and_unknown_certification(tmp_path,
     assert result['versus_6000']['dev_baseline_rows_present_after_dedup']==1
     assert result['versus_6000']['dev_added_before_dedup']==0
     assert result['versus_6000']['dev_added_after_dedup']==0
+    import sqlite3
+    with sqlite3.connect(str(out/'dedup-index.sqlite')) as database:
+        assert database.execute('SELECT COUNT(*) FROM representatives').fetchone()[0]==sum(result['windows_after'].values())
     assert result['provenance']['uncertifiable']==10
     assert result['provenance']['certified_legal']==0
     rows=[json.loads(x) for x in (out/'train-windows.jsonl').read_text().splitlines()]

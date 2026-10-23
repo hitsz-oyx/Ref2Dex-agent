@@ -420,13 +420,16 @@ def summarize(run,out,workers=1):
                     retained_after_dedup=retained,sequence_receipt='../receipts/'+r['key']+'.json'))
             for ticks in retained_ticks.values():temporal_after+=temporal_fraction(ticks)
             positions[split]+=len(tuples);count[split]+=len(tuples)
-            db.commit()
             if number%64==0:
+                # This is a derived index, published only after the whole
+                # audit. Group journal syncs; per-window semantics/order stay
+                # unchanged and conversion receipts remain independently durable.
+                db.commit()
                 status=dict(stage='full_manifest',sequences=number,total_sequences=len(admitted),windows=dict(count),removed=dict(removed),
                     elapsed_s=round(time.monotonic()-started,2),disk_free_bytes=prep.shutil.disk_usage(run).free)
                 prep.write(out/'progress.json',status);print(json.dumps(status),flush=True)
     for stream in manifest_streams.values():stream.close()
-    db.close()
+    db.commit();db.close()
     for split in arrays:
         arrays[split].flush();keep_arrays[split].flush()
         np.save(out/(split+'-deduplicated.npy'),arrays[split][keep_arrays[split]])
