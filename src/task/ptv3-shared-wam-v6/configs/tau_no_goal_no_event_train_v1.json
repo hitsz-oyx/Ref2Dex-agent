@@ -155,6 +155,6 @@
   "curated_manifest": "outputs/ptv3-shared-wam-v6/tau-curated-20261023-r7/curated-manifest.json",
   "condition_recipe": "src/task/ptv3-shared-wam-v6/configs/tau_no_goal_no_event_v1.json",
   "condition_recipe_sha256": "36872da24a5dc72cc5580d94a048b5fd7a6ed111b21e7053a4b17acbeff9fc5d",
-  "hard_stop_epoch": 1792724191.0,
+  "hard_stop_epoch": 1792735439.0,
   "save_initial_weights": true
 }
