@@ -113,8 +113,10 @@ def legacy(payloads):
                 wrist = np.load(row['wrist_pose_world'], allow_pickle=False)
                 local = np.load(row['wrist_pose_object_t'], allow_pickle=False)
                 q_binding = float(np.max(np.abs(poses @ local - wrist)))
-                if q_binding > 1e-4:
-                    raise ValueError('cm/coupled pose-frame mismatch: ' + parent)
+                # A same-name view is not proof of identical recorded motion.
+                # Keep the real cm pose, mark peer geometry unbound, and
+                # report the failure per window instead of aborting census.
+                cm_poses = wrist @ np.linalg.inv(local)
             numeric_valid = numerical_pose_valid(poses)
             world = np.asarray(raw['obj_points_pool_world'])
             normals = np.asarray(raw['obj_normals_pool_world'])
@@ -132,11 +134,13 @@ def legacy(payloads):
                        normals=canonical_normals[0, chosen].astype(np.float32),
                        query=canonical[0, chosen[::64]].astype(np.float32))
             key = parent.replace('/', '_')
-            prefix = 'legacy-bindings/' + key
+            prefix = 'legacy-bindings/' + name + '/' + key
             for field, value in geo.items():
                 payloads[prefix + '/' + field + '.npy'] = npy_bytes(value)
-            payloads[prefix + '/numerical_pose_valid.npy'] = npy_bytes(numeric_valid)
-            payloads[prefix + '/object_poses.npy'] = npy_bytes(poses[:, None])
+            view_poses = cm_poses if name == 'cm_decoder_v2' else poses
+            view_valid = numerical_pose_valid(view_poses)
+            payloads[prefix + '/numerical_pose_valid.npy'] = npy_bytes(view_valid)
+            payloads[prefix + '/object_poses.npy'] = npy_bytes(view_poses[:, None])
             pose_evidence = artifact(geometry_dir / 'obj_pose_world.npy')
             binding = dict(parent_sequence=parent, geometry_source=str(geometry_dir),
                 geometry_array_identity=array_identity(geo), selected_pool_ids=chosen.tolist(),
@@ -145,16 +149,21 @@ def legacy(payloads):
                 max_position_drift_m=drift, max_normal_drift=ndrift,
                 clock30hz_verified=True, source_frame_stride=4, pose_artifact=pose_evidence,
                 pose_validity_scope='Numerical SE3 plus source clock verified; missing annotation-validity evidence is NOT filled with True.',
-                geometry_binding_verified=True)
+                geometry_binding_verified=name != 'cm_decoder_v2' or q_binding <= 1e-4,
+                cm_peer_pose_max_error=q_binding,
+                registry_status='BOUND' if name != 'cm_decoder_v2' or q_binding <= 1e-4 else 'CANDIDATE_UNBOUND_PEER_MOTION_MISMATCH')
             payloads[prefix + '/binding.json'] = json_bytes(binding)
             # A new registry is usable; pose numerical quality is separately
             # written but does not manufacture an annotation validity mask.
-            seq.setdefault('object_poses', poses[:, None])
+            seq.setdefault('object_poses', view_poses[:, None])
             hand_meta = read(folder / 'meta.json') if (folder / 'meta.json').exists() else {}
-            evidence = dict(hand_meta, frames=n, slots=1, geometry_binding_verified=True)
+            evidence = dict(hand_meta, frames=n, slots=1,
+                            geometry_binding_verified=binding['geometry_binding_verified'])
             reasons = Counter()
             for tick in range(3, n - 24):
                 rejected = admission_reasons(seq, geo, contact, event, evidence, tick, 0)
+                if name == 'cm_decoder_v2' and q_binding > 1e-4:
+                    rejected.append('peer_motion_binding_mismatch')
                 reasons.update(rejected)
                 records.append(dict(root=name, parent_sequence_id=parent, tick=tick, slot=0,
                                     admitted=not rejected, reasons=rejected))
@@ -364,6 +373,8 @@ def main():
     free = shutil.disk_usage(output.parent).free
     block = __import__('os').statvfs(output.parent).f_frsize
     exact = sum(len(v) for v in payloads.values())
+    if exact > 64 * 2**20:
+        raise RuntimeError('64MiB output cap exceeded before writing')
     allocation = sum(math.ceil(len(v)/block)*block for v in payloads.values())
     preflight = dict(files=len(payloads), exact_serialized_bytes=exact,
         allocated_file_bytes_upper=allocation, metadata_reserve_bytes=2**20,
