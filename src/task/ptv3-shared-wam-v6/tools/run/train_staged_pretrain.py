@@ -137,10 +137,11 @@ def main():
     loader=DataLoader(dataset,batch_sampler=Steps(dataset,first,last,rank),collate_fn=collate,num_workers=2,
         pin_memory=True,generator=torch.Generator().manual_seed(170*1009+rank),**loader_options(2,180,'spawn'))
     out=a.output;out.mkdir(parents=True,exist_ok=True)
-    if (out/'run-manifest.json').exists():raise FileExistsError('fresh run output required')
-    if rank==0:write(out/'run-manifest.json',dict(recipe=recipe,recipe_sha256=sha(a.recipe),parent=parent,
-        world_size=world,local_batch=96,global_batch=384,git_commit=recipe['git_commit'],
-        python=sys.version,torch=torch.__version__,cuda=torch.version.cuda,smoke=a.smoke,automatic_restart=False),immutable=True)
+    if rank==0:
+        if (out/'run-manifest.json').exists():raise FileExistsError('fresh run output required')
+        write(out/'run-manifest.json',dict(recipe=recipe,recipe_sha256=sha(a.recipe),parent=parent,
+            world_size=world,local_batch=96,global_batch=384,git_commit=recipe['git_commit'],
+            python=sys.version,torch=torch.__version__,cuda=torch.version.cuda,smoke=a.smoke,automatic_restart=False),immutable=True)
     dist.barrier();started=time.monotonic();step=first-1;draws=Counter();loss_records=[];last_saved=None
     reference=recipe.get('local3000_panel')
 
