@@ -5,10 +5,10 @@ experiment_id: P-20261023-rigid-source-bound-pilot
 date: 2026-10-23
 task: ptv3-shared-wam-v6
 branch: main
-git_commit: 8161f7c6
+git_commit: 480ae4e4
 classification: Decision
 status: RUNNING
-run_id: rigid-source-bound-pilot-20261023-r1
+run_id: rigid-source-bound-pilot-20261023-r2
 claim_id: rigid-data-deployable-coverage
 hypothesis_family: source-bound-rigid-collection
 probe_index_in_family: 1
@@ -20,8 +20,8 @@ decision_changed_if_negative: repair producer binding or semantics before any TR
 
 # P-20261023-rigid-source-bound-pilot
 
-Result: pending collection and independent saved-artifact audit.
-Decision: owner authorized96 fresh simulation rollouts; no training/model/6k recipe changes.
+Result: collection and independent saved-artifact audit in progress; 36/96 raw rollouts complete at GPU boundary wait.
+Decision: owner authorized96 fresh simulation rollouts; retain completed batches while the other executor uses GPU4; no training/model/6k recipe changes.
 
 ## 结果解读表
 
@@ -57,5 +57,14 @@ Decision: owner authorized96 fresh simulation rollouts; no training/model/6k rec
 CUDA_VISIBLE_DEVICES='' PYTHONDONTWRITEBYTECODE=1 /home2/wyy/miniconda3/envs/graspenv/bin/python \
  src/task/ptv3-shared-wam-v6/tools/run/collect_rigid_pilot.py prepare \
  --output outputs/ptv3-shared-wam-v6/rigid-source-bound-pilot-20261023-r1
-# 同入口collect --gpu4，然后CPU audit；两阶段均使用项目内TMPDIR。
+# r1在初始化双reset守卫处失败，0物理采集；资产保留。
+# prepare --prepared-from ...r1 --output ...r2复用只读资产；
+# collect --gpu 4，批次边界可--resume；audit --wait-for-collection并行CPU验收。
+# 两阶段均使用项目内TMPDIR。
 ```
+
+运行身份：r2首两批采集代码480ae4e4；恢复入口8d97deae只补批次边界恢复，
+不改变采集动作/标签/seed/配额。每批simulation-config与executions/resume receipts记录实际代码。
+原始header301状态/600controls，前36条所有21点FK与live测量最大差2.552e-6m，
+这只是工程preflight，通过正式准入/认证前不计为TRAIN覆盖。首批实际20条、第二批16条；
+GPU4被别的执行器占用后等待，不改派GPU5/6以维持两张空闲卡。

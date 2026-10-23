@@ -442,7 +442,8 @@ def audit(out,wait_for_collection=False):
     jobs=sorted(plan['jobs'],key=lambda j:(not (out/j['rollout_id']/'raw.npz').exists(),j['rollout_id'])) if wait_for_collection else plan['jobs']
     for job in jobs:
         folder=out/job['rollout_id'];asset=assets[job['object_code']]
-        while not (folder/'raw.npz').exists():
+        complete=out/('batch-%02d'%plan['objects'].index(asset))/'completed.json'
+        while not (folder/'raw.npz').exists() or not complete.exists():
             if not wait_for_collection or time.monotonic()-started>7200:raise FileNotFoundError(folder/'raw.npz')
             guard(out,24*1024**2)
             time.sleep(10)
@@ -532,6 +533,9 @@ def audit(out,wait_for_collection=False):
             for row in rows:f.write(json.dumps(row,sort_keys=True)+'\n')
     np.save(out/'certified-candidate-tuples.npy',np.asarray(certified,dtype='i8'))
     required=lambda rows:[r for r in rows if r['phase'] in PHASES and r['geometry_class'] in CLASSES]
+    while not (out/'collection-complete.json').exists():
+        if not wait_for_collection or time.monotonic()-started>7200:raise FileNotFoundError('collection receipt missing')
+        time.sleep(2)
     result=dict(experiment_id=EXPERIMENT,run_id=out.name,work_version=VERSION,
         collection=json.loads((out/'collection-complete.json').read_text()),
         git_commit=json.loads((out/'execution-manifest.json').read_text())['git_commit'],audit_git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
