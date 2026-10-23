@@ -137,3 +137,22 @@ Three suspicious points, separate verdicts:
 3. A's46-50% missing point-frame supervision for sources4/8/10 DOES NOT imply that46-50% whole windows have no supervision. Missing other-hand slots are correctly excluded by objective masks. C5 uses actual whole-window target-mask validity; exact counts below supersede the mistaken window-level inference.
 
 New immutable preregistration: preregistration-v2.json. C1->C2->C3->C4(source1/10/0 concurrent)->C5;500 updates or2400 training seconds/arm. C1/C2/C3/C5 world4 local96 global384; C4 world1 local96 global96. Unchanged model, objective coefficients and initializer. No fault retries. If the exact C5 gate is a no-op, no C5 result can establish a causal effect from removing nonexistent invalid windows; report the design limit explicitly with the preregistered outcome table.
+
+## C5 exhaustive hand-supervision window gate (measured before training)
+
+
+|source|TRAIN windows|zero valid hand-target windows (24-step)|zero valid hand-target windows (first8)|kept|
+|---|---:|---:|---:|---:|
+|0|5412663|0|0|5412663|
+|1|287955|0|0|287955|
+|2|370362|0|0|370362|
+|4|1930631|0|0|1930631|
+|5|238297|0|0|238297|
+|6|578181|291|409|577890|
+|8|2953|0|0|2953|
+|9|44110|0|0|44110|
+|10|475898|1299|1362|474599|
+
+Gate rejects1590/9341050 (0.0170%) windows:source10=1299 (0.2730%),source6=291 (0.0503%),source4/8=0. All sources retain>=200 windows. The actual24-step hand objective mask is used; absent other-hand slots are retained. Object targets remain valid in these zero-hand windows, so these are not wholly unsupervised examples. C5 filters every source internally and preserves each source1/9, including the additionally found291 source6 zero-hand windows. This is a real but small gate intervention, not the supposed46-50% removal.
+
+C5 gate SHA256: `2c74830476af4c93c17737ad11300e5b83649d5293dcb33aa4340d14c2dca20f`; composite data identity: `d56531259b33ecd747c688c3bec599a00641bbf5dafac5b1a102f57fda773d03`. Gate identity is included in checkpoints/receipts. CPU4800-draw gate/determinism/worker-state checks passed; evidence C5-support-engineering.json.
