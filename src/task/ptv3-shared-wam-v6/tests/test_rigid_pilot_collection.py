@@ -55,3 +55,27 @@ def test_registry_samples_class_and_normals_from_actual_mesh():
     assert np.allclose(np.linalg.norm(geo['normals'],axis=-1),1.)
     assert np.array_equal(geo['query'],geo['surface'][::64])
     assert pilot.geometry_class(pilot.pca_shape(geo['surface']))=='flat'
+
+
+def test_fresh_consumer_goal_is_independent_of_own_future_labels():
+    from ptv3_shared_wam_v6.fresh_rigid import reset_bound_sample
+    from test_rigid_dataset import bundle
+    seq,geo,contact,_,_=bundle()
+    reset=dict(execution_id='fresh',reset_id='0',clock_id='test',at_ns=10)
+    def source(payload,role,name):
+        return pilot.bind_source(payload,source_role=role,source_kind='declared_task',source_id=name,
+                                 reset=reset,observed_at_ns=1,available_at_ns=2)
+    goal=np.eye(4);goal[2,3]=.9
+    instruction=pilot.instruction_from_displacement(source(goal,'task_instruction','goal'),
+        source(dict(rule='fixed_world_translation',translation_m=[0,0,0],target_stage='task_completion'),'task_instruction','rule'),
+        source(geo['query'],'reset_geometry','query'),source(geo['surface'],'reset_geometry','surface'),
+        reset=reset,object_slot=0,hand_slot=0,goal_type='se3_pose')
+    before=reset_bound_sample(seq,geo,contact,3,0,4,[0,0,3],instruction,reset)
+    seq['object_poses'][4:,0,0,3]=5
+    seq['joints'][4:]=7
+    after=reset_bound_sample(seq,geo,contact,3,0,4,[0,0,3],instruction,reset)
+    assert np.array_equal(before['goal_object_delta'],after['goal_object_delta'])
+    assert not np.array_equal(before['trajectory_target'],after['trajectory_target'])
+    assert not np.array_equal(before['scene_target'],after['scene_target'])
+    with pytest.raises(ValueError):
+        reset_bound_sample(seq,geo,contact,3,0,4,[0,0,3],instruction,dict(reset,reset_id='other'))

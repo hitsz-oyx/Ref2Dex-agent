@@ -360,21 +360,42 @@ def worker(out, object_index, gpu):
     finally: task.gym.destroy_sim(task.sim)
 
 
-def collect(out,gpu):
+def collect(out,gpu,resume=False):
     plan=json.loads((out/'plan.json').read_text())
-    if any(out.glob('batch-*')): raise ValueError('collection output immutable; use fresh run')
-    write(out/'execution-manifest.json',dict(work_version=VERSION,run_id=out.name,
+    if any(out.glob('batch-*')) and not resume: raise ValueError('use explicit --resume at completed batch boundary')
+    prior=out/'execution-manifest.json'
+    if resume:
+        previous=json.loads(prior.read_text())
+        if previous['plan_sha256']!=sha(out/'plan.json'):raise ValueError('cannot resume changed plan')
+        receipt=out/('resume-%d.json'%time.time_ns())
+    else:receipt=prior
+    write(receipt,dict(work_version=VERSION,run_id=out.name,
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         code_path=str(Path(__file__).resolve()),code_sha256=sha(__file__),command=sys.argv,
         executable=sys.executable,python=sys.version,physical_gpu=gpu,started_at_ns=time.time_ns(),
         plan_sha256=sha(out/'plan.json'),source_role='official data generator only; no learned weights changed'))
-    shutil.copyfile(__file__,out/'collector-snapshot.py')
-    started=time.monotonic(); log=(out/'collection.log').open('x')
-    records=[]
+    shutil.copyfile(__file__,out/(receipt.stem+'-collector.py'))
+    elapsed_before=(time.time_ns()-json.loads(prior.read_text())['started_at_ns'])/1e9
+    started=time.monotonic()-elapsed_before; log=(out/'collection.log').open('a' if resume else 'x')
+    records=json.loads((out/'processes.json').read_text()) if resume else []
     for i,asset in enumerate(plan['objects']):
         if not asset['jobs']: continue
-        memory=int(subprocess.check_output(['nvidia-smi','-i',str(gpu),'--query-gpu=memory.used','--format=csv,noheader,nounits'],text=True))
-        if memory>64: raise RuntimeError('assigned GPU busy')
+        batch=out/('batch-%02d'%i)
+        if batch.exists():
+            done=batch/'completed.json'
+            if not resume or not done.exists():raise ValueError('incomplete batch cannot be overwritten: '+str(batch))
+            completed=json.loads(done.read_text())
+            if completed['status']!='COMPLETED' or completed['rollouts']!=len(asset['jobs']):raise ValueError('batch receipt mismatch')
+            if not all((out/j['rollout_id']/'raw.npz').exists() for j in asset['jobs']):raise ValueError('completed batch missing raw')
+            continue
+        while True:
+            memory=int(subprocess.check_output(['nvidia-smi','-i',str(gpu),'--query-gpu=memory.used','--format=csv,noheader,nounits'],text=True))
+            if memory<=64:break
+            guard(out,24*1024**2)
+            if time.monotonic()-started>7200 or (out/'STOP').exists():raise TimeoutError('waiting assigned idle GPU reached cap/STOP')
+            write(out/'waiting-for-gpu.json',dict(gpu=gpu,memory_mib=memory,at_ns=time.time_ns(),next_batch=i,
+                reason='leave other jobs and two idle GPUs intact'))
+            time.sleep(10)
         guard(out, 2*GIB-sum(p.stat().st_size for p in out.rglob('*') if p.is_file() and not p.is_symlink()))
         scratch=out/'tmp'/('batch-%02d'%i);scratch.mkdir()
         command=[sys.executable,'-u',str(Path(__file__).resolve()),'worker','--output',str(out),'--gpu',str(gpu),'--object-index',str(i)]
@@ -473,15 +494,17 @@ def audit(out):
                 windows.append(record)
                 if not rejected and certification==LEGAL: certified.append([len(verdicts),0,t])
                 if t==3:
-                    sampled=sample_window(seq,geo,contact,t,0,4,[len(verdicts),0,t])
+                    from ptv3_shared_wam_v6.fresh_rigid import reset_bound_sample
+                    sampled=reset_bound_sample(seq,geo,contact,t,0,4,[len(verdicts),0,t],instruction,binding['reset'])
                     if sampled['trajectory_target'].shape!=(24,2,21,3): raise ValueError('reader contract')
-                    # Existing sample_window's default goal is realized t+24.
-                    # Save only explicit reset-goal samples via channel; never
-                    # silently feed the default future endpoint to TRAIN.
+                    for key in condition:
+                        if not np.array_equal(sampled[key],condition[key]):raise ValueError('offline/online goal mismatch')
         for sub,arrays in [('sequence',seq),('contact',contact),('events',events)]:
             dest=folder/sub;dest.mkdir()
             for key,value in arrays.items(): guard(out,value.nbytes+4096);np.save(dest/(key+'.npy'),value,allow_pickle=False)
-        row=dict(job=job,frames=n,output_ticks=300,admitted_windows=sum(w['admitted'] for w in windows if w['rollout_id']==job['rollout_id']),
+        row=dict(job=job,frames=n,output_ticks=300,joint_semantics=list(JOINT_NAMES),part_semantics=list(PART_NAMES),
+            label_semantics=LABEL_SEMANTICS,registry=asset['registry'],registry_sha256=asset['registry_sha256'],
+            admitted_windows=sum(w['admitted'] for w in windows if w['rollout_id']==job['rollout_id']),
             candidate_windows=n-27,rejection_reasons=dict(reasons),goal_certification=certification,certification_proof=proof,
             native_joint21_vs_fk_max_m=fk_error,phase_windows=dict(phases),requested_phase_observed=phases[job['intended_phase']]>0,
             source_role='explicit_task_instruction',available_before_reset=proof['available_before_reset'],
@@ -525,12 +548,13 @@ def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('stage',choices=['prepare','collect','worker','audit'])
     p.add_argument('--output',type=Path,required=True);p.add_argument('--gpu',type=int,default=4);p.add_argument('--object-index',type=int)
     p.add_argument('--prepared-from',type=Path)
+    p.add_argument('--resume',action='store_true')
     a=p.parse_args();out=a.output.resolve()
     if ROOT/'outputs/ptv3-shared-wam-v6' not in out.parents: raise ValueError('task-owned output required')
     if a.stage=='prepare':
         if a.prepared_from: reuse_prepared(out,a.prepared_from.resolve())
         else: prepare(out)
-    elif a.stage=='collect':collect(out,a.gpu)
+    elif a.stage=='collect':collect(out,a.gpu,a.resume)
     elif a.stage=='worker':worker(out,a.object_index,a.gpu)
     else:audit(out)
 
