@@ -130,6 +130,7 @@ def convert(args):
     after=resource.getrusage(resource.RUSAGE_SELF)
     return dict(key=row['key'],source_id=row['source_id'],frames=row['frames'],objects=row['objects'],
                 wall_s=time.monotonic()-start,cpu_s=after.ru_utime+after.ru_stime-before.ru_utime-before.ru_stime,
+                started_monotonic=start,finished_monotonic=time.monotonic(),
                 process_peak_rss_bytes=after.ru_maxrss*1024,pid=os.getpid(),result=result)
 
 def mount_counters():
