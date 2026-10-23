@@ -53,7 +53,7 @@ def stratified_keys(rows):
     groups = defaultdict(list)
     seen = {}
     for row in rows:
-        mother = (row['source_id'], row['source_sequence'])
+        mother = (row['source_id'], row.get('mother_identity', row['source_sequence']))
         if mother in seen:
             raise ValueError('duplicate mother or cross-split mother: '+str(mother))
         seen[mother] = row['split']
@@ -61,7 +61,7 @@ def stratified_keys(rows):
     first = set()
     for group in groups.values():
         ordered = sorted(group, key=lambda r: hashlib.sha256(
-            ('%s/%s/%s' % (SEED, r['source_id'], r['source_sequence'])).encode()).hexdigest())
+            ('%s/%s/%s' % (SEED, r['source_id'], r.get('mother_identity', r['source_sequence']))).encode()).hexdigest())
         first.update(r['key'] for r in ordered[:(len(ordered)+1)//2])
     return first
 
@@ -105,6 +105,10 @@ def plan(out, workers):
         if row['missing']:
             raise ValueError('input unavailable: '+row['key'])
         row['source_sequence'] = ref['source_sequence']
+        # Relative episode names repeat under different source roots. The
+        # resolved native directory/payload is the actual mother identity.
+        row['mother_identity'] = str(Path(row['job'].get('sequence_folder')
+            if row['source_id'] < 3 else row['job']['payload']).resolve())
         row['baseline'] = ref
     first = stratified_keys(rows)
     by_source = []
@@ -124,7 +128,7 @@ def plan(out, workers):
     if free-peak < 30*GIB:
         raise RuntimeError('full campaign NAS budget does not fit')
     result = dict(schema='ref2dex.remote-staged-plan.v1', seed=SEED,
-        definition='ceil(50%) mothers independently within every source x inherited split, SHA256(seed/source/mother) order',
+        definition='ceil(50%) mothers independently within every source x inherited split, SHA256(seed/source/resolved-native-mother-URI) order',
         baseline_sha256=sha(out/'baseline.json.gz'), baseline_manifest_sha256=baseline['manifest_sha256'],
         baseline_plan_sha256=read(PROBE/'input-audit.json')['frozen_plan_sha256'],
         registry_sha256=read(PROBE/'input-audit.json')['registry_sha256'],
