@@ -128,3 +128,9 @@ PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$PWD/tmp/t38-r3/bootstrap${PYTHONPATH:+:$P
 显式pgrep返回码1、stdout为空，无train_pretrain训练。身份/磁盘/预算门均通过，但GPU4/5/6已被另一会话的tau-checkpoint-ab作业占用（worker PID508325/508326/508327及其物理host）；本轮只读取进程信息，不干预。原--queue空闲门因此未通过，训练尚未启动，updates=0。
 
 为使排队不挤占已授权2500-update训练窗口，仅将本轮新的绝对安全期限从最初3h扩大为排队在内6h，仍为停止字段；训练max_seconds=10000、updates=2500不变。初版停止配置与调整diff分别保留config-before-queue-adjustment.json、queue-deadline-only.diff，实际最终配置SHA见identity.json。原07:15停止已撤销，不自动扩展至11k。
+
+## 08:17真实启动证据（后续结算以前部实测为准）
+
+资源释放后原queue自动启动一次，UTC=2026-10-23T00:17:11.319703+00:00（本地08:17:11）；supervisor PID532926、torchrun PID555945、native rank PID556007/556008/556009，物理GPU4/5/6。启动提交 `906d7168cdfc5d29ddbc9683621519d5fcb83bd9`，配置SHA `8c157ad4c903b0ed720d45057803fbc73212d1de48d0724df3171287b8578b51` 与预算登记一致。原始进程/进度/日志/三个真实rank的保存钩子证据在training-start-proof.json；此刻实际step=20、loss=1.473211130，有限，world3/global288/seed170均核对通过。已写出step0与更新后的checkpoint，socket路径错误匹配0。
+
+实际native config去掉三个停止字段后与旧配置逐字段完全相同；不是用离线面板读数冒充训练更新。GPU实测CSV：`4, 22561, 99 / 5, 20299, 97 / 6, 24209, 98`。首段速率/ETA仍受预热和固定DEV验证影响，最终使用真实进度和退出码，不改变配方。平台/故障门仍按预注册表执行；目前没有面板结果，不提前宣告预算或监督上限。
