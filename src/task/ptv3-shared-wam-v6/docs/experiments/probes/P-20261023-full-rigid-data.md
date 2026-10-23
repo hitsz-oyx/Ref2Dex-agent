@@ -77,3 +77,7 @@ source8 DEV=0；TRAIN零格61→8，旧6k全部存在，新增9,335,050行，旧
 view_manifest时失败，原输出/日志保留；路径兼容已修并独立重放1,335母序列/633view，
 未自动重启。独立readiness-manifest-r1覆盖全部窗口，不能把它称去重后manifest。
 全量reader、内容/split、保守磁盘、GPU4/5/6门未全PASS，大训练HOLD，本轮0updates。
+
+## 2026-10-23 13:33 brief47b owner HOLD
+
+机主空间保护令已生效。转换39,527/39,527和所有receipt保留，无新转换批次；中断的是summary r4/r6，r6已退出，r4未退出父进程/资源tracker已SIGSTOP。run级STOP禁止后续自动批次。转换额外需求0 B；summary未完成，不冒称幂等续写或完整发布。未删除历史outputs，未迁移；详细停止点、精确实际占用、预算差额和4090传输代价见[空间HOLD报告](../../audit/brief47b-space-hold-20261023.md)。后续继续等待机主决定，原PREPARED_WITH_GAPS是此前数据状态，当前执行状态HOLD。

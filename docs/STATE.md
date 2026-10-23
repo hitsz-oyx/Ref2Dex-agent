@@ -1,3 +1,7 @@
+## 2026-10-23 13:33 brief47b 空间保护令：数据准备持续HOLD
+
+机主要求立即停止新增转换/安全中断写入。本run39,527条转换此前已完成，receipt全保留，剩余转换0 B；正在写的是summary r4/r6，已SIGINT，r6退出，r4父进程及tracker已SIGSTOP为T。run级STOP与owner-hold receipt落盘，不自动恢复；未删除历史outputs、未启动迁移。13:34:07快照`/home2`可用64,212,578,304 B（59.803GiB），本run实占198,826,151,936 B。保留30GiB并计完整summary预留、metadata和现有并行训练剩余上限，仍缺26,400,304,869 B（24.587GiB）；该值为预算差额，非精确summary剩余。4090链路仅0.3–0.45MB/s，固定转换传输约4.69–7.03天，复制不释放源端空间。等机主决定，禁止自启下一批。[空间账、停止位置和恢复边界](../src/task/ptv3-shared-wam-v6/docs/audit/brief47b-space-hold-20261023.md)。
+
 ## 2026-10-23 九源转换已完成，训练准入仍HOLD
 
 39,527条母序列全量准入，TRAIN9,341,050/DEV1,856,282窗；九源TRAIN齐，source8 DEV=0。

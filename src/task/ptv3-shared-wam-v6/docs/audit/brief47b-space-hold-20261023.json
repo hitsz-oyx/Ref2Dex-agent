@@ -1,0 +1,281 @@
+{
+  "schema": "ref2dex.owner-space-hold.v1",
+  "started_at": "2026-10-23T05:33:49.021746+00:00",
+  "measured_at": "2026-10-23T05:34:07.324418+00:00",
+  "filesystem": {
+    "capacity_bytes": 23907679387648,
+    "used_bytes": 22643235893248,
+    "available_bytes": 64212578304,
+    "free_including_reserved_bytes": 1264443494400,
+    "reserved_free_bytes": 1200230916096
+  },
+  "groups": {
+    "run-root": {
+      "files": 93,
+      "apparent_bytes": 19835097,
+      "allocated_file_bytes": 20135936,
+      "directory_bytes": 4096
+    },
+    "full-manifest-r3": {
+      "files": 465,
+      "apparent_bytes": 962003287,
+      "allocated_file_bytes": 823083008,
+      "directory_bytes": 24576
+    },
+    "legacy-census-repaired-r1": {
+      "files": 3,
+      "apparent_bytes": 1018041,
+      "allocated_file_bytes": 1028096,
+      "directory_bytes": 4096
+    },
+    "readiness-report-support": {
+      "files": 2,
+      "apparent_bytes": 293063,
+      "allocated_file_bytes": 299008,
+      "directory_bytes": 4096
+    },
+    "full-manifest-r6": {
+      "files": 3358,
+      "apparent_bytes": 1037474906,
+      "allocated_file_bytes": 906227712,
+      "directory_bytes": 110592
+    },
+    "recovered-native-inputs": {
+      "files": 1475,
+      "apparent_bytes": 104494668,
+      "allocated_file_bytes": 107470848,
+      "directory_bytes": 1220608
+    },
+    "events": {
+      "files": 306800,
+      "apparent_bytes": 2758768980,
+      "allocated_file_bytes": 3750948864,
+      "directory_bytes": 158056448
+    },
+    "full-manifest-r5": {
+      "files": 7143,
+      "apparent_bytes": 1337025245,
+      "allocated_file_bytes": 1214906368,
+      "directory_bytes": 212992
+    },
+    "full-manifest-r2": {
+      "files": 80,
+      "apparent_bytes": 355279580,
+      "allocated_file_bytes": 203157504,
+      "directory_bytes": 8192
+    },
+    "windows": {
+      "files": 39527,
+      "apparent_bytes": 187119384,
+      "allocated_file_bytes": 275361792,
+      "directory_bytes": 1101824
+    },
+    "readiness-manifest-r1": {
+      "files": 8,
+      "apparent_bytes": 249662262,
+      "allocated_file_bytes": 249688064,
+      "directory_bytes": 4096
+    },
+    "hands": {
+      "files": 383500,
+      "apparent_bytes": 68942689823,
+      "allocated_file_bytes": 69937401856,
+      "directory_bytes": 158048256
+    },
+    "full-manifest-r1": {
+      "files": 3,
+      "apparent_bytes": 12761987,
+      "allocated_file_bytes": 12767232,
+      "directory_bytes": 4096
+    },
+    "batches": {
+      "files": 1444,
+      "apparent_bytes": 3778419,
+      "allocated_file_bytes": 5914624,
+      "directory_bytes": 122880
+    },
+    "receipts": {
+      "files": 39527,
+      "apparent_bytes": 2590441472,
+      "allocated_file_bytes": 2590527488,
+      "directory_bytes": 1388544
+    },
+    "restored-source0-inputs": {
+      "files": 2810,
+      "apparent_bytes": 660748339,
+      "allocated_file_bytes": 667439104,
+      "directory_bytes": 2367488
+    },
+    "full-manifest-r4": {
+      "files": 20753,
+      "apparent_bytes": 6486241083,
+      "allocated_file_bytes": 6494470144,
+      "directory_bytes": 610304
+    },
+    "remaining-legacy-parent": {
+      "files": 7,
+      "apparent_bytes": 111127,
+      "allocated_file_bytes": 131072,
+      "directory_bytes": 4096
+    },
+    "contacts": {
+      "files": 153400,
+      "apparent_bytes": 110629735175,
+      "allocated_file_bytes": 111083847680,
+      "directory_bytes": 158048256
+    }
+  },
+  "total_apparent_bytes": 196339481938,
+  "total_allocated_file_bytes": 198344806400,
+  "total_directory_bytes": 481345536,
+  "receipt_count": 39527,
+  "receipt_status_counts": {
+    "ADMITTED": 39527
+  },
+  "receipt_admitted_windows": 11197332,
+  "receipt_keys_unique": 39527,
+  "partials": [],
+  "errors": [],
+  "symlinks_not_followed": 0,
+  "scope": "Unique inode file data blocks and directory blocks within this run; excludes reused outside files, filesystem shared metadata and other projects; logical bytes differ from disk allocation.",
+  "receipt_conversion_expected_bytes": 182331193978,
+  "receipt_conversion_actual_bytes": 182331193978,
+  "receipt_conversion_size_mismatches": 0,
+  "status": "HOLD",
+  "run_id": "full-rigid-20261023-brief47-r1",
+  "experiment_id": "P-20261023-full-rigid-data",
+  "git_commit": "c86fc6c1128033c0ce0bfb667b10b9ab14057e22",
+  "owner_stop": {
+    "automatic_restart": false,
+    "completed_batches_preserved": true,
+    "history_deleted": false,
+    "measured_at": "2026-10-23T05:33:05.399728+00:00",
+    "paused_survivors": [
+      899079
+    ],
+    "reason": "owner_brief47b_space_protection",
+    "resume_requires_owner_decision": true,
+    "signalled_sessions": [
+      899079,
+      966345
+    ],
+    "status": "HOLD",
+    "stop_receipt": "storage-stop-receipt-1792733578347140464.json",
+    "stopped_watchers": [
+      856338
+    ],
+    "training_allowed": false
+  },
+  "conversion": {
+    "processed": 39527,
+    "total": 39527,
+    "remaining_sequences": 0,
+    "remaining_exact_bytes": 0,
+    "last_completed_batch": "batches/batch-00617-attempt-1792726370677517685.json",
+    "resume_policy": "Published sequence receipts skipped; STOP remains until explicit owner decision."
+  },
+  "summary_interruption": {
+    "full-manifest-r4": {
+      "last_progress": {
+        "disk_free_bytes": 64568889344,
+        "elapsed_s": 3739.18,
+        "removed": {
+          "dev": 49961,
+          "train": 203250
+        },
+        "sequences": 20672,
+        "stage": "full_manifest",
+        "total_sequences": 39527,
+        "windows": {
+          "dev": 1856282,
+          "train": 7561858
+        }
+      },
+      "published_manifest_exists": false,
+      "status": "SIGSTOP_FROZEN_AFTER_SIGINT",
+      "progress_scope": "Last periodic checkpoint, not precise last processed row; partial outputs are not a complete manifest.",
+      "resume_policy": "No automatic resume; preserve attempt. Conversion receipts are resumable; summary requires separate fresh attempt after owner decision."
+    },
+    "full-manifest-r6": {
+      "last_progress": {
+        "disk_free_bytes": 64542642176,
+        "elapsed_s": 233.56,
+        "removed": {
+          "dev": 42255
+        },
+        "sequences": 3328,
+        "stage": "full_manifest",
+        "total_sequences": 39527,
+        "windows": {
+          "dev": 1437137
+        }
+      },
+      "published_manifest_exists": false,
+      "status": "EXITED_AFTER_SIGINT",
+      "progress_scope": "Last periodic checkpoint, not precise last processed row; partial outputs are not a complete manifest.",
+      "resume_policy": "No automatic resume; preserve attempt. Conversion receipts are resumable; summary requires separate fresh attempt after owner decision."
+    }
+  },
+  "planning": {
+    "conversion_remaining_exact_bytes": 0,
+    "summary_additional_reserve_bytes": 27184433152,
+    "summary_reserve_kind": "Prior planning allowance reserved in full for a fresh summary; exact remainder unknown because retained content, JSONL and SQLite sizes depend on dedup results. Not measured bytes.",
+    "filesystem_metadata_allowance_bytes": 2147483648,
+    "other_training_watchdog": {
+      "at": "2026-10-23T05:35:02.364132+00:00",
+      "pid": 843895,
+      "free_bytes": 64260263936,
+      "artifact_bytes": 5291026715,
+      "disk_warning": false,
+      "artifact_alarm": false,
+      "optimizer_updates": 1400,
+      "last_loss": 0.6108114975504577,
+      "finite_loss": true,
+      "checkpoint_bytes": 5274043950,
+      "socket_directories": [
+        "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/tmp/b38-843884/tmp/v6i-843976",
+        "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/tmp/b38-843884/tmp/v6i-843975",
+        "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/tmp/b38-843884/tmp/v6i-843977"
+      ],
+      "stop_reason": null,
+      "seconds_to_hard_stop": 1736.6361181735992
+    },
+    "other_training_cap_bytes": 34359738368,
+    "other_training_remaining_cap_bytes": 29068711653,
+    "safety_floor_bytes": 32212254720,
+    "spendable_above_floor_bytes": 32000323584,
+    "conversion_only_extra_capacity_bytes": 0,
+    "summary_alone_reserve_shortfall_bytes": 0,
+    "all_reserved_additional_writes_bytes": 58400628453,
+    "free_after_all_reserved_writes_bytes": 5811949851,
+    "extra_capacity_for_summary_plus_parallel_training_and_floor_bytes": 26400304869,
+    "new_training_budget_included": false
+  },
+  "transfer": {
+    "bandwidth_MB_per_s": [
+      0.3,
+      0.45
+    ],
+    "bandwidth_source": "owner-provided RLG to 4090 observation; decimal MB/s, not rebenchmarked",
+    "fixed_conversion_logical_bytes": 182331193978,
+    "fixed_conversion_days_min": 4.689588322479424,
+    "fixed_conversion_days_max": 7.034382483719136,
+    "whole_run_logical_bytes": 196339481938,
+    "whole_run_days_min": 5.049883794701646,
+    "whole_run_days_max": 7.574825692052468,
+    "remote_free_capacity_source": "owner states 5.5T; not remeasured",
+    "remote_upstream_dependencies_additional": true,
+    "local_mnt_sda10t_exists": false,
+    "migration_started": false,
+    "source_deletion_authorized": false
+  },
+  "verification": {
+    "no_conversion_process_observed": true,
+    "conversion_partial_files": [],
+    "receipt_count_matches_total": true,
+    "unique_receipt_keys": true,
+    "receipt_actual_expected_equal": true,
+    "history_outputs_deleted": 0,
+    "run_data_scan_errors": []
+  }
+}
