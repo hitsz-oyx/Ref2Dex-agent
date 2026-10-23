@@ -124,3 +124,16 @@ Per-arm launch-receipt.json records command, config/data identity, actual code c
 ## Engineering verification and current stop point
 
 CPU recipe/sampler checks PASS for C2/C3/C4-source1/10/0:4,800 draws per arm, deterministic repeat, worker-state reconstruction, max8/mother/rank. C2 source1=4499/4800 (93.729%). Evidence: `engineering-checks.json`. All six scripts parse successfully in graspenv. GPU training/flow-only backward not yet tested;0 optimizer updates across all arms. C1 is blocked on original curated support metadata; later arms wait to preserve requested order. Working tree remains on main; no push.
+
+## Owner followup: restored C1, C5 preregistration (before B training)
+
+Remote starting HEAD2af46693. brief31 has6000 tuples with local sequence IDs; brief32 sequence_inventory supplies stable keys. Exact join source+key+slot+tick matches6000/6000 (100%); every by_source count preserved. Numeric sequence IDs alone disagree across local/remote and are not treated as stable identity. See C1-support-match.json and curated-rebound.json. C1 is restored, superseding the earlier missing-metadata blocker.
+
+Historical C1: per owner, local same-family curated continuation improved all three metrics by-7.19/-34.56/-5.61mm versus its own initialization; provisionally record "continuation mechanism cleared" as requested. This is owner-provided evidence, not remeasured here. Batch96 versus384 remains uncontrolled; the new C1 provides the matched large-batch/fresh-optimizer test.
+
+Three suspicious points, separate verdicts:
+1. Source target coordinate RMS10.85->68.12mm (6.28x) and inherited-normalized RMS0.320->1.941 remain heterogeneous; shared heads/loss coefficients make scale/gradient imbalance plausible, not yet causally established.
+2. Uniform-per-source gives source8 (2953 windows) and source1 (287955 windows) each1/9 source probability; average exposure per available window differs by97.51x before mother/phase structure. C2 tests source-weight attribution.
+3. A's46-50% missing point-frame supervision for sources4/8/10 DOES NOT imply that46-50% whole windows have no supervision. Missing other-hand slots are correctly excluded by objective masks. C5 uses actual whole-window target-mask validity; exact counts below supersede the mistaken window-level inference.
+
+New immutable preregistration: preregistration-v2.json. C1->C2->C3->C4(source1/10/0 concurrent)->C5;500 updates or2400 training seconds/arm. C1/C2/C3/C5 world4 local96 global384; C4 world1 local96 global96. Unchanged model, objective coefficients and initializer. No fault retries. If the exact C5 gate is a no-op, no C5 result can establish a causal effect from removing nonexistent invalid windows; report the design limit explicitly with the preregistered outcome table.

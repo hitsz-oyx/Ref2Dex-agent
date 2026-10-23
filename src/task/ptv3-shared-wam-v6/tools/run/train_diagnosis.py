@@ -117,7 +117,7 @@ def main():
                 or read(recipe['manifest'])['plan_sha256']!=read(campaign_root/'half-census/manifest.json')['plan_sha256']):
             raise ValueError('expansion must restore this campaign frozen half and selection plan')
         parent=dict(checkpoint=str(a.expand_from),sha256=sha(a.expand_from),data_identity=saved['data_identity'],
-            recipe_sha256=saved['recipe_sha256'],new_data_identity=recipe['manifest_sha256'],
+            recipe_sha256=saved['recipe_sha256'],new_data_identity=recipe.get('data_identity_sha256',recipe['manifest_sha256']),
             source_probabilities_before=saved['source_probabilities'],source_probabilities_after=recipe['source_probabilities'],
             optimizer_restored=True,identity_changed=True)
         model.load_state_dict(saved['model'],strict=True);restore_optimizer_state(optimizer,saved['optimizer'])
@@ -134,7 +134,7 @@ def main():
         model.load_state_dict(saved['model'],strict=True);del saved
         parent=dict(checkpoint=recipe['initialization'],source_step=3000,mode='weights-only',optimizer_restored=False)
     wrapped=DDP(model,device_ids=[local],find_unused_parameters=False);last=first if a.smoke else recipe['last_step']
-    dataset=DiagnosticWindows(recipe['manifest'],'train',recipe['geometry_manifest'],recipe['manifest_sha256'],probabilities=recipe['source_probabilities'],curated=recipe.get('curated_manifest'))
+    dataset=DiagnosticWindows(recipe['manifest'],'train',recipe['geometry_manifest'],recipe['manifest_sha256'],probabilities=recipe['source_probabilities'],curated=recipe.get('curated_manifest'),validity_gate=recipe.get('validity_gate'))
     configure_training_ipc()
     loader=DataLoader(dataset,batch_sampler=Steps(dataset,first,last,rank),collate_fn=collate,num_workers=2,
         pin_memory=True,generator=torch.Generator().manual_seed(170*1009+rank),**loader_options(2,180,'spawn'))
@@ -158,7 +158,7 @@ def main():
             target=out/('step%06d.pt'%current);assert not target.exists()
             pending=target.with_suffix('.pt.part')
             torch.save(dict(schema='ref2dex.remote-staged-checkpoint.v1',stage=recipe['stage'],step=current,
-                data_identity=recipe['manifest_sha256'],recipe_sha256=sha(a.recipe),parent=parent,
+                data_identity=recipe.get('data_identity_sha256',recipe['manifest_sha256']),recipe_sha256=sha(a.recipe),parent=parent,
                 source_probabilities=recipe['source_probabilities'],config=config,model=model.state_dict(),
                 optimizer=optimizer.state_dict(),random_state=states,elapsed_s=time.monotonic()-started),pending)
             pending.replace(target);target.chmod(0o664)
@@ -201,7 +201,7 @@ def main():
                     grad_norm=float(norm),elapsed_s=time.monotonic()-started,step_seconds=time.monotonic()-begin,
                     eta_seconds=(last-step)*(time.monotonic()-started)/(step-first+1),
                     peak_allocated_gib=torch.cuda.max_memory_allocated()/GIB,source_draws_rank0=dict(draws),
-                    global_batch=recipe['global_batch'],data_identity=recipe['manifest_sha256'])
+                    global_batch=recipe['global_batch'],data_identity=recipe.get('data_identity_sha256',recipe['manifest_sha256']))
                 write(out/'progress.json',record)
                 with (out/'train.jsonl').open('a') as f:f.write(json.dumps(record)+'\n')
                 print(json.dumps(record),flush=True)

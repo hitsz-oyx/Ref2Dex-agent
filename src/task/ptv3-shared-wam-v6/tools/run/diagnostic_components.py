@@ -4,9 +4,13 @@ import numpy as np
 from ptv3_shared_wam_v6.staged_training import StagedWindows
 
 class DiagnosticWindows(StagedWindows):
- def __init__(self,manifest,split,geometry_manifest,expected_sha256,geometry_gt_object=True,cache_size=2,probabilities=None,curated=None):
+ def __init__(self,manifest,split,geometry_manifest,expected_sha256,geometry_gt_object=True,cache_size=2,probabilities=None,curated=None,validity_gate=None):
   super().__init__(manifest,split,geometry_manifest,expected_sha256,geometry_gt_object,cache_size)
-  self.probabilities=probabilities;self.curated=curated
+  self.probabilities=probabilities;self.curated=curated;self.validity_gate=validity_gate
+  self.valid_windows=np.load(validity_gate,mmap_mode="r") if validity_gate else None
+  if self.valid_windows is not None:
+   assert self.valid_windows.shape==(len(self.index),) and self.valid_windows.dtype==bool
+   self.source_mothers={source:[sid for sid in mothers if self.valid_windows[self.rows[sid]["normalized_offset"]:self.rows[sid]["normalized_offset"]+self.rows[sid]["admitted_windows"]].any()] for source,mothers in self.source_mothers.items()}
   if curated:
    import json
    meta=json.load(open(curated)); self.curated_pools={}
@@ -16,10 +20,10 @@ class DiagnosticWindows(StagedWindows):
     matches=np.flatnonzero((self.index[start:start+n,1]==w['slot'])&(self.index[start:start+n,2]==w['tick']))
     if len(matches)!=1:raise ValueError('curated tuple absent or duplicate')
     pools.setdefault(int(w['source_id']),{}).setdefault(sid,{}).setdefault(str(w['phase']),[]).append(start+int(matches[0]))
-   assert sum(len(v) for m in pools.values() for ps in m.values() for v in ps.values())==6000
+   assert sum(len(v) for m in pools.values() for ps in m.values() for v in ps.values())==len(meta["windows"]) and len(meta["windows"])>=5700
    self.curated_pools=pools
  def __getstate__(self):
-  return dict(super().__getstate__(),probabilities=self.probabilities,curated=self.curated)
+  return dict(super().__getstate__(),probabilities=self.probabilities,curated=self.curated,validity_gate=self.validity_gate)
  def draw(self,count,seed,step=0,rank=0):
   rng=np.random.default_rng(np.random.SeedSequence([seed,step,rank,20261023]));sources=sorted(map(int,self.probabilities));p=np.array([self.probabilities[str(s)] for s in sources]);p=p/p.sum()
   chosen=rng.choice(sources,count,p=p);counts=Counter();result=[]
@@ -32,7 +36,7 @@ class DiagnosticWindows(StagedWindows):
     phases=self.curated_pools[int(source)][mother];keys=[p for p in ('approach','close','contact','hold') if p in phases] or ['unknown'];pool=phases[keys[int(rng.integers(len(keys)))]];result.append(int(rng.choice(pool)));continue
    row=self.rows[mother];start=row['normalized_offset'];n=row['admitted_windows']
    if mother not in self.phase_cache:
-    phase=self.phase[start:start+n];pools=[np.flatnonzero(phase==p) for p in range(4)];self.phase_cache[mother]=[p for p in pools if len(p)] or [np.arange(n)]
+    phase=self.phase[start:start+n];valid=np.ones(n,bool) if self.valid_windows is None else self.valid_windows[start:start+n];pools=[np.flatnonzero((phase==p)&valid) for p in range(4)];self.phase_cache[mother]=[p for p in pools if len(p)] or [np.flatnonzero(valid)]
     while len(self.phase_cache)>32:self.phase_cache.popitem(last=False)
    self.phase_cache.move_to_end(mother);pools=self.phase_cache[mother];pool=pools[int(rng.integers(len(pools)))];result.append(start+int(rng.choice(pool)))
   return result
@@ -50,4 +54,5 @@ def validate_diagnosis(recipe,smoke=False):
  assert c['flow_lr']==1e-4 and c['shared_lr']==1e-5 and c['warmup_updates']==50 and c['weight_decay']==.01 and c['clip_grad']==1.
  assert all(float(v)>=0 for v in recipe['source_probabilities'].values());assert abs(sum(recipe['source_probabilities'].values())-1)<1e-10
  if recipe.get('curated_manifest'):assert sha(recipe['curated_manifest'])==recipe['curated_sha256']
+ if recipe.get('validity_gate'):assert sha(recipe['validity_gate'])==recipe['validity_gate_sha256']
  return recipe
