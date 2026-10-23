@@ -25,6 +25,15 @@ from ptv3_shared_wam_v6.rigid_dataset import duplicate_of, pca_shape
 from prepare_local_data import npy_header
 
 
+def bound_split(recorded, job):
+    """Normalize historical singleton-list receipts against frozen membership."""
+    expected = list(job['windows'])
+    actual = recorded if isinstance(recorded, list) else [recorded]
+    if len(expected) != 1 or actual != expected or expected[0] not in ('train', 'dev'):
+        raise ValueError('receipt/frozen split disagreement')
+    return expected[0]
+
+
 def jsonline(stream,value):
     stream.write(json.dumps(value,sort_keys=True,separators=(',',':'),allow_nan=False)+'\n')
 
@@ -254,6 +263,8 @@ def summarize(run,out,workers=1):
     clocks={r['key']:r for r in prep.read(run/'source0-clock-audit.json')['rows']} if any(r['source_id']==0 for r in receipts) else {}
     for r in receipts:
         job=plan_jobs[r['key']];sid=r['source_id']
+        r['split_recorded_in_receipt'] = r['split']
+        r['split'] = bound_split(r['split'], job)
         if sid==0:r.update(clock_kind='source0_observed_stride4',clock_frames=clocks[r['key']]['frames'],clock_bad_edges=clocks[r['key']]['bad_edge_indices'])
         elif sid==1:r.update(clock_kind='grab_native120_stride4',clock_uri=job['raw_path'])
         elif sid==2:r.update(clock_kind='arctic_native30',clock_uri=job['raw_path'].replace('.mano.npy','.object.npy'))

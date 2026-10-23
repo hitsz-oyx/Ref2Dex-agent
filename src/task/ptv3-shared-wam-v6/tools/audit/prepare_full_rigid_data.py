@@ -372,6 +372,7 @@ def execute(out,workers,device):
                 if row['status']!='REJECT':raise ValueError('recovery cannot replace existing admitted input')
                 row.update(mapping[row['key']]['inventory_updates'])
                 jobs[row['key']]=mapping[row['key']]['job']
+                row['split'] = next(iter(jobs[row['key']]['windows']))
     if (out/'additional-local-jobs.json').exists():
         additions=read(out/'additional-local-jobs.json')
         if additions['status']!='COMPLETED' or additions['plan_sha256']!=inventory['plan_sha256']:

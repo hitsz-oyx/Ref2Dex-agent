@@ -50,7 +50,7 @@ def main():
     m=p.read(summary/'manifest.json');status=p.read(summary/'progress.json')
     if status['status']!='COMPLETED':raise ValueError('completed full manifest required')
     budget=p.read(run/'storage-budget-v7.json');legacy=m['legacy'];diff=m['versus_6000'];environment=p.read(run/'environment-record.json')
-    source_names={0:'OakInk2',1:'GRAB',2:'ARCTIC rigid slots',4:'Shadow replay',5:'TACO',6:'HOT3D',8:'H2O',9:'DexYCB',10:'HOI4D'}
+    source_names={0:'OakInk2',1:'GRAB',2:'ARCTIC rigid slots',4:'Shadow replay',5:'TACO',6:'HOT3D',8:'DexYCB',9:'H2O',10:'HOI4D'}
     def load_cov(path):
         with path.open() as f:return {(r['phase'],r['geometry_class'],int(r['source_id'])):int(r['windows']) for r in csv.DictReader(f)}
     old=load_cov(summary/'coverage-old-6000.csv');before=load_cov(summary/'coverage-train-before.csv');after=load_cov(summary/'coverage-train-after.csv')

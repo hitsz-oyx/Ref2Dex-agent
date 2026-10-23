@@ -39,7 +39,7 @@ def test_complete_manifest_cross_split_dedup_and_unknown_certification(tmp_path,
         dev=np.load(run/'hand1/joints.npy');dev[:]=-.0009;np.save(run/'hand1/joints.npy',dev)
     for i in [0,1]:np.savez(run/('clock'+str(i)+'.npz'),framerate=np.float64(120),n_frames=np.int64(128))
     fixture_plan=tmp_path/'plan.json'
-    prep.write(fixture_plan,dict(jobs=[dict(key='s1-'+str(i),source_id=1,source_sequence='different_mother_'+str(i),sequence_folder=str(run/('hand'+str(i))),raw_path=str(run/('clock'+str(i)+'.npz'))) for i in [0,1]]))
+    prep.write(fixture_plan,dict(jobs=[dict(key='s1-'+str(i),source_id=1,source_sequence='different_mother_'+str(i),sequence_folder=str(run/('hand'+str(i))),raw_path=str(run/('clock'+str(i)+'.npz')),windows={('train' if i==0 else 'dev'):'fixture.npy'}) for i in [0,1]]))
     monkeypatch.setattr(prep,'PLAN',fixture_plan)
     prep.write(run/'progress.json',dict(status='CONVERSION_AND_ADMISSION_COMPLETED'))
     prep.write(run/'inventory.json',dict(total_sequences=2,by_status=dict(REUSE=2),seeds=dict(full_manifest=170)))
@@ -64,6 +64,17 @@ def test_complete_manifest_cross_split_dedup_and_unknown_certification(tmp_path,
     assert (out/'manifest.sha256').read_text().split()[0]==prep.digest(out/'manifest.json')
     assert np.load(out/'train-deduplicated.npy').shape==(1 if nontransitive else 0,3)
     summary.sequence.cache_clear();prep._GEOS.clear()
+
+
+@pytest.mark.parametrize('recorded',['train',['train']])
+def test_historical_split_representation_keeps_frozen_membership(recorded):
+    assert summary.bound_split(recorded,dict(windows={'train':'fixed.npy'}))=='train'
+
+
+@pytest.mark.parametrize('recorded',[['train','dev'],['dev'],'dev',[],None])
+def test_split_normalization_rejects_membership_drift(recorded):
+    with pytest.raises(ValueError,match='split disagreement'):
+        summary.bound_split(recorded,dict(windows={'train':'fixed.npy'}))
 
 
 def test_timing_gate_rejects_a_boundary_inside_the_full_horizon(tmp_path):
