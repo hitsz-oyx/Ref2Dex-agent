@@ -1,0 +1,2491 @@
+{
+  "branch": "main",
+  "curated": {
+    "admitted": 6000,
+    "coverage_after": {
+      "matrix": [
+        {
+          "geometry_class": "flat",
+          "phase": "approach",
+          "source_id": 0,
+          "windows": 7
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "approach",
+          "source_id": 1,
+          "windows": 53
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "approach",
+          "source_id": 2,
+          "windows": 3
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "approach",
+          "source_id": 4,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "approach",
+          "source_id": 5,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "approach",
+          "source_id": 6,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "approach",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "approach",
+          "source_id": 9,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "approach",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "approach",
+          "source_id": 0,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "approach",
+          "source_id": 1,
+          "windows": 131
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "approach",
+          "source_id": 2,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "approach",
+          "source_id": 4,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "approach",
+          "source_id": 5,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "approach",
+          "source_id": 6,
+          "windows": 15
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "approach",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "approach",
+          "source_id": 9,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "approach",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "approach",
+          "source_id": 0,
+          "windows": 54
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "approach",
+          "source_id": 1,
+          "windows": 885
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "approach",
+          "source_id": 2,
+          "windows": 2
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "approach",
+          "source_id": 4,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "approach",
+          "source_id": 5,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "approach",
+          "source_id": 6,
+          "windows": 49
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "approach",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "approach",
+          "source_id": 9,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "approach",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "approach",
+          "source_id": 0,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "approach",
+          "source_id": 1,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "approach",
+          "source_id": 2,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "approach",
+          "source_id": 4,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "approach",
+          "source_id": 5,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "approach",
+          "source_id": 6,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "approach",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "approach",
+          "source_id": 9,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "approach",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "close",
+          "source_id": 0,
+          "windows": 1
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "close",
+          "source_id": 1,
+          "windows": 53
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "close",
+          "source_id": 2,
+          "windows": 3
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "close",
+          "source_id": 4,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "close",
+          "source_id": 5,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "close",
+          "source_id": 6,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "close",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "close",
+          "source_id": 9,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "close",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "close",
+          "source_id": 0,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "close",
+          "source_id": 1,
+          "windows": 135
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "close",
+          "source_id": 2,
+          "windows": 1
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "close",
+          "source_id": 4,
+          "windows": 5
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "close",
+          "source_id": 5,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "close",
+          "source_id": 6,
+          "windows": 1
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "close",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "close",
+          "source_id": 9,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "close",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "close",
+          "source_id": 0,
+          "windows": 7
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "close",
+          "source_id": 1,
+          "windows": 984
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "close",
+          "source_id": 2,
+          "windows": 1
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "close",
+          "source_id": 4,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "close",
+          "source_id": 5,
+          "windows": 4
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "close",
+          "source_id": 6,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "close",
+          "source_id": 8,
+          "windows": 5
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "close",
+          "source_id": 9,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "close",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "close",
+          "source_id": 0,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "close",
+          "source_id": 1,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "close",
+          "source_id": 2,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "close",
+          "source_id": 4,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "close",
+          "source_id": 5,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "close",
+          "source_id": 6,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "close",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "close",
+          "source_id": 9,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "close",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "contact",
+          "source_id": 0,
+          "windows": 1
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "contact",
+          "source_id": 1,
+          "windows": 70
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "contact",
+          "source_id": 2,
+          "windows": 6
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "contact",
+          "source_id": 4,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "contact",
+          "source_id": 5,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "contact",
+          "source_id": 6,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "contact",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "contact",
+          "source_id": 9,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "contact",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "contact",
+          "source_id": 0,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "contact",
+          "source_id": 1,
+          "windows": 187
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "contact",
+          "source_id": 2,
+          "windows": 1
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "contact",
+          "source_id": 4,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "contact",
+          "source_id": 5,
+          "windows": 1
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "contact",
+          "source_id": 6,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "contact",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "contact",
+          "source_id": 9,
+          "windows": 1
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "contact",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "contact",
+          "source_id": 0,
+          "windows": 6
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "contact",
+          "source_id": 1,
+          "windows": 1518
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "contact",
+          "source_id": 2,
+          "windows": 3
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "contact",
+          "source_id": 4,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "contact",
+          "source_id": 5,
+          "windows": 4
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "contact",
+          "source_id": 6,
+          "windows": 1
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "contact",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "contact",
+          "source_id": 9,
+          "windows": 1
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "contact",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "contact",
+          "source_id": 0,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "contact",
+          "source_id": 1,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "contact",
+          "source_id": 2,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "contact",
+          "source_id": 4,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "contact",
+          "source_id": 5,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "contact",
+          "source_id": 6,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "contact",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "contact",
+          "source_id": 9,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "contact",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "hold",
+          "source_id": 0,
+          "windows": 7
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "hold",
+          "source_id": 1,
+          "windows": 83
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "hold",
+          "source_id": 2,
+          "windows": 20
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "hold",
+          "source_id": 4,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "hold",
+          "source_id": 5,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "hold",
+          "source_id": 6,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "hold",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "hold",
+          "source_id": 9,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "hold",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "hold",
+          "source_id": 0,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "hold",
+          "source_id": 1,
+          "windows": 187
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "hold",
+          "source_id": 2,
+          "windows": 19
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "hold",
+          "source_id": 4,
+          "windows": 22
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "hold",
+          "source_id": 5,
+          "windows": 5
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "hold",
+          "source_id": 6,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "hold",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "hold",
+          "source_id": 9,
+          "windows": 2
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "hold",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "hold",
+          "source_id": 0,
+          "windows": 9
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "hold",
+          "source_id": 1,
+          "windows": 1338
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "hold",
+          "source_id": 2,
+          "windows": 37
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "hold",
+          "source_id": 4,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "hold",
+          "source_id": 5,
+          "windows": 4
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "hold",
+          "source_id": 6,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "hold",
+          "source_id": 8,
+          "windows": 7
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "hold",
+          "source_id": 9,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "hold",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "hold",
+          "source_id": 0,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "hold",
+          "source_id": 1,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "hold",
+          "source_id": 2,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "hold",
+          "source_id": 4,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "hold",
+          "source_id": 5,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "hold",
+          "source_id": 6,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "hold",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "hold",
+          "source_id": 9,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "hold",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "unknown",
+          "source_id": 0,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "unknown",
+          "source_id": 1,
+          "windows": 1
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "unknown",
+          "source_id": 2,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "unknown",
+          "source_id": 4,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "unknown",
+          "source_id": 5,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "unknown",
+          "source_id": 6,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "unknown",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "unknown",
+          "source_id": 9,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "unknown",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "unknown",
+          "source_id": 0,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "unknown",
+          "source_id": 1,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "unknown",
+          "source_id": 2,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "unknown",
+          "source_id": 4,
+          "windows": 3
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "unknown",
+          "source_id": 5,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "unknown",
+          "source_id": 6,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "unknown",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "unknown",
+          "source_id": 9,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "unknown",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "unknown",
+          "source_id": 0,
+          "windows": 3
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "unknown",
+          "source_id": 1,
+          "windows": 7
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "unknown",
+          "source_id": 2,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "unknown",
+          "source_id": 4,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "unknown",
+          "source_id": 5,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "unknown",
+          "source_id": 6,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "unknown",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "unknown",
+          "source_id": 9,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "unknown",
+          "source_id": 10,
+          "windows": 46
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "unknown",
+          "source_id": 0,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "unknown",
+          "source_id": 1,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "unknown",
+          "source_id": 2,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "unknown",
+          "source_id": 4,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "unknown",
+          "source_id": 5,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "unknown",
+          "source_id": 6,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "unknown",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "unknown",
+          "source_id": 9,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "unknown",
+          "source_id": 10,
+          "windows": 0
+        }
+      ],
+      "object_instances": 61,
+      "phases": {
+        "approach": 1199,
+        "close": 1200,
+        "contact": 1800,
+        "hold": 1740,
+        "unknown": 60
+      },
+      "sequences": 1064,
+      "sources": {
+        "0": 95,
+        "1": 5632,
+        "10": 46,
+        "2": 96,
+        "4": 30,
+        "5": 18,
+        "6": 66,
+        "8": 12,
+        "9": 4
+      },
+      "windows": 5999,
+      "zero_requested_cells": 61
+    },
+    "coverage_before": {
+      "matrix": [
+        {
+          "geometry_class": "flat",
+          "phase": "approach",
+          "source_id": 0,
+          "windows": 7
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "approach",
+          "source_id": 1,
+          "windows": 53
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "approach",
+          "source_id": 2,
+          "windows": 3
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "approach",
+          "source_id": 4,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "approach",
+          "source_id": 5,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "approach",
+          "source_id": 6,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "approach",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "approach",
+          "source_id": 9,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "approach",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "approach",
+          "source_id": 0,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "approach",
+          "source_id": 1,
+          "windows": 131
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "approach",
+          "source_id": 2,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "approach",
+          "source_id": 4,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "approach",
+          "source_id": 5,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "approach",
+          "source_id": 6,
+          "windows": 15
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "approach",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "approach",
+          "source_id": 9,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "approach",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "approach",
+          "source_id": 0,
+          "windows": 55
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "approach",
+          "source_id": 1,
+          "windows": 885
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "approach",
+          "source_id": 2,
+          "windows": 2
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "approach",
+          "source_id": 4,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "approach",
+          "source_id": 5,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "approach",
+          "source_id": 6,
+          "windows": 49
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "approach",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "approach",
+          "source_id": 9,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "approach",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "approach",
+          "source_id": 0,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "approach",
+          "source_id": 1,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "approach",
+          "source_id": 2,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "approach",
+          "source_id": 4,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "approach",
+          "source_id": 5,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "approach",
+          "source_id": 6,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "approach",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "approach",
+          "source_id": 9,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "approach",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "close",
+          "source_id": 0,
+          "windows": 1
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "close",
+          "source_id": 1,
+          "windows": 53
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "close",
+          "source_id": 2,
+          "windows": 3
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "close",
+          "source_id": 4,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "close",
+          "source_id": 5,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "close",
+          "source_id": 6,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "close",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "close",
+          "source_id": 9,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "close",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "close",
+          "source_id": 0,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "close",
+          "source_id": 1,
+          "windows": 135
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "close",
+          "source_id": 2,
+          "windows": 1
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "close",
+          "source_id": 4,
+          "windows": 5
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "close",
+          "source_id": 5,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "close",
+          "source_id": 6,
+          "windows": 1
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "close",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "close",
+          "source_id": 9,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "close",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "close",
+          "source_id": 0,
+          "windows": 7
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "close",
+          "source_id": 1,
+          "windows": 984
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "close",
+          "source_id": 2,
+          "windows": 1
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "close",
+          "source_id": 4,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "close",
+          "source_id": 5,
+          "windows": 4
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "close",
+          "source_id": 6,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "close",
+          "source_id": 8,
+          "windows": 5
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "close",
+          "source_id": 9,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "close",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "close",
+          "source_id": 0,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "close",
+          "source_id": 1,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "close",
+          "source_id": 2,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "close",
+          "source_id": 4,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "close",
+          "source_id": 5,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "close",
+          "source_id": 6,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "close",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "close",
+          "source_id": 9,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "close",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "contact",
+          "source_id": 0,
+          "windows": 1
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "contact",
+          "source_id": 1,
+          "windows": 70
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "contact",
+          "source_id": 2,
+          "windows": 6
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "contact",
+          "source_id": 4,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "contact",
+          "source_id": 5,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "contact",
+          "source_id": 6,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "contact",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "contact",
+          "source_id": 9,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "contact",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "contact",
+          "source_id": 0,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "contact",
+          "source_id": 1,
+          "windows": 187
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "contact",
+          "source_id": 2,
+          "windows": 1
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "contact",
+          "source_id": 4,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "contact",
+          "source_id": 5,
+          "windows": 1
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "contact",
+          "source_id": 6,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "contact",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "contact",
+          "source_id": 9,
+          "windows": 1
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "contact",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "contact",
+          "source_id": 0,
+          "windows": 6
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "contact",
+          "source_id": 1,
+          "windows": 1518
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "contact",
+          "source_id": 2,
+          "windows": 3
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "contact",
+          "source_id": 4,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "contact",
+          "source_id": 5,
+          "windows": 4
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "contact",
+          "source_id": 6,
+          "windows": 1
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "contact",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "contact",
+          "source_id": 9,
+          "windows": 1
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "contact",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "contact",
+          "source_id": 0,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "contact",
+          "source_id": 1,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "contact",
+          "source_id": 2,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "contact",
+          "source_id": 4,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "contact",
+          "source_id": 5,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "contact",
+          "source_id": 6,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "contact",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "contact",
+          "source_id": 9,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "contact",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "hold",
+          "source_id": 0,
+          "windows": 7
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "hold",
+          "source_id": 1,
+          "windows": 83
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "hold",
+          "source_id": 2,
+          "windows": 20
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "hold",
+          "source_id": 4,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "hold",
+          "source_id": 5,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "hold",
+          "source_id": 6,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "hold",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "hold",
+          "source_id": 9,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "hold",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "hold",
+          "source_id": 0,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "hold",
+          "source_id": 1,
+          "windows": 187
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "hold",
+          "source_id": 2,
+          "windows": 19
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "hold",
+          "source_id": 4,
+          "windows": 22
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "hold",
+          "source_id": 5,
+          "windows": 5
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "hold",
+          "source_id": 6,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "hold",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "hold",
+          "source_id": 9,
+          "windows": 2
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "hold",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "hold",
+          "source_id": 0,
+          "windows": 9
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "hold",
+          "source_id": 1,
+          "windows": 1338
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "hold",
+          "source_id": 2,
+          "windows": 37
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "hold",
+          "source_id": 4,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "hold",
+          "source_id": 5,
+          "windows": 4
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "hold",
+          "source_id": 6,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "hold",
+          "source_id": 8,
+          "windows": 7
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "hold",
+          "source_id": 9,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "hold",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "hold",
+          "source_id": 0,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "hold",
+          "source_id": 1,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "hold",
+          "source_id": 2,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "hold",
+          "source_id": 4,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "hold",
+          "source_id": 5,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "hold",
+          "source_id": 6,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "hold",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "hold",
+          "source_id": 9,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "hold",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "unknown",
+          "source_id": 0,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "unknown",
+          "source_id": 1,
+          "windows": 1
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "unknown",
+          "source_id": 2,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "unknown",
+          "source_id": 4,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "unknown",
+          "source_id": 5,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "unknown",
+          "source_id": 6,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "unknown",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "unknown",
+          "source_id": 9,
+          "windows": 0
+        },
+        {
+          "geometry_class": "flat",
+          "phase": "unknown",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "unknown",
+          "source_id": 0,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "unknown",
+          "source_id": 1,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "unknown",
+          "source_id": 2,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "unknown",
+          "source_id": 4,
+          "windows": 3
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "unknown",
+          "source_id": 5,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "unknown",
+          "source_id": 6,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "unknown",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "unknown",
+          "source_id": 9,
+          "windows": 0
+        },
+        {
+          "geometry_class": "elongated",
+          "phase": "unknown",
+          "source_id": 10,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "unknown",
+          "source_id": 0,
+          "windows": 3
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "unknown",
+          "source_id": 1,
+          "windows": 7
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "unknown",
+          "source_id": 2,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "unknown",
+          "source_id": 4,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "unknown",
+          "source_id": 5,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "unknown",
+          "source_id": 6,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "unknown",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "unknown",
+          "source_id": 9,
+          "windows": 0
+        },
+        {
+          "geometry_class": "compact",
+          "phase": "unknown",
+          "source_id": 10,
+          "windows": 46
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "unknown",
+          "source_id": 0,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "unknown",
+          "source_id": 1,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "unknown",
+          "source_id": 2,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "unknown",
+          "source_id": 4,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "unknown",
+          "source_id": 5,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "unknown",
+          "source_id": 6,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "unknown",
+          "source_id": 8,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "unknown",
+          "source_id": 9,
+          "windows": 0
+        },
+        {
+          "geometry_class": "unknown",
+          "phase": "unknown",
+          "source_id": 10,
+          "windows": 0
+        }
+      ],
+      "object_instances": 61,
+      "phases": {
+        "approach": 1200,
+        "close": 1200,
+        "contact": 1800,
+        "hold": 1740,
+        "unknown": 60
+      },
+      "sequences": 1064,
+      "sources": {
+        "0": 96,
+        "1": 5632,
+        "10": 46,
+        "2": 96,
+        "4": 30,
+        "5": 18,
+        "6": 66,
+        "8": 12,
+        "9": 4
+      },
+      "windows": 6000,
+      "zero_requested_cells": 61
+    },
+    "curated_artifact": {
+      "bytes": 31960179,
+      "filesystem_mtime_ns": 1792695405995929399,
+      "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/ptv3-shared-wam-v6/tau-curated-20261023-r7/curated-manifest.json",
+      "sha256": "5bda6a99678b0586b496eff7b4b3ba3afddda996cdc16c43603341ed1264225f",
+      "timestamp_scope": "filesystem_only_not_reset_proof"
+    },
+    "dedup": {
+      "after": 5999,
+      "before": 6000,
+      "cross_sequence_removed": 0,
+      "exact_comparisons": 105,
+      "limitations": "Conservative native object-coordinate comparison. Differently oriented canonical CADs may escape detection. No general cross-CAD shape equivalence claim.",
+      "removed": 1,
+      "rule": "shape PCA extents5%; full H4/K24 anchored joint21+query32 coordinates L_inf2mm; object rotation1degree; identical validity+phase; each28x16 contact fraction2%; earliest frozen ordinal representative, no chaining",
+      "temporal_near_repeat_percent_after": 61.22687114519086,
+      "temporal_near_repeat_percent_before": 61.23333333333333
+    },
+    "fixed_panel_id": "94d9287bb6c650cc80e4345515e0589472786bd749981a0b25ea7475118ebc37",
+    "input_curated_windows": 6000,
+    "provenance": {
+      "available_before_reset": null,
+      "certified_legal": 0,
+      "missing_window_counts": {
+        "content_frozen_before_target_reset": 6000,
+        "explicit_instruction_source_role": 6000,
+        "independence_from_target_rollout": 6000,
+        "target_execution_and_reset_binding": 6000,
+        "waypoint_derivation_source_binding": 6000
+      },
+      "ordered_join": "PASS",
+      "prior_receipt": {
+        "bytes": 8558,
+        "filesystem_mtime_ns": 1792704385578751529,
+        "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/ptv3-shared-wam-v6/docs/audit/brief35-source-role-20261023-r1/receipt.json",
+        "sha256": "2a1c91bbac41b30d31681606813cbb90c021495f580c9282af3e60d03d9315d9",
+        "timestamp_scope": "filesystem_only_not_reset_proof"
+      },
+      "source_role": "UNKNOWN",
+      "uncertifiable": 6000
+    },
+    "rejected": 0,
+    "rejection_reasons": {}
+  },
+  "decision": "OWNER_DECISION_NEW_COLLECTION_OR_EXPLICIT_NATIVE_SEMANTIC_ANNOTATION",
+  "elapsed_s": 93.315,
+  "environment": {
+    "device": "CPU cached data/IO; no model or inference",
+    "executable": "/home2/wyy/miniconda3/envs/graspenv/bin/python",
+    "gpu_seconds": 0,
+    "host": "server",
+    "numpy": "1.24.4",
+    "python": "3.8.20 (default, Oct  3 2024, 15:24:27) \n[GCC 11.2.0]",
+    "scipy": "1.10.1"
+  },
+  "expanded_data_sources": false,
+  "experiment_id": "P-20261023-rigid-dataset-admission",
+  "git_commit": "47688afc9a98424000493dab6678df2c0d29565f",
+  "historical_outputs_deleted": 0,
+  "legacy": {
+    "admitted": 0,
+    "candidate_windows": 1564,
+    "reason_combinations": {
+      "hand21_missing+hand21_semantics_unbound+joint_valid_missing+object_validity_missing+hand_surface_missing_or_invalid+hand_part_semantics_unbound+contact_part_valid_missing+contact_semantics_unbound+event_missing+event_contact_binding_unbound": 782,
+      "hand21_missing+hand21_semantics_unbound+joint_valid_missing+object_validity_missing+hand_surface_missing_or_invalid+hand_part_semantics_unbound+surface_registry_unbound+contact_part_valid_missing+contact_semantics_unbound+event_missing+event_contact_binding_unbound+peer_motion_binding_mismatch": 782
+    },
+    "reasons": {
+      "contact_part_valid_missing": 1564,
+      "contact_semantics_unbound": 1564,
+      "event_contact_binding_unbound": 1564,
+      "event_missing": 1564,
+      "hand21_missing": 1564,
+      "hand21_semantics_unbound": 1564,
+      "hand_part_semantics_unbound": 1564,
+      "hand_surface_missing_or_invalid": 1564,
+      "joint_valid_missing": 1564,
+      "object_validity_missing": 1564,
+      "peer_motion_binding_mismatch": 782,
+      "surface_registry_unbound": 782
+    },
+    "rejected": 1564,
+    "selection": "unchanged first3 TRAIN rows per root;6 views are3 parents",
+    "sequences": [
+      {
+        "admitted": 0,
+        "candidate_windows": 405,
+        "cm_peer_pose_max_error": 0.5900323390960693,
+        "frames": 432,
+        "numerical_valid_frames": 432,
+        "parent_sequence_id": "s1/airplane_lift",
+        "reasons": {
+          "contact_part_valid_missing": 405,
+          "contact_semantics_unbound": 405,
+          "event_contact_binding_unbound": 405,
+          "event_missing": 405,
+          "hand21_missing": 405,
+          "hand21_semantics_unbound": 405,
+          "hand_part_semantics_unbound": 405,
+          "hand_surface_missing_or_invalid": 405,
+          "joint_valid_missing": 405,
+          "object_validity_missing": 405,
+          "peer_motion_binding_mismatch": 405,
+          "surface_registry_unbound": 405
+        },
+        "registry": "legacy-bindings/cm_decoder_v2/s1_airplane_lift/binding.json",
+        "rejected": 405,
+        "root": "cm_decoder_v2",
+        "source_path": "/home2/wyy/oyx_ws/Ref2Dex/data/processed_data/cm_decoder_v2/dexplore_rl_v1_3_full10135/sequences/train/s1_airplane_lift",
+        "stale_manifest_path_resolved": true
+      },
+      {
+        "admitted": 0,
+        "candidate_windows": 227,
+        "cm_peer_pose_max_error": 0.6638936996459961,
+        "frames": 254,
+        "numerical_valid_frames": 254,
+        "parent_sequence_id": "s1/alarmclock_see_1",
+        "reasons": {
+          "contact_part_valid_missing": 227,
+          "contact_semantics_unbound": 227,
+          "event_contact_binding_unbound": 227,
+          "event_missing": 227,
+          "hand21_missing": 227,
+          "hand21_semantics_unbound": 227,
+          "hand_part_semantics_unbound": 227,
+          "hand_surface_missing_or_invalid": 227,
+          "joint_valid_missing": 227,
+          "object_validity_missing": 227,
+          "peer_motion_binding_mismatch": 227,
+          "surface_registry_unbound": 227
+        },
+        "registry": "legacy-bindings/cm_decoder_v2/s1_alarmclock_see_1/binding.json",
+        "rejected": 227,
+        "root": "cm_decoder_v2",
+        "source_path": "/home2/wyy/oyx_ws/Ref2Dex/data/processed_data/cm_decoder_v2/dexplore_rl_v1_3_full10135/sequences/train/s1_alarmclock_see_1",
+        "stale_manifest_path_resolved": true
+      },
+      {
+        "admitted": 0,
+        "candidate_windows": 150,
+        "cm_peer_pose_max_error": 0.925948977470398,
+        "frames": 177,
+        "numerical_valid_frames": 177,
+        "parent_sequence_id": "s1/apple_pass_1",
+        "reasons": {
+          "contact_part_valid_missing": 150,
+          "contact_semantics_unbound": 150,
+          "event_contact_binding_unbound": 150,
+          "event_missing": 150,
+          "hand21_missing": 150,
+          "hand21_semantics_unbound": 150,
+          "hand_part_semantics_unbound": 150,
+          "hand_surface_missing_or_invalid": 150,
+          "joint_valid_missing": 150,
+          "object_validity_missing": 150,
+          "peer_motion_binding_mismatch": 150,
+          "surface_registry_unbound": 150
+        },
+        "registry": "legacy-bindings/cm_decoder_v2/s1_apple_pass_1/binding.json",
+        "rejected": 150,
+        "root": "cm_decoder_v2",
+        "source_path": "/home2/wyy/oyx_ws/Ref2Dex/data/processed_data/cm_decoder_v2/dexplore_rl_v1_3_full10135/sequences/train/s1_apple_pass_1",
+        "stale_manifest_path_resolved": true
+      },
+      {
+        "admitted": 0,
+        "candidate_windows": 405,
+        "cm_peer_pose_max_error": null,
+        "frames": 432,
+        "numerical_valid_frames": 432,
+        "parent_sequence_id": "s1/airplane_lift",
+        "reasons": {
+          "contact_part_valid_missing": 405,
+          "contact_semantics_unbound": 405,
+          "event_contact_binding_unbound": 405,
+          "event_missing": 405,
+          "hand21_missing": 405,
+          "hand21_semantics_unbound": 405,
+          "hand_part_semantics_unbound": 405,
+          "hand_surface_missing_or_invalid": 405,
+          "joint_valid_missing": 405,
+          "object_validity_missing": 405
+        },
+        "registry": "legacy-bindings/coupled/s1_airplane_lift/binding.json",
+        "rejected": 405,
+        "root": "coupled",
+        "source_path": "/home2/wyy/oyx_ws/Ref2Dex/data/processed_data/coupled_geometric_cache_v1_20260912/sequences/train/inspire_rl/s1_airplane_lift",
+        "stale_manifest_path_resolved": false
+      },
+      {
+        "admitted": 0,
+        "candidate_windows": 227,
+        "cm_peer_pose_max_error": null,
+        "frames": 254,
+        "numerical_valid_frames": 254,
+        "parent_sequence_id": "s1/alarmclock_see_1",
+        "reasons": {
+          "contact_part_valid_missing": 227,
+          "contact_semantics_unbound": 227,
+          "event_contact_binding_unbound": 227,
+          "event_missing": 227,
+          "hand21_missing": 227,
+          "hand21_semantics_unbound": 227,
+          "hand_part_semantics_unbound": 227,
+          "hand_surface_missing_or_invalid": 227,
+          "joint_valid_missing": 227,
+          "object_validity_missing": 227
+        },
+        "registry": "legacy-bindings/coupled/s1_alarmclock_see_1/binding.json",
+        "rejected": 227,
+        "root": "coupled",
+        "source_path": "/home2/wyy/oyx_ws/Ref2Dex/data/processed_data/coupled_geometric_cache_v1_20260912/sequences/train/inspire_rl/s1_alarmclock_see_1",
+        "stale_manifest_path_resolved": false
+      },
+      {
+        "admitted": 0,
+        "candidate_windows": 150,
+        "cm_peer_pose_max_error": null,
+        "frames": 177,
+        "numerical_valid_frames": 177,
+        "parent_sequence_id": "s1/apple_pass_1",
+        "reasons": {
+          "contact_part_valid_missing": 150,
+          "contact_semantics_unbound": 150,
+          "event_contact_binding_unbound": 150,
+          "event_missing": 150,
+          "hand21_missing": 150,
+          "hand21_semantics_unbound": 150,
+          "hand_part_semantics_unbound": 150,
+          "hand_surface_missing_or_invalid": 150,
+          "joint_valid_missing": 150,
+          "object_validity_missing": 150
+        },
+        "registry": "legacy-bindings/coupled/s1_apple_pass_1/binding.json",
+        "rejected": 150,
+        "root": "coupled",
+        "source_path": "/home2/wyy/oyx_ws/Ref2Dex/data/processed_data/coupled_geometric_cache_v1_20260912/sequences/train/inspire_rl/s1_apple_pass_1",
+        "stale_manifest_path_resolved": false
+      }
+    ],
+    "unique_parent_sequences": 3
+  },
+  "measured_at": "2026-10-23T01:32:21+00:00",
+  "run_id": "rigid-dataset-20261023-r1",
+  "schema": "ref2dex.rigid-dataset-closeout.v1",
+  "source_read_only": true,
+  "task": "ptv3-shared-wam-v6",
+  "training_allowed": false,
+  "training_updates": 0,
+  "work_version": "rigid-data-audit.v1",
+  "storage": {
+    "allocated_file_bytes_upper": 11096064,
+    "disk_free_before_bytes": 273116987392,
+    "exact_serialized_bytes": 10963775,
+    "files": 48,
+    "free_after_reserved_bytes": 273104842752,
+    "metadata_reserve_bytes": 1048576,
+    "mode": "EXECUTE",
+    "storage_floor_bytes": 21474836480
+  },
+  "artifact_verification": {
+    "index_and_counts": "PASS",
+    "provenance_exact6000": "PASS",
+    "coverage_csv_recomputed": "PASS",
+    "pair_max_hand_coordinate_difference_m": 0.0018109679222106934,
+    "pair_max_query_coordinate_difference_m": 0.00035447999835014343,
+    "pair_max_object_rotation_degrees": 0.17913678288459778,
+    "serialized_output_bytes": 10963775,
+    "targeted_tests": "19 passed",
+    "full_task_tests": "242 passed, 1 pre-existing fixture failure; includes one default-cuda:0 precision smoke",
+    "resource_incident": "Full suite was initially launched without CUDA visibility isolation; existing tiny CUDA attention gradient test ran on default cuda:0. Process exited. Dataset audit used CPU only. Later targeted checks explicitly masked CUDA.",
+    "repository_gate": "FAIL:30 missing historical output links in cm-pointflow-effect-pretrain; no new card/schema/link errors in this change",
+    "own_changed_markdown_links": "PASS"
+  }
+}

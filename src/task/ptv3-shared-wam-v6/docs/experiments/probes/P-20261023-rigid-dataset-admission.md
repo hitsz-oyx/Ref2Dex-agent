@@ -5,9 +5,9 @@ experiment_id: P-20261023-rigid-dataset-admission
 date: 2026-10-23
 task: ptv3-shared-wam-v6
 branch: main
-git_commit: pending-code-checkpoint
+git_commit: 47688afc9a98424000493dab6678df2c0d29565f
 classification: Blocker
-status: PRE_REGISTERED
+status: COMPLETED
 run_id: rigid-dataset-20261023-r1
 claim_id: rigid-data-deployable-coverage
 hypothesis_family: rigid-dataset-admission
@@ -19,6 +19,13 @@ decision_changed_if_negative: return new collection or explicit native semantic 
 ---
 
 # P-20261023-rigid-dataset-admission
+
+Result: legacy admitted0/rejected1564; existing6000 admitted, goal certified0; content dedup5999;61/108 coverage cells zero
+Decision: return whether new collection is needed to owner; no expansion or training; native semantic adapter remains unavailable
+
+实测执行93.315s，产物10,963,775bytes；[完整结果与成本假设](../../audit/rigid-dataset-20261023.md)，
+[机器摘要](../../audit/rigid-dataset-20261023-summary.json)。本卡COMPLETED表示本轮审计结束；
+legacy语义适配、部署goal认证和训练仍未放行。后文为执行前固定协议。
 
 | 观测 | 含义 | 决定 |
 |---|---|---|

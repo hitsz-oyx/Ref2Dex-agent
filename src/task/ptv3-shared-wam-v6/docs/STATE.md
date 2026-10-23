@@ -1,3 +1,11 @@
+## 2026-10-23 刚体P0：合法新增0，来源认证0，交回是否新采集
+
+真实1,564个legacy候选逐窗重判0准入/1,564拒绝；coupled registry可绑定，但21点/
+validity/contact-event缺证未补造，cm同parent跨view运动不一致另拒绝绑定。原6,000
+通过同谓词、0/6,000可认证goal；保守内容去重6,000→5,999，原61.23%时间重叠大体仍在。
+phase×数值几何类×source共108格、61格为0，去重前后不变。未扩源/大转换/训练，
+新索引未接生产；交回机主是否新采集，并列自报成本。[结果与资源偏差](audit/rigid-dataset-20261023.md)。
+
 ## 2026-10-23 brief45修正：任务级最终目标与局部waypoint分离
 
 撤回“把调度器waypoint变成goal通道”的方向。ResetWaypointChannel保留可认证落盘，

@@ -1214,6 +1214,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261023-reset-bound-goal-channel](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261023-reset-bound-goal-channel.md) | P-20261023-reset-bound-goal-channel | 见原卡 | 见原卡 | probes/BLOCKED |
 
+## rigid-dataset-admission
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261023-rigid-dataset-admission](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261023-rigid-dataset-admission.md) | P-20261023-rigid-dataset-admission | legacy admitted0/rejected1564; existing6000 admitted, goal certified0; content dedup5999;61/108 coverage cells zero | return whether new collection is needed to owner; no expansion or training; native semantic adapter remains unavailable | probes/COMPLETED |
+
 ## simulator-chord-wrench-action-ranking
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
