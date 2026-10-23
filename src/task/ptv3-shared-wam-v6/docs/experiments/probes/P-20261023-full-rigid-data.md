@@ -90,7 +90,9 @@ DexYCB DEV=0。内容去重仅完成20,672条/9,418,140窗，删除253,211（仅
 仍有1,779,192窗未去重；最终去重后索引、旧DEV逐项差异、逐窗认证账本及统一catalog未完成。
 13:32:58共享工作区新增owner_brief47b_space_protection_HOLD STOP，automatic_restart=false，
 当时60.130GiB，未触30GiB；本执行器遵守HOLD，未移除STOP/自动重启。历史认证0/11,197,332，
-新96条26,304个goal证书独立复验PASS、未并入总catalog。0训练/0checkpoint，未删历史outputs。
+新96条26,304个goal证书独立复验PASS、未并入总catalog。正式brief47b已确认覆盖旧续跑授权；
+计入既有并行训练和新summary预算仍缺24.587GiB，继续需机主新增容量/范围决定。
+0训练/0checkpoint，未删历史outputs。
 全量准备目标尚未验收，前文“未自动重启”等为各时刻快照；此终态优先。
 [最终暂停报告](../../audit/full-rigid-data-preparation-20261023-brief47-HOLD.md)包含全量前去重九源、
 几何和phase分布，两split各108格与全部零格、实际字节、manifest SHA和完整缺失边界。

@@ -207,10 +207,17 @@ native字段证据逐字节一致：[比对receipt](../../../../../outputs/ptv3-
 `automatic_restart=false`，信号策略SIGINT后暂停残留进程。未自行移除STOP或重启。
 [本报告机器收据](../../../../../outputs/ptv3-shared-wam-v6/full-rigid-20261023-brief47-r1/hold-closeout.json)记录完成/缺失边界；0训练、0checkpoint、未删历史outputs。
 
+后续并行写入的[正式brief47b空间保护记录](brief47b-space-hold-20261023.md)已确认：
+新令优先于此前自动续跑授权，禁止新attempt、SIGCONT和自动重启。13:34:07容量快照
+59.803GiB；一个新summary完整预算25.317GiB、metadata2GiB，加既有并行训练
+剩余额度27.072GiB，扣完预计仅5.413GiB，距30GiB仍缺**24.587GiB**。
+因此“当前还高于30GiB”不等于未来写盘已获准。当前不迁移、不删源数据，继续需要
+机主新增容量或缩减范围的决定；具体大盘可用性与传输成本见该正式记录。
+
 供机主审阅的后续命令（当前HOLD，未执行）：
 
 ```bash
-# 仅在机主确认brief47b不覆盖本任务后，保留原STOP/receipt再恢复派生审计。
+# 仅在机主明确解除HOLD并确认容量/范围后，保留原STOP/receipt再恢复派生审计。
 # 先检查可用空间与30GiB余量；使用新输出目录，既有partial不覆盖。
 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 PYTHONDONTWRITEBYTECODE=1 \
  /home2/wyy/miniconda3/envs/graspenv/bin/python \
