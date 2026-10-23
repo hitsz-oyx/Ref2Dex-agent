@@ -1,0 +1,50 @@
+"""An actual full manifest must keep held-out representatives and honest provenance."""
+import importlib.util
+import json
+from pathlib import Path
+import numpy as np
+from test_rigid_dataset import bundle
+
+spec=importlib.util.spec_from_file_location('full_summary',Path(__file__).parents[1]/'tools/audit/summarize_full_rigid_data.py')
+summary=importlib.util.module_from_spec(spec);spec.loader.exec_module(summary)
+
+
+def test_complete_manifest_cross_split_dedup_and_unknown_certification(tmp_path,monkeypatch):
+    prep=summary.prep
+    run=tmp_path/'run';run.mkdir();(run/'receipts').mkdir()
+    registry=tmp_path/'registry';registry.mkdir();(registry/'geometry').mkdir()
+    seq,geo,contact,event,evidence=bundle()
+    geo['surface']=np.random.default_rng(170).uniform(-.1,.1,(2048,3))
+    np.savez(registry/'geometry/g.npz',**geo)
+    prep.write(registry/'manifest.json',dict(objects=[dict(key='s1:example',path='geometry/g.npz')]))
+    prep._GEOS.clear();monkeypatch.setattr(prep,'REGISTRY',registry)
+    # Real filesystem bytes, not a mirrored implementation of dedup.
+    for sid,split in [(0,'train'),(1,'dev')]:
+        folder=run/('hand'+str(sid));folder.mkdir();cf=run/('contact'+str(sid));cf.mkdir()
+        for k,v in seq.items():np.save(folder/(k+'.npy'),v)
+        for k,v in contact.items():np.save(cf/(k+'.npy'),v)
+        tuples=np.array([[sid,0,t] for t in range(3,8)],np.int32)
+        shard=run/('windows'+str(sid)+'.npz')
+        np.savez(shard,tuples=tuples,phase=np.full(5,3,np.uint8),geometry_class=np.full(5,2,np.uint8))
+        prep.write(run/'receipts'/('s1-'+str(sid)+'.json'),dict(sequence_id=sid,key='s1-'+str(sid),source_id=1,
+            source_sequence='different_mother_'+str(sid),split=split,status='ADMITTED',admitted_windows=5,
+            reasons=[],conversion_started=False,path=str(folder),contact_path=str(cf),objects=['example'],
+            window_shard=str(shard),label_object_pose_sha256=prep.digest(folder/'object_poses.npy'),label_filesystem_mtime_ns=123))
+    prep.write(run/'progress.json',dict(status='CONVERSION_AND_ADMISSION_COMPLETED'))
+    prep.write(run/'inventory.json',dict(total_sequences=2,by_status=dict(REUSE=2),seeds=dict(full_manifest=170)))
+    pilot=tmp_path/'pilot.json'
+    prep.write(pilot,dict(selection=dict(train_window_rows=[dict(sequence_key='s1-0',slot=0,tick=t,object='example',source_id=1,phase='hold') for t in range(3,8)]),pending_sequence_batch=dict(selected_keys=[])))
+    monkeypatch.setattr(prep,'PILOT',pilot)
+    monkeypatch.setattr(summary,'legacy_census',lambda *_:dict(unique_mothers=0))
+    out=run/'summary';summary.summarize(run,out)
+    result=prep.read(out/'manifest.json')
+    assert result['windows_before']==dict(train=5,dev=5)
+    assert result['windows_after']==dict(train=0,dev=1)
+    assert result['dedup']['cross_split_train_removed']==5
+    assert result['provenance']['uncertifiable']==10
+    assert result['provenance']['certified_legal']==0
+    rows=[json.loads(x) for x in (out/'train-windows.jsonl').read_text().splitlines()]
+    assert all(r['source_role']=='UNKNOWN' and r['available_before_reset'] is None for r in rows)
+    assert (out/'manifest.sha256').read_text().split()[0]==prep.digest(out/'manifest.json')
+    assert np.load(out/'train-deduplicated.npy').shape==(0,3)
+    summary.sequence.cache_clear();prep._GEOS.clear()

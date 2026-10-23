@@ -124,7 +124,7 @@ def inventory(out):
     # Full dense ticks, fixed-size tuples, feature/dedup tables, provenance JSONL.
     # Upper bound, separately labelled from exact conversion bytes.
     candidates = sum(max(0,r['frames']-27)*(r['objects'] if r['source_id']<3 else 1) for r in rows if r['status']!='REJECT')
-    manifest_budget = candidates*640+len(rows)*META_BYTES+256*1024**2
+    manifest_budget = candidates*2048+len(rows)*(META_BYTES+8192)+512*1024**2
     staging = max((r['conversion_bytes'] for r in converted),default=0)*4
     free = shutil.disk_usage(out).free
     budget = dict(schema='ref2dex.full-rigid-budget.v1', experiment_id=EXPERIMENT,
@@ -239,6 +239,12 @@ def process_one(args):
         existing=read(receipt)
         if existing.get('status') in ['ADMITTED','REJECTED']:
             if existing['input_plan_sha256']!=_PLAN_SHA:raise ValueError('resume plan changed')
+            if existing['status']=='ADMITTED':
+                if digest(existing['window_shard'])!=existing['window_shard_sha256']:
+                    raise ValueError('completed window shard changed')
+                for path,field in [('path','hand_meta_identity'),('contact_path','contact_meta_identity'),('event_path','event_meta_identity')]:
+                    if metadata_identity(Path(existing[path])/'meta.json')!=existing[field]:
+                        raise ValueError('completed sequence metadata changed')
             return existing
     guard(out, row['conversion_bytes']+32*1024**2)
     if (out/'STOP').exists(): raise InterruptedError('owner STOP file')
@@ -342,11 +348,23 @@ def execute(out,workers,device):
     old={r['key']:r for r in read(OLD/'recipe/manifest.json')['sequences']}
     old_events={r['key']:r for r in read(OLD/'events/manifest.json')['sequences']}
     jobs={r['key']:r for r in read(PLAN)['jobs']}
+    if (out/'recovered-inputs.json').exists():
+        recovery=read(out/'recovered-inputs.json')
+        if recovery['status']!='COMPLETED' or recovery['plan_sha256']!=inventory['plan_sha256']:
+            raise ValueError('recovery is not bound to frozen plan')
+        mapping={r['key']:r for r in recovery['rows']}
+        for row in inventory['rows']:
+            if row['key'] in mapping:
+                if row['status']!='REJECT':raise ValueError('recovery cannot replace existing admitted input')
+                row.update(mapping[row['key']]['inventory_updates'])
+                jobs[row['key']]=mapping[row['key']]['job']
     started=time.monotonic();total=len(inventory['rows']);done=Counter();windows=0;minimum=shutil.disk_usage(out).free
     commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
-    write(out/'run-manifest.json',dict(experiment_id=EXPERIMENT,run_id=out.name,work_version='full-rigid-preparation.v1',
+    run_manifest_path=out/('run-manifest.json' if not (out/'run-manifest.json').exists() else 'run-manifest-resume-%d.json'%time.time_ns())
+    write(run_manifest_path,dict(experiment_id=EXPERIMENT,run_id=out.name,work_version='full-rigid-preparation.v1',
         git_commit=commit,branch='main',command=sys.argv,environment=dict(python=sys.version,executable=sys.executable,numpy=np.__version__,device=device,
         torch=__import__('torch').__version__,cuda=__import__('torch').version.cuda,host=platform.node()),
+        native_recovery_sha256=digest(out/'recovered-inputs.json') if (out/'recovered-inputs.json').exists() else None,
         seed=170,workers=workers,storage_floor_bytes=FLOOR,training_allowed=False,training_updates=0,
         source_read_only=True,historical_outputs_deleted=0,conversion_started=True,started_at=datetime.now(timezone.utc).isoformat()))
     # Small bounded batches avoid queuing tens of thousands of large results.
