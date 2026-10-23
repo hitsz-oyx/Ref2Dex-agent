@@ -21,7 +21,7 @@ status: INVALID_INSTRUMENTATION
 
 本轮重建的 raw GAE 均值 **−0.05904524**、标准差 **0.29015872**，与 brief39 的 **−0.059045 / 0.290159** 一致；阶段计数也一致（contact **2,270**、lift **1,466**、hold **1,376**）。本轮另外按预注册要求计算了“置零 bootstrap 两版优势差异 / 两版绝对量之和”，结果为 **0.9876%**。这与 brief39 的 **1.99%** 不矛盾：两者分母不同，而本轮差异的分子 **63.083275** 与 brief39 bootstrap 账本的 **63.08** 一致。策略位移、event 稀疏度、KL 等 brief39 数字在本轮作为既有证据引用，不重复重跑。
 
-本次复核（当前工作树 `HEAD=906d7168`）再次只读同一旧运行；`ppo/manifest.json::git_commit` 仍为 **59fc5f2afcc2d14604aeb2b79ce3d4202296ee98**。CPU 扫描 36 个 `ppo/*/ppo-rollout.npz`、合计 14,400 样本，首个文件的实际键集合为 `observations, latents, old_logp, rewards, values`；五个 G0 必需落库字段（`advantage_raw`, `target_return`, `done`, `bootstrap`, `termination_type`）在 **36/36** 个文件缺失。独立复算得到 raw GAE 均值 **−0.0590452381**、std **0.2901587035**，每回合 `target_return_mean` 与 `result.json` 的最大差（按实现的 float32 口径）**2.9802322e−8**，与上面报告数字一致；没有读取或改写任何新 instrumented rollout。
+本次复核（当前工作树 `HEAD=906d7168`）再次只读同一旧运行；`ppo/manifest.json::git_commit` 仍为 **59fc5f2afcc2d14604aeb2b79ce3d4202296ee98**。实际命令为 `PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES='' /home2/wyy/miniconda3/envs/graspenv/bin/python tmp/g0_reaudit.py`；脚本只读 outputs，未纳入提交。CPU 扫描 36 个 `ppo/*/ppo-rollout.npz`、合计 14,400 样本，首个文件的实际键集合为 `observations, latents, old_logp, rewards, values`；五个 G0 必需落库字段（`advantage_raw`, `target_return`, `done`, `bootstrap`, `termination_type`）在 **36/36** 个文件缺失。独立复算得到 raw GAE 均值 **−0.0590452381**、std **0.2901587035**，每回合 `target_return_mean` 与 `result.json` 的最大差（按实现的 float32 口径）**2.9802322e−8**，与上面报告数字一致；没有读取或改写任何新 instrumented rollout。
 
 ## 预注册结果解读表（原文）
 
