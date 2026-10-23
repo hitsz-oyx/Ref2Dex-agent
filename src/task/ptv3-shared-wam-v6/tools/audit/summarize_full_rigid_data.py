@@ -209,7 +209,8 @@ def summarize(run,out,workers=1):
     prep._GEOMETRY_ROWS={r['key']:r for r in prep.read(prep.REGISTRY/'manifest.json')['objects']}
     receipts=[prep.read(p) for p in sorted((run/'receipts').glob('*.json'))]
     inventory=prep.read(run/'inventory.json')
-    if len(receipts)!=inventory['total_sequences']:raise ValueError('incomplete receipts')
+    additional=len(prep.read(run/'additional-local-jobs.json')['rows']) if (run/'additional-local-jobs.json').exists() else 0
+    if len(receipts)!=inventory['total_sequences']+additional:raise ValueError('incomplete receipts')
     by_id={r['sequence_id']:r for r in receipts}
     legacy=legacy_census(out,receipts)
     pilot=prep.read(prep.PILOT);old_rows=pilot['selection']['train_window_rows']
@@ -331,8 +332,8 @@ def summarize(run,out,workers=1):
     result=dict(schema='ref2dex.full-local-rigid-manifest.v1',experiment_id=prep.EXPERIMENT,run_id=run.name,
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),branch='main',
         status='FULL_LOCAL_CENSUS_PREPARED_WITH_EXPLICIT_GAPS',training_allowed=False,training_updates=0,
-        full_definition='all1335 legacy parents plus every39526 frozen nine-source planned mother, including all1177 cached and original6000 pending sequence batch; dense H4/K24 tick census, no6000-window cap',
-        total_recipe_mothers=len(receipts),legacy=legacy,existing_cached_mothers=inventory['by_status'].get('REUSE',0),
+        full_definition='all1335 legacy parents plus every39526 frozen nine-source planned mother, including all1177 cached and original6000 pending sequence batch, plus append-only remaining non-TEST local legacy parent; dense H4/K24 tick census, no6000-window cap',
+        frozen_recipe_mothers=inventory['total_sequences'],total_prepared_mother_decisions=len(receipts),additional_local_mothers=additional,legacy=legacy,existing_cached_mothers=inventory['by_status'].get('REUSE',0),
         existing_6000_active_mothers=len(previous_active),
         native_recovery=prep.read(run/'recovered-inputs.json')['parity_checks'] if (run/'recovered-inputs.json').exists() else None,
         recovered_input_sequences=len(prep.read(run/'recovered-inputs.json')['rows']) if (run/'recovered-inputs.json').exists() else 0,

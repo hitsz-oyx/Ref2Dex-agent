@@ -358,6 +358,14 @@ def execute(out,workers,device):
                 if row['status']!='REJECT':raise ValueError('recovery cannot replace existing admitted input')
                 row.update(mapping[row['key']]['inventory_updates'])
                 jobs[row['key']]=mapping[row['key']]['job']
+    if (out/'additional-local-jobs.json').exists():
+        additions=read(out/'additional-local-jobs.json')
+        if additions['status']!='COMPLETED' or additions['plan_sha256']!=inventory['plan_sha256']:
+            raise ValueError('additional local parent is not bound to frozen plan')
+        for extra in additions['rows']:
+            if extra['job']['key'] in jobs or extra['inventory']['sequence_id']!=len(inventory['rows']):
+                raise ValueError('append-only local parent IDs required')
+            jobs[extra['job']['key']]=extra['job'];inventory['rows'].append(extra['inventory'])
     started=time.monotonic();total=len(inventory['rows']);done=Counter();windows=0;minimum=shutil.disk_usage(out).free
     commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
     attempt_id=str(time.time_ns())
@@ -365,6 +373,7 @@ def execute(out,workers,device):
     write(run_manifest_path,dict(experiment_id=EXPERIMENT,run_id=out.name,work_version='full-rigid-preparation.v1',
         git_commit=commit,branch='main',command=sys.argv,environment=dict(python=sys.version,executable=sys.executable,numpy=np.__version__,device=device,
         torch=__import__('torch').__version__,cuda=__import__('torch').version.cuda,host=platform.node()),
+        additional_local_jobs_sha256=digest(out/'additional-local-jobs.json') if (out/'additional-local-jobs.json').exists() else None,
         native_recovery_sha256=digest(out/'recovered-inputs.json') if (out/'recovered-inputs.json').exists() else None,
         seed=170,workers=workers,storage_floor_bytes=FLOOR,training_allowed=False,training_updates=0,
         source_read_only=True,historical_outputs_deleted=0,conversion_started=True,started_at=datetime.now(timezone.utc).isoformat()))
