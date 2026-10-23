@@ -137,3 +137,11 @@ PYTHONDONTWRITEBYTECODE=1 /home2/wyy/miniconda3/envs/dexplore_repro_py38_torch22
 ## Git记录
 
 启动前`git pull --rebase origin main`被未提交工作树拒绝（exit128）；保留其他会话修改、不stash、不强推，显式路径提交本轮sampler修复/回归测试/复现工具/预注册报告后普通push。终态再核对HEAD/origin/main/ls-remote。
+
+## 启动前资源变化
+
+最终预检UTC03:23:24（本地11:23）发现GPU4被另一会话PID805270的run_object_tracking占用1969MiB/util35，GPU5/6空闲；无train_pretrain进程。explicit-preflight仅GPUs_free失败，尚未启动训练。向机主报告协调空卡，未终止/干预该PID。资源准入监控只排队、无训练，三卡全空闲且pgrep为空才调用原launcher一次；最晚准入为硬停前8400秒（本地11:43:59），避免不足完整2500步时间窗时盲目启动。若未获三卡则NOT_STARTED收据，无自动重启；原config及其SHA仍不变。真实启动以launch.json为准。
+
+## 准入重新核实（无训练重启）
+
+本地11:44:44复查GPU4原占用进程已退出，三卡全空闲。原8400秒准入余量是本轮自行设置的保守工程估计，并非机主硬停；剩余约8315秒仍大于旧实测2500/.3238≈7721秒，加模型载入与三个暂停面板后约7900秒。因而将准入余量收紧为8100秒（不改config、不改14:03:59硬停）。此前NOT_STARTED资源记录与自动生成的零更新报告完整归档到tmp/t38-r4/resource-admission-before-launch/，不覆盖证据；本轮从未启动过训练，不是训练失败后自动重启。科学四行判据保持原文，继续唯一一次原launcher训练。
