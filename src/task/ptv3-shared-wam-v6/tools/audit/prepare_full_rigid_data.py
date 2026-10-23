@@ -83,14 +83,18 @@ def array_size(shape, dtype):
     return stream.tell()+int(np.prod(shape))*np.dtype(dtype).itemsize
 
 
-def fixed_conversion_sizes(n, slots):
-    """Exact fixed-shape NPY + padded metadata bytes; no transition list file."""
+def fixed_conversion_file_sizes(n, slots):
+    """Exact fixed-shape NPY + padded metadata files; no transition list file."""
     specifications = [((n,2,21,3),'f4'), ((n,2,21),'?'), ((n,2,778,3),'f2'),
         ((n,2),'?'), ((2,778),'u1'), ((n,slots,4,4),'f4'), ((n,slots),'?'),
         ((n,),'?'), ((n,2),'?'), ((n,slots,2048),'f2'), ((n,slots,2048),'u1'),
         ((n,slots),'?'), ((n,slots),'i1'), ((n,slots),'u1'), ((n,slots),'i4'),
         ((n,slots),'?'), ((n,slots),'u2'), ((n,slots),'u2'), ((n,slots),'?')]
-    return sum(array_size(s,d) for s,d in specifications)+3*META_BYTES
+    return [array_size(s,d) for s,d in specifications]+[META_BYTES]*3
+
+
+def fixed_conversion_sizes(n, slots):
+    return sum(fixed_conversion_file_sizes(n,slots))
 
 
 def inventory(out):
@@ -125,18 +129,22 @@ def inventory(out):
     # Upper bound, separately labelled from exact conversion bytes.
     candidates = sum(max(0,r['frames']-27)*(r['objects'] if r['source_id']<3 else 1) for r in rows if r['status']!='REJECT')
     manifest_budget = candidates*2048+len(rows)*(META_BYTES+8192)+512*1024**2
-    staging = max((r['conversion_bytes'] for r in converted),default=0)*8
+    staging = max((r['conversion_bytes'] for r in converted),default=0)*12
+    block=os.statvfs(out).f_frsize
+    allocated=sum(((size+block-1)//block)*block for r in converted for size in fixed_conversion_file_sizes(r['frames'],r['objects']))
+    filesystem_metadata_reserve=2*GIB
     free = shutil.disk_usage(out).free
     budget = dict(schema='ref2dex.full-rigid-budget.v1', experiment_id=EXPERIMENT,
         run_id=out.name, work_version='full-rigid-preparation.v1', git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
         rows=rows, total_sequences=len(rows), by_status=dict(Counter(r['status'] for r in rows)),
+        conversion_fixed_allocated_file_bytes=allocated,filesystem_metadata_reserve_bytes=filesystem_metadata_reserve,
         conversion_fixed_exact_bytes=exact, conversion_fixed_exact_gib=exact/GIB,
         conversion_definition='19 fixed-shape NPY files plus three exactly65536-byte JSON metadata files for each new sequence; cached sequences reused read-only',
         candidate_window_upper_bound=candidates, manifest_and_receipt_upper_bound_bytes=manifest_budget,
-        partial_attempt_reserve_bytes=staging, total_peak_upper_bound_bytes=exact+manifest_budget+staging,
+        partial_attempt_reserve_bytes=staging, total_peak_upper_bound_bytes=allocated+manifest_budget+staging+filesystem_metadata_reserve,
         filesystem_free_before_bytes=free, safety_floor_bytes=FLOOR,
-        free_after_peak_lower_bound_bytes=free-exact-manifest_budget-staging,
-        fits=free-exact-manifest_budget-staging>=FLOOR,
+        free_after_peak_lower_bound_bytes=free-allocated-manifest_budget-staging-filesystem_metadata_reserve,
+        fits=free-allocated-manifest_budget-staging-filesystem_metadata_reserve>=FLOOR,
         measured_at=datetime.now(timezone.utc).isoformat(), elapsed_s=time.monotonic()-started,
         plan_sha256=digest(PLAN), registry_sha256=digest(REGISTRY/'manifest.json'),
         seeds=dict(preparation=20261019, full_manifest=170, dedup=170),
@@ -407,7 +415,7 @@ def main():
     parser.add_argument('--device',default='cpu')
     a=parser.parse_args();out=a.output.resolve()
     if out.parent!=(ROOT/'outputs/ptv3-shared-wam-v6').resolve():raise ValueError('task-owned output required')
-    if not 1<=a.workers<=8:raise ValueError('1..8 bounded workers')
+    if not 1<=a.workers<=12:raise ValueError('1..12 bounded workers')
     if a.mode=='inventory':inventory(out)
     else:
         try:execute(out,a.workers,a.device)

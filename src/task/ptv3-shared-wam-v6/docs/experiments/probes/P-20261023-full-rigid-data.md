@@ -38,7 +38,7 @@ decision_changed_if_negative: report structural zero cells and missing native in
 入口：`tools/audit/prepare_full_rigid_data.py`。先inventory，报告固定形状转换NPY与
 固定长度JSON的精确字节数；manifest/receipt与异常partial另报上界，不能把上界说成
 实际值。执行每64条写批次receipt，每条原子发布独立receipt，可重复execute续跑。
-始终预留30GiB，写前按当前批次峰值检查，STOP文件在批次边界停止。CPU最多8worker；
+始终预留30GiB，写前按当前批次峰值检查，STOP文件在批次边界停止。CPU最多12worker；
 如需MANO GPU重建仅可使用机主指定GPU4/5/6/7中即时可用的设备。禁止训练和删除历史outputs。
 
 准入复用现有刚体合同，不以object名字/source身份放宽，H4/K24、joint21/validity、
@@ -57,7 +57,7 @@ surface778、surface2048/normals/query32、contact/part/valid与event及metadata
 # 核对打印预算后启动；再次执行同命令会跳过已有receipt。
 /home2/wyy/miniconda3/envs/graspenv/bin/python \
  src/task/ptv3-shared-wam-v6/tools/audit/prepare_full_rigid_data.py \
- --mode execute --workers 8 --device cuda:7 \
+ --mode execute --workers 12 --device cuda:7 \
  --output outputs/ptv3-shared-wam-v6/full-rigid-20261023-brief47-r1
 ```
 
