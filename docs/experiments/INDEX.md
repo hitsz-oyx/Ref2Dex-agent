@@ -155,7 +155,7 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261022-drift-intent-residual](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261022-drift-intent-residual.md) | 漂移恢复 BC 与有界意图残差 PPO | BC400 updates, train MSE.422871→.0910735 but DEV.386376→.460369; no recovery-generalization evidence. Deterministic before/after both0/2; st | BC overfit and no physical efficacy demonstrated; stop this fixed pilot without expanding training, keep three-arm RL HOLD and DAgger deferr | probes/COMPLETED |
-| [P-20261023-bc-ppo-usefulness](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261023-bc-ppo-usefulness.md) | BC-only vs BC+残差PPO：实测探针 | 预算缩小至14,400 controls/arm；确定性BC/PPO均0/6，数值门通过；机制诊断见配套报告 | 不把0/6解读为PPO无效；先裁决信号/优势配比与是否补足预算 | probes/COMPLETED |
+| [P-20261023-bc-ppo-usefulness](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261023-bc-ppo-usefulness.md) | BC-only vs BC+残差PPO：实测探针 | budget explicitly reduced to14400/arm; deterministic BC0/6 vs PPO0/6, joint abort3→4; 0 improved/1 regressed initials; stochastic train BC0/ | 本次预算缩小运行未达预注册≥3初态改善无回退；完整1e5分支尚未检验，不能下“PPO无效”结论；本次不触发1e6排卡。 | probes/COMPLETED |
 
 ## HF-egodex-shared-track-admission
 
@@ -755,7 +755,12 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261022-single-tau-calibration](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261022-single-tau-calibration.md) | 单轨迹同τ通道可实现性校准（执行前注册） | 见原卡 | 见原卡 | probes/COMPLETED |
-| [P-20261023-tau-fixed-panel-metric](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261023-tau-fixed-panel-metric.md) | 固定 TRAIN τ 面板与 step011000 基线 | 512 anchors; overall/first8/contact-window baseline recorded | use all three subsets as the next-checkpoint gate | probes/COMPLETED |
+
+## HF-source-controller-ceiling
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261023-source-controller-ceiling](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261023-source-controller-ceiling.md) | P-20261023-source-controller-ceiling | 见原卡 | 见原卡 | probes/RUNNING |
 
 ## HF-spatial-action-fidelity
 
@@ -1169,6 +1174,18 @@
 | --- | --- | --- | --- | --- |
 | [P-20261004-ref5-surface-i-gt-value](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261004-ref5-surface-i-gt-value.md) | Ref5: does GT spatial surface I add G information after H and E? | 见原卡 | 见原卡 | probes/UNPROMISING |
 
+## full-local-rigid-preparation
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261023-full-rigid-data](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261023-full-rigid-data.md) | P-20261023-full-rigid-data | 见原卡 | 见原卡 | probes/HOLD |
+
+## nine-source-supervision-distribution
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261023-nine-source-degradation](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261023-nine-source-degradation.md) | Nine-source degradation mechanism controls | C1 recovers; C2 regresses; C4-s10/s0 measured; C4-s1 lost; C3 input-range failure/C5 blocked. | distinguish inherited target/input scales, source weighting, shared | probes/HOLD |
+
 ## official-raw-video-data
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
@@ -1231,6 +1248,18 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261023-rigid-source-bound-pilot](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261023-rigid-source-bound-pilot.md) | P-20261023-rigid-source-bound-pilot | 96/96 rollouts and26304/26304 windows admitted; goals96/96 certified; original zero cells61 to51; prediction NOT_RUN. | producer binding and source4 coverage pass; propose next384 with cost, leave production TRAIN and original6k identity unchanged; no training | probes/COMPLETED |
+
+## source-stratified-half-full-expansion
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261023-wam-remote-staged-half](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261023-wam-remote-staged-half.md) | Remote source-stratified half → full, 2026-10-23 | 见原卡 | 见原卡 | probes/RUNNING |
+
+## wam-v6-fixed-train-tau-quality
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261023-tau-fixed-panel-metric](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261023-tau-fixed-panel-metric.md) | P-20261023-tau-fixed-panel-metric | 见原卡 | 见原卡 | probes/COMPLETED |
 
 ## 未分类历史记录
 
@@ -1409,6 +1438,7 @@
 | [P-20261009-gpu-group-contract](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-gpu-group-contract.md) | Native GPU group role/layout contract | 见原卡 | 见原卡 | probes/见原卡 |
 | [P-20261009-gpu-group-value-noise](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-gpu-group-value-noise.md) | Native GPU synchronous group Value-noise calibration | 见原卡 | 见原卡 | probes/见原卡 |
 | [P-20261009-gpu-pipeline-threads1](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-gpu-pipeline-threads1.md) | GPU pipeline with one PhysX task thread | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261023-scheduler-cache-identities](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261023-scheduler-cache-identities.md) | P-20261023-scheduler-cache-identities | 见原卡 | 见原卡 | probes/见原卡 |
 | [P-20261018-unidex-live-oracle-tau](../../src/task/wam-rl-policy/docs/experiments/probes/P-20261018-unidex-live-oracle-tau.md) | P-20261018-unidex-live-oracle-tau | 见原卡 | mark this particular packet-plus-update expansion UNPROMISING and | probes/见原卡 |
 | [P-20261020-inspire-bc-action-scale](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-inspire-bc-action-scale.md) | P-20261020-inspire-bc-action-scale | 见原卡 | 见原卡 | probes/见原卡 |
 | [P-20261020-inspire-current421-bc](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-inspire-current421-bc.md) | P-20261020-inspire-current421-bc | 见原卡 | 见原卡 | probes/见原卡 |
@@ -1420,3 +1450,4 @@
 | [P-20261020-inspire-task-reward-bridge](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261020-inspire-task-reward-bridge.md) | P-20261020-inspire-task-reward-bridge | 见原卡 | 见原卡 | probes/见原卡 |
 | [P-20261022-s2e-geometry-tau](../../src/task/wam-rl-policy-v3/docs/experiments/probes/P-20261022-s2e-geometry-tau.md) | P-20261022-s2e-geometry-tau | 见原卡 | 见原卡 | probes/见原卡 |
 | [VAL-20260923-CM-EFFECT-PPO](validations/VAL-20260923-CM-EFFECT-PPO.md) | Validation: 动作条件 Cm 效应排序能否稳定改善 PPO？ | 见原卡 | 见原卡 | validations/见原卡 |
+| [VAL-20261023-wam-full-scale](../../src/task/ptv3-shared-wam-v6/docs/experiments/validations/VAL-20261023-wam-full-scale.md) | VAL-20261023-wam-full-scale | 见原卡 | 见原卡 | validations/见原卡 |

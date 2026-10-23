@@ -670,3 +670,52 @@ Preregistered decisions and causal limits:
 - C4-source10 also worsens its OWN source on all three point estimates; source mixing is not necessary for that observed regression. Any>=50% off-diagonal threshold hit is reported under the owner rule, but is not a clean source-tradeoff proof when the trained source itself also deteriorates. Broader within-source support/retention/semantics/optimization remain candidates.
 
 No model/loss/LR/threshold/workspace was relaxed. Original half/remaining outputs are retained. Original half support differs from new full support; C4 global96 differs from global384 controls. Fixed TRAIN512/124 evidence only; no heldout generalization/execution claim. Independent workspace repair preflight remains a proposal unless separately authorized; original C3/C5 cannot be labelled recovered/degraded from runtime failures.
+
+## Terminal progress receipts for unavailable panels
+
+```json
+{
+  "C3": {
+    "automatic_restart": false,
+    "reason": "reader PermissionError census/sequences.jsonl mode000",
+    "status": "FAILED",
+    "step": 0,
+    "updates": 0
+  },
+  "C3-r2": {
+    "automatic_restart": false,
+    "completed_updates_inferred_from_failure": 103,
+    "final_checkpoint_available": false,
+    "final_panel_available": false,
+    "last_attempted_step": 104,
+    "last_logged_step": 100,
+    "reason": "ValueError('valid point outside fixed PTv3 workspace: grid_min=[-145, 172, 229], grid_max=[584, 683, 583], allowed=[0,65535]')",
+    "status": "FAILED_INPUT_WORKSPACE",
+    "updates_with_logged_receipt": 100
+  },
+  "C4-source1": {
+    "automatic_restart": false,
+    "final_checkpoint_available": false,
+    "final_panel_available": false,
+    "last_logged_step": 480,
+    "reason": "Torch2.0 --standalone uses fixed localhost:29400; independent arm agents share TCPStore; store shutdown caused RendezvousConnectionError/Broken pipe; no final model survived",
+    "status": "FAILED_RENDEZVOUS_ISOLATION"
+  },
+  "C5": {
+    "automatic_restart": false,
+    "model_quality_verdict": null,
+    "reason": "actual valid-gated sampler deterministically draws source4 s4-34183/tick61 at step104/rank2; production validator already confirms out-of-workspace",
+    "status": "BLOCKED_FIXED_WORKSPACE",
+    "step": 0,
+    "updates": 0
+  }
+}
+```
+
+No final overall/source/phase EPE is available for these failed/blocked runs; the saved step0 panels are initialization evidence only.
+
+## Final verification
+
+Read-only numerical recomputation passed for all4 completed controls (means/deltas and4000 paired mother-cluster CIs, tolerance1e-12). Python/schema/context/experiment-card/seed checks PASS. Governance tests:22 PASS using a fresh explicitly assigned NAS basetemp; first default-temp attempt failed solely due NAS uid mapping and its log is retained. Experiment index regenerated. Full repository verify remains FAIL on246 historical missing/out-of-checkout Markdown targets in this remote checkout; no unrelated links changed. Logs: verification-summary.json, verify-final.log, governance-tests.log, governance-tests-r2.log, index-final.log.
+
+All GPU jobs exited. No push; no model/loss/LR/workspace threshold relaxation; no post-fault training retry beyond the documented0-update NAS-permission repair C3-r2. Workspace-repair-proposal.json remains PROPOSED_NOT_EXECUTED pending owner choice.
