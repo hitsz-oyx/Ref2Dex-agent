@@ -91,3 +91,28 @@ def test_actual_track_path_checks_reference_and_records_final_safe_pd():
     a,info=c.step(q,np.zeros(18),palm,palm,np.zeros(3),np.zeros(3),np.zeros((5,3)),False,True)
     assert info['admission'] is not None
     np.testing.assert_allclose(info['admission']['executed_pd'],pd_targets(a,q,env.offset,env.scale))
+
+
+def test_bandwidth_fit_recovers_known_delay_gain_and_discards_static_offset():
+    import importlib.util
+    from pathlib import Path
+    path=Path(__file__).resolve().parents[1]/'tools/audit/audit_limit_tracking.py'
+    spec=importlib.util.spec_from_file_location('limit_bandwidth_audit',path)
+    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    t=np.arange(151)/30
+    def reference(x):return np.stack([np.sin(x*2),np.cos(x*3),np.sin(x*1.3)],axis=-1)
+    fit=module.lag_gain(t,.7*reference(t-.2)+[1,2,3],reference)
+    assert fit['delay_s']==pytest.approx(.2)
+    assert fit['gain']==pytest.approx(.7)
+
+
+def test_disabling_experimental_braking_keeps_mandatory_native_admission():
+    env,q,palm,_=fixture();q[16]=.005;dq=np.zeros(18);dq[16]=-1
+    action=np.zeros(12,np.float32);action[0]=.02;action[6:]=-.2
+    unchanged,info=env.protect(action,q,dq,predictive_braking=False)
+    np.testing.assert_array_equal(unchanged,action)
+    assert not info['braking']
+    action[-1]=1. # thumb pitch at upper nominal boundary has no inner margin
+    protected,info=env.protect(action,q,dq,predictive_braking=False)
+    assert info['target_projected']
+    assert env.check(pd_targets(protected,q,env.offset,env.scale))==[]

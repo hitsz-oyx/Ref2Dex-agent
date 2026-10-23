@@ -85,13 +85,13 @@ class ObjectPoseTracker:
     No model, schema, goal inference or gain tuning. FF is the first-order
     velocity*dt increment in the native position-target interface, not torque.
     """
-    def __init__(self, q, palm, offset, scale, *, held_finger_targets=None, joint_limits=None):
+    def __init__(self, q, palm, offset, scale, *, held_finger_targets=None, joint_limits=None, predictive_braking=False):
         self.offset, self.scale = np.asarray(offset), np.asarray(scale)
         self.mount = Rotation.from_euler('XYZ', q[3:6]).as_matrix().T @ palm[:3,:3]
         self.fingers = np.asarray(q)[FINGER_ACTIVE].copy() if held_finger_targets is None else np.asarray(held_finger_targets,dtype=float).copy()
         if self.fingers.shape!=(6,) or not np.isfinite(self.fingers).all():
             raise ValueError('six finite actual preceding PD finger targets required')
-        self.envelope=None
+        self.envelope=None;self.predictive_braking=bool(predictive_braking)
         if joint_limits is not None:
             from .reference_admission import JointEnvelope
             self.envelope=JointEnvelope(joint_limits,offset,scale)
@@ -122,7 +122,7 @@ class ObjectPoseTracker:
                     (angular-self.offset[3:6])/self.scale[3:6],finger_action].astype(np.float32)
         admission=None
         if self.envelope is not None:
-            raw,admission=self.envelope.protect(raw,q,dq)
+            raw,admission=self.envelope.protect(raw,q,dq,predictive_braking=self.predictive_braking)
             self.fingers=np.asarray(admission['executed_pd'])[FINGER_ACTIVE].copy()
         return raw, dict(phase='TRACK',wrist_target=target.tolist(),velocity_ff_world=np.asarray(velocity).tolist(),
                          angular_velocity_ff_world=np.asarray(omega_world).tolist(),feedforward=bool(feedforward),

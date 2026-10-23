@@ -95,13 +95,14 @@ class JointEnvelope:
         return dict(admitted=True,checked_points=len(times),minimum_planned_nominal_margin=minimum,minimum_joint=minimum_joint,
                     scope='native control ticks + original spline knots; no swept collision or dynamic guarantee')
 
-    def protect(self,action,q,dq):
+    def protect(self,action,q,dq,*,predictive_braking=True):
         q,dq=np.asarray(q,float),np.asarray(dq,float);action=np.asarray(action,float)
         if action.shape!=(12,) or not np.isfinite(np.r_[action,q,dq]).all():raise UnreachableReference('nonfinite command/state')
         # pd_targets is the SAME clipped canonical conversion as production.
         proposed=pd_targets(action,q,self.offset,self.scale);target=proposed.copy()
         predicted=q+.10*dq
         risk=self.mask&(((predicted<self.lower)&(dq<-.01))|((predicted>self.upper)&(dq>.01)))
+        risk&=bool(predictive_braking)
         if risk.any():
             # Stop approaching the obstruction; retain the grip, then drive the
             # affected independent/mimic group inward instead of opening blindly.
@@ -119,9 +120,13 @@ class JointEnvelope:
                   2*(target[self.fingers]-self.offset[self.fingers])/self.scale[self.fingers]-1]
         if (np.abs(raw)>1+1e-6).any():raise UnreachableReference('safe native command is not representable')
         result=np.clip(raw,-1,1).astype(np.float32)
+        # Admission must be bitwise transparent when no target change is needed.
+        # Re-encoding an already safe float32 action can perturb a contact trace.
+        if np.max(np.abs(target-proposed))<=1e-12 and not (np.abs(action)>1).any():
+            result=action.astype(np.float32)
         actual=pd_targets(result,q,self.offset,self.scale)
         if self.check(actual):raise UnreachableReference('post-conversion target failed admission')
-        return result,dict(braking=bool(risk.any()),risk_joints=np.flatnonzero(risk).tolist(),
+        return result,dict(braking=bool(risk.any()),predictive_braking_enabled=bool(predictive_braking),risk_joints=np.flatnonzero(risk).tolist(),
             target_projected=bool(np.max(np.abs(actual-proposed))>2e-6),canonical_proposal_outside=bool((np.abs(action)>1).any()),
             proposed_pd=proposed.tolist(),executed_pd=actual.tolist(),categories=limit_categories(q,actual,self.limits))
 

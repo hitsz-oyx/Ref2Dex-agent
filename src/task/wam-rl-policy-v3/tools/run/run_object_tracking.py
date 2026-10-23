@@ -36,6 +36,7 @@ def main():
     p.add_argument('--stages',choices=['A','B','both'],default='both')
     p.add_argument('--reference-start',type=Path,help='Reuse frozen world object start for a paired stage-only run')
     p.add_argument('--legacy-unchecked',action='store_true',help='Explicit historical reproduction only; bypass new admission/watchdog')
+    p.add_argument('--predictive-braking',action='store_true',help='Experimental: stop approach on q+0.10s*dq risk; not qualified as default')
     a=p.parse_args();out=a.output.resolve()
     if ROOT/'outputs/wam-rl-policy-v3' not in out.parents or not 60<=a.seconds<=7200 or not 1<=a.max_controls<=300000:raise ValueError('bounded task-local output required')
     out.mkdir(parents=True,exist_ok=True)
@@ -77,7 +78,7 @@ def main():
          '--fixed-motions-json',str(fixed),'--state-transport','packed','--extended-state','--synchronize-setters','--physics-backend','gpu-cpu','--object-tracking-probe']
     manifest=dict(status='STARTING',git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),native_command=cmd,
                   sequence=a.sequence,policy_updates=0,model_calls=0,tau_used=False,maximum_controls=a.max_controls,maximum_new_bytes=2*2**30,
-                  disk_free_before=disk.free,gpu=a.gpu,client_python=sys.executable,controls=0,results=[],unmeasured=[],limit_aware=not a.legacy_unchecked,rigid_A_scope='kinematic grasp constraint at control samples; not load-bearing welded dynamics')
+                  disk_free_before=disk.free,gpu=a.gpu,client_python=sys.executable,controls=0,results=[],unmeasured=[],limit_aware=not a.legacy_unchecked,predictive_braking=a.predictive_braking,rigid_A_scope='kinematic grasp constraint at control samples; not load-bearing welded dynamics')
     write(out/'manifest.json',manifest)
     log=(out/'native.log').open('x');environment=dict(os.environ,REF2DEX_RUN_ROOT=str(ROOT))
     child=subprocess.Popen(cmd,env=environment,stdout=log,stderr=subprocess.STDOUT,start_new_session=True,cwd=ROOT)
@@ -100,7 +101,7 @@ def main():
             if time.monotonic()-start>a.seconds-20 or manifest['controls']>=a.max_controls or shutil.disk_usage(ROOT).free<20*2**30:raise TimeoutError('wall/control/storage budget')
             previous_tick=int(state['tick'][0]);previous_episode=state['episodes'][:]
             before=np.asarray(state['q'])[0].copy();dq=np.asarray(state['dq'])[0].copy();proposed=np.asarray(action).copy();protection=None
-            if envelope is not None:action,protection=envelope.protect(action,before,dq)
+            if envelope is not None:action,protection=envelope.protect(action,before,dq,predictive_braking=a.predictive_braking)
             reply=rpc(dict(op='step',action=expand_action(action[None]).tolist(),episodes=previous_episode,return_pd=True))
             if state['episodes']!=previous_episode or int(state['tick'][0])!=previous_tick+1:raise ValueError('reset/tick ownership corruption')
             manifest['controls']+=1
@@ -162,7 +163,7 @@ def main():
             if last_acquisition_pd is None:raise ValueError('missing actual acquisition PD target')
             finger_ids=np.array([6,8,10,12,14,15])
             held_fingers=last_acquisition_pd[finger_ids] if case['stage']=='B' else None
-            tracker=ObjectPoseTracker(np.asarray(state['q'])[0],palm,offset,scale,held_finger_targets=held_fingers,joint_limits=limits if envelope is not None else None)
+            tracker=ObjectPoseTracker(np.asarray(state['q'])[0],palm,offset,scale,held_finger_targets=held_fingers,joint_limits=limits if envelope is not None else None,predictive_braking=a.predictive_braking)
             write(folder/'handoff.json',dict(measured_q=np.asarray(state['q'])[0].tolist(),last_actual_pd=last_acquisition_pd.tolist(),held_finger_targets=tracker.fingers.tolist()))
             if envelope is not None:
                 decision=envelope.admit_trajectory(curve,relative,np.asarray(state['q'])[0],palm,tracker.fingers)

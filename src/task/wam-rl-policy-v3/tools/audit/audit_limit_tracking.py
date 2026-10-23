@@ -33,7 +33,7 @@ def audit(run):
  native=m['native_audit'];bounds=native['physical_joint_limits'];lo=np.asarray(bounds['lower']);hi=np.asarray(bounds['upper']);mask=np.asarray(bounds['has_limits'],bool)
  offset=np.asarray(native['controller']['offset']);scale=np.asarray(native['controller']['scale']);names=native['native_dof_names']
  active=[0,1,2,3,4,5,6,8,10,12,14,15];pairs=((7,6,1.05),(9,8,1.05),(11,10,1.05),(13,12,1.05),(16,15,.6),(17,15,.8))
- totals=Counter();phase=defaultdict(Counter);events=defaultdict(Counter);case_events=defaultdict(set);max_pd=0.;bad_pd=0
+ totals=Counter();phase=defaultdict(Counter);events=defaultdict(Counter);case_events=defaultdict(set);max_pd=0.;bad_pd=0;projected_keys=set()
  for line in (run/'command-admission.jsonl').open():
   z=json.loads(line);q=np.asarray(z['q_after']);q0=np.asarray(z['q_before']);target=np.asarray(z['pd_target']);action=np.asarray(z['executed_raw'])
   full=np.zeros(18);full[active]=np.clip(action,-1,1);expected=offset+scale*(1+full)/2;expected[:6]=q0[:6]+offset[:6]+scale[:6]*full[:6]
@@ -43,6 +43,8 @@ def audit(run):
   outside=mask&((q<lo)|(q>hi));near=mask&~outside&(np.minimum(q-lo,hi-q)<=.10)
   command=mask&((target<lo)|(target>hi));gate=mask&((q<lo-.10)|(q>hi+.10))
   margin=np.minimum(.02,.10*(hi-lo));inner=mask&((target<lo+margin-2e-6)|(target>hi-margin+2e-6));bad_pd+=int(inner.any())
+  totals['nominal_outside_within_abort_tolerance']+=int((outside&~gate).any())
+  phase[z['phase']]['nominal_outside_within_abort_tolerance']+=int((outside&~gate).any())
   categories=dict(true_outside=outside,near_inside=near,command_outside_state_inside=command&~outside,physical_gate_outside=gate)
   for key,value in categories.items():
    ids=np.flatnonzero(value).tolist();assert ids==z['categories'][key]
@@ -52,6 +54,7 @@ def audit(run):
   totals['controls']+=1;phase[z['phase']]['controls']+=1
   for key in ('braking','target_projected','canonical_proposal_outside'):
    totals[key]+=int(z['protection'][key]);phase[z['phase']][key]+=int(z['protection'][key])
+  if z['protection']['target_projected']:projected_keys.add((z['case'],z['tick']))
  assert totals['controls']==m['controls'];assert bad_pd==0
  rows=[];max_error=0.;ref_mismatch=[];reset_mismatch=[];group=defaultdict(list)
  for r in m['results']:
@@ -59,7 +62,10 @@ def audit(run):
   row['abort']=None if r.get('abort') is None else r['abort']['kind']
   row['pass_tracking']=False
   if not (folder/'trajectory.npz').exists():rows.append(row);group[(r['stage'],r['feedforward'])].append(row);continue
-  with np.load(folder/'trajectory.npz') as z:obj=matrix(z['objects'][:,0]);palm=matrix(z['palm_pose'][:,0]);q=z['q'][:,0]
+  with np.load(folder/'trajectory.npz') as z:obj=matrix(z['objects'][:,0]);palm=matrix(z['palm_pose'][:,0]);q=z['q'][:,0];native_first_tick=int(z['tick'][0,0])
+  commands=json.loads((folder/'commands.json').read_text())
+  for k,command in enumerate(commands):
+   if command.get('admission',{}).get('target_projected',False):projected_keys.add((index,native_first_tick+k))
   with np.load(folder/'reference.npz') as z:times=z['times'];poses=z['poses'];relative=z['hand_object']
   ticks=json.loads((folder/'ticks.json').read_text());clock=np.asarray([x['reference_time_s'] for x in ticks]);pos=CubicSpline(times,poses[:,:3,3],bc_type='clamped');rot=RotationSpline(times,Rotation.from_matrix(poses[:,:3,:3]))
   e=np.linalg.norm(obj[:,:3,3]-pos(clock),axis=-1);a=angle(rot(clock).as_matrix().transpose(0,2,1)@obj[:,:3,:3]);hand_obj=np.linalg.inv(palm)@obj
@@ -93,10 +99,12 @@ def audit(run):
     lag_fit_cases=len(fit),lag_median_s=float(np.median([x['delay_s'] for x in fit])) if fit else None,
     gain_median=float(np.median([x['gain'] for x in fit])) if fit else None)
  assert not ref_mismatch and not reset_mismatch,(ref_mismatch,reset_mismatch)
+ admission_records=[json.loads(f.read_text()) for f in run.glob('case*/reference-admission.json')]
  result=dict(status=m['status'],rows=len(rows),planned=180,unmeasured=len(m['unmeasured']),groups=summary,controls=m['controls'],
+    reference_admissions=dict(checked=len(admission_records),accepted=sum(r['admitted'] for r in admission_records),rejected=sum(not r['admitted'] for r in admission_records)),
     state_categories=dict(totals),phases={k:dict(v) for k,v in phase.items()},joint_events={k:dict(v) for k,v in events.items()},
     cases_with_categories={k:len(v) for k,v in case_events.items()},maximum_pd_reconstruction_error=max_pd,
-    inner_pd_violations=bad_pd,maximum_orientation_reconstruction_error=max_error,reference_mismatch=ref_mismatch,reset_mismatch=reset_mismatch)
+    inner_pd_violations=bad_pd,pd_projection_unique_controls=len(projected_keys),maximum_orientation_reconstruction_error=max_error,reference_mismatch=ref_mismatch,reset_mismatch=reset_mismatch)
  (run/'limit-audit.json').write_text(json.dumps(result,indent=2)+'\n')
  fields=list(dict.fromkeys(k for row in rows for k in row))
  with (run/'limit-matrix.csv').open('w') as f:
