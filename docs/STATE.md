@@ -1,3 +1,14 @@
+## 2026-10-23 brief47全量转换完成；brief47b STOP中止去重，未全量验收
+
+39,527条九源母序列全部准入，TRAIN9,341,050/DEV1,856,282窗；新转换38,350、复用1,177，
+固定182,331,193,978B、剩余0。完整前去重tuple manifest与108格已发布：TRAIN零格8、DEV20，
+DexYCB DEV=0。内容去重仅完成20,672条/9,418,140窗，删除253,211（仅前缀），
+仍有1,779,192窗未去重；最终去重后索引、旧DEV逐项差异、逐窗认证账本及统一catalog未完成。
+13:32:58共享工作区新增owner_brief47b_space_protection_HOLD STOP，automatic_restart=false，
+当时60.130GiB，未触30GiB；本执行器遵守HOLD，未移除STOP/自动重启。历史认证0/11,197,332，
+新96条26,304个goal证书独立复验PASS、未并入总catalog。0训练/0checkpoint，未删历史outputs。
+[全量前去重分布/覆盖表、暂停证据、未完成边界与恢复命令](../src/task/ptv3-shared-wam-v6/docs/audit/full-rigid-data-preparation-20261023-brief47-HOLD.md)。
+
 ## 2026-10-23 13:33 brief47b 空间保护令：数据准备持续HOLD
 
 机主要求立即停止新增转换/安全中断写入。本run39,527条转换此前已完成，receipt全保留，剩余转换0 B；正在写的是summary r4/r6，已SIGINT，r6退出，r4父进程及tracker已SIGSTOP为T。run级STOP与owner-hold receipt落盘，不自动恢复；未删除历史outputs、未启动迁移。13:34:07快照`/home2`可用64,212,578,304 B（59.803GiB），本run实占198,826,151,936 B。保留30GiB并计完整summary预留、metadata和现有并行训练剩余上限，仍缺26,400,304,869 B（24.587GiB）；该值为预算差额，非精确summary剩余。4090链路仅0.3–0.45MB/s，固定转换传输约4.69–7.03天，复制不释放源端空间。等机主决定，禁止自启下一批。[空间账、停止位置和恢复边界](../src/task/ptv3-shared-wam-v6/docs/audit/brief47b-space-hold-20261023.md)。

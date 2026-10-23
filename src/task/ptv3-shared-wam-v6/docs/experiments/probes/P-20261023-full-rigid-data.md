@@ -7,7 +7,7 @@ task: ptv3-shared-wam-v6
 branch: main
 git_commit: recorded-in-run-manifest
 classification: Blocker
-status: PREPARED_WITH_GAPS
+status: HOLD
 run_id: full-rigid-20261023-brief47-r1
 claim_id: full-local-rigid-data-coverage
 hypothesis_family: full-local-rigid-preparation
@@ -81,3 +81,20 @@ view_manifest时失败，原输出/日志保留；路径兼容已修并独立重
 ## 2026-10-23 13:33 brief47b owner HOLD
 
 机主空间保护令已生效。转换39,527/39,527和所有receipt保留，无新转换批次；中断的是summary r4/r6，r6已退出，r4未退出父进程/资源tracker已SIGSTOP。run级STOP禁止后续自动批次。转换额外需求0 B；summary未完成，不冒称幂等续写或完整发布。未删除历史outputs，未迁移；详细停止点、精确实际占用、预算差额和4090传输代价见[空间HOLD报告](../../audit/brief47b-space-hold-20261023.md)。后续继续等待机主决定，原PREPARED_WITH_GAPS是此前数据状态，当前执行状态HOLD。
+
+## 2026-10-23 13:32 brief47b机主STOP终止派生审计
+
+39,527条九源母序列全部准入，TRAIN9,341,050/DEV1,856,282窗；新转换38,350、复用1,177，
+固定182,331,193,978B、剩余0。完整前去重tuple manifest与108格已发布：TRAIN零格8、DEV20，
+DexYCB DEV=0。内容去重仅完成20,672条/9,418,140窗，删除253,211（仅前缀），
+仍有1,779,192窗未去重；最终去重后索引、旧DEV逐项差异、逐窗认证账本及统一catalog未完成。
+13:32:58共享工作区新增owner_brief47b_space_protection_HOLD STOP，automatic_restart=false，
+当时60.130GiB，未触30GiB；本执行器遵守HOLD，未移除STOP/自动重启。历史认证0/11,197,332，
+新96条26,304个goal证书独立复验PASS、未并入总catalog。0训练/0checkpoint，未删历史outputs。
+全量准备目标尚未验收，前文“未自动重启”等为各时刻快照；此终态优先。
+[最终暂停报告](../../audit/full-rigid-data-preparation-20261023-brief47-HOLD.md)包含全量前去重九源、
+几何和phase分布，两split各108格与全部零格、实际字节、manifest SHA和完整缺失边界。
+全量前去重manifest SHA256：`4e40b4ec0bd58d390f8d5cee6047530d1832c3d5acb6080232251236d934c4c3`。
+实际派生执行r4代码0d649194；r6代码c86fc6c1（1GiB缓存/内存journal/完成时提交），
+14项等价回归PASS；两者都被STOP中止。部分预分配NPY不能当完整manifest使用。
+转换代码/环境/命令由run-manifest*.json及逐receipt绑定，原转换未重跑。
