@@ -149,6 +149,16 @@ raw advantage 的分布已在 C 列出；各初态按 6 个 PPO 训练 episode �
 
 按正优势占比和正优势总量，lift/hold 最集中；approach/contact 也有大量正优势，不能说正优势只出现在最终阶段。对于 11 个 joint abort 回合，排除触发 abort 的最后一个 action 后，前置动作共 **1,816** 个，其中 **822** 个为正优势（**45.26%**），且 **11/11** 个 joint-abort 回合都存在至少一个 abort 前正优势动作。也就是说，joint abort 之前确实“反而”出现正优势；这描述的是当前重建 raw GAE 的信号，不是成功因果证据。
 
+## 本次独立复核补充
+
+本次会话再次执行了以下只读 CPU 命令：
+
+```sh
+CUDA_VISIBLE_DEVICES='' /home2/wyy/miniconda3/envs/graspenv/bin/python tmp/g0-advantage-audit.py
+```
+
+它扫描同一证据根的 36 个 PPO rollout（14,400 controls），确认五数组键集合不变，逐样本 `advantage_raw`、`target_return`、`terminated/truncated`、`bootstrap_mask` 和 endpoint 字段仍为 36/36 缺失；独立重算结果与本文已有数字一致（raw mean −0.05904524、std 0.29015872、置零 bootstrap 比例 0.98762%、joint-abort 前正优势 822/1,816）。本次复核生成的临时脚本与 JSON 只位于项目 `tmp/`，没有写入或改动 `outputs/`。
+
 ## 卡点与后续最低修复
 
 本轮唯一阻断是 instrumentation：运行只保存了 reward/value 和 episode 级 bootstrap，缺少逐样本 `advantage_raw`、`target_return`、`done`/bootstrap mask。应在后续离线可复核运行中把这三个数组（以及 endpoint 类型/每步 mask）写入 rollout sidecar，再重复 A–C；在此之前不把本轮结果升级为 G0 PASS，也不据此调学习率或补预算。
