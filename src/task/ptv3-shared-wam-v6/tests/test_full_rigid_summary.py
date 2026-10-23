@@ -44,7 +44,7 @@ def test_complete_manifest_cross_split_dedup_and_unknown_certification(tmp_path,
     prep.write(run/'progress.json',dict(status='CONVERSION_AND_ADMISSION_COMPLETED'))
     prep.write(run/'inventory.json',dict(total_sequences=2,by_status=dict(REUSE=2),seeds=dict(full_manifest=170)))
     pilot=tmp_path/'pilot.json'
-    prep.write(pilot,dict(selection=dict(train_window_rows=[dict(sequence_key='s1-0',slot=0,tick=t,object='example',source_id=1,phase='hold') for t in range(3,8)]),pending_sequence_batch=dict(selected_keys=[])))
+    prep.write(pilot,dict(selection=dict(train_window_rows=[dict(sequence_key='s1-0',slot=0,tick=t,object='example',source_id=1,phase='hold') for t in range(3,8)]),pending_sequence_batch=dict(selected_keys=[]),audit_rows=[dict(sequence_key='s1-1',slot=0,tick=t,object='example',source_id=1,phase='hold',split='dev',admitted=True) for t in range(3,8)]))
     monkeypatch.setattr(prep,'PILOT',pilot)
     monkeypatch.setattr(summary,'legacy_census',lambda *_:dict(unique_mothers=0))
     out=run/'summary';summary.summarize(run,out,workers)
@@ -52,6 +52,11 @@ def test_complete_manifest_cross_split_dedup_and_unknown_certification(tmp_path,
     assert result['windows_before']==dict(train=5,dev=5)
     assert result['windows_after']==dict(train=1 if nontransitive else 0,dev=1)
     assert result['dedup']['cross_split_train_removed']==(1 if nontransitive else 5)
+    assert result['versus_6000']['dev_baseline_windows']==5
+    assert result['versus_6000']['dev_baseline_rows_present_before_dedup']==5
+    assert result['versus_6000']['dev_baseline_rows_present_after_dedup']==1
+    assert result['versus_6000']['dev_added_before_dedup']==0
+    assert result['versus_6000']['dev_added_after_dedup']==0
     assert result['provenance']['uncertifiable']==10
     assert result['provenance']['certified_legal']==0
     rows=[json.loads(x) for x in (out/'train-windows.jsonl').read_text().splitlines()]

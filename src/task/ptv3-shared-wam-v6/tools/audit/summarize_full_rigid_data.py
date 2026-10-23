@@ -243,6 +243,9 @@ def summarize(run,out,workers=1):
             jsonline(stream,dict(sequence_id=r['sequence_id'],sequence_key=r['key'],source_id=r['source_id'],source_sequence=r['source_sequence'],canonical_original_payload_uri=origins[r['key']]))
     legacy=legacy_census(out,receipts)
     pilot=prep.read(prep.PILOT);old_rows=pilot['selection']['train_window_rows']
+    old_dev_rows=[r for r in pilot['audit_rows'] if r['split']=='dev' and r['admitted']]
+    old_dev_keys={(r['sequence_key'],int(r['slot']),int(r['tick'])) for r in old_dev_rows}
+    old_dev_present=set();old_dev_kept=set()
     old_keys={(r['sequence_key'],int(r['slot']),int(r['tick'])) for r in old_rows}
     old_present=set();old_kept=set()
     old_coverage=Counter()
@@ -250,6 +253,14 @@ def summarize(run,out,workers=1):
         _,geo=prep.geometry(r['object'],r['source_id'])
         old_coverage[(r['phase'],prep.geometry_class(pca_shape(geo['surface'])),r['source_id'])]+=1
     matrix(old_coverage,out/'coverage-old-6000.csv')
+    old_dev_coverage=Counter()
+    for r in old_dev_rows:
+        _,geo=prep.geometry(r['object'],r['source_id'])
+        old_dev_coverage[(r['phase'],prep.geometry_class(pca_shape(geo['surface'])),r['source_id'])]+=1
+    matrix(old_dev_coverage,out/'coverage-old-dev.csv')
+    old_dev_sources=Counter(str(r['source_id']) for r in old_dev_rows)
+    old_dev_phases=Counter(r['phase'] for r in old_dev_rows);old_dev_shapes=Counter()
+    for (phase,gc,sid),v in old_dev_coverage.items():old_dev_shapes[gc]+=v
     old_sources=Counter(str(r['source_id']) for r in old_rows)
     old_phases=Counter(r['phase'] for r in old_rows)
     old_shapes=Counter()
@@ -263,6 +274,7 @@ def summarize(run,out,workers=1):
             shape=(sum(r['admitted_windows'] for r in admitted if r['split']==s),3)) for s in ['train','dev']}
     keep_arrays={s:np.lib.format.open_memmap(out/(s+'-keep-mask.npy'),mode='w+',dtype=bool,shape=(len(arrays[s]),)) for s in arrays}
     old_membership=np.lib.format.open_memmap(out/'train-membership-in-old6000.npy',mode='w+',dtype=bool,shape=(len(arrays['train']),))
+    old_dev_membership=np.lib.format.open_memmap(out/'dev-membership-in-old-version.npy',mode='w+',dtype=bool,shape=(len(arrays['dev']),))
     db=sqlite3.connect(str(out/'dedup-index.sqlite'))
     db.execute('CREATE TABLE representatives (signature BLOB, sequence_id INTEGER, slot INTEGER, tick INTEGER, phase INTEGER)')
     db.execute('CREATE INDEX signature_index ON representatives(signature)')
@@ -338,6 +350,10 @@ def summarize(run,out,workers=1):
                 if split=='train' and oldkey in old_keys:
                     old_present.add(oldkey)
                     if retained:old_kept.add(oldkey)
+                if split=='dev':old_dev_membership[start+i]=oldkey in old_dev_keys
+                if split=='dev' and oldkey in old_dev_keys:
+                    old_dev_present.add(oldkey)
+                    if retained:old_dev_kept.add(oldkey)
                 jsonline(manifest_streams[split],dict(sequence_id=r['sequence_id'],sequence_key=r['key'],slot=slot,tick=tick,
                     split=split,source_id=r['source_id'],phase=prep.PHASES[phase],geometry_class=prep.CLASSES[gc],
                     source_role='UNKNOWN',available_before_reset=None,certification='UNCERTIFIABLE_MISSING_PRE_RESET_RECORDS',
@@ -359,6 +375,9 @@ def summarize(run,out,workers=1):
     old_membership.flush()
     np.save(out/'train-added-vs6000-before.npy',arrays['train'][~old_membership])
     np.save(out/'train-added-vs6000-after.npy',arrays['train'][(~old_membership)&keep_arrays['train']])
+    old_dev_membership.flush()
+    np.save(out/'dev-added-vs-old-version-before.npy',arrays['dev'][~old_dev_membership])
+    np.save(out/'dev-added-vs-old-version-after.npy',arrays['dev'][(~old_dev_membership)&keep_arrays['dev']])
     cover={s:{stage:matrix(cov[s][stage],out/('coverage-'+s+'-'+stage+'.csv')) for stage in ['before','after']} for s in arrays}
     with (out/'sequence-verdicts.jsonl').open('x') as f:
         for r in sorted(receipts,key=lambda r:r['sequence_id']):jsonline(f,r)
@@ -402,6 +421,13 @@ def summarize(run,out,workers=1):
             source_delta=deltas(old_sources,sources['train'],[str(s) for s in prep.SOURCES]),
             geometry_delta=deltas(old_shapes,shapes['train'],prep.CLASSES),
             phase_delta=deltas(old_phases,phases['train'],prep.PHASES),
+            dev_baseline_windows=len(old_dev_rows),
+            dev_baseline_rows_present_before_dedup=len(old_dev_present),dev_baseline_rows_present_after_dedup=len(old_dev_kept),
+            dev_baseline_rows_missing=[dict(sequence_key=k[0],slot=k[1],tick=k[2]) for k in sorted(old_dev_keys-old_dev_present)],
+            dev_added_before_dedup=count['dev']-len(old_dev_present),dev_added_after_dedup=count['dev']-removed['dev']-len(old_dev_kept),
+            dev_source_delta=deltas(old_dev_sources,sources['dev'],[str(s) for s in prep.SOURCES]),
+            dev_geometry_delta=deltas(old_dev_shapes,shapes['dev'],prep.CLASSES),
+            dev_phase_delta=deltas(old_dev_phases,phases['dev'],prep.PHASES),
             baseline_rows_present_before_dedup=len(old_present),baseline_rows_present_after_dedup=len(old_kept),
             baseline_rows_missing=[dict(sequence_key=k[0],slot=k[1],tick=k[2]) for k in sorted(old_keys-old_present)],
             train_added_before_dedup=count['train']-len(old_present),train_added_after_dedup=count['train']-removed['train']-len(old_kept),

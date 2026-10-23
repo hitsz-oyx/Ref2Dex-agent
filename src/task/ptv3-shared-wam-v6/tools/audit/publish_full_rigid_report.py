@@ -3,6 +3,7 @@ import argparse
 from collections import Counter
 import csv
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -12,6 +13,34 @@ import prepare_full_rigid_data as p
 
 def table(headers,rows):
     return '\n'.join(['| '+' | '.join(headers)+' |','|'+'|'.join(['---']*len(headers))+'|']+['| '+' | '.join(map(str,row))+' |' for row in rows])
+
+
+
+def coverage_plot(matrices,labels,path):
+    os.environ.setdefault('MPLCONFIGDIR',str(p.ROOT/'tmp/matplotlib-full-rigid'))
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    import numpy as np
+    phases=['approach','close','contact','hold'];classes=['flat','elongated','compact']
+    rows=[(q,g) for q in phases for g in classes]
+    data=[np.array([[m[(q,g,s)] for s in p.SOURCES] for q,g in rows]) for m in matrices]
+    cmap=plt.get_cmap('cividis').copy();cmap.set_bad('#eeeeee')
+    vmax=max(1,float(np.log10(max(int(d.max()) for d in data)+1)))
+    fig,axes=plt.subplots(1,3,figsize=(18,7),constrained_layout=True)
+    for ax,d,label in zip(axes,data,labels):
+        values=np.ma.masked_where(d==0,np.log10(d+1));im=ax.imshow(values,aspect='auto',cmap=cmap,vmin=0,vmax=vmax)
+        ax.set_title(label);ax.set_xticks(range(9));ax.set_xticklabels(p.SOURCES)
+        ax.set_yticks(range(12));ax.set_yticklabels([q+' / '+g for q,g in rows],fontsize=8)
+        ax.set_xlabel('source_id')
+        for i in range(12):
+            for j in range(9):
+                n=int(d[i,j]);t=(f'{n/1e6:.2f}M' if n>=1e6 else f'{n/1000:.1f}k' if n>=1000 else str(n))
+                color='black' if n==0 or np.log10(n+1)>vmax*.6 else 'white'
+                ax.text(j,i,t,ha='center',va='center',fontsize=7,color=color)
+    fig.colorbar(im,ax=axes,label='log10(window count + 1)',shrink=.8)
+    fig.suptitle('Gray = zero coverage; unknown phase/geometry reported separately',fontsize=11)
+    fig.savefig(path,dpi=170);plt.close(fig)
 
 
 def main():
@@ -38,6 +67,9 @@ def main():
         gaps.append(dict(phase=phase,geometry_class=gc,source_id=sid,windows_after=0,windows_before=before[(phase,gc,sid)],reason=reason))
     with (support/'coverage-gaps-explained.csv').open('x') as f:
         w=csv.DictWriter(f,fieldnames=['phase','geometry_class','source_id','windows_after','windows_before','reason']);w.writeheader();w.writerows(gaps)
+    coverage_plot([old,before,after],['TRAIN old 6000','TRAIN full before dedup','TRAIN full after dedup'],support/'coverage-train.png')
+    dev_matrices=[load_cov(summary/name) for name in ['coverage-old-dev.csv','coverage-dev-before.csv','coverage-dev-after.csv']]
+    coverage_plot(dev_matrices,['DEV old version','DEV full before dedup','DEV full after dedup'],support/'coverage-dev.png')
     minimum=min(m['disk_free_after_bytes'],p.shutil.disk_usage(run).free)
     receipts=[p.read(path) for path in sorted((run/'receipts').glob('*.json'))]
     minimum=min([minimum]+[r['disk_free_bytes'] for r in receipts if 'disk_free_bytes' in r])
@@ -50,6 +82,9 @@ def main():
         d=source_delta[sid];st=m['sequence_status_by_source'][str(sid)]
         source_rows.append([str(sid)+' '+source_names[sid],st.get('ADMITTED',0),st.get('REJECTED',0),d['old6000'],d['full_before'],d['full_after'],d['difference_after'],m['source_distribution']['dev']['before'].get(str(sid),0),m['source_distribution']['dev']['after'].get(str(sid),0)])
     class_rows=[[r['category'],r['old6000'],r['full_before'],r['full_after'],r['difference_after'],m['geometry_distribution']['dev']['before'].get(r['category'],0),m['geometry_distribution']['dev']['after'].get(r['category'],0)] for r in diff['geometry_delta']]
+    dev_source_rows=[[r['category'],r['old6000'],r['full_before'],r['full_after'],r['difference_after']] for r in diff['dev_source_delta']]
+    dev_geometry_rows=[[r['category'],r['old6000'],r['full_before'],r['full_after'],r['difference_after']] for r in diff['dev_geometry_delta']]
+    dev_phase_rows=[[r['category'],r['old6000'],r['full_before'],r['full_after'],r['difference_after']] for r in diff['dev_phase_delta']]
     phase_rows=[[r['category'],r['old6000'],r['full_before'],r['full_after'],r['difference_after']] for r in diff['phase_delta']]
     opening=table(['观测','含义','决定'],[
         [f'全量TRAIN准入后的0覆盖格：旧6k {old_zeros}/108 → 全量{bzero}/108；去重后{azero}/108','按固定刚体合同测得的数据覆盖变化','可纳入全量数据重训/续训排期；本轮不训练，条件合同门槛保留'],
@@ -99,6 +134,13 @@ legacy1335状态：`{json.dumps(legacy['mother_status'])}`；两根robot view共
 {table(['phase','旧6k TRAIN','全量TRAIN前','全量TRAIN后','vs6k净增'],phase_rows)}
 
 phase仍是原冻结proximity事件协议，不是实测force contact或独立任务意图。
+旧6k版本的DEV是原有 **{diff['dev_baseline_windows']:,}** 行，不把“6k TRAIN”误记成“6k DEV”。
+
+{table(['DEV source','旧版本DEV','全量DEV前','全量DEV后','净增'],dev_source_rows)}
+
+{table(['DEV几何','旧版本DEV','全量DEV前','全量DEV后','净增'],dev_geometry_rows)}
+
+{table(['DEV phase','旧版本DEV','全量DEV前','全量DEV后','净增'],dev_phase_rows)}
 
 ## 去重、覆盖与逐项差异
 
@@ -121,6 +163,7 @@ TRAIN/DEV各有去重前后全表：{link('full-manifest-r1/coverage-train-befor
 {link('full-manifest-r1/coverage-dev-after.csv','DEV后')}。
 {link('report-support/coverage-gaps-explained.csv','零格逐项原因')}：
 `{json.dumps(dict(Counter(g['reason'] for g in gaps)))}`。
+可视化：{link('report-support/coverage-train.png','TRAIN覆盖热图')}、{link('report-support/coverage-dev.png','DEV覆盖热图')}。
 “0”表示当前合同下没有准入样本；原本有样本但被内容去重移到其他保留代表的格子
 不算原始数据结构性缺失。仅有unknown相位的格子先列标注缺口，不伪装成相位阳性。
 
@@ -132,6 +175,12 @@ TRAIN/DEV各有去重前后全表：{link('full-manifest-r1/coverage-train-befor
 {link('full-manifest-r1/train-added-vs6000-after.npy','新增tuples后')}给出全部逐项差集；
 {link('full-manifest-r1/train-membership-in-old6000.npy','旧6k membership mask')}、
 {link('full-manifest-r1/dedup-pairs.jsonl','删除代表逐项账本')}可回溯每一行。
+DEV旧行去重前/后保留 **{diff['dev_baseline_rows_present_before_dedup']:,}/{diff['dev_baseline_rows_present_after_dedup']:,}**；
+DEV新增前/后为 **{diff['dev_added_before_dedup']:,}/{diff['dev_added_after_dedup']:,}**。
+对应{link('full-manifest-r1/dev-added-vs-old-version-before.npy','DEV新增tuples前')}、
+{link('full-manifest-r1/dev-added-vs-old-version-after.npy','DEV新增tuples后')}、
+{link('full-manifest-r1/dev-membership-in-old-version.npy','DEV旧行mask')}均已导出；
+未纳入的旧DEV行在`versus_6000.dev_baseline_rows_missing`逐项列出。
 旧curated manifest和固定512 TRAIN锚点保持原样。没有重新拟合normalizer或修改训练配方。全量准入窗口另逐条核对30Hz时钟/segment，
 不允许H4/K24跨不连续边界；source0全部568条frame_id核对0断点。
 
@@ -196,6 +245,7 @@ source0-copy-receipt*.json和remaining-legacy-budget.json；逐序列receipt在`
 '''
     out.write_text(text)
     p.write(support/'report-receipt.json',dict(status='COMPLETED',manifest_sha256=sha,report_sha256=p.digest(out),report=str(out),
+        coverage_visual_sha256={name:p.digest(support/name) for name in ['coverage-train.png','coverage-dev.png']},
         minimum_recorded_free_bytes=minimum,coverage_zero_reasons=dict(Counter(g['reason'] for g in gaps)),git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),training_updates=0))
     print(json.dumps(dict(report=str(out),manifest_sha256=sha,windows_before=m['windows_before'],windows_after=m['windows_after'],minimum_recorded_free_gib=minimum/2**30)),flush=True)
 
