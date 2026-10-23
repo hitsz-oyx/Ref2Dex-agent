@@ -1,0 +1,295 @@
+{
+  "schema": "ref2dex.nine-source-closeout.v1",
+  "measured_at": "2026-10-23T04:32:55.610877+00:00",
+  "git_commit": "0d6491944f560f33669bb384c620949cbb3864df",
+  "evidence_kind": "fresh manifest/file hash and array verification, live resource snapshot; fixed conversion bytes from independently bound completed census",
+  "manifest_sha256": "4e40b4ec0bd58d390f8d5cee6047530d1832c3d5acb6080232251236d934c4c3",
+  "verified_manifest_files": {
+    "dev-all.npy": {
+      "bytes": 22275512,
+      "sha256": "3e24cbabd8e26d71addf33d3e874af0b85fea09ab4f4f18f2d8f9488a7b9afed"
+    },
+    "dev-clock-valid.npy": {
+      "bytes": 1856410,
+      "sha256": "2c816f6b30b9afc8e652ff6170ed314ce07ea241a8de77e0dad20ab5008517ab"
+    },
+    "phase-geometry-source.csv": {
+      "bytes": 9781,
+      "sha256": "17e8735545012c17f63fe953de0843dc60ca880df32f7e292dc412064152d6d2"
+    },
+    "sequences.jsonl": {
+      "bytes": 104070580,
+      "sha256": "98f800bbcec5cf57f99903cb4597c0c24f207e018f2c26029997ba79201b3f00"
+    },
+    "train-all.npy": {
+      "bytes": 112092728,
+      "sha256": "b8d0314aeada83ad6878d5781d677b28e1a76e279cf4bb6107a7ac2744e1ea99"
+    },
+    "train-clock-valid.npy": {
+      "bytes": 9341178,
+      "sha256": "b89d55692f07b1160e4cd6b099f1b9dfb631cf2f8d58905d6de9bcef8b97b5ee"
+    }
+  },
+  "curated6000_manifest_sha256": "5bda6a99678b0586b496eff7b4b3ba3afddda996cdc16c43603341ed1264225f",
+  "anchor_sha256": "440c00c8609a2e9c6276f328f1aa5136a04708294a09b5dab8321044e6caa706",
+  "anchor_id": "94d9287bb6c650cc80e4345515e0589472786bd749981a0b25ea7475118ebc37",
+  "sources": [
+    {
+      "source_id": 0,
+      "name": "OakInk2",
+      "train": 5412663,
+      "dev": 971478,
+      "net_vs6000": 5412567,
+      "null_timestamp_windows": 6384141
+    },
+    {
+      "source_id": 1,
+      "name": "GRAB",
+      "train": 287955,
+      "dev": 25479,
+      "net_vs6000": 282323,
+      "null_timestamp_windows": 313434
+    },
+    {
+      "source_id": 2,
+      "name": "ARCTIC",
+      "train": 370362,
+      "dev": 49930,
+      "net_vs6000": 370266,
+      "null_timestamp_windows": 420292
+    },
+    {
+      "source_id": 4,
+      "name": "Shadow replay",
+      "train": 1930631,
+      "dev": 482384,
+      "net_vs6000": 1930601,
+      "null_timestamp_windows": 2413015
+    },
+    {
+      "source_id": 5,
+      "name": "TACO",
+      "train": 238297,
+      "dev": 61408,
+      "net_vs6000": 238279,
+      "null_timestamp_windows": 299705
+    },
+    {
+      "source_id": 6,
+      "name": "HOT3D",
+      "train": 578181,
+      "dev": 137899,
+      "net_vs6000": 578115,
+      "null_timestamp_windows": 716080
+    },
+    {
+      "source_id": 8,
+      "name": "DexYCB",
+      "train": 2953,
+      "dev": 0,
+      "net_vs6000": 2941,
+      "null_timestamp_windows": 2953
+    },
+    {
+      "source_id": 9,
+      "name": "H2O",
+      "train": 44110,
+      "dev": 9100,
+      "net_vs6000": 44106,
+      "null_timestamp_windows": 53210
+    },
+    {
+      "source_id": 10,
+      "name": "HOI4D",
+      "train": 475898,
+      "dev": 118604,
+      "net_vs6000": 475852,
+      "null_timestamp_windows": 594502
+    }
+  ],
+  "conversion_status": {
+    "admitted_windows": 11197332,
+    "conversion_started": true,
+    "counts": {
+      "ADMITTED": 39527
+    },
+    "disk_free_bytes": 75711401984,
+    "elapsed_s": 1474.22,
+    "estimated_remaining_s": 0.0,
+    "minimum_free_bytes": 75711401984,
+    "processed": 39527,
+    "status": "CONVERSION_AND_ADMISSION_COMPLETED",
+    "total": 39527,
+    "training_allowed": false
+  },
+  "fixed_conversion_remaining_bytes": 0,
+  "census_storage": {
+    "current_free_bytes": 75432247296,
+    "disk": {
+      "groups": {
+        "batches": {
+          "allocated_bytes": 5914624,
+          "apparent_bytes": 3778419,
+          "files": 1444
+        },
+        "contacts": {
+          "allocated_bytes": 111083847680,
+          "apparent_bytes": 110629735175,
+          "files": 153400
+        },
+        "events": {
+          "allocated_bytes": 3750948864,
+          "apparent_bytes": 2758768980,
+          "files": 306800
+        },
+        "full-manifest-r1": {
+          "allocated_bytes": 12767232,
+          "apparent_bytes": 12761987,
+          "files": 3
+        },
+        "hands": {
+          "allocated_bytes": 69937401856,
+          "apparent_bytes": 68942689823,
+          "files": 383500
+        },
+        "legacy-census-repaired-r1": {
+          "allocated_bytes": 1028096,
+          "apparent_bytes": 1018041,
+          "files": 3
+        },
+        "readiness-manifest-r1": {
+          "allocated_bytes": 249655296,
+          "apparent_bytes": 249636408,
+          "files": 5
+        },
+        "receipts": {
+          "allocated_bytes": 2590527488,
+          "apparent_bytes": 2590441472,
+          "files": 39527
+        },
+        "recovered-native-inputs": {
+          "allocated_bytes": 107470848,
+          "apparent_bytes": 104494668,
+          "files": 1475
+        },
+        "remaining-legacy-parent": {
+          "allocated_bytes": 131072,
+          "apparent_bytes": 111127,
+          "files": 7
+        },
+        "restored-source0-inputs": {
+          "allocated_bytes": 667439104,
+          "apparent_bytes": 660748339,
+          "files": 2810
+        },
+        "run-root": {
+          "allocated_bytes": 19935232,
+          "apparent_bytes": 19717560,
+          "files": 70
+        },
+        "windows": {
+          "allocated_bytes": 275361792,
+          "apparent_bytes": 187119384,
+          "files": 39527
+        }
+      },
+      "partial_attempts": {},
+      "scope": "file blocks only; live sequential scan, directory/inode overhead separate"
+    },
+    "filesystem_overhead_reserve_bytes": 2147483648,
+    "manifest_peak_reserve_bytes": 27184433152,
+    "old_estimate_bytes": 103613572400,
+    "outside_pending6000_exact_bytes": 79219577025,
+    "outstanding_unreceipted_exact_bytes": 0,
+    "pending6000_current_exact_bytes": 103111616953,
+    "physical_conversion_bytes": 182331193978,
+    "published_or_partial_excess_over_receipted_bytes": 0,
+    "receipted_new_fixed_bytes": 182331193978,
+    "remaining_fixed_net_estimate_bytes": 0,
+    "reused_existing_bytes": 6007523501,
+    "safety_floor_bytes": 32212254720,
+    "total_fixed_exact_bytes": 182331193978
+  },
+  "provenance": {
+    "certificate_field_candidates": 0,
+    "certified_legacy_windows": 0,
+    "missing_timestamp_windows": 11197332,
+    "scope": "Bound native payloads and explicitly restored inputs; external lost archives not adjudicated."
+  },
+  "current_resources": {
+    "free_bytes": 73757163520,
+    "other_run_apparent_bytes": 4073384871,
+    "other_run_remaining_cap_bytes": 30286353497,
+    "summary_additional_reserve_bytes": 27184433152,
+    "summary_reserve_policy": "entire prior upper bound reserved again; conservative, not exact remaining bytes",
+    "proposed_training_budget_bytes": 17179869184,
+    "free_after_all_reserves_bytes": -893492313,
+    "floor_bytes": 32212254720,
+    "gpu_snapshot": "0, 57 %, 15621 MiB\n1, 85 %, 15765 MiB\n2, 48 %, 15569 MiB\n3, 37 %, 15539 MiB\n4, 100 %, 23021 MiB\n5, 100 %, 23023 MiB\n6, 100 %, 20771 MiB\n7, 0 %, 2 MiB\n"
+  },
+  "current_preparation_sessions": [
+    {
+      "pid": 856338,
+      "argv": [
+        "/usr/bin/python3",
+        "-u",
+        "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/ptv3-shared-wam-v6/tools/audit/watch_rigid_storage.py",
+        "--run",
+        "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/ptv3-shared-wam-v6/full-rigid-20261023-brief47-r1"
+      ]
+    },
+    {
+      "pid": 899079,
+      "argv": [
+        "/home2/wyy/miniconda3/envs/graspenv/bin/python",
+        "-u",
+        "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/ptv3-shared-wam-v6/tools/audit/summarize_full_rigid_data.py",
+        "--run",
+        "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/ptv3-shared-wam-v6/full-rigid-20261023-brief47-r1",
+        "--workers",
+        "8",
+        "--output",
+        "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/ptv3-shared-wam-v6/full-rigid-20261023-brief47-r1/full-manifest-r4"
+      ]
+    }
+  ],
+  "storage_watch": {
+    "automatic_restart": false,
+    "deadline_remaining_s": 19397.61883885134,
+    "floor_bytes": 32212254720,
+    "free_bytes": 73757204480,
+    "measured_at": "2026-10-23T04:32:55.004898+00:00",
+    "poll_seconds": 1,
+    "sessions": [
+      899079
+    ],
+    "status": "WATCHING"
+  },
+  "active_summary_progress": {
+    "disk_free_bytes": 73778184192,
+    "elapsed_s": 133.61,
+    "removed": {
+      "dev": 37950
+    },
+    "sequences": 1024,
+    "stage": "full_manifest",
+    "total_sequences": 39527,
+    "windows": {
+      "dev": 1268945
+    }
+  },
+  "gates": {
+    "counts": "PASS",
+    "frozen_identity": "PASS",
+    "clock": "PASS",
+    "coverage": "PASS",
+    "content_dedup": "PENDING",
+    "production_A_reader": "NOT_RUN",
+    "space": "HOLD",
+    "gpu_4_5_6": "BUSY"
+  },
+  "training_allowed": false,
+  "training_started_this_turn": false,
+  "goal_enabled": false,
+  "prior_completed_audit_receipt": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/ptv3-shared-wam-v6/full-rigid-20261023-brief47-r1/readiness-report-support/independent-check.json"
+}
