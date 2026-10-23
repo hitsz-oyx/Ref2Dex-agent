@@ -237,7 +237,7 @@ source0-copy-receipt*.json和remaining-legacy-budget.json；逐序列receipt在`
 **manifest SHA256：`{sha}`**；文件级SHA与字节数在其`files`表，
 {link('full-manifest-r1/manifest.sha256','SHA文件')}可直接校验。
 
-工程核验：刚体准入/精确NPY字节公式/磁盘floor及serial/spawn并行全量manifest测试合计16项通过；
+工程核验：刚体准入/精确NPY字节公式/磁盘floor及serial/spawn并行全量manifest测试合计17项通过；
 真实9source的18个首尾窗口通过实际sample_window reader、形状与有限值检查，
 {link('actual-reader-smoke.json','reader receipt')}明确保留legacy future-goal事实、不当成部署认证。
 仓库`tools/verify.py --changed`另有腾盘后历史cm-pointflow outputs链接缺失，未为了过检查

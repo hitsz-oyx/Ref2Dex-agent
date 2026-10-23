@@ -57,7 +57,7 @@ def digest(p):
     return h.hexdigest()
 
 
-def write(p, data, fixed=False):
+def write(p, data, fixed=False, durable=True):
     p = Path(p)
     raw = (json.dumps(data, sort_keys=True, separators=(',', ':'), allow_nan=False)+'\n').encode()
     if fixed:
@@ -66,7 +66,8 @@ def write(p, data, fixed=False):
         raw += b' '*(META_BYTES-len(raw))
     pending = p.with_name(p.name+'.part')
     with pending.open('wb') as f:
-        f.write(raw); f.flush(); os.fsync(f.fileno())
+        f.write(raw); f.flush()
+        if durable:os.fsync(f.fileno())
     pending.replace(p)
 
 
@@ -290,10 +291,15 @@ def process_one(args):
                 options=SimpleNamespace(output=out/'hands',mano_root=Path('/home2/wyy/oyx_ws/Ref2Dex/dataset/arctic/data/body_models/mano/models'),
                     shadow_asset=ROOT/'third_party/UniGraspTransformer/dexgrasp/hand_assets/open_ai_assets/hand/robot.xml',
                     device=device,cache_contract=contract)
-                hm=handtool.prepare(job,packet,options);write(folder/'meta.json',hm,fixed=True)
+                hm=handtool.prepare(job,packet,options)
+            # A process can stop after the original tool's atomic publish and
+            # before our fixed-size envelope. Normalize on resume as well;
+            # canonical metadata identities do not depend on JSON whitespace.
+            write(folder/'meta.json',hm,fixed=True,durable=False)
             if (cf/'meta.json').exists(): cm=read(cf/'meta.json')
             else:
-                cm=contacttool.prepare(folder,hm,geos,out/'contacts',contract);write(cf/'meta.json',cm,fixed=True)
+                cm=contacttool.prepare(folder,hm,geos,out/'contacts',contract)
+            write(cf/'meta.json',cm,fixed=True,durable=False)
             if not (ef/'meta.json').exists():
                 c=load_arrays(cf,['contact','valid']);enter,leave=proximity_counts(c['contact'],c['valid'])
                 values=annotate_events(enter,leave,c['valid'],observation_stride=OBSERVATION_STRIDE_BY_SOURCE.get(row['source_id'],1))
@@ -301,7 +307,7 @@ def process_one(args):
                 pending=ef.with_name(ef.name+'.partial-'+str(os.getpid()));pending.mkdir()
                 for name,value in values.items():np.save(pending/(name+'.npy'),value)
                 write(pending/'meta.json',dict(key=key,status='COMPLETED',protocol=DEFAULT_PROTOCOL,
-                    contact_meta_identity=metadata_identity(cf/'meta.json')),fixed=True)
+                    contact_meta_identity=metadata_identity(cf/'meta.json')),fixed=True,durable=False)
                 pending.rename(ef)
         seq=load_arrays(folder,['joints','joint_valid','surface_offsets','surface_valid','surface_parts','object_poses','object_pose_valid'])
         contact=load_arrays(cf,['contact','part','valid']);event=load_arrays(ef,['state','event_type','event_delta_steps','event_valid'])

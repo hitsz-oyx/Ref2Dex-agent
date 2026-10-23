@@ -47,3 +47,35 @@ def test_floor_checks_projected_bytes_before_writing(monkeypatch):
     monkeypatch.setattr(full.shutil,'disk_usage',lambda _:SimpleNamespace(free=full.FLOOR+99))
     assert full.guard('.',99)==full.FLOOR+99
     with pytest.raises(InterruptedError,match='30GiB'):full.guard('.',100)
+
+
+def test_resume_normalizes_published_metadata_before_receipt(tmp_path,monkeypatch):
+    """A kill after atomic stage publish but before padding must not reject data."""
+    from types import SimpleNamespace
+    from ptv3_shared_wam_v5.cache_contract import metadata_identity,array_identity
+    seq,geo,contact,event,evidence=bundle();seq['object_poses']=seq['object_poses'].astype(np.float32)
+    seq.update(observed_frame=np.ones(32,bool),expected_hand_presence=np.ones((32,2),bool))
+    event.update(enter_count=np.zeros((32,1),np.uint16),leave_count=np.zeros((32,1),np.uint16),raw_valid=contact['valid'].copy())
+    out=tmp_path/'run';key='s4-resume';folder=out/'hands/sequences'/key;cf=out/'contacts'/key;ef=out/'events'/key
+    for p in [folder,cf,ef,out/'windows',out/'receipts']:p.mkdir(parents=True,exist_ok=True)
+    for values,target in [(seq,folder),(contact,cf),(event,ef)]:
+        for name,value in values.items():np.save(target/(name+'.npy'),value)
+    registry=tmp_path/'registry';registry.mkdir();np.savez(registry/'g.npz',**geo)
+    monkeypatch.setattr(full,'REGISTRY',registry);monkeypatch.setattr(full,'_GEOMETRY_ROWS',{'example':dict(path='g.npz')})
+    monkeypatch.setattr(full,'_PLAN_SHA','fixture');monkeypatch.setattr(full,'_TOOLS',(None,None,'cpu'));full._GEOS.clear()
+    full.write(out/'contract.json',dict(identity='fixture'))
+    hm=dict(frames=32,key=key,joint_semantics=evidence['joint_semantics'],part_semantics=evidence['part_semantics'])
+    full.write(folder/'meta.json',hm)
+    cm=dict(label_semantics=full.LABEL_SEMANTICS,hand_identity=metadata_identity(folder/'meta.json'),geometry_identities=dict(example=array_identity(geo)))
+    full.write(cf/'meta.json',cm)
+    full.write(ef/'meta.json',dict(contact_meta_identity=metadata_identity(cf/'meta.json')) ,fixed=True)
+    row=dict(sequence_id=0,key=key,source_id=4,source_sequence='fixture',split='train',status='CONVERT',conversion_bytes=full.fixed_conversion_sizes(32,1))
+    job=dict(key=key,source_id=4,objects=['example'],source_row=dict(source_path=str(tmp_path/'original.npz'),target_slot=0))
+    result=full.process_one((str(out),row,job,None,None))
+    assert result['status']=='ADMITTED',result
+    assert result['admitted_windows']==5
+    assert result['conversion_actual_bytes']==row['conversion_bytes']
+    assert (folder/'meta.json').stat().st_size==full.META_BYTES
+    assert (cf/'meta.json').stat().st_size==full.META_BYTES
+    assert metadata_identity(folder/'meta.json')==cm['hand_identity']
+    full._GEOS.clear()
