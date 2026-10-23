@@ -9,6 +9,33 @@ from torch import nn
 from torch.nn import functional as F
 
 
+def _legacy_unpadded_attention(q, k, v, mask):
+    """Torch2.0 efficient SDPA supports FP32, but rejects every non-null mask.
+
+    WAM only supplies key-padding masks shared by all heads/queries. Group
+    samples by valid key count, remove exactly the masked keys, and run the
+    same efficient FP32 kernel. No padded key contributes to the softmax.
+    """
+    if mask.ndim != 4 or mask.shape[1:3] != (1, 1):
+        raise ValueError('Torch2.0 adapter requires a key-padding mask')
+    if not ((mask == 0) | torch.isneginf(mask)).all():
+        raise ValueError('Torch2.0 adapter cannot discard finite attention bias')
+    valid = (mask[:, 0, 0] == 0).expand(q.shape[0], -1)
+    lengths = valid.sum(-1)
+    if not (lengths > 0).all():
+        raise ValueError('attention requires at least one valid key')
+    result = torch.zeros_like(q)
+    for length in torch.unique(lengths).tolist():
+        indices = torch.where(lengths == length)[0]
+        positions = torch.where(valid[indices])[1].reshape(len(indices), length)
+        positions = positions[:, None, :, None].expand(-1, k.shape[1], -1, k.shape[-1])
+        keys = torch.gather(k[indices], 2, positions)
+        values = torch.gather(v[indices], 2, positions)
+        attended = F.scaled_dot_product_attention(q[indices], keys, values, dropout_p=0.)
+        result = result.index_copy(0, indices, attended)
+    return result
+
+
 def sdpa(q, k, v, mask=None, scale=None, backend='efficient'):
     if any(x.dtype != torch.float32 for x in (q, k, v)):
         raise ValueError('strict FP32 attention requires float32 QKV')
@@ -32,6 +59,8 @@ def sdpa(q, k, v, mask=None, scale=None, backend='efficient'):
             default_scale = q.shape[-1] ** -.5
             if scale is not None and scale != default_scale:
                 q = q * (scale / default_scale)
+            if backend == 'efficient' and mask is not None:
+                return _legacy_unpadded_attention(q, k, v, mask)
             return F.scaled_dot_product_attention(q, k, v, attn_mask=mask, dropout_p=0.)
         return F.scaled_dot_product_attention(q, k, v, attn_mask=mask,
                                              dropout_p=0., scale=scale)

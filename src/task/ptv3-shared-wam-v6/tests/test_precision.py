@@ -93,3 +93,20 @@ def test_cuda_efficient_fp32_ragged_backward_matches_math():
     assert a.dtype == torch.float32
     torch.testing.assert_close(a, b, atol=1e-6, rtol=2e-5)
     torch.testing.assert_close(x.grad, y.grad, atol=2e-6, rtol=3e-5)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason='CUDA legacy FP32 adapter')
+def test_torch20_unpadding_preserves_arbitrary_key_holes_and_gradients(monkeypatch):
+    torch.manual_seed(200)
+    q=torch.randn(3,2,7,8,device='cuda',requires_grad=True)
+    k=torch.randn(3,2,11,8,device='cuda',requires_grad=True)
+    v=torch.randn(3,2,11,8,device='cuda',requires_grad=True)
+    mask=torch.tensor([[1,0,1,0,1,1,0,1,0,1,1],[1]*11,[0,0,1,0,0,1,0,1,0,0,0]],device='cuda',dtype=torch.bool)[:,None,None]
+    monkeypatch.setattr(torch,'__version__','2.0.1+cu118')
+    actual=sdpa(q,k,v,mask,scale=.25,backend='efficient')
+    expected=sdpa(q,k,v,mask,scale=.25,backend='math')
+    torch.testing.assert_close(actual,expected,atol=1e-6,rtol=3e-5)
+    grad=torch.randn_like(actual)
+    a=torch.autograd.grad(actual,(q,k,v),grad,retain_graph=True)
+    b=torch.autograd.grad(expected,(q,k,v),grad)
+    for x,y in zip(a,b):torch.testing.assert_close(x,y,atol=2e-6,rtol=4e-5)
