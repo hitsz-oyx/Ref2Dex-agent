@@ -13,7 +13,10 @@
 保持原生60Hz actor/physics，每2controls记录一次，合计57,600原生controls；
 reset warmup另96controls。没有重训、模型替换、checkpoint、视频或删除历史产物。
 原6k manifest仍`5bda6a99678b0586b496eff7b4b3ba3afddda996cdc16c43603341ed1264225f`，
-原condition recipe/tuple/seed170与固定512面板未改。新增索引独立，不自动接入TRAIN。
+原condition recipe/tuple/seed170与固定512面板未改。旧goal认证仍0/6,000，本次只给新执行认证。
+新增索引独立，不自动接入TRAIN；`candidate-manifest.json`将每个tuple的sequence_ordinal
+明确绑定到`rollout-verdicts.jsonl`行序，再到实际rollout/registry/reset指令。
+该ordinal不是plan.jobs顺序，也不是旧6k sequence ID，完整26,304行已精确核对。
 
 实验`P-20261023-rigid-source-bound-pilot`，run`rigid-source-bound-pilot-20261023-r2`，
 branch main；初始采集代码480ae4e4，批次恢复入口8d97deae，后续每批实际代码在
@@ -71,15 +74,15 @@ approach延迟、contact的统一开指时间表仅按机制施加；完整plan/
 ## 实测资源与下一批成本
 
 规划仍报告16–32KiB/tick约0.44–0.88GiB，含registry/日志≤2GiB。
-本轮实际run序列化534,926,428bytes，加只读复用的准备资产和失败r1
-6,666,512bytes，总0.504GiB。
+本轮实际run序列化535,070,374bytes，加只读复用的准备资产和失败r1
+6,666,512bytes，总0.505GiB。
 这是文件逻辑字节，不冒充文件系统元数据的精确分配量。
 项目tmp的gymtorch编译扩展另约3.4MiB；Isaac Gym沿既有默认目录自动缓存VHACD，
 这是运行库cache，不作为数据/registry或认证证据；不删除已有cache。
 
 写前实测143.14GiB，资源采样最低余量
 131.05GiB，报告时余量
-122.82GiB，均高于30GiB。
+116.59GiB，均高于30GiB。
 写入前逐次guard，保留并发全量转换；无历史数据删除。
 前36条GPU4、后60条GPU5；每批启动前检查空闲，始终只派一张采集卡。
 资源偏差：GPU4首两批之间发生启动竞态，preflight空闲后其他执行器也启动，
@@ -106,6 +109,7 @@ GPU排队另列；这是基于pilot的规划预算，未执行，不能作为实
 
 主入口[collect_rigid_pilot.py](../../tools/run/collect_rigid_pilot.py)，
 独立落盘审计[audit_fresh_rigid_pilot.py](../../tools/audit/audit_fresh_rigid_pilot.py)，
+候选tuple绑定[publish_fresh_rigid_manifest.py](../../tools/audit/publish_fresh_rigid_manifest.py)，
 显式goal消费者[fresh_rigid.py](../../src/ptv3_shared_wam_v6/fresh_rigid.py)。
 graspenv：Python3.8.20、Torch2.4.1+cu121、Isaac Gym GPU PhysX；每批记录实际环境，
 Isaac先于Torch导入，TMPDIR/TORCH_EXTENSIONS_DIR均在项目tmp。

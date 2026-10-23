@@ -39,15 +39,15 @@
   },
   "cost": {
     "measured_collection_elapsed_s": 1074.6546259606257,
-    "measured_free_at_report_bytes": 131877965824,
+    "measured_free_at_report_bytes": 125187489792,
     "measured_free_before_bytes": 153695825920,
     "measured_min_resource_free_bytes": 140710731776,
     "measured_physics_and_raw_save_s": 82.88100051227957,
     "peak_gpu_mib": 4670,
     "prepared_and_failed_attempt_bytes": 6666512,
-    "run_serialized_bytes": 534926428,
-    "total_gib": 0.5043977312743664,
-    "total_serialized_bytes": 541592940
+    "run_serialized_bytes": 535070374,
+    "total_gib": 0.504531791433692,
+    "total_serialized_bytes": 541736886
   },
   "experiment_id": "P-20261023-rigid-source-bound-pilot",
   "fixed_panel_prediction": "NOT_RUN",
@@ -90,7 +90,7 @@
     "free_space_floor_gib": 30,
     "hard_output_cap_gib": 4,
     "limitation": "only source4; cannot fill other8 source provenance cells; fixed-panel improvement not measured",
-    "measured_linear_payload_gib": 1.9927562326192856,
+    "measured_linear_payload_gib": 1.993292473256588,
     "native_controls": 230400,
     "output_ticks": 115200,
     "planning_payload_gib": [
