@@ -37,6 +37,9 @@ def test_complete_manifest_cross_split_dedup_and_unknown_certification(tmp_path,
     if nontransitive:
         train=np.load(run/'hand0/joints.npy');train[:]=.0009;train[28]=.0025;np.save(run/'hand0/joints.npy',train)
         dev=np.load(run/'hand1/joints.npy');dev[:]=-.0009;np.save(run/'hand1/joints.npy',dev)
+    fixture_plan=tmp_path/'plan.json'
+    prep.write(fixture_plan,dict(jobs=[dict(key='s1-'+str(i),source_id=1,source_sequence='different_mother_'+str(i),sequence_folder=str(run/('hand'+str(i)))) for i in [0,1]]))
+    monkeypatch.setattr(prep,'PLAN',fixture_plan)
     prep.write(run/'progress.json',dict(status='CONVERSION_AND_ADMISSION_COMPLETED'))
     prep.write(run/'inventory.json',dict(total_sequences=2,by_status=dict(REUSE=2),seeds=dict(full_manifest=170)))
     pilot=tmp_path/'pilot.json'

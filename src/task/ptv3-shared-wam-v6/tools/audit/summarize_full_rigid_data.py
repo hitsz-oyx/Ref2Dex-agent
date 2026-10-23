@@ -58,26 +58,6 @@ def anchored(s,geo,slot,tick,offsets):
     return hand,query,rel
 
 
-def signature(s,c,fractions,geo,shape,slot,tick,phase):
-    """Identity-free fixed-bin candidate key, followed by full exact checking.
-
-    Quantization makes this conservative: nearby content on opposite bin
-    boundaries is retained. No claim of exhaustive tolerance clustering.
-    """
-    offsets=np.array([-3,0,8,24]);hand,query,rel=anchored(s,geo,slot,tick,offsets)
-    h=hashlib.blake2b(digest_size=20)
-    for array in [np.rint(np.log(np.maximum(shape,1e-9))/np.log(1.05)).astype('<i4'),
-                  np.rint(hand/.002).astype('<i4'), np.rint(query/.002).astype('<i4'),
-                  np.rint(rel[:,:3,:3]/.01).astype('<i4'),
-                  np.rint(fractions[tick+offsets,slot]/.02).astype('<i4'),
-                  np.packbits(s['joint_valid'][tick-3:tick+25]),
-                  np.packbits(c['valid'][tick-3:tick+25,slot]),
-                  np.packbits(s['object_pose_valid'][tick-3:tick+25,slot]),
-                  np.asarray([phase],np.uint8)]:
-        h.update(array.tobytes())
-    return h.digest()
-
-
 def shape_of(geo):
     if '_shape' not in geo:geo['_shape']=pca_shape(geo['surface'])
     return geo['_shape']
@@ -169,7 +149,7 @@ def legacy_census(out,receipts):
                 status=r['status'] if r else 'REJECTED',
                 admitted_windows=r['admitted_windows'] if r else 0,
                 reasons=r['reasons'] if r else (['official_test_holdout_excluded_from_train_dev'] if official=='test' else ['no_frozen_native_sequence_and_bound_v6_adapter']),
-                official_split=official,
+                official_split=official,decision_scope='TRAIN_DEV_membership; TEST exclusion is not a physical quality rejection',
                 sequence_receipt=('receipts/'+r['key']+'.json') if r else None,
                 views_are_not_additional_demonstrations=True)
             counts[record['status']]+=1;details.append(record);jsonline(f,record)
@@ -212,6 +192,15 @@ def summarize(run,out,workers=1):
     additional=len(prep.read(run/'additional-local-jobs.json')['rows']) if (run/'additional-local-jobs.json').exists() else 0
     if len(receipts)!=inventory['total_sequences']+additional:raise ValueError('incomplete receipts')
     by_id={r['sequence_id']:r for r in receipts}
+    plan_jobs={r['key']:r for r in prep.read(prep.PLAN)['jobs']}
+    if additional:
+        plan_jobs.update({r['job']['key']:r['job'] for r in prep.read(run/'additional-local-jobs.json')['rows']})
+    origins={r['key']:(r.get('raw_path') if r['key'].startswith('s1-local-extra') else r.get('source_row',{}).get('source_path',r.get('sequence_folder'))) for r in plan_jobs.values()}
+    canonical=Counter((r['source_id'],origins[r['key']]) for r in receipts)
+    if any(v!=1 for v in canonical.values()):raise ValueError('duplicate canonical mother payload URI; cannot count as independent mothers')
+    with (out/'mother-identities.jsonl').open('x') as stream:
+        for r in sorted(receipts,key=lambda r:r['sequence_id']):
+            jsonline(stream,dict(sequence_id=r['sequence_id'],sequence_key=r['key'],source_id=r['source_id'],source_sequence=r['source_sequence'],canonical_original_payload_uri=origins[r['key']]))
     legacy=legacy_census(out,receipts)
     pilot=prep.read(prep.PILOT);old_rows=pilot['selection']['train_window_rows']
     old_keys={(r['sequence_key'],int(r['slot']),int(r['tick'])) for r in old_rows}
@@ -350,6 +339,7 @@ def summarize(run,out,workers=1):
         native_recovery=prep.read(run/'recovered-inputs.json')['parity_checks'] if (run/'recovered-inputs.json').exists() else None,
         recovered_input_sequences=len(prep.read(run/'recovered-inputs.json')['rows']) if (run/'recovered-inputs.json').exists() else 0,
         source0_restored_sequences=prep.read(run/'recovered-inputs.json').get('restored_source0',0) if (run/'recovered-inputs.json').exists() else 0,
+        mother_identity=dict(canonical_original_payloads=len(canonical),duplicate_payload_uris=0,identity='source_id + original complete payload URI; relative basenames alone are not mother IDs'),
         sequence_status=dict(Counter(r['status'] for r in receipts)),
         sequence_status_by_source={str(s):dict(Counter(r['status'] for r in receipts if r['source_id']==s)) for s in prep.SOURCES},
         sequence_rejection_reasons=dict(rejection),
@@ -377,6 +367,7 @@ def summarize(run,out,workers=1):
             train_added_before_dedup=count['train']-len(old_present),train_added_after_dedup=count['train']-removed['train']-len(old_kept),
             dev_before_and_after=[count['dev'],count['dev']-removed['dev']],
             note='Old6000 and fixed512 anchor are unchanged; full sequence IDs refer to frozen39526 plan order. Join uses stable sequence_key,slot,tick.'),
+        randomness=dict(manifest='deterministic original-plan order; no RNG consumed',dedup='deterministic representative order; no RNG consumed',shadow_surface_sampling=20261019,geometry='frozen registry; no resampling'),
         seeds=inventory['seeds'],inventory='../inventory.json',receipt_directory='../receipts',batch_receipt_directory='../batches',
         command=sys.argv,files=files,elapsed_s=round(time.monotonic()-started,3),
         disk_free_after_bytes=prep.shutil.disk_usage(run).free,historical_outputs_deleted=0)
