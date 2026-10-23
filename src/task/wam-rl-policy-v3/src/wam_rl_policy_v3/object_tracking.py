@@ -85,15 +85,21 @@ class ObjectPoseTracker:
     No model, schema, goal inference or gain tuning. FF is the first-order
     velocity*dt increment in the native position-target interface, not torque.
     """
-    def __init__(self, q, palm, offset, scale, *, held_finger_targets=None):
+    def __init__(self, q, palm, offset, scale, *, held_finger_targets=None, joint_limits=None):
         self.offset, self.scale = np.asarray(offset), np.asarray(scale)
         self.mount = Rotation.from_euler('XYZ', q[3:6]).as_matrix().T @ palm[:3,:3]
         self.fingers = np.asarray(q)[FINGER_ACTIVE].copy() if held_finger_targets is None else np.asarray(held_finger_targets,dtype=float).copy()
         if self.fingers.shape!=(6,) or not np.isfinite(self.fingers).all():
             raise ValueError('six finite actual preceding PD finger targets required')
+        self.envelope=None
+        if joint_limits is not None:
+            from .reference_admission import JointEnvelope
+            self.envelope=JointEnvelope(joint_limits,offset,scale)
 
     def step(self, q, dq, palm, target, velocity, omega_world, forces, force_valid, feedforward):
         q, dq = np.asarray(q), np.asarray(dq)
+        if self.envelope is not None:
+            self.envelope.pose_configuration(target,q,palm,self.fingers)
         angles = closest_wrist_angles(target[:3, :3], q[3:6], self.mount)
         translation = .45*(target[:3,3]-palm[:3,3])-.012*dq[:3]
         angular = .40*(angles-q[3:6])-.008*dq[3:6]
@@ -114,9 +120,13 @@ class ObjectPoseTracker:
         finger_action = 2*(self.fingers-self.offset[FINGER_ACTIVE])/self.scale[FINGER_ACTIVE]-1
         raw = np.r_[(translation-self.offset[:3])/self.scale[:3],
                     (angular-self.offset[3:6])/self.scale[3:6],finger_action].astype(np.float32)
+        admission=None
+        if self.envelope is not None:
+            raw,admission=self.envelope.protect(raw,q,dq)
+            self.fingers=np.asarray(admission['executed_pd'])[FINGER_ACTIVE].copy()
         return raw, dict(phase='TRACK',wrist_target=target.tolist(),velocity_ff_world=np.asarray(velocity).tolist(),
                          angular_velocity_ff_world=np.asarray(omega_world).tolist(),feedforward=bool(feedforward),
-                         clipped=bool(np.any(np.abs(raw)>1)))
+                         clipped=bool(np.any(np.abs(raw)>1)),admission=admission)
 
 
 def errors(measured, desired):

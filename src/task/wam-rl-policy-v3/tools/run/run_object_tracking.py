@@ -28,14 +28,16 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--output',type=Path,required=True);p.add_argument('--gpu',type=int,choices=[4,5,6,7],default=4)
     p.add_argument('--seconds',type=int,default=7200)
+    p.add_argument('--max-controls',type=int,default=300000)
     p.add_argument('--sequence',default='s1_cylindersmall_pass_1')
     p.add_argument('--declarations',type=Path,default=ROOT/'outputs/wam-rl-policy-v3/inspire-teacher-rollout-audit-20261020-r3/manifest.json')
     p.add_argument('--matrix',choices=['sentinel','full'],default='full')
     p.add_argument('--reference-npz',type=Path,help='Generic world-frame object SE3: arrays times (seconds) and poses (N,4,4); overrides shape matrix')
     p.add_argument('--stages',choices=['A','B','both'],default='both')
     p.add_argument('--reference-start',type=Path,help='Reuse frozen world object start for a paired stage-only run')
+    p.add_argument('--legacy-unchecked',action='store_true',help='Explicit historical reproduction only; bypass new admission/watchdog')
     a=p.parse_args();out=a.output.resolve()
-    if ROOT/'outputs/wam-rl-policy-v3' not in out.parents or not 60<=a.seconds<=7200:raise ValueError('bounded task-local output required')
+    if ROOT/'outputs/wam-rl-policy-v3' not in out.parents or not 60<=a.seconds<=7200 or not 1<=a.max_controls<=300000:raise ValueError('bounded task-local output required')
     out.mkdir(parents=True,exist_ok=True)
     if (out/'manifest.json').exists():raise ValueError('do not overwrite an existing run')
     disk=shutil.disk_usage(ROOT)
@@ -54,6 +56,7 @@ def main():
     from wam_rl_policy_v3.physical_safety import physical_safety
     from wam_rl_policy_v3.teacher_quality import table_support
     from wam_rl_policy_v3.object_tracking import ObjectPoseTracker,ObjectTrajectory,make_trajectory,hand_setpoint,errors,joint_margin,SHAPES
+    from wam_rl_policy_v3.reference_admission import JointEnvelope,ProgressWatchdog,UnreachableReference,limit_categories
     external=None
     if a.reference_npz:
         with np.load(a.reference_npz) as z:external=ObjectTrajectory(z['times'],z['poses'])
@@ -73,12 +76,12 @@ def main():
          '--socket',str(sock),'--server-pid',str(os.getpid()),'--envs','1','--gpu',str(a.gpu),'--seed','195','--seconds',str(a.seconds),
          '--fixed-motions-json',str(fixed),'--state-transport','packed','--extended-state','--synchronize-setters','--physics-backend','gpu-cpu','--object-tracking-probe']
     manifest=dict(status='STARTING',git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),native_command=cmd,
-                  sequence=a.sequence,policy_updates=0,model_calls=0,tau_used=False,maximum_controls=300000,maximum_new_bytes=2*2**30,
-                  disk_free_before=disk.free,gpu=a.gpu,client_python=sys.executable,controls=0,results=[],unmeasured=[],rigid_A_scope='kinematic grasp constraint at control samples; not load-bearing welded dynamics')
+                  sequence=a.sequence,policy_updates=0,model_calls=0,tau_used=False,maximum_controls=a.max_controls,maximum_new_bytes=2*2**30,
+                  disk_free_before=disk.free,gpu=a.gpu,client_python=sys.executable,controls=0,results=[],unmeasured=[],limit_aware=not a.legacy_unchecked,rigid_A_scope='kinematic grasp constraint at control samples; not load-bearing welded dynamics')
     write(out/'manifest.json',manifest)
     log=(out/'native.log').open('x');environment=dict(os.environ,REF2DEX_RUN_ROOT=str(ROOT))
     child=subprocess.Popen(cmd,env=environment,stdout=log,stderr=subprocess.STDOUT,start_new_session=True,cwd=ROOT)
-    write(out/'process.json',dict(client_pid=os.getpid(),native_pid=child.pid));start=time.monotonic();conn=None
+    write(out/'process.json',dict(client_pid=os.getpid(),native_pid=child.pid));start=time.monotonic();conn=None;admission_log=None
     try:
         while conn is None:
             if child.poll() is not None:raise RuntimeError('native startup exit '+str(child.returncode))
@@ -87,17 +90,26 @@ def main():
             except socket.timeout:pass
         conn.settimeout(120);hello=receive(conn);state=unpack_state(hello['state']);audit=hello['audit'];manifest['native_audit']=audit;manifest['status']='RUNNING'
         offset=np.asarray(audit['controller']['offset']);scale=np.asarray(audit['controller']['scale']);limits=audit['physical_joint_limits']
+        envelope=None if a.legacy_unchecked else JointEnvelope(limits,offset,scale)
+        admission_log=(out/'command-admission.jsonl').open('x');current_phase='ACQUIRE'
         roles=audit['tracking_body_roles'];names=audit['tracking_body_names']
         def rpc(command):
             nonlocal state
             send(conn,command);reply=receive(conn);state=unpack_state(reply['state']);return reply
         def step(action):
-            if time.monotonic()-start>a.seconds-20 or manifest['controls']>=300000 or shutil.disk_usage(ROOT).free<20*2**30:raise TimeoutError('wall/control/storage budget')
+            if time.monotonic()-start>a.seconds-20 or manifest['controls']>=a.max_controls or shutil.disk_usage(ROOT).free<20*2**30:raise TimeoutError('wall/control/storage budget')
             previous_tick=int(state['tick'][0]);previous_episode=state['episodes'][:]
+            before=np.asarray(state['q'])[0].copy();dq=np.asarray(state['dq'])[0].copy();proposed=np.asarray(action).copy();protection=None
+            if envelope is not None:action,protection=envelope.protect(action,before,dq)
             reply=rpc(dict(op='step',action=expand_action(action[None]).tolist(),episodes=previous_episode,return_pd=True))
             if state['episodes']!=previous_episode or int(state['tick'][0])!=previous_tick+1:raise ValueError('reset/tick ownership corruption')
             manifest['controls']+=1
-            return np.asarray(reply['pd_targets'])[0]
+            pd=np.asarray(reply['pd_targets'])[0]
+            if envelope is not None and envelope.check(pd):raise ValueError('native returned PD violates pre-command envelope')
+            admission_log.write(json.dumps(dict(case=case_index,phase=current_phase,tick=previous_tick,q_before=before.tolist(),dq_before=dq.tolist(),
+                proposed_raw=proposed.tolist(),executed_raw=action.tolist(),pd_target=pd.tolist(),q_after=np.asarray(state['q'])[0].tolist(),
+                categories=limit_categories(np.asarray(state['q'])[0],pd,limits),protection=protection))+'\n');admission_log.flush()
+            return pd
         def collisions():
             bad=[]
             for c in state['tracking_contacts']:
@@ -117,7 +129,7 @@ def main():
         for case_index,case in enumerate(plan):
             if stop_p0:
                 manifest['unmeasured'].append(dict(case,reason='NOT_RUN_P0'));continue
-            folder=out/('case%03d'%case_index);folder.mkdir();rpc(dict(op='reset',ids=[0]));np.savez_compressed(folder/'initial.npz',q=state['q'],dq=state['dq'],objects=state['objects'],hand=state['hand'],tick=state['tick'])
+            folder=out/('case%03d'%case_index);folder.mkdir();rpc(dict(op='reset',ids=[0]));current_phase='ACQUIRE';np.savez_compressed(folder/'initial.npz',q=state['q'],dq=state['dq'],objects=state['objects'],hand=state['hand'],tick=state['tick'])
             held_since=None;acquisition=[];acquired=False;abort=None;initial_z=float(state['objects'][0][2]);last_acquisition_pd=None
             for tick in range(len(source)+120):
                 safety=physical_safety(state,0,points,bounds,limits)
@@ -150,11 +162,18 @@ def main():
             if last_acquisition_pd is None:raise ValueError('missing actual acquisition PD target')
             finger_ids=np.array([6,8,10,12,14,15])
             held_fingers=last_acquisition_pd[finger_ids] if case['stage']=='B' else None
-            tracker=ObjectPoseTracker(np.asarray(state['q'])[0],palm,offset,scale,held_finger_targets=held_fingers)
+            tracker=ObjectPoseTracker(np.asarray(state['q'])[0],palm,offset,scale,held_finger_targets=held_fingers,joint_limits=limits if envelope is not None else None)
             write(folder/'handoff.json',dict(measured_q=np.asarray(state['q'])[0].tolist(),last_actual_pd=last_acquisition_pd.tolist(),held_finger_targets=tracker.fingers.tolist()))
+            if envelope is not None:
+                decision=envelope.admit_trajectory(curve,relative,np.asarray(state['q'])[0],palm,tracker.fingers)
+                write(folder/'reference-admission.json',decision)
+                if not decision['admitted']:
+                    result=dict(case,index=case_index,status='REFERENCE_REJECTED',abort=dict(kind='unreachable_reference',decision=decision),pass_tracking=False,
+                                acquisition_controls=len(acquisition)-1,tracked_controls=0)
+                    manifest['results'].append(result);write(folder/'result.json',result);write(out/'manifest.json',manifest);continue
             if case['stage']=='A':
                 rpc(dict(op='tracking_attachment',enabled=True,hand_object=np.r_[relative[:3,3],Rotation.from_matrix(relative[:3,:3]).as_quat()].tolist()))
-            captures=[];metrics=[];details=[];raw_actions=[];pds=[];N=int(np.ceil(meta['duration_s']*30-1e-9));last_lost=None
+            captures=[];metrics=[];details=[];raw_actions=[];pds=[];N=int(np.ceil(meta['duration_s']*30-1e-9));last_lost=None;watchdog=ProgressWatchdog();current_phase='TRACK'
             for tick in range(N+1):
                 now=tick/30;reference_time=min(now,meta['duration_s']);desired,v,w=curve.evaluate(reference_time)
                 if now>meta['duration_s']:v,w=np.zeros(3),np.zeros(3)
@@ -177,10 +196,14 @@ def main():
                 if bad:abort=dict(kind='collision',tick=tick,pairs=bad);break
                 if case['stage']=='B' and (drift>.05 or last_lost is not None and now-last_lost>=.2-1e-10):abort=dict(kind='slip',tick=tick,drift_m=drift);break
                 if tick==N:break
+                if envelope is not None:
+                    stopped=watchdog.update(now,actual,desired)
+                    if stopped:abort=dict(kind='unreachable_stall',tick=tick,reason=stopped);break
                 target,hv,hw=hand_setpoint(desired,v,w,relative)
                 # Rigid fixture A fixes the grasp. Real-contact B retains the
                 # existing MeasuredGraspConsumer's force-based finger holding.
-                raw,info=tracker.step(np.asarray(state['q'])[0],np.asarray(state['dq'])[0],palm,target,hv,hw,np.asarray(state['contact_forces'])[0],case['stage']=='B' and bool(state['contact_force_valid'][0]),case['feedforward'])
+                try:raw,info=tracker.step(np.asarray(state['q'])[0],np.asarray(state['dq'])[0],palm,target,hv,hw,np.asarray(state['contact_forces'])[0],case['stage']=='B' and bool(state['contact_force_valid'][0]),case['feedforward'])
+                except UnreachableReference as error:abort=dict(kind='unreachable_reference',tick=tick,reason=str(error));break
                 raw_actions.append(raw);details.append(info);pds.append(step(np.clip(raw,-1,1)))
             if captures:np.savez_compressed(folder/'trajectory.npz',**{k:np.stack([s[k] for s in captures]) for k in captures[0]})
             if pds:np.savez_compressed(folder/'controls.npz',raw_action=np.asarray(raw_actions),pd_target=np.asarray(pds))
@@ -204,6 +227,7 @@ def main():
         manifest.update(status='FAILED',error=repr(error),elapsed_s=time.monotonic()-start);raise
     finally:
         write(out/'manifest.json',manifest)
+        if admission_log:admission_log.close()
         if conn:conn.close()
         server.close();log.close()
         if child.poll() is None:
