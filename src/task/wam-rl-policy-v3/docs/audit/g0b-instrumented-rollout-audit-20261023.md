@@ -1,6 +1,6 @@
 # G0b：仪器化 rollout 逐样本自洽审计（2026-10-23）
 
-**当前唯一裁决：G0b PASS（brief45 增补 v2）**。真实新数据 807 PPO samples 与 24 个确定性边界样本通过计算/记录自洽验收；不表示 PPO 学习有效。BC/PPO 实际 controls 为643/807，物理采样后的更新0/4。旧14,400 controls永久 INVALID_INSTRUMENTATION；08:12失败attempt也保持INVALID，均不追认。
+**v2 计算/软件边界验收：G0b PASS；最新追加的物理边界覆盖：待验收。**真实新数据 807 PPO samples 与 24 个确定性边界样本通过计算/记录自洽验收；不表示 PPO 学习有效。BC/PPO 实际 controls 为643/807，物理采样后的更新0/4。旧14,400 controls永久 INVALID_INSTRUMENTATION；08:12失败attempt也保持INVALID，均不追认。
 
 本轮新增：仅持久化补丁、同一旧批次的补丁前后等价性核对，以及新目录中最多每臂 1,500 controls 的 BC/PPO 最小物理复跑与逐样本 G0 重算。引用而不重跑：brief42 的旧 36 回合/14,400 samples 及 INVALID_INSTRUMENTATION；brief39 的 G1/G2/G3 和 B2/B3。旧读数不作为本轮新数据证据。
 
@@ -284,3 +284,29 @@ PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES='' /home2/wyy/miniconda3/envs/gra
 v2源码提交6cfb1d51在共享暂存区碰到另一会话已暂存的5个文件，实际并入同一提交；另一会话随后推进92563d9a并推送。尝试只用独立index更正本地提交时HEAD已被推进，产生的临时amend已立即撤回，分支恢复到92563d9a并与远端核对，未强推、未覆盖工作文件；临时amend未进入远端历史。已发布历史不重写。后续本报告使用`git commit --only -- <本报告>`避免再次消费共享index；不能把6cfb1d51描述成仅含本轮文件的提交。原v1提交路径记录仅描述v1，不代表本次并发未发生。
 
 v2产物快照 **22,681,641 bytes**，477个实体文件，约21.6309MiB；新attempt低于1GiB。运行结束磁盘余量约123.77GiB，旧v1的1.57GB单独保留，不把它当成本轮新增写盘。产物根为`outputs/wam-rl-policy-v3/ppo-instrumented-audit-20261023-r1/v2/`，不入库。
+
+
+## 08:20 新增要求：确定性物理边界覆盖预注册（v3，实施前）
+
+最新指令要求通过收窄预算/选点得到真实物理终点，并把joint与普通终止分开各≥2例；此前v2的软件fixture不能代替该物理覆盖。本节新增物理数据与v2的807样本分开。原解读表阈值不变；v2计算PASS保留，扩展验收须等本节结果，覆盖不足则G0b INVALID（coverage），不以软件案例补足物理回合数。
+
+只做以下6个预选案例，不随机凑数、不按结果追加候选：
+
+| case | 原冻结初态 / native seed | 原臂与残差模式 | 收窄controls上限 | 预期物理终点 | 选点证据（引用） |
+|---|---|---|---:|---|---|
+| cut32 | s1_cylindersmall_pass_1 /294 | PPO原采样 | 32 | truncation，b=1/c=0，bootstrap非零 | v2同初态自然到600 |
+| cut64 | 同上 /294 | PPO原采样 | 64 | 同上 | 同上 |
+| joint-alarm | s10_alarmclock_pass_1 /295 | BC原均值 | 400 | joint safety，b=c=0 | v2 BC在43触发；旧BC在268触发 |
+| joint-banana | s10_banana_pass_1 /296 | BC原均值 | 400 | joint safety，b=c=0 | 旧BC在346触发 |
+| real-cube-1 | s10_cubesmall_inspect_1 /297 | BC原均值 | 400 | real termination（table），b=c=0 | 旧BC在224触发 |
+| real-cube-2 | 同上 /297 | BC原均值 | 400 | 同上 | 同一冻结软件边界条件重复一次，不充作独立统计样本 |
+
+只有cut案例主动缩短预算来保证早于已观测自然终点；普通/关节终止依据历史标签预选，GPU物理不能承诺逐位确定，必须用新实际终点验收。若选点产生别类终点，记“该构造未达到预期”，不改阈值/PD/奖励、不重试凑数。
+
+所有案例从同一原始BC residual checkpoint启动，R/WAM、seed/data及原控制模式保持。BC不训练，先只补BC侧的GAE审计sidecar：使用已采集的obs/value/reward和生产GAE/保存函数，显式标“仅记录、未用于BC更新”。原PPO更新分支不变。新增仅为注册flag触发的落盘，不造新控制基线。
+
+新增预算：BC≤1,600 controls、PPO≤96 controls；连同v2累计BC≤2,243、PPO≤903，均≤3,000/臂。PPO新增至多4 updates，总计≤8（上限72）；BC0更新。产物新目录`.../ppo-instrumented-audit-20261023-r1/v3-physical-boundaries/`，预计≤64MiB、硬上限512MiB。原v1/v2与旧14,400一律不覆盖、不删除。仍只GPU7，>2GiB等待60秒；OOM/loader/非有限/磁盘<20GiB立即停止不自动重跑。
+
+无构造基线不是随机初态抽样：v2固定前两初态的PPO终点经验频率 real 1/2、joint 0/2、truncation 1/2；BC为real0/2、joint1/2、truncation1/2。真正随机初态总体出现率未取证，不能把这四回合当总体概率。旧brief42的36回合类别也仅可作固定面板历史频率引用，不作新G0证明。
+
+状态：V3_PHYSICAL_BOUNDARIES_PRE_REGISTERED。

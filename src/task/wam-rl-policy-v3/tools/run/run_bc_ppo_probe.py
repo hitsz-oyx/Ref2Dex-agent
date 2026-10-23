@@ -87,7 +87,7 @@ def main():
     from wam_rl_policy_v3.grasp_repair import clean_tau_future,support_plane
     from wam_rl_policy_v3.grasp_geometry import GeometryGraspConsumer,GraspGeometry
     from wam_rl_policy_v3.source_pd import source_pd_action
-    from wam_rl_policy_v3.intent_residual import IntentResidualPolicy,residual_observation,apply_intent_residual,ppo_update,final_state_value,save_ppo_rollout,RESIDUAL_CONTRACT
+    from wam_rl_policy_v3.intent_residual import IntentResidualPolicy,residual_observation,apply_intent_residual,ppo_update,final_state_value,save_ppo_rollout,gae_targets,RESIDUAL_CONTRACT
     from wam_rl_policy_v3.evaluation_sources import freeze_template,template_intent,gt_future
     from wam_rl_policy_v3.geometry_tau import object_local_hand,geometry_future
     from wam_rl_policy_v3.stage_evaluation import PalmSurface,PALM_FEATURE_CONTRACT,terminal_success
@@ -297,6 +297,24 @@ def main():
                         save_ppo_rollout(folder/'ppo-rollout.npz',rollout,rollout_audit,episode_id=out.name+'/'+label,env_id=0,
                                          sample_start=report['environment_controls']-len(actions),endpoint_type=endpoint,stages=stage_info)
                         write(folder/'reward-parts.json',reward_parts)
+                    elif reg.get('record_frozen_bc_gae',False):
+                        # Instrument a frozen BC episode without any optimizer
+                        # call or change to its mean-action controller.
+                        bootstrap_observation=None
+                        if not safe['abort'] and not row['final_success']:
+                            with torch.no_grad():terminal_adapter=model.actor(torch.tensor(observation[None],device='cuda')).cpu().numpy()
+                            terminal_intent=grasp_intent_from_retargeter(np.asarray(state['q'])[0],palm,pose,target.object_path[-1],np.clip(terminal_adapter[0],-1,1),offset,scale,plan=plan,tau_valid=valid)
+                            bootstrap_observation=residual_observation(observation,terminal_intent)
+                        bootstrap=final_state_value(residual,bootstrap_observation,terminated=bool(safe['abort'] or row['final_success']))
+                        rollout_audit=dict(bootstrap_observation=np.asarray([] if bootstrap_observation is None else bootstrap_observation),
+                                           bootstrap_state_tick=np.asarray(state['tick'])[0].copy(),bootstrap_native_episode_id=np.asarray(state['episodes'])[0].copy(),
+                                           audit_only_frozen_bc=np.asarray(True))
+                        gae_targets(rollout['rewards'],rollout['values'],bootstrap=bootstrap,audit=rollout_audit)
+                        torch.save(dict(model=residual.state_dict()),folder/'critic-before-update.pt')
+                        endpoint='joint_safety_termination' if physical_abort=='physical_joint_limit' else 'real_termination' if safe['abort'] or row['final_success'] else 'rollout_cutoff' if row['partial_budget_episode'] else 'time_limit_truncation'
+                        save_ppo_rollout(folder/'ppo-rollout.npz',rollout,rollout_audit,episode_id=out.name+'/'+label,env_id=0,
+                                         sample_start=report['environment_controls']-len(actions),endpoint_type=endpoint,stages=stage_info)
+                        row['frozen_bc_gae_audit']=dict(optimizer_updates=0,bootstrap=bootstrap,endpoint=endpoint)
                     write(folder/'reward-parts.json',reward_parts)
                     native.finish(send,receive);write(folder/'result.json',row);report['runs'].append(row);report.update(status='RUNNING',elapsed_s=time.monotonic()-started+report['carried_elapsed_s']);write(out/'manifest.json',report);print(json.dumps(row),flush=True)
                 except BaseException:
