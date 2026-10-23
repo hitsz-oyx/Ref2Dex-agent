@@ -5,10 +5,12 @@ every admitted window; a filesystem timestamp is never a causal certificate.
 """
 import argparse
 from collections import Counter
+from concurrent.futures import ProcessPoolExecutor
 import csv
 from functools import lru_cache
 import hashlib
 import json
+import multiprocessing as mp
 from pathlib import Path
 import sqlite3
 import subprocess
@@ -91,6 +93,57 @@ def full_feature(record,slot,tick,phase,geo):
             c['valid'][tick-3:tick+25,slot],s['object_pose_valid'][tick-3:tick+25,slot]]))
 
 
+def feature_signature(f):
+    offsets=[0,3,11,27]
+    hand=f['trajectory'][:28*2*21*3].reshape(28,2,21,3)[offsets]
+    query=f['trajectory'][28*2*21*3:].reshape(28,32,3)[offsets]
+    h=hashlib.blake2b(digest_size=20)
+    j=28*2*21
+    for value in [np.rint(np.log(np.maximum(f['shape'],1e-9))/np.log(1.05)).astype('<i4'),
+        np.rint(hand/.002).astype('<i4'),np.rint(query/.002).astype('<i4'),
+        np.rint(f['rotations'][offsets]/.01).astype('<i4'),
+        np.rint(f['contact'].reshape(28,16)[offsets]/.02).astype('<i4'),
+        np.packbits(f['mask'][:j]),np.packbits(f['mask'][j:j+28]),np.packbits(f['mask'][j+28:]),
+        np.asarray([f['phase']],np.uint8)]:h.update(value.tobytes())
+    return h.digest()
+
+
+def init_local_worker(registry):
+    prep.REGISTRY=Path(registry)
+    prep._GEOMETRY_ROWS={r['key']:r for r in prep.read(prep.REGISTRY/'manifest.json')['objects']}
+
+
+def local_dedup(args):
+    """Parallel per-sequence work; global representatives remain serial/strict."""
+    r,folder=args;folder=Path(folder)
+    shard=np.load(r['window_shard'],allow_pickle=False);tuples=shard['tuples'];phases=shard['phase']
+    keep=np.ones(len(tuples),bool);representatives=np.full(len(tuples),-1,np.int32)
+    keys=np.zeros((len(tuples),20),np.uint8);previous={}
+    for i,(_,slot,tick) in enumerate(tuples):
+        slot,tick=int(slot),int(tick);phase=int(phases[i]);_,geo=prep.geometry(r['objects'][slot],r['source_id'])
+        f=full_feature(r,slot,tick,phase,geo);p=previous.get(slot)
+        if p and phase==p[2] and tick-p[1]<24 and duplicate_of(f,p[3]):
+            keep[i]=False;representatives[i]=p[0]
+        else:
+            keys[i]=np.frombuffer(feature_signature(f),np.uint8)
+            previous[slot]=(i,tick,phase,f)
+    target=folder/(r['key']+'.npz');pending=target.with_name(target.name+'.part')
+    with pending.open('wb') as f:np.savez(f,keep=keep,representatives=representatives,signatures=keys)
+    pending.replace(target)
+    return str(target)
+
+
+def local_results(rows,out,workers):
+    folder=out/'local-dedup-shards';folder.mkdir()
+    if workers==1:
+        for r in rows:yield r,local_dedup((r,str(folder)))
+    else:
+        with ProcessPoolExecutor(workers,mp_context=mp.get_context('spawn'),initializer=init_local_worker,initargs=(str(prep.REGISTRY),)) as pool:
+            for start in range(0,len(rows),64):
+                batch=rows[start:start+64]
+                for r,path in zip(batch,pool.map(local_dedup,[(r,str(folder)) for r in batch])):yield r,path
+
+
 def matrix(counter,path):
     rows=[dict(phase=p,geometry_class=g,source_id=s,windows=counter[(p,g,s)])
           for p in prep.PHASES for g in prep.CLASSES for s in prep.SOURCES]
@@ -148,7 +201,7 @@ def legacy_census(out,receipts):
         note='1335 human parent mothers; robot-derived views do not inherit human labels or add mother count')
 
 
-def summarize(run,out):
+def summarize(run,out,workers=1):
     progress=prep.read(run/'progress.json')
     if progress['status']!='CONVERSION_AND_ADMISSION_COMPLETED':raise ValueError('complete sequence census required')
     if out.exists():raise FileExistsError('fresh summary attempt required; preserve prior artifacts')
@@ -190,27 +243,39 @@ def summarize(run,out):
         diff=np.diff(np.sort(ticks));near=diff<24
         return int((np.r_[False,near]|np.r_[near,False]).sum())
     with (out/'dedup-pairs.jsonl').open('x') as pairs:
-        for number,r in enumerate(admitted,1):
+        for number,(r,local_path) in enumerate(local_results(admitted,out,workers),1):
             prep.guard(run,64*1024**2)
             if (run/'STOP').exists():raise InterruptedError('owner STOP')
-            split=r['split'];s,c,fractions=sequence(r['path'],r['contact_path'])
+            split=r['split']
             shard=np.load(r['window_shard'],allow_pickle=False)
+            local=np.load(local_path,allow_pickle=False)
             tuples=shard['tuples'];phase_ids=shard['phase'];class_ids=shard['geometry_class']
             start=positions[split];arrays[split][start:start+len(tuples)]=tuples
             keep_arrays[split][start:start+len(tuples)]=True
-            retained_ticks={}; temporal_representatives={}
+            retained_ticks={}; temporal_representatives={};global_changed_local=False
             for slot in np.unique(tuples[:,1]):
                 temporal_before+=temporal_fraction(tuples[tuples[:,1]==slot,2]);retained_ticks[int(slot)]=[]
             for i,(_,slot,tick) in enumerate(tuples):
                 slot,tick=int(slot),int(tick);phase=int(phase_ids[i]);gc=int(class_ids[i])
-                _,geo=prep.geometry(r['objects'][slot],r['source_id']);shape=shape_of(geo)
-                key=signature(s,c,fractions,geo,shape,slot,tick,phase)
-                candidates=db.execute('SELECT sequence_id,slot,tick,phase FROM representatives WHERE signature=?',(key,)).fetchall()
+                _,geo=prep.geometry(r['objects'][slot],r['source_id'])
                 representative=None;feat=None
+                # Trust local removal only while its representative is still
+                # globally retained. If an earlier representative was removed
+                # globally, recompute against the actual retained sequence.
+                if not global_changed_local and not local['keep'][i]:
+                    representative=tuples[int(local['representatives'][i])].tolist()
                 previous=temporal_representatives.get(slot)
-                if previous and tick-previous[0]<24 and phase==previous[1]:
+                if representative is None and global_changed_local and previous and tick-previous[0]<24 and phase==previous[1]:
                     feat=full_feature(r,slot,tick,phase,geo);comparisons+=1
-                    if duplicate_of(feat,previous[2]):representative=[r['sequence_id'],slot,previous[0]]
+                    if duplicate_of(feat,full_feature(r,slot,previous[0],previous[1],geo)):
+                        representative=[r['sequence_id'],slot,previous[0]]
+                candidates=[];key=None
+                if representative is None:
+                    if local['keep'][i]:key=local['signatures'][i].tobytes()
+                    else:
+                        if feat is None:feat=full_feature(r,slot,tick,phase,geo)
+                        key=feature_signature(feat)
+                    candidates=db.execute('SELECT sequence_id,slot,tick,phase FROM representatives WHERE signature=?',(key,)).fetchall()
                 for sid,rs,rt,rp in ([] if representative is not None else candidates):
                     comparisons+=1
                     rr=by_id[sid];_,rgeo=prep.geometry(rr['objects'][rs],rr['source_id'])
@@ -221,9 +286,9 @@ def summarize(run,out):
                 if retained:
                     db.execute('INSERT INTO representatives VALUES (?,?,?,?,?)',(key,r['sequence_id'],slot,tick,phase))
                     retained_ticks[slot].append(tick)
-                    if feat is None:feat=full_feature(r,slot,tick,phase,geo)
-                    temporal_representatives[slot]=(tick,phase,feat)
+                    temporal_representatives[slot]=(tick,phase)
                 else:
+                    if local['keep'][i]:global_changed_local=True
                     keep_arrays[split][start+i]=False;removed[split]+=1
                     cross_split=by_id[representative[0]]['split']!=split
                     cross+=int(cross_split)
@@ -270,7 +335,8 @@ def summarize(run,out):
         total_recipe_mothers=len(receipts),legacy=legacy,existing_cached_mothers=inventory['by_status'].get('REUSE',0),
         existing_6000_active_mothers=len(previous_active),
         native_recovery=prep.read(run/'recovered-inputs.json')['parity_checks'] if (run/'recovered-inputs.json').exists() else None,
-        native_recovered_sequences=len(prep.read(run/'recovered-inputs.json')['rows']) if (run/'recovered-inputs.json').exists() else 0,
+        recovered_input_sequences=len(prep.read(run/'recovered-inputs.json')['rows']) if (run/'recovered-inputs.json').exists() else 0,
+        source0_restored_sequences=prep.read(run/'recovered-inputs.json').get('restored_source0',0) if (run/'recovered-inputs.json').exists() else 0,
         sequence_status=dict(Counter(r['status'] for r in receipts)),sequence_rejection_reasons=dict(rejection),
         pending6000=dict(total=len(pending_results),status=dict(Counter(r['status'] for r in pending_results)),
             conversion_started=sum(r['conversion_started'] for r in pending_results)),
@@ -278,7 +344,7 @@ def summarize(run,out):
         source_distribution=sources,geometry_distribution=shapes,phase_distribution=phases,coverage=cover,
         dedup=dict(rule='temporal candidate within24ticks of last actual retained representative OR same identity-free fixed quantization signature at H4/K24 offsets[-3,0,8,24], then full28-frame anchored joint21/query32 <=2mm, PCAextents<=5%, object rotation<=1degree, contact16 fractions<=2%, identical full validity and phase; actual representative, no chaining',
             bin_limit='Conservative fixed-bin candidate rule; near pairs across bin boundaries retained. No exhaustive tolerance clustering or canonical-CAD equivalence claim.',
-            before=n,after=n-sum(removed.values()),removed=dict(removed),full_predicate_comparisons=comparisons,cross_split_train_removed=cross,
+            before=n,after=n-sum(removed.values()),removed=dict(removed),global_full_predicate_comparisons=comparisons,cross_split_train_removed=cross,local_workers=workers,
             temporal_near_repeat_percent_before=100*temporal_before/n if n else 0,
             temporal_near_repeat_percent_after=100*temporal_after/(n-sum(removed.values())) if n>sum(removed.values()) else 0,
             baseline_6000_temporal_percent=61.23),
@@ -305,4 +371,7 @@ def summarize(run,out):
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--run',type=Path,required=True);p.add_argument('--output',type=Path,required=True)
-    a=p.parse_args();summarize(a.run.resolve(),a.output.resolve())
+    p.add_argument('--workers',type=int,default=8)
+    a=p.parse_args()
+    if not 1<=a.workers<=8:p.error('1..8 bounded CPU workers')
+    summarize(a.run.resolve(),a.output.resolve(),a.workers)
