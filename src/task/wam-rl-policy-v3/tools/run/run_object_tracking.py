@@ -176,7 +176,11 @@ def main():
             if last_acquisition_pd is None:raise ValueError('missing actual acquisition PD target')
             finger_ids=np.array([6,8,10,12,14,15])
             held_fingers=last_acquisition_pd[finger_ids] if case['stage']=='B' or a.unloaded_probe else None
-            tracker=ObjectPoseTracker(np.asarray(state['q'])[0],palm,offset,scale,held_finger_targets=held_fingers,joint_limits=limits if envelope is not None else None,predictive_braking=a.predictive_braking)
+            if not continuation:
+                tracker=ObjectPoseTracker(np.asarray(state['q'])[0],palm,offset,scale,held_finger_targets=held_fingers,joint_limits=limits if envelope is not None else None,predictive_braking=a.predictive_braking)
+            else:
+                # Keep even the original wrist mounting calibration unchanged.
+                tracker.fingers=held_fingers.copy()
             write(folder/'handoff.json',dict(measured_q=np.asarray(state['q'])[0].tolist(),last_actual_pd=last_acquisition_pd.tolist(),held_finger_targets=tracker.fingers.tolist()))
             if envelope is not None:
                 decision=envelope.admit_trajectory(curve,relative,np.asarray(state['q'])[0],palm,tracker.fingers)
