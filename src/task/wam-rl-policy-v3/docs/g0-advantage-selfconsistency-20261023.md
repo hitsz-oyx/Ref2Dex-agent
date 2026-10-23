@@ -21,7 +21,7 @@ status: INVALID_INSTRUMENTATION
 
 本轮重建的 raw GAE 均值 **−0.05904524**、标准差 **0.29015872**，与 brief39 的 **−0.059045 / 0.290159** 一致；阶段计数也一致（contact **2,270**、lift **1,466**、hold **1,376**）。本轮另外按预注册要求计算了“置零 bootstrap 两版优势差异 / 两版绝对量之和”，结果为 **0.9876%**。这与 brief39 的 **1.99%** 不矛盾：两者分母不同，而本轮差异的分子 **63.083275** 与 brief39 bootstrap 账本的 **63.08** 一致。策略位移、event 稀疏度、KL 等 brief39 数字在本轮作为既有证据引用，不重复重跑。
 
-本次复核（当前工作树 `HEAD=906d7168`）再次只读同一旧运行；`ppo/manifest.json::git_commit` 仍为 **59fc5f2afcc2d14604aeb2b79ce3d4202296ee98**。实际命令为 `PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES='' /home2/wyy/miniconda3/envs/graspenv/bin/python tmp/g0_reaudit.py`；脚本只读 outputs，未纳入提交。CPU 扫描 36 个 `ppo/*/ppo-rollout.npz`、合计 14,400 样本，首个文件的实际键集合为 `observations, latents, old_logp, rewards, values`；五个 G0 必需落库字段（`advantage_raw`, `target_return`, `done`, `bootstrap`, `termination_type`）在 **36/36** 个文件缺失。独立复算得到 raw GAE 均值 **−0.0590452381**、std **0.2901587035**，每回合 `target_return_mean` 与 `result.json` 的最大差（按实现的 float32 口径）**2.9802322e−8**，与上面报告数字一致；没有读取或改写任何新 instrumented rollout。
+此前复核（历史工作树 `HEAD=906d7168`）只读同一旧运行；`ppo/manifest.json::git_commit` 仍为 **59fc5f2afcc2d14604aeb2b79ce3d4202296ee98**。其实际命令为 `PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES='' /home2/wyy/miniconda3/envs/graspenv/bin/python tmp/g0_reaudit.py`；脚本只读 outputs，未纳入提交。CPU 扫描 36 个 `ppo/*/ppo-rollout.npz`、合计 14,400 样本，首个文件的实际键集合为 `observations, latents, old_logp, rewards, values`；五个 G0 必需落库字段（`advantage_raw`, `target_return`, `done`, `bootstrap`, `termination_type`）在 **36/36** 个文件缺失。独立复算得到 raw GAE 均值 **−0.0590452381**、std **0.2901587035**，每回合 `target_return_mean` 与 `result.json` 的最大差（按实现的 float32 口径）**2.9802322e−8**，与上面报告数字一致；没有读取或改写任何新 instrumented rollout。
 
 本次任务又在工作树 `HEAD=92563d9ad53a7bc9e593d8318d6a2b6156de4521` 做了同一证据根目录的独立 CPU spot-check（仍使用 `CUDA_VISIBLE_DEVICES='' /home2/wyy/miniconda3/envs/graspenv/bin/python` 的只读 heredoc 命令，未写入脚本或 outputs）。复核确认 36/36 rollout 的键集合和缺失字段不变；float64 重算的 raw GAE 为均值 **−0.0590452381**、std **0.2901587035**，截断 bootstrap 置零的差异比例 **0.9876218%**，与正文结论一致。该 HEAD 只标识本次审计执行时的工作树，不替代运行 manifest 中的来源提交 **59fc5f2afcc2d14604aeb2b79ce3d4202296ee98**。
 
@@ -46,7 +46,7 @@ status: INVALID_INSTRUMENTATION
 outputs/wam-rl-policy-v3/bc-ppo-usefulness-20261023-r1/
 ```
 
-主 PPO 运行 manifest 的运行代码提交为 `59fc5f2afcc2d14604aeb2b79ce3d4202296ee98`，状态 `COMPLETED`，配方 `gamma=.96`、`gae_lambda=.95`。本轮审计时仓库 `HEAD` 为 `31436326c4c31aa846008d14b41adac9aebcfac3`。输入 spot-check：
+主 PPO 运行 manifest 的运行代码提交为 `59fc5f2afcc2d14604aeb2b79ce3d4202296ee98`，状态 `COMPLETED`，配方 `gamma=.96`、`gae_lambda=.95`。历史审计记录中的输入 spot-check 工作树为 `HEAD=31436326c4c31aa846008d14b41adac9aebcfac3`；本次任务的独立 spot-check 工作树为上文所列 `HEAD=92563d9ad53a7bc9e593d8318d6a2b6156de4521`。输入 spot-check：
 
 ```text
 manifest.json sha256 = 0ba9d6b1438d4e7913c5feb6f9cfcdb4a206eaa51e610b300a26e7425f387bcc
