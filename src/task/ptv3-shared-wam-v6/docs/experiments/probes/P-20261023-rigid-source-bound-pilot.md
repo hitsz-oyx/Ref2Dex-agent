@@ -7,7 +7,7 @@ task: ptv3-shared-wam-v6
 branch: main
 git_commit: 480ae4e4
 classification: Decision
-status: RUNNING
+status: COMPLETED
 run_id: rigid-source-bound-pilot-20261023-r2
 claim_id: rigid-data-deployable-coverage
 hypothesis_family: source-bound-rigid-collection
@@ -20,8 +20,11 @@ decision_changed_if_negative: repair producer binding or semantics before any TR
 
 # P-20261023-rigid-source-bound-pilot
 
-Result: collection and independent saved-artifact audit in progress; 36/96 raw rollouts complete at GPU boundary wait.
-Decision: owner authorized96 fresh simulation rollouts; retain completed batches while the other executor uses GPU4; no training/model/6k recipe changes.
+Result: 96/96 rollouts and26304/26304 windows admitted; goals96/96 certified; original zero cells61 to51; prediction NOT_RUN.
+Decision: producer binding and source4 coverage pass; propose next384 with cost, leave production TRAIN and original6k identity unchanged; no training/model change.
+
+[完整结果解读表、资源、下一批成本与独立复核](../../audit/rigid-source-bound-pilot-20261023.md)。
+本卡COMPLETED表示采集/认证pilot完成，不表示训练、预测改善或闭环资格。
 
 ## 结果解读表
 
@@ -34,7 +37,8 @@ Decision: owner authorized96 fresh simulation rollouts; retain completed batches
 
 区分“新producer可得到认证数据”与“缺口来自无法获得监督/来源”的假设。
 最便宜的决定性方案是既有source4/Shadow仿真、既有正式语义adapter和本地已有资产包；
-不追补人类旧reset证据、不转换旧Inspire标签、不换模型。初始source4九个零格，
+不追补人类旧reset证据、不转换旧Inspire标签、不换模型。初始source4十个零格，
+前期口头和卡片误写九，完整矩阵驱动的配额计算未受影响。
 按各格旧窗口数加已配rollout数水位补齐到96条，配额只使用phase与PCA几何类。
 每类从官方TRAIN且不在TEST/DEV母资产集合中按固定archive顺序取前两项；
 无身份阈值/结果筛选。采集阶段的neutral/open时间表按机制作用于所有同phase样本。
@@ -48,7 +52,8 @@ Decision: owner authorized96 fresh simulation rollouts; retain completed batches
 实时named-body21与现有ShadowSurface FK逐帧交叉核对，保持778/16part、2048surface/32query。
 接触为v5 nearest-vertex proximity，不宣称force或接触意图。
 
-预算：GPU4仅空闲时使用，留GPU5/6空闲；采集2h，含registry/日志/资产≤2GiB；
+预算：仅使用空闲卡并保持另两张卡空闲；前36条GPU4，转换释放GPU7后后60条GPU5；
+采集2h，含registry/日志/资产≤2GiB；
 16–32KiB/tick的规划估算0.44–0.88GiB。写前测量并预留≥30GiB，采集中重复guard，
 并发转换进程不触碰。无训练、无checkpoint、无视频、无删除、无生产索引覆盖。
 环境/命令/seed逐batch保存；结果以新run的audit-summary、逐条verdict与coverage CSV为准。
@@ -67,4 +72,4 @@ CUDA_VISIBLE_DEVICES='' PYTHONDONTWRITEBYTECODE=1 /home2/wyy/miniconda3/envs/gra
 不改变采集动作/标签/seed/配额。每批simulation-config与executions/resume receipts记录实际代码。
 原始header301状态/600controls，前36条所有21点FK与live测量最大差2.552e-6m，
 这只是工程preflight，通过正式准入/认证前不计为TRAIN覆盖。首批实际20条、第二批16条；
-GPU4被别的执行器占用后等待，不改派GPU5/6以维持两张空闲卡。
+GPU4被别的执行器占用后等待；转换释放GPU7后用空闲GPU5完成后60条，保留GPU6/7空闲。

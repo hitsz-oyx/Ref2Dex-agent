@@ -1226,6 +1226,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261011-chord-action-ranking](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-chord-action-ranking.md) | Simulator CHORD action-ranking Probe | 见原卡 | 见原卡 | probes/RUNNING |
 
+## source-bound-rigid-collection
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261023-rigid-source-bound-pilot](../../src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261023-rigid-source-bound-pilot.md) | P-20261023-rigid-source-bound-pilot | 96/96 rollouts and26304/26304 windows admitted; goals96/96 certified; original zero cells61 to51; prediction NOT_RUN. | producer binding and source4 coverage pass; propose next384 with cost, leave production TRAIN and original6k identity unchanged; no training | probes/COMPLETED |
+
 ## 未分类历史记录
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

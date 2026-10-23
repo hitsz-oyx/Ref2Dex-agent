@@ -22,6 +22,7 @@ import numpy as np
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 import prepare_full_rigid_data as prep
 from ptv3_shared_wam_v6.rigid_dataset import duplicate_of, pca_shape
+from prepare_local_data import npy_header
 
 
 def jsonline(stream,value):
@@ -96,11 +97,29 @@ def init_local_worker(registry):
 def timing_gate(record,tuples,n):
     """Dense ticks must not cross a clock gap or an existing segment edge."""
     kind=record['clock_kind'];bad=np.zeros(max(0,n-1),bool)
+    evidence=dict(clock_kind=kind,source_role='UNKNOWN',available_before_reset=None,
+        scope='bound native payload and exported sidecars; no filesystem mtime used as pre-reset proof',candidate_fields={})
+    def headers(z):
+        evidence['exported_fields']=list(z.files)
+        selected={'goal','motion_intent','native_action_label','native_verb_label','task_spec','task_goal_pose',
+            'source_role','available_before_reset','reset_timestamp_ns','source_artifact_sha256','pre_reset_goal'}
+        for name in selected.intersection(z.files):
+            with z.zip.open(name+'.npy') as f:h=npy_header(f)
+            evidence['candidate_fields'][name]=dict(shape=list(h['shape']),dtype=h['descr'])
+        complete={'source_role','available_before_reset','reset_timestamp_ns','source_artifact_sha256','task_spec'}
+        if complete.issubset(z.files):raise ValueError('potential complete pre-reset certificate requires inspection, not blanket UNKNOWN')
+        if 'goal' in z.files:
+            g=z['goal']
+            evidence.update(native_goal_candidate_role='recorded_task_parameter_snapshot_after_reset',
+                native_goal_shape=list(g.shape),native_goal_finite=bool(np.isfinite(g).all()),
+                native_goal_constant=bool(np.array_equal(g,np.broadcast_to(g[:1],g.shape))))
+            evidence['missing_for_complete_certificate']=['original executor/reset/TaskSpec/source binding','pre-reset role and availability proof','complete intended pose or declared pose rule']
     if kind=='source0_observed_stride4':
         if record['clock_frames']!=n:raise ValueError('source0 clock length changed')
         bad[np.asarray(record['clock_bad_edges'],np.int64)]=True
     elif kind=='grab_native120_stride4':
         with np.load(record['clock_uri'],allow_pickle=False) as z:
+            headers(z)
             if float(z['framerate'])!=120 or (int(z['n_frames'])+3)//4!=n:
                 raise ValueError('GRAB native clock changed')
     elif kind=='arctic_native30':
@@ -108,6 +127,7 @@ def timing_gate(record,tuples,n):
             raise ValueError('ARCTIC native clock length changed')
     elif kind=='packed_grid30':
         with np.load(record['clock_uri'],allow_pickle=False) as z:
+            headers(z)
             t=z['time']
             if t.shape!=(n,) or not np.isfinite(t).all():raise ValueError('invalid native clock')
             bad |= ~np.isclose(np.diff(t),1/30,rtol=0,atol=1e-5)
@@ -120,6 +140,7 @@ def timing_gate(record,tuples,n):
     legal=prefix[ticks+24]==prefix[ticks-3]
     if not legal.all():
         raise ValueError('dense admission crossed native clock/segment boundary: %s windows=%d' % (record['key'],int((~legal).sum())))
+    record['_native_evidence']=evidence
     return int(bad.sum())
 
 
@@ -141,7 +162,8 @@ def local_dedup(args):
             previous[slot]=(i,tick,phase,f)
     target=folder/(r['key']+'.npz');pending=target.with_name(target.name+'.part')
     with pending.open('wb') as f:np.savez(f,keep=keep,representatives=representatives,signatures=keys,
-        timing_checked_windows=np.int64(len(tuples)),native_bad_edges=np.int64(bad_edges))
+        timing_checked_windows=np.int64(len(tuples)),native_bad_edges=np.int64(bad_edges),
+        native_evidence_json=np.asarray(json.dumps(r['_native_evidence'],sort_keys=True)))
     pending.replace(target)
     return str(target)
 
@@ -283,19 +305,24 @@ def summarize(run,out,workers=1):
     sources={s:{t:Counter() for t in ['before','after']} for s in arrays}
     shapes={s:{t:Counter() for t in ['before','after']} for s in arrays}
     phases={s:{t:Counter() for t in ['before','after']} for s in arrays}
+    native_candidate_mothers=Counter();native_candidate_windows=Counter()
     started=time.monotonic()
     manifest_streams={s:(out/(s+'-windows.jsonl')).open('x') for s in arrays}
     def temporal_fraction(ticks):
         if len(ticks)<2:return 0
         diff=np.diff(np.sort(ticks));near=diff<24
         return int((np.r_[False,near]|np.r_[near,False]).sum())
-    with (out/'dedup-pairs.jsonl').open('x') as pairs:
+    with (out/'dedup-pairs.jsonl').open('x') as pairs,(out/'native-source-evidence.jsonl').open('x') as evidence_stream:
         for number,(r,local_path) in enumerate(local_results(admitted,out,workers),1):
             prep.guard(run,64*1024**2)
             if (run/'STOP').exists():raise InterruptedError('owner STOP')
             split=r['split']
             shard=np.load(r['window_shard'],allow_pickle=False)
             local=np.load(local_path,allow_pickle=False)
+            native_evidence=json.loads(local['native_evidence_json'].item())
+            jsonline(evidence_stream,dict(sequence_id=r['sequence_id'],sequence_key=r['key'],source_id=r['source_id'],**native_evidence))
+            for name in native_evidence['candidate_fields']:
+                native_candidate_mothers[name]+=1;native_candidate_windows[name]+=r['admitted_windows']
             tuples=shard['tuples'];phase_ids=shard['phase'];class_ids=shard['geometry_class']
             start=positions[split];arrays[split][start:start+len(tuples)]=tuples
             keep_arrays[split][start:start+len(tuples)]=True
@@ -413,6 +440,7 @@ def summarize(run,out,workers=1):
             temporal_near_repeat_percent_after=100*temporal_after/(n-sum(removed.values())) if n>sum(removed.values()) else 0,
             baseline_6000_temporal_percent=61.23),
         provenance=dict(certified_legal=0,uncertifiable=n,source_role='UNKNOWN',available_before_reset=None,
+            native_candidate_mothers=dict(native_candidate_mothers),native_candidate_windows=dict(native_candidate_windows),
             label_hash_and_mtime='per-window target-label traceability only; not pre-reset availability proof',
             missing=['reset timestamp','pre-reset independent task intent source','source role attestation','pre-reset availability timestamp/hash']),
         versus_6000=dict(baseline_windows=len(old_rows),baseline_mothers=len(previous_active),

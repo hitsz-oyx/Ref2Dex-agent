@@ -193,6 +193,13 @@ label pose的SHA256和filesystem mtime。可认证 **0**，不可认证
 缺少reset时间、独立事前TaskSpec/意图来源、角色声明和reset前可得性证明。
 label hash/mtime只能回溯当前录制目标，不能证明事前条件可用；不从未来轨迹反推合法计划。
 数据目标监督准备完成不等于旧goal/event条件缓存获准训练，原HOLD门槛保留。
+原生条件候选并未忽略：完整payload字段审计记录于
+{link('full-manifest-r1/native-source-evidence.jsonl','原生字段与候选证据')}。
+候选母序列/窗口为`{json.dumps(m['provenance']['native_candidate_mothers'])}` /
+`{json.dumps(m['provenance']['native_candidate_windows'])}`。
+Shadow原始`goal[T,3]`是reset后录制的task参数快照；原生goal或动作语义标签存在，不自动等于
+完整TaskSpec、原执行/reset/来源绑定及reset前可得性证据。上述候选不升级为合法证书，
+也不能泛称“原始数据没有goal字段”。
 
 两根robot legacy view的拒绝原因：`{json.dumps(legacy['view_rejection_reasons'])}`。
 几何pool或q/wrist存在不等于joint21/part16/annotation validity/contact/event语义已绑定，
