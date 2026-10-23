@@ -29,4 +29,8 @@ def test_new_synthetic_artifacts_never_certify_old_windows(tmp_path):
     result = audit.synthetic_collector(tmp_path)
     assert result['historical_windows_certified'] == 0
     assert result['persisted_instruction_and_receipts_replayed_bit_exact']
+    assert result['condition_quantity'] == 'task_level_goal'
+    assert result['target_stage'] == 'task_completion'
+    assert result['task_goal_distinct_from_planner_waypoint']
+    assert result['exact_retries_no_duplicate_writes']
     assert result['decisions'] == 4

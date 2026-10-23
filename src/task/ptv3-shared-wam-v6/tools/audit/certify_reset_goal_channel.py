@@ -59,7 +59,7 @@ def synthetic_collector(output):
     query[:, 1] = np.tile([-.01, .01], 16)
     instruction = instruction_from_displacement(
         source(nominal, 'task_instruction', 'nominal_constructor', 'nominal-object-start'),
-        source(dict(rule='fixed_world_translation', translation_m=[0, 0, .2]),
+        source(dict(rule='fixed_world_translation', translation_m=[0, 0, .2], target_stage='task_completion'),
                'task_instruction', 'declared_task', 'declared-displacement'),
         source(query, 'reset_geometry', 'declared_task', 'query-ids'),
         source(np.zeros((16, 3)), 'reset_geometry', 'declared_task', 'interaction-surface'),
@@ -75,12 +75,20 @@ def synthetic_collector(output):
         train, replay_receipt = replay.update(measured, np.zeros((11, 3)), **args)
         assert receipt == replay_receipt
         assert all(live[k].tobytes() == train[k].tobytes() for k in live)
+        size = deployed.written_bytes
+        retry, retry_receipt = deployed.update(measured, np.zeros((11, 3)), **args)
+        assert retry_receipt == receipt and deployed.written_bytes == size
+        assert all(live[k].tobytes() == retry[k].tobytes() for k in live)
+        assert receipt['goal_pose'] == instruction['task_goal_pose']
+        assert receipt['goal_pose'] != receipt['planner_waypoint_diagnostic']['goal_pose']
         receipts.append(receipt)
     persisted_receipts = [json.loads(line) for line in (output / 'synthetic-execution/waypoints.jsonl').read_text().splitlines()]
     assert persisted_receipts == receipts
     return dict(status='PASS', synthetic=True, new_physical_execution=False,
                 historical_windows_certified=0, decisions=len(receipts),
                 persisted_instruction_and_receipts_replayed_bit_exact=True,
+                condition_quantity='task_level_goal', target_stage='task_completion',
+                task_goal_distinct_from_planner_waypoint=True, exact_retries_no_duplicate_writes=True,
                 nominal_anchor_preserved=True, artifact_bytes=deployed.written_bytes)
 
 
@@ -107,7 +115,7 @@ def run(output, prior_dir, curated_path):
     with (output / 'coverage.csv').open('x') as stream:
         writer = csv.DictWriter(stream, fieldnames=fields, extrasaction='ignore')
         writer.writeheader(); writer.writerows(rows)
-    result = dict(schema='ref2dex.reset-goal-channel.audit.v1',
+    result = dict(schema='ref2dex.reset-goal-channel.audit.v2',
         experiment_id='P-20261023-reset-bound-goal-channel', run_id=output.name,
         status='BLOCKED_ZERO_CERTIFIED_HISTORICAL_COVERAGE',
         git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
@@ -118,7 +126,7 @@ def run(output, prior_dir, curated_path):
             certified_waypoints=0, missing='original execution/reset and scheduler binding'),
         synthetic_generation_chain=synthetic_collector(output),
         new_raw_provenance_investigation=False, training_updates=0, new_physical_rollouts=0,
-        comparison_executed=False, waypoint_minus_unknown_mm=None,
+        comparison_executed=False, task_goal_minus_unknown_mm=None,
         disk_free_before_bytes=free, elapsed_s=time.monotonic()-start,
         cost_envelope=json.loads((TASK / 'docs/audit/brief32-cost-envelope-20261023.json').read_text())['new_recording_scale'])
     (output / 'receipt.json').write_text(json.dumps(result, indent=2, sort_keys=True) + '\n')

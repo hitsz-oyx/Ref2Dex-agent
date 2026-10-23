@@ -20,11 +20,14 @@ from .goal_policy import apply_goal_input_policy, validate_goal_input_policy, UN
 # explicitly in ``tests/test_v6_goal_contract.py``.  Keep this helper's
 # sanitization and mask rules identical to the v4 contract.
 GOAL_SEMANTICS = "spatial_path_waypoint"
+TASK_GOAL_SEMANTICS = "task_level_terminal_waypoint"
+ACCEPTED_GOAL_SEMANTICS = (GOAL_SEMANTICS, TASK_GOAL_SEMANTICS)
 GOAL_CONTRACT = (
-    "WAM-v6 goal contract: both training and inference consume the scheduler's "
-    "same-ID spatial_path_waypoint in the current-object frame over 24 steps at "
-    "30 Hz. An observed future t+24 endpoint is a label, not an accepted "
-    "conditioning semantic. Goal availability is per flow query."
+    "WAM-v6 encodes explicitly named task_level_terminal_waypoint or legacy "
+    "spatial_path_waypoint as same-ID deltas in the current-object frame. "
+    "These are distinct conditions: task completion stage is not the 24-step "
+    "prediction deadline. A future realized endpoint is a label. The caller "
+    "must certify reset availability; tensor encoding alone does not do so."
 )
 
 
@@ -37,9 +40,9 @@ def _prepare_goal_inputs(flow, centers, rotations, *, goal_delta=None,
     errors are hard contract errors because they cannot be interpreted as a
     missing query.
     """
-    if goal_semantics != GOAL_SEMANTICS:
+    if goal_semantics not in ACCEPTED_GOAL_SEMANTICS:
         raise ValueError(
-            "goal semantics must be spatial_path_waypoint for both training and inference"
+            "goal semantics must explicitly name task_level_terminal_waypoint or spatial_path_waypoint"
         )
     flow = np.asarray(flow, dtype=np.float64)
     centers = np.asarray(centers, dtype=np.float64)
@@ -230,9 +233,9 @@ class OnlineV6Runtime:
             goals=np.asarray(goals)
         if objects.shape[1:]!=(4,7) or hands.shape!=(len(objects),4,11,3):
             raise ValueError("measured Bx4 objects/hand11 required")
-        if goal_semantics != GOAL_SEMANTICS:
+        if goal_semantics not in ACCEPTED_GOAL_SEMANTICS:
             raise ValueError(
-                "goal semantics must be spatial_path_waypoint for both training and inference"
+                "goal semantics must explicitly name task_level_terminal_waypoint or spatial_path_waypoint"
             )
         if not len(objects) or len(events) != len(objects) or len(object_codes) != len(objects):
             raise ValueError('one goal/event/object code per nonempty H4 batch required')

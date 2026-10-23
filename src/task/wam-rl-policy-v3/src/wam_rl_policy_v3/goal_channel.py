@@ -1,10 +1,11 @@
-"""Reset-bound provenance and one shared producer for spatial waypoint goals.
+"""Reset-bound task-level terminal goals, with separate planner diagnostics.
 
 The receipts enforce declared lineage/order, not the truth of forged metadata.
 Only collector-owned timestamps in one clock domain are evidence of availability.
 """
 import hashlib
 import json
+import copy
 from dataclasses import asdict
 from pathlib import Path
 import shutil
@@ -14,8 +15,10 @@ import numpy as np
 from .goal_scheduler import OrderedGoalScheduler, SchedulerConfig, _pose, update_schedulers
 
 
-SCHEMA = 'ref2dex.reset-bound-waypoint.v1'
-TIME_SEMANTICS = 'ordered_geometric_stage_no_arrival_deadline'
+SCHEMA = 'ref2dex.reset-bound-waypoint.v2'
+TIME_SEMANTICS = 'task_completion_stage_no_arrival_deadline'
+TASK_GOAL_SEMANTICS = 'task_level_terminal_waypoint'
+PLANNER_TIME_SEMANTICS = 'ordered_geometric_stage_no_arrival_deadline'
 ROLES = {'task_instruction', 'reset_observation', 'reset_geometry'}
 KINDS = {'declared_task', 'reset_measurement', 'nominal_constructor', 'independent_recording'}
 
@@ -102,14 +105,17 @@ def instruction_from_displacement(anchor, rule, query, surface, *, reset,
     pose = _pose(anchor['payload'])
     if rule['payload'].get('rule') != 'fixed_world_translation':
         raise ValueError('explicit fixed_world_translation rule required')
+    if rule['payload'].get('target_stage') != 'task_completion':
+        raise ValueError('task-level rule must explicitly target task_completion')
     shift = np.asarray(rule['payload']['translation_m'], dtype=np.float64)
     if shift.shape != (3,) or not np.isfinite(shift).all():
         raise ValueError('finite world translation required')
     goal = pose.copy()
     goal[:3, 3] += shift
-    artifact = dict(schema=SCHEMA, reset=plain(reset), source_role='scheduler_instruction',
-                    available_before_reset=True, goal_semantics='spatial_path_waypoint',
+    artifact = dict(schema=SCHEMA, reset=plain(reset), source_role='reset_task_instruction',
+                    available_before_reset=True, goal_semantics=TASK_GOAL_SEMANTICS,
                     time_semantics=TIME_SEMANTICS, reference_endpoint_time_s=None,
+                    target_stage='task_completion', task_goal_pose=goal.tolist(),
                     object_slot=object_slot, hand_slot=hand_slot, goal_type=goal_type,
                     scheduler='wam_rl_policy_v3.goal_scheduler.OrderedGoalScheduler',
                     scheduler_config=asdict(SchedulerConfig()),
@@ -124,9 +130,10 @@ def instruction_from_displacement(anchor, rule, query, surface, *, reset,
 def validate_instruction(artifact):
     if artifact.get('schema') != SCHEMA or artifact.get('time_semantics') != TIME_SEMANTICS:
         raise ValueError('unknown waypoint/time contract')
-    if (artifact.get('goal_semantics') != 'spatial_path_waypoint'
+    if (artifact.get('goal_semantics') != TASK_GOAL_SEMANTICS
+            or artifact.get('target_stage') != 'task_completion'
             or artifact.get('reference_endpoint_time_s') is not None
-            or artifact.get('source_role') != 'scheduler_instruction'
+            or artifact.get('source_role') != 'reset_task_instruction'
             or artifact.get('available_before_reset') is not True
             or artifact.get('scheduler') != 'wam_rl_policy_v3.goal_scheduler.OrderedGoalScheduler'
             or artifact.get('producer') != 'fixed_world_translation.v1'):
@@ -154,11 +161,14 @@ def validate_instruction(artifact):
     rule = sources['rule']['payload']
     if rule.get('rule') != 'fixed_world_translation':
         raise ValueError('explicit fixed_world_translation rule required')
+    if rule.get('target_stage') != 'task_completion':
+        raise ValueError('task-level rule must explicitly target task_completion')
     shift = np.asarray(rule['translation_m'], dtype=np.float64)
     if shift.shape != (3,) or not np.isfinite(shift).all():
         raise ValueError('finite world translation required')
     end = pose.copy(); end[:3, 3] += shift
-    if (not np.array_equal(artifact['reference_poses'], np.stack([pose, end]))
+    if (not np.array_equal(artifact.get('task_goal_pose'), end)
+            or not np.array_equal(artifact['reference_poses'], np.stack([pose, end]))
             or artifact['reference_times_s'] != [0., .8]):
         raise ValueError('path not derived from bound reset sources')
     unsigned = {k: v for k, v in artifact.items() if k != 'instruction_sha256'}
@@ -170,9 +180,11 @@ def validate_instruction(artifact):
 class ResetWaypointChannel:
     """Use this producer identically for a recorded replay and a fresh execution.
 
-    Live samples are supplied one at a time. No trajectory or future pose array
-    is accepted at this boundary. The scheduler starts at the bound reset and
-    must be replayed without skipping observations before a selected window.
+    The main condition is the reset-declared TASK terminal pose. The scheduler's
+    local waypoint is recorded separately and never substitutes for that goal.
+    Current observations only encode the task pose in the current object frame
+    and advance the diagnostic scheduler. Exact retries do not append twice;
+    a restart must replay into memory or use a fresh artifact directory.
     """
     def __init__(self, instruction, *, expected_reset, artifact_dir=None):
         validate_instruction(instruction)
@@ -182,6 +194,8 @@ class ResetWaypointChannel:
         self.reset = dict(expected_reset)
         self.last_tick = -1
         self.last_observed_at_ns = None
+        self.last_request = None
+        self.last_result = None
         self.scheduler = OrderedGoalScheduler(
             instruction['reference_poses'], instruction['reference_times_s'],
             instruction['sources']['query']['payload'],
@@ -204,6 +218,12 @@ class ResetWaypointChannel:
             self.written_bytes = len(content.encode())
 
     def update(self, pose, hand11, *, tick, observed_at_ns, available_at_ns, decision_at_ns):
+        request = digest(dict(pose=pose, hand11=hand11, tick=tick,
+            observed_at_ns=observed_at_ns, available_at_ns=available_at_ns, decision_at_ns=decision_at_ns))
+        if type(tick) is int and tick == self.last_tick and self.last_result is not None:
+            if request != self.last_request:
+                raise ValueError('conflicting duplicate tick')
+            return copy.deepcopy(self.last_result)
         if type(tick) is not int or tick != self.last_tick + 1:
             raise ValueError('continuous replay from reset required; no new per-window reset')
         times = (observed_at_ns, available_at_ns, decision_at_ns)
@@ -214,30 +234,38 @@ class ResetWaypointChannel:
             raise ValueError('live observation acquisition must advance')
         # tick is the resampled WAM 30Hz frame clock, never native controls or
         # wall time. Acquisition timestamps retain real sensor/collector jitter.
-        decision = update_schedulers([self.scheduler], np.asarray(pose)[None],
+        # Commit state only after the receipt is successfully written, so a
+        # bounded-write refusal can be retried without skipping a scheduler tick.
+        scheduler = copy.deepcopy(self.scheduler)
+        decision = update_schedulers([scheduler], np.asarray(pose)[None],
             np.asarray([tick / 30.]), np.asarray(hand11)[None], fast_geometry=True)[0]
-        self.last_tick = tick
-        self.last_observed_at_ns = observed_at_ns
         # Match online_runtime._goal_from_pose's arithmetic/rounding boundary,
         # including nonidentity world poses; this only encodes the scheduler's
-        # pose and does not choose another waypoint.
-        relative = np.linalg.inv(np.asarray(pose, dtype=np.float64)) @ decision['goal_pose']
-        query = self.scheduler.points
+        # pose. Task intent is selected solely from reset-bound sources.
+        task_goal = np.asarray(self.instruction['task_goal_pose'], dtype=np.float64)
+        relative = np.linalg.inv(np.asarray(pose, dtype=np.float64)) @ task_goal
+        query = scheduler.points
         delta = (query @ relative[:3, :3].T + relative[:3, 3] - query).astype(np.float32)
         tensors = dict(goal_object_delta=delta, goal_object_points=query.astype(np.float32) + delta,
                        object_goal_valid=np.ones(len(query), dtype=bool))
         receipt = dict(
-            schema=SCHEMA, source_role='scheduler_waypoint',
+            schema=SCHEMA, source_role='task_level_goal',
             available_before_reset=True, availability_scope='instruction_and_reset_sources_only',
-            live_observation_available_before_reset=(tick == 0),
+            live_observation_available_before_reset=(available_at_ns <= self.reset['at_ns']),
             reset=self.reset, instruction_sha256=self.instruction['instruction_sha256'],
             tick=tick, observed_at_ns=observed_at_ns, available_at_ns=available_at_ns,
             decision_at_ns=decision_at_ns, observation_sha256=digest(dict(pose=pose, hand11=hand11)),
-            goal_semantics='spatial_path_waypoint', time_semantics=TIME_SEMANTICS,
+            goal_semantics=TASK_GOAL_SEMANTICS, time_semantics=TIME_SEMANTICS,
+            target_stage='task_completion', task_goal_available_at_ns=self.reset['at_ns'],
             reference_endpoint_time_s=None, planning_horizon_s=decision['horizon_s'],
             mode=decision['mode'], confirmed_index=decision['confirmed_index'],
             target_reference_index=decision['target_reference_index'],
-            goal_pose=plain(decision['goal_pose']), goal_delta=plain(delta),
+            goal_pose=plain(task_goal), goal_delta=plain(delta),
+            planner_waypoint_diagnostic=dict(
+                source_role='planner_waypoint', goal_semantics='spatial_path_waypoint',
+                time_semantics=PLANNER_TIME_SEMANTICS,
+                goal_pose=plain(decision['goal_pose']),
+                available_at_ns=decision_at_ns, available_before_reset=False),
             goal_type=decision['goal_type'])
         if self.artifact_dir is not None:
             content = json.dumps(receipt, sort_keys=True, allow_nan=False) + '\n'
@@ -248,4 +276,9 @@ class ResetWaypointChannel:
             with (self.artifact_dir / 'waypoints.jsonl').open('a') as stream:
                 stream.write(content)
             self.written_bytes += len(content.encode())
+        self.scheduler = scheduler
+        self.last_tick = tick
+        self.last_observed_at_ns = observed_at_ns
+        self.last_request = request
+        self.last_result = copy.deepcopy((tensors, receipt))
         return tensors, receipt
