@@ -87,7 +87,7 @@ def main():
     from wam_rl_policy_v3.grasp_repair import clean_tau_future,support_plane
     from wam_rl_policy_v3.grasp_geometry import GeometryGraspConsumer,GraspGeometry
     from wam_rl_policy_v3.source_pd import source_pd_action
-    from wam_rl_policy_v3.intent_residual import IntentResidualPolicy,residual_observation,apply_intent_residual,ppo_update,RESIDUAL_CONTRACT
+    from wam_rl_policy_v3.intent_residual import IntentResidualPolicy,residual_observation,apply_intent_residual,ppo_update,final_state_value,save_ppo_rollout,RESIDUAL_CONTRACT
     from wam_rl_policy_v3.evaluation_sources import freeze_template,template_intent,gt_future
     from wam_rl_policy_v3.geometry_tau import object_local_hand,geometry_future
     from wam_rl_policy_v3.stage_evaluation import PalmSurface,PALM_FEATURE_CONTRACT,terminal_success
@@ -270,16 +270,21 @@ def main():
                     row.update(partial_budget_episode=episode_horizon!=reg['horizon_controls'],reward_sum=float(sum(rollout['rewards'])),reward_mean=float(np.mean(rollout['rewards'])),step_seconds_p50_p95=np.quantile(step_times,[.5,.95]).tolist(),episode_wall_s=time.monotonic()-episode_started,policy_entropy=float(dist.entropy().sum(-1).mean()))
                     row.update(control_counts(control_info,actions));row['source_admission_failures']=source_failures;row['geometry']=geometry.manifest();row['goal_within_geometry']=bool(t==reg['horizon_controls'] and not safe['abort'] and geometry.arrived(goal_error))
                     if a.ppo:
-                        bootstrap=0.
+                        bootstrap_observation=None
                         if not safe['abort'] and not row['final_success']:
                             # The 20s evaluation horizon is a time limit, not a
                             # physical terminal. Bootstrap with its observed state.
                             with torch.no_grad():terminal_adapter=model.actor(torch.tensor(observation[None],device='cuda')).cpu().numpy()
                             row['bootstrap_R_calls']=1
                             terminal_intent=grasp_intent_from_retargeter(np.asarray(state['q'])[0],palm,pose,target.object_path[-1],np.clip(terminal_adapter[0],-1,1),offset,scale,plan=plan,tau_valid=valid)
-                            with torch.no_grad():_,terminal_value=residual(torch.tensor(residual_observation(observation,terminal_intent)[None],device='cuda'))
-                            bootstrap=float(terminal_value[0])
-                        rollout_audit={}
+                            bootstrap_observation=residual_observation(observation,terminal_intent)
+                        bootstrap=final_state_value(residual,bootstrap_observation,terminated=bool(safe['abort'] or row['final_success']))
+                        rollout_audit=dict(bootstrap_observation=np.asarray([] if bootstrap_observation is None else bootstrap_observation),
+                                           bootstrap_state_tick=np.asarray(state['tick'])[0].copy(),
+                                           bootstrap_native_episode_id=np.asarray(state['episodes'])[0].copy())
+                        # A small read-only snapshot permits independent pre-update
+                        # critic replay, including the observed pre-reset endpoint.
+                        torch.save(dict(model=residual.state_dict()),folder/'critic-before-update.pt')
                         attempts[0]=0;update_started=time.monotonic();update=ppo_update(residual,optimizer,bootstrap=bootstrap,target_kl=.03,epochs=2,audit=rollout_audit,**rollout);update['wall_s']=time.monotonic()-update_started;update['cuda_peak_bytes']=torch.cuda.max_memory_allocated();update['optimizer_attempts']=attempts[0];update['rollback_retries']=attempts[0]-update['optimizer_updates'];row['ppo_update']=update;report['learning_updates']+=update['optimizer_updates']
                         for key in ('final_exact_kl','behavior_logprob_error','return_sum','return_mean'):
                             if not np.isfinite(update[key]):raise ValueError('nonfinite PPO '+key)
@@ -288,18 +293,10 @@ def main():
                         if not all(torch.isfinite(v).all() for v in residual.state_dict().values()):raise ValueError('nonfinite policy')
                         if (len(report['runs'])+1)%40==0:
                             torch.save(dict(model=residual.state_dict(),optimizer=optimizer.state_dict(),contract=RESIDUAL_CONTRACT),out/('residual-'+label+'.pt'))
-                        # One rollout is one episode (possibly time/budget truncated).
-                        # `done` marks every episode boundary; bootstrap is zero only
-                        # for actual task/physical terminals, not time limits.
-                        n=len(rollout['rewards']);done=np.zeros(n,dtype=bool);done[-1]=True
-                        endpoint='joint_safety_termination' if physical_abort=='physical_joint_limit' else 'real_termination' if safe['abort'] or row['final_success'] else 'truncation'
-                        bootstrap_mask=np.ones(n,dtype=bool);bootstrap_mask[-1]=endpoint=='truncation'
-                        termination_type=np.full(n,'continuing',dtype='<U32');termination_type[-1]=endpoint
-                        rollout_audit.update(done=done,bootstrap=bootstrap_mask,termination_type=termination_type,
-                                             budget_truncated=np.asarray(row['partial_budget_episode'] and endpoint=='truncation'))
-                        for phase in ('approach','contact','lift','hold'):
-                            rollout_audit['stage_'+phase]=np.asarray([s['current'][phase] for s in stage_info[1:]],dtype=bool)
-                        np.savez_compressed(folder/'ppo-rollout.npz',**{k:np.asarray(v) for k,v in rollout.items()},**rollout_audit);write(folder/'reward-parts.json',reward_parts)
+                        endpoint='joint_safety_termination' if physical_abort=='physical_joint_limit' else 'real_termination' if safe['abort'] or row['final_success'] else 'rollout_cutoff' if row['partial_budget_episode'] else 'time_limit_truncation'
+                        save_ppo_rollout(folder/'ppo-rollout.npz',rollout,rollout_audit,episode_id=out.name+'/'+label,env_id=0,
+                                         sample_start=report['environment_controls']-len(actions),endpoint_type=endpoint,stages=stage_info)
+                        write(folder/'reward-parts.json',reward_parts)
                     write(folder/'reward-parts.json',reward_parts)
                     native.finish(send,receive);write(folder/'result.json',row);report['runs'].append(row);report.update(status='RUNNING',elapsed_s=time.monotonic()-started+report['carried_elapsed_s']);write(out/'manifest.json',report);print(json.dumps(row),flush=True)
                 except BaseException:

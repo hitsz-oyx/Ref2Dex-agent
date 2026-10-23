@@ -123,3 +123,46 @@ nvidia-smi -i 7 --query-gpu=index,memory.used,utilization.gpu --format=csv,nohea
 Git：第一次提交补丁与预注册后，`git pull --rebase origin main` 因他人未暂存修改被拒绝；未 stash/未改他人文件，普通 push 成功。只提交本轮两个持久化源码文件与本报告。最终报告提交同样显式路径推送，并在答复中给出 HEAD / origin/main / ls-remote 的终态核对。
 
 终态产物快照：**1572847334 bytes**（9259 个实体文件；不重复累计 `bc/runtime-code` 目录软链接目标），约 1.464828GiB。磁盘剩余 127.68GiB。该超限已如实列为本轮故障；未删除产物。
+
+
+## brief45 增补 v2：R1–R4 预注册（新一轮，实施前写入）
+
+本节新增数据与 08:12 的失败 attempt 严格分开，失败 attempt 保持 INVALID。当前用户增补授权新的最小复跑；不自动恢复旧进程。保留顶端原始解读表，并按本节要求验收双层门：真实短跑落盘 + 确定性边界注入。
+
+- **R1：** 逐样本扩展 episode_id/env_id/timestep/sample_index、reward/value_t/bootstrap_value、advantage_raw/target_return、terminated/truncated/endpoint_type、bootstrap_mask/gae_continuation_mask。`b_t=1−terminated_t`；`c_t=1−(terminated_t or truncated_t)`，片段末端（含 budget cutoff）c=0，time limit/cutoff 的 b=1。bootstrap_value 是本样本 TD 使用的、同一回合 next-state value；另存末状态标量与来源状态身份。独立逐样本重算 δ=r+γbV_next−V、A=δ+γλcA_next、target=V+A，rtol=1e-4/atol=1e-5。
+- **R2：** 先抽出原 GAE 表达式供 PPO 与无训练边界案例共同调用，保持旧浮点运算顺序；同一生产保存函数落盘。真实终止、time-limit、rollout/budget cutoff 各≥2例；真终止包含物理失败。构造不同的 final-state value 与 reset-state value，逐例确认无 reset 串入；再故意注入 terminal bootstrap、truncation 清零、跨回合递推、误用 reset value、保存 normalized advantage 等错误验证检查器可检出。此层0环境controls、0训练updates。
+- **R3：** 原 14,400 controls 永久 INVALID_INSTRUMENTATION，绝不追认。只把计算公式/优化器设置/相关代码路径不变称为同 recipe；缩短预算不是原训练的等价结果。短跑 PASS 仅认证所验路径，不认证 PPO 学习有效；只有发现长序列/buffer rollover 依赖异常才申请针对性长复跑。
+- **R4：** 新 attempt 输出到原授权根内 `v2/`。真实物理仅旧注册前2初态，各臂各一次（2初态×BC/PPO，常规600 controls时域，每臂至多1,200且硬上限1,500；learning_updates≤72）。不凑齐随机终点类别、不额外rollout。确定性边界测试补齐真实短跑未观测类别，并分别报覆盖，绝不混成物理样本。
+
+先修上一轮包装器的位置参数签名；新 frozen runtime 保留软链接，实体字节启动前核算。GPU7占用>2GiB等60秒，不换卡。上轮1.57GB证据保留，**新v2子目录**单独≤512MiB预计/1GiB硬限额，不把已冻结失败证据误计入新attempt上限。新attempt遇OOM/非有限/loader failure/可用磁盘<20GiB即停不自动重试。继续使用 long-running-tasks 操作规范（单次阻塞≤60秒遵循上级限制）。
+
+状态：v2 预注册先落盘；源码、CPU 等价性、生产路径边界注入和启动预检已完成，v2物理采样尚未启动。
+
+### v2 运行前验收（新增，非 brief39/42 复算）
+
+原始整片段 GAE 的表达式与浮点运算顺序移入 `gae_targets`，PPO 仍调用原公式；`final_state_value` 只读取当前片段末、reset 前的 observation；`save_ppo_rollout` 同时保存两种 mask 和身份字段。真实 runner 和确定性边界都调用这三个生产函数，没有另造仅供测试的 GAE。
+
+CPU 同一旧批次再次核对：297 samples，6 checks passed / 0 failed，原版与新版两 epochs 的 loss、raw/normalized advantage、targets、模型及 Adam 状态逐位相同，两版各2次更新。此为本轮额外的一个批次等价性检查，不计入物理 learning_updates；不追认旧训练数据。
+
+确定性边界：**6 cases / 24 samples / 0 controls / 0 training updates**，三类各2。独立双mask重算不一致 **0/24**，最大 GAE 偏差 **5.8654384682554905e-8**；target恒等式偏差0。六片段拼接后仍0/24不一致；故意开启第一个边界的跨回合递推产生4/24超差、最大0.5550143867，证明 c 的检查并非只靠片段末 tail=0 的恒等式。8个落盘错误突变全部检出：terminal bootstrap、截断清零、跨回合c、用reset价值且同步改A/target伪装自洽、normalized替代raw、漏reward、错一帧value、缺独立mask。
+
+| 确定性案例 | sample_index | endpoint_type | 末步 b / c | final-state value / reset-state sentinel | 结果 |
+|---|---|---|---|---|---|
+| true-success | 0–3 | real_termination | 0 / 0 | 0 / 17 | PASS |
+| physical-joint | 4–7 | joint_safety_termination | 0 / 0 | 0 / −19 | PASS |
+| time-limit-positive | 8–11 | time_limit_truncation | 1 / 0 | .7 / 101 | PASS |
+| time-limit-negative | 12–15 | time_limit_truncation | 1 / 0 | −.4 / 102 | PASS |
+| budget-cutoff-positive | 16–19 | rollout_cutoff | 1 / 0 | .9 / 201 | PASS |
+| rollout-cutoff-negative | 20–23 | rollout_cutoff | 1 / 0 | −.8 / 202 | PASS |
+
+每例前三步 b=c=1；真实终止不调用critic，其他四例只调用一次并记录输入，必须为final observation且与reset sentinel不同。真实控制器不存在本步自动reset分支，实际短跑仍需以末状态tick/episode和冻结critic独立核对，测试不能代替该证据。
+
+包装器预检 **4 passed / 0 failed**：实际 mkdtemp 位置参数、wandb同口径TemporaryDirectory、长UNIX路径原样payload、启动前空间/字节门。新v2实体大小2,374,605 bytes（预检时），保留third_party软链接，不重复上轮的展开复制。GPU7启动前2MiB，其他卡未用。
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES='' /home2/wyy/miniconda3/envs/graspenv/bin/python outputs/wam-rl-policy-v3/ppo-instrumented-audit-20261023-r1/v2/check_equivalence.py
+# check_boundaries.py 为 fresh-output 测试，boundaries 已存在时会显式拒绝覆盖；已有结果可只读复核：
+cat outputs/wam-rl-policy-v3/ppo-instrumented-audit-20261023-r1/v2/boundaries-result.json
+# 本轮实际短跑启动命令（后续故障不得自动重试）：
+PYTHONDONTWRITEBYTECODE=1 /home2/wyy/miniconda3/envs/graspenv/bin/python -u outputs/wam-rl-policy-v3/ppo-instrumented-audit-20261023-r1/v2/supervise.py
+```

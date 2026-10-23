@@ -38,6 +38,51 @@ def apply_intent_residual(intent,latent):
                    preshape_q=intent.preshape_q+correction[6:],closure_q=intent.closure_q+correction[6:],approach_joint_angles=intent.approach_joint_angles if np.all(correction[3:6]==0) else None)
 
 
+def gae_targets(rewards,values,*,bootstrap=0.,gamma=.96,lam=.95,audit=None):
+    """Original whole-fragment GAE, shared by PPO and no-training boundary tests."""
+    val=np.r_[np.asarray(values,dtype=np.float32),bootstrap];advantages=np.zeros(len(rewards),np.float32);tail=0.
+    for t in reversed(range(len(rewards))):
+        tail=rewards[t]+gamma*val[t+1]-val[t]+gamma*lam*tail;advantages[t]=tail
+    targets=advantages+np.asarray(values,dtype=np.float32)
+    if audit is not None:
+        audit.update(advantage_raw=advantages.copy(),target_return=targets.copy(),
+                     V_old=np.asarray(values,dtype=np.float32).copy(),reward=np.asarray(rewards).copy(),
+                     next_value=val[1:].copy(),bootstrap_value=val[1:].copy(),
+                     bootstrap_terminal_value=np.asarray(bootstrap),gamma=np.asarray(gamma),gae_lambda=np.asarray(lam))
+    return advantages,targets
+
+
+def final_state_value(policy,final_observation,*,terminated):
+    """Bootstrap only from the supplied pre-reset final state, never a reset."""
+    if terminated:return 0.
+    with torch.no_grad():
+        _,value=policy(torch.tensor(np.asarray(final_observation)[None],device=next(policy.parameters()).device))
+    return float(value[0])
+
+
+def save_ppo_rollout(path,rollout,audit,*,episode_id,env_id,sample_start,endpoint_type,stages):
+    """Persist independent TD-bootstrap and within-fragment GAE masks."""
+    terminal=endpoint_type in ('real_termination','joint_safety_termination')
+    if not terminal and endpoint_type not in ('time_limit_truncation','rollout_cutoff'):
+        raise ValueError('explicit terminal or truncation endpoint required')
+    n=len(rollout['rewards'])
+    if not n:raise ValueError('nonempty PPO fragment required')
+    terminated=np.zeros(n,dtype=bool);truncated=terminated.copy()
+    terminated[-1]=terminal;truncated[-1]=not terminal
+    done=terminated|truncated;bootstrap_mask=~terminated;continuation_mask=~done
+    endpoints=np.full(n,'continuing',dtype='<U32');endpoints[-1]=endpoint_type
+    legacy=endpoints.copy();legacy[-1]=endpoint_type if terminal else 'truncation'
+    fields=dict(audit,episode_id=np.full(n,episode_id),env_id=np.full(n,env_id,dtype=np.int64),
+                timestep=np.arange(n),sample_index=np.arange(sample_start,sample_start+n),
+                value_t=np.asarray(audit['V_old']).copy(),terminated=terminated,truncated=truncated,
+                endpoint_type=endpoints,bootstrap_mask=bootstrap_mask,gae_continuation_mask=continuation_mask,
+                done=done,bootstrap=bootstrap_mask.copy(),termination_type=legacy,
+                budget_truncated=np.asarray(endpoint_type=='rollout_cutoff'))
+    for phase in ('approach','contact','lift','hold'):
+        fields['stage_'+phase]=np.asarray([s['current'][phase] for s in stages[1:]],dtype=bool)
+    np.savez_compressed(path,**{k:np.asarray(v) for k,v in rollout.items()},**fields)
+
+
 def ppo_update(policy,optimizer,observations,latents,old_logp,rewards,values,*,bootstrap=0.,gamma=.96,lam=.95,epochs=2,target_kl=.03,audit=None):
     """Update one fixed-policy rollout with an exact, adaptive KL gate.
 
@@ -54,17 +99,12 @@ def ppo_update(policy,optimizer,observations,latents,old_logp,rewards,values,*,b
     act=torch.as_tensor(np.asarray(latents),device=device,dtype=torch.float32)
     old=torch.as_tensor(np.asarray(old_logp),device=device,dtype=torch.float32)
     reward_tensor=torch.as_tensor(np.asarray(rewards),device=device,dtype=torch.float32)
-    val=np.r_[np.asarray(values,dtype=np.float32),bootstrap];advantages=np.zeros(len(rewards),np.float32);tail=0.
-    for t in reversed(range(len(rewards))):
-        tail=rewards[t]+gamma*val[t+1]-val[t]+gamma*lam*tail;advantages[t]=tail
-    returns=torch.as_tensor(advantages+np.asarray(values,dtype=np.float32),device=device,dtype=torch.float32)
+    advantages,targets=gae_targets(rewards,values,bootstrap=bootstrap,gamma=gamma,lam=lam,audit=audit)
+    returns=torch.as_tensor(targets,device=device,dtype=torch.float32)
     # Optional persistence witness, captured before advantage normalization.
     # These copies never feed back into the optimizer or GAE calculation.
     if audit is not None:
-        audit.update(advantage_raw=advantages.copy(),target_return=returns.detach().cpu().numpy().copy(),
-                     V_old=np.asarray(values,dtype=np.float32).copy(),reward=np.asarray(rewards).copy(),
-                     next_value=val[1:].copy(),bootstrap_value=np.asarray(bootstrap),
-                     gamma=np.asarray(gamma),gae_lambda=np.asarray(lam))
+        audit['target_return']=returns.detach().cpu().numpy().copy()
     adv=torch.as_tensor(advantages,device=device);adv=(adv-adv.mean())/adv.std(unbiased=False).clamp_min(1e-6)
     with torch.no_grad():
         old_dist,_=policy.distribution(obs)
