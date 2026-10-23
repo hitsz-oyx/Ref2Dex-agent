@@ -329,6 +329,12 @@ def summarize(run,out,workers=1):
     old_membership=np.lib.format.open_memmap(out/'train-membership-in-old6000.npy',mode='w+',dtype=bool,shape=(len(arrays['train']),))
     old_dev_membership=np.lib.format.open_memmap(out/'dev-membership-in-old-version.npy',mode='w+',dtype=bool,shape=(len(arrays['dev']),))
     db=sqlite3.connect(str(out/'dedup-index.sqlite'))
+    # This rebuildable index is published only after the entire audit. Keep
+    # rollback pages in bounded process memory instead of rewriting the same
+    # random B-tree pages to a disk journal for millions of dense windows.
+    # Authoritative conversion receipts retain their independent fsyncs.
+    db.execute('PRAGMA cache_size=-1048576')
+    db.execute('PRAGMA journal_mode=MEMORY')
     db.execute('CREATE TABLE representatives (signature BLOB, sequence_id INTEGER, slot INTEGER, tick INTEGER, phase INTEGER)')
     db.execute('CREATE INDEX signature_index ON representatives(signature)')
     positions=Counter();count=Counter();removed=Counter();cross=0;comparisons=0;temporal_before=0;temporal_after=0
@@ -472,7 +478,9 @@ def summarize(run,out,workers=1):
             before=n,after=n-sum(removed.values()),removed=dict(removed),global_full_predicate_comparisons=comparisons,cross_split_train_removed=cross,local_workers=workers,
             temporal_near_repeat_percent_before=100*temporal_before/n if n else 0,
             temporal_near_repeat_percent_after=100*temporal_after/(n-sum(removed.values())) if n>sum(removed.values()) else 0,
-            baseline_6000_temporal_percent=61.23),
+            baseline_6000_temporal_percent=61.23,
+            derived_index_storage=dict(cache_mib=1024,journal_mode='MEMORY',
+                incomplete_index='unpublished and rebuildable; conversion receipts unchanged')),
         provenance=dict(certified_legal=0,uncertifiable=n,source_role='UNKNOWN',available_before_reset=None,
             native_candidate_mothers=dict(native_candidate_mothers),native_candidate_windows=dict(native_candidate_windows),
             label_hash_and_mtime='per-window target-label traceability only; not pre-reset availability proof',
