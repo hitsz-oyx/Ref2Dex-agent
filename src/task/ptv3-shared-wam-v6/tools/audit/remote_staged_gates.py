@@ -90,7 +90,7 @@ def publish(out,stage):
             bytes_measured+=actual_bytes
             for kind,key in [('mother',r['mother_identity']),('payload',metadata['path']['payload_identity']),
                     ('hand_path',str(Path(receipt['path']).resolve()))]:
-                previous=seen[kind].setdefault((source,key),split)
+                previous=seen[kind].setdefault(key,split)
                 assert previous==split,'cross-split '+kind
             arrays[split][offset:offset+len(tuples)]=tuples
             clocks[split][offset:offset+len(tuples)]=valid

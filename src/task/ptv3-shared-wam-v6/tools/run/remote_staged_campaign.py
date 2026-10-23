@@ -29,6 +29,8 @@ def environment(out):
     paths_environment(out)
     return dict(os.environ,CUDA_VISIBLE_DEVICES='0,1,2,3',
         CUBLAS_WORKSPACE_CONFIG=':4096:8',REF2DEX_RUN_ROOT=str(ROOT/'tmp/rh'),
+        TORCH_EXTENSIONS_DIR=str(out/'cache/extensions'),TRITON_CACHE_DIR=str(out/'cache/triton'),
+        CUMM_CACHE_PATH=str(out/'cache/cumm'),
         OMP_NUM_THREADS='2',OPENBLAS_NUM_THREADS='2',MKL_NUM_THREADS='2',
         NCCL_ASYNC_ERROR_HANDLING='1')
 
@@ -132,9 +134,18 @@ def admit(out,stage,path):
 
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);a=p.parse_args();out=a.output.resolve()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True)
+    p.add_argument('--adopt-idle-controller',action='store_true');a=p.parse_args();out=a.output.resolve()
     assert NAS in out.parents
-    lock=out/'CAMPAIGN_ONE_SHOT.lock';fd=os.open(str(lock),os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o664)
+    lock=out/'CAMPAIGN_ONE_SHOT.lock'
+    if a.adopt_idle_controller:
+        original_pid=int(lock.read_text())
+        if (Path('/proc')/str(original_pid)).exists():raise RuntimeError('original controller still alive')
+        status=read(out/'campaign-status.json')['status']
+        if status not in ('WAITING_HALF_CONVERSION','WAITING_REFERENCES') or (out/'half-data-gates-launch.json').exists():
+            raise RuntimeError('only an idle pre-training controller can be adopted')
+        lock=out/'CAMPAIGN_IDLE_ADOPTION.lock'
+    fd=os.open(str(lock),os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o664)
     os.write(fd,str(os.getpid()).encode());os.close(fd)
     active=[];started=time.monotonic()
     try:
@@ -146,25 +157,25 @@ def main():
             write(out/'campaign-status.json',dict(status='WAITING_HALF_CONVERSION',progress=progress,automatic_restart=False))
             if (out/'STOP').exists():raise InterruptedError('owner STOP')
             time.sleep(30)
-        # Reference transfer is immutable and bounded separately from conversion.
-        while not all((out/f).exists() for f in ('fixed-panel/manifest.json','local3000-weights.pt','local3000-panel.npz')):
-            if time.monotonic()-started>6*3600:raise TimeoutError('reference transfer deadline')
-            write(out/'campaign-status.json',dict(status='WAITING_REFERENCES',automatic_restart=False));time.sleep(30)
         for stage in ('half','full'):
             if stage=='full':
                 wait_process(out,'remaining-conversion',remaining,6*3600)
             gate=launch(out,stage+'-data-gates',[sys.executable,'-u',str(TASK/'tools/audit/remote_staged_gates.py'),'--output',str(out),'--stage',stage])
             active.append(gate);wait_process(out,stage+'-data-gates',gate,3600)
+            while not all((out/f).exists() for f in ('fixed-panel/manifest.json','local3000-weights.pt','local3000-panel.npz')):
+                if time.monotonic()-started>6*3600:raise TimeoutError('reference transfer deadline')
+                write(out/'campaign-status.json',dict(status='WAITING_REFERENCES',automatic_restart=False));time.sleep(30)
             path=recipe(out,stage)
-            # A coverage-scope answer is required; elapsed time is not approval.
-            while not (out/'scope-authorization.json').exists():
-                write(out/'campaign-status.json',dict(status='WAITING_SOURCE8_SCOPE_AUTHORIZATION',data_checks=str(out/(stage+'-gates/data-checks.json')),automatic_restart=False))
-                if (out/'STOP').exists():raise InterruptedError('owner STOP')
-                time.sleep(30)
             snapshot=gpu_snapshot();write(out/(stage+'-gpu-preflight.json'),snapshot,immutable=True)
             if snapshot['processes'].strip():raise RuntimeError('other GPU processes present at training preflight')
             smoke=launch(out,stage+'-smoke',train_command(path,out/(stage+'-smoke'),smoke=True))
             active.append(smoke);wait_process(out,stage+'-smoke',smoke,1800)
+            # Finish every technical check before waiting for a coverage-scope
+            # answer. Elapsed time never constitutes approval for the scope.
+            while not (out/'scope-authorization.json').exists():
+                write(out/'campaign-status.json',dict(status='WAITING_SOURCE8_SCOPE_AUTHORIZATION',data_checks=str(out/(stage+'-gates/data-checks.json')),smoke=str(out/(stage+'-smoke/result.json')),automatic_restart=False))
+                if (out/'STOP').exists():raise InterruptedError('owner STOP')
+                time.sleep(30)
             admit(out,stage,path)
             expand=None if stage=='half' else max((out/'half-training').glob('step*.pt'),key=lambda p:int(p.stem[4:]))
             training=launch(out,stage+'-training',train_command(path,out/(stage+'-training'),expand=expand))

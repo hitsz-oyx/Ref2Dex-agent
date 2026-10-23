@@ -106,6 +106,22 @@ half recipe; source local3000 remains the paired comparison. Existing model,
 strict FP32, unknown goal/event, loss weights and GT2048 geometry remain intact.
 Remote Torch2.0.1+cu118/graspenv requires attention API compatibility; code retains
 FP32 and disables the older fused inference path without changing checkpoint keys.
+Its efficient kernel rejects every non-null attention mask. Removing exactly the
+invalid keys, grouped by valid key count, passes the existing ragged and new
+arbitrary-hole output/gradient tests against independent math attention. Remote
+CUDA regression:12 passed. No environment upgrade or half-precision fallback.
+
+Measured engineering model preflight:101,353,749 parameters, all predictions
+finite. Efficient Torch2.0 inference repeats differ in last bits; the fixed panel
+therefore explicitly uses **FP32 math attention** (training remains efficient).
+The same real model/input repeated under math attention is bit-exact for both hand
+and object, max difference0mm, peak allocated665,339,392B. This is a backend
+compatibility choice, not a model-quality improvement. Torch2.0 warns even on
+unweighted integer CUDA bincount under deterministic-algorithm mode; that mode
+uses warn-only there, with actual repeated panel predictions checked separately.
+The existing NAS PointWorld dependency is linked read-only into the empty short
+checkout submodule; its `ptv3.py` matches the local file SHA. No shared vendor code
+or conda environment is modified.
 
 World4 GPUs0/1/2/3, local96/global384,2 spawn workers/rank. Uniform source1/9,
 then uniform mother, then uniform observed known phase, then uniform window;

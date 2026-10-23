@@ -22,6 +22,7 @@ from remote_staged_data import read,write,sha,GIB,NAS
 from ptv3_shared_wam_v6.staged_training import StagedWindows,validate_admission
 from ptv3_shared_wam_v6.prepared_reader import collate
 from ptv3_shared_wam_v6.model import SharedWAMV6
+from ptv3_shared_wam_v6.precision import configure_strict_fp32
 from ptv3_shared_wam_v6.objectives import forecast_loss
 from ptv3_shared_wam_v6.goal_policy import assert_unknown_inputs
 from ptv3_shared_wam_v5.training_contract import loader_options,restore_optimizer_state
@@ -40,6 +41,11 @@ def panel(model,panel_manifest,directory,step,reference=None):
     meta=read(panel_manifest);base=Path(panel_manifest).parent
     sums=[];counts=[];repeated=None;before=model.training;model.eval()
     rng=torch.get_rng_state();cuda_rng=torch.cuda.get_rng_state()
+    # Torch2.0's efficient kernel has non-bit-exact repeated inference. Math
+    # attention evaluates the same FP32 equations and is bit-exact here. This
+    # scorer backend is declared separately from the efficient training backend.
+    panel_config=dict(model.config,fp32_attention_backend='math')
+    configure_strict_fp32(model,panel_config)
     with torch.inference_mode():
         for row in meta['files']:
             p=base/row['path'];assert sha(p)==row['sha256'] and p.stat().st_size==row['bytes']
@@ -56,6 +62,7 @@ def panel(model,panel_manifest,directory,step,reference=None):
             sums.append(torch.stack([torch.where(m,e,0.).flatten(1).sum(1,dtype=torch.float64) for e,m in zip(errors,masks)],1).cpu().numpy())
             counts.append(torch.stack([m.flatten(1).sum(1) for m in masks],1).cpu().numpy())
     torch.set_rng_state(rng);torch.cuda.set_rng_state(cuda_rng);model.train(before)
+    configure_strict_fp32(model,model.config)
     sums=np.concatenate(sums);counts=np.concatenate(counts);mothers=np.asarray([r['sequence_id'] for r in meta['rows']])
     assert len(sums)==512 and len(np.unique(mothers))==124 and counts.sum(0).tolist()==meta['contract_counts']
     assert np.isfinite(sums).all() and repeated
@@ -73,6 +80,7 @@ def panel(model,panel_manifest,directory,step,reference=None):
     result=dict(status='PASS',step=step,means_mm=means.tolist(),cluster_ci95_mm=cluster_ci(sums,counts,mothers),
         metrics_order=meta['metrics_order'],rows=512,mothers=124,bootstrap_repeats=4000,bootstrap_seed=170,
         anchor_sha256=meta['anchor_sha256'],same_A_conditions=True,repeat_bit_exact=repeated,
+        panel_attention_backend='math',training_attention_backend=model.config['fp32_attention_backend'],
         versus_local3000=comparison,scope='fixed TRAIN panel only; no generalization or execution conclusion')
     write(directory/'summary.json',result,immutable=True)
     return result
@@ -89,7 +97,11 @@ def main():
     torch.cuda.set_device(local);dist.init_process_group('nccl',timeout=datetime.timedelta(minutes=15))
     torch.set_num_threads(2);torch.backends.cuda.matmul.allow_tf32=False
     torch.manual_seed(170+rank);np.random.seed(170+rank);random.seed(170+rank)
-    torch.use_deterministic_algorithms(True)
+    # Torch2.0 rejects even unweighted integer CUDA bincount. Request its
+    # deterministic paths, retaining warnings for unsupported integer counts;
+    # the fixed panel independently requires actual bit-exact repeats.
+    legacy_torch=tuple(map(int,torch.__version__.split('+')[0].split('.')[:2]))<(2,1)
+    torch.use_deterministic_algorithms(True,warn_only=legacy_torch)
     model=SharedWAMV6(stats,config).cuda()
     optimizer=torch.optim.AdamW(model.parameter_groups(config['geometry_lr'],config['shared_lr']),weight_decay=config['weight_decay'],fused=True)
     first=1;parent=None
@@ -187,9 +199,18 @@ def main():
         if rank==0:
             block_means=[float(np.mean(loss_records[i:i+500])) for i in range(0,len(loss_records),500) if len(loss_records[i:i+500])==500]
             monotone=all(b<=a for a,b in zip(block_means,block_means[1:])) if len(block_means)>=2 else None
+            primary=None
+            if not a.smoke:
+                with np.load(out/('panel-step%06d/paired-panel.npz'%(first-1))) as initial, np.load(out/('panel-step%06d/paired-panel.npz'%step)) as final:
+                    assert np.array_equal(initial['counts'],final['counts']) and np.array_equal(initial['mothers'],final['mothers'])
+                    delta=(final['sums'].sum(0)-initial['sums'].sum(0))/final['counts'].sum(0)
+                    ci=cluster_ci(final['sums'],final['counts'],final['mothers'],reference=initial['sums'])
+                    primary=dict(delta_vs_stage_initial_mm=delta.tolist(),paired_cluster_ci95_mm=ci,
+                        all_three_improve_with_ci=bool((delta<0).all() and all(bounds[1]<0 for bounds in ci)),
+                        loss_monotone=monotone,pass_all=bool((delta<0).all() and all(bounds[1]<0 for bounds in ci) and monotone is True))
             write(out/'result.json',dict(status='SMOKE_PASS' if a.smoke else 'COMPLETED',last_step=step,
                 updates=step-first+1,elapsed_s=time.monotonic()-started,loss_block500_means=block_means,
-                loss_block500_monotone_nonincreasing=monotone,automatic_restart=False),immutable=True)
+                loss_block500_monotone_nonincreasing=monotone,primary=primary,automatic_restart=False),immutable=True)
         dist.barrier()
     except BaseException as exc:
         write(out/('failure-rank%d.json'%rank),dict(reason=repr(exc),last_attempted_step=step,automatic_restart=False),immutable=True)
