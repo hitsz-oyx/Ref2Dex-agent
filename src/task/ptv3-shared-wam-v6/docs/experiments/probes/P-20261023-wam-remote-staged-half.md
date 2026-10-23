@@ -139,6 +139,9 @@ mother/window probabilities change and are declared in the transition receipt.
 Half/full have different census/recipe/data identities and output directories.
 All500-step checkpoints and panels remain; never combine these stages into one
 unchanged recipe identity. Training wall budget at most48h across the two stages.
+Cross-mother content-near-duplicate removal is not claimed complete. Mother URIs
+and dense overlapping windows are not independent statistical observations;
+the fixed panel uses mother-cluster uncertainty rather than frame-wise CI.
 
 Fixed panel: same512 rows/124 mothers, exact original collated local tensors and
 sample IDs, H4/K24, contact label threshold>0.25. The panel is TRAIN evidence.
@@ -158,6 +161,24 @@ paired cluster95%CI and winner/uncertain for every metric. Measured local3000:
 [8.534392,9.407645] /[23.474065,25.768982] /[5.358705,5.909570].
 Cross-Torch/GPU repeat differences are measured before research training; no
 claim that environment differences are a dataset effect.
+
+Measured remote parent-only512-panel calibration, before any research update:
+**8.980819415 /24.659349252 /5.639403410 mm**, bit-exact repeat under math FP32.
+Remote-minus-local3000 differences are +0.000000456 /−0.000000949 /
++0.000000969mm. These are numerical backend differences, not evidence of improved
+or worsened prediction quality. Original paired CIs remain in the raw receipt.
+The local parent weights byte SHA matches the NAS copy exactly:
+`3f903dea22402c3f8ac7e13131ae322793bcb8f03331b82373f676a126ff092d`
+(405,667,242B). Exact panel tensor tar:
+`af83fb1dadf4781c23088f08239b50ece82301e350a59188fec3483ab71eaaca`
+(130,426,880B). The local ordered per-mother tuple reference gzip is
+`c21c95e078c5d0b0b8202482bea420f27b32713c7e1a6f82ab817c05637f53f0`.
+
+Engineering reader preflight on17 already-converted mothers (nine TRAIN/eight DEV)
+passed content contracts. A real nine-source batch through the101M model and
+full supervision backward had finite gradients, loss8.3335056, peak2.142GB,
+**0 optimizer updates**. This small engineering receipt is explicitly not the
+half-census288-window/four-rank optimizer gate.
 
 OOM, nonfinite loss/gradient, loader error, disk floor, artifact ceiling or
 1800s training stall stops owned process groups, preserves evidence, and does

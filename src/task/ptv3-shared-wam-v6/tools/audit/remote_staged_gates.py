@@ -153,6 +153,13 @@ def audit(out,stage):
                 r=pool[int(idx)];seq,contact,event=ds[r['split']].sequence(r['sequence_id'])
                 for field,values in [('path',seq),('contact_path',contact)]:
                     assert array_identity(values)==read(Path(r[field])/'meta.json')['payload_identity']
+                enter,leave=checks.proximity_counts(contact['contact'],contact['valid'])
+                regenerated=checks.annotate_events(enter,leave,contact['valid'],
+                    observation_stride=checks.OBSERVATION_STRIDE_BY_SOURCE.get(source,1))
+                regenerated.pop('transitions');regenerated.update(enter_count=enter,leave_count=leave,raw_valid=np.asarray(contact['valid']))
+                assert set(regenerated)==set(event)
+                for name,value in regenerated.items():assert np.array_equal(value,event[name]),(r['key'],name)
+                hashed['events_recomputed']+=1
                 for field in ('path','contact_path','event_path'):
                     for f in Path(r[field]).iterdir():
                         if f.is_file():

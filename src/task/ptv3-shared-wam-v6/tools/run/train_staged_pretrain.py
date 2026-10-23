@@ -109,6 +109,11 @@ def main():
         saved=torch.load(a.expand_from,map_location='cpu',weights_only=False)
         if recipe['stage']!='full' or saved.get('stage')!='half' or saved.get('schema')!='ref2dex.remote-staged-checkpoint.v1':
             raise ValueError('only explicitly declared half-to-full expansion allowed')
+        campaign_root=Path(recipe['manifest']).parent.parent
+        if (saved['data_identity']!=sha(campaign_root/'half-census/manifest.json')
+                or saved['recipe_sha256']!=sha(campaign_root/'half-recipe/recipe.json')
+                or read(recipe['manifest'])['plan_sha256']!=read(campaign_root/'half-census/manifest.json')['plan_sha256']):
+            raise ValueError('expansion must restore this campaign frozen half and selection plan')
         parent=dict(checkpoint=str(a.expand_from),sha256=sha(a.expand_from),data_identity=saved['data_identity'],
             recipe_sha256=saved['recipe_sha256'],new_data_identity=recipe['manifest_sha256'],
             source_probabilities_before=saved['source_probabilities'],source_probabilities_after=recipe['source_probabilities'],
