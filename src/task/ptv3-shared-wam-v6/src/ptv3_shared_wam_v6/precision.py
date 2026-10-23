@@ -26,6 +26,13 @@ def sdpa(q, k, v, mask=None, scale=None, backend='efficient'):
         mask = bias
     with torch.backends.cuda.sdp_kernel(enable_flash=False,
             enable_math=backend == 'math', enable_mem_efficient=backend == 'efficient'):
+        if tuple(map(int, torch.__version__.split('+')[0].split('.')[:2])) < (2, 1):
+            # Torch2.0 lacks the scale keyword. Preserve SDPA's default scale
+            # and apply a custom ratio only when one was actually requested.
+            default_scale = q.shape[-1] ** -.5
+            if scale is not None and scale != default_scale:
+                q = q * (scale / default_scale)
+            return F.scaled_dot_product_attention(q, k, v, attn_mask=mask, dropout_p=0.)
         return F.scaled_dot_product_attention(q, k, v, attn_mask=mask,
                                              dropout_p=0., scale=scale)
 
@@ -82,7 +89,14 @@ def configure_strict_fp32(model, config):
     torch.backends.cuda.matmul.allow_tf32 = False
     torch.backends.cudnn.allow_tf32 = False
     # Inference must not bypass the patched attention via Transformer fastpath.
-    torch.backends.mha.set_fastpath_enabled(False)
+    if hasattr(torch.backends, 'mha'):
+        torch.backends.mha.set_fastpath_enabled(False)
+    else:
+        # Torch2.0 predates the global fastpath switch. This flag only selects
+        # its fused encoder path; the actual GELU callable remains unchanged.
+        for layer in model.modules():
+            if isinstance(layer, nn.TransformerEncoderLayer):
+                layer.activation_relu_or_gelu = 0
     import spconv.constants as sparse_constants
     sparse_constants.SPCONV_ALLOW_TF32 = False
     counts = dict(serialized_attention=0, dense_attention=0)

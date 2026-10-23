@@ -8,6 +8,25 @@ from ptv3_shared_wam_v6.precision import (
 )
 
 
+@pytest.mark.parametrize('scale', [None, .125])
+def test_torch20_sdpa_signature_preserves_custom_scale(monkeypatch, scale):
+    torch.manual_seed(20)
+    q,k,v=[torch.randn(2,2,5,8,requires_grad=True) for _ in range(3)]
+    expected=((q@k.transpose(-1,-2))*(scale if scale is not None else 8**-.5)).softmax(-1)@v
+    native=torch.nn.functional.scaled_dot_product_attention
+    def old_signature(q,k,v,attn_mask=None,dropout_p=0.):
+        return native(q,k,v,attn_mask=attn_mask,dropout_p=dropout_p)
+    monkeypatch.setattr(torch,'__version__','2.0.1+cu118')
+    monkeypatch.setattr(torch.nn.functional,'scaled_dot_product_attention',old_signature)
+    actual=sdpa(q,k,v,scale=scale,backend='math')
+    torch.testing.assert_close(actual,expected,atol=1e-6,rtol=2e-5)
+    grad=torch.randn_like(actual)
+    a=torch.autograd.grad(actual,(q,k,v),grad,retain_graph=True)
+    b=torch.autograd.grad(expected,(q,k,v),grad)
+    for actual_grad,expected_grad in zip(a,b):
+        torch.testing.assert_close(actual_grad,expected_grad,atol=1e-6,rtol=2e-5)
+
+
 def test_ragged_forward_backward_matches_independent_double_reference():
     torch.manual_seed(6)
     qkv = torch.randn(16, 3, 2, 8, requires_grad=True)
