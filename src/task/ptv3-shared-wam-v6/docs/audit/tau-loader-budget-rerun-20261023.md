@@ -145,3 +145,9 @@ PYTHONDONTWRITEBYTECODE=1 /home2/wyy/miniconda3/envs/dexplore_repro_py38_torch22
 ## 准入重新核实（无训练重启）
 
 本地11:44:44复查GPU4原占用进程已退出，三卡全空闲。原8400秒准入余量是本轮自行设置的保守工程估计，并非机主硬停；剩余约8315秒仍大于旧实测2500/.3238≈7721秒，加模型载入与三个暂停面板后约7900秒。因而将准入余量收紧为8100秒（不改config、不改14:03:59硬停）。此前NOT_STARTED资源记录与自动生成的零更新报告完整归档到tmp/t38-r4/resource-admission-before-launch/，不覆盖证据；本轮从未启动过训练，不是训练失败后自动重启。科学四行判据保持原文，继续唯一一次原launcher训练。
+
+## 真实唯一启动证据（阶段结果待实测）
+
+本地11:45:59（UTC03:45:59.218624）原launcher启动torchrun PID843895、supervisor843884，物理GPU4/5/6；训练源码提交37958ad3ff7467ec9ae242fe72c85546c4c73f77。training-start-proof.json保存原pgrep进程、launch argv、三真实rank hook、GPU利用率、updates与checkpoint。采样时真实step20、loss1.473211126有限、world3/global288/seed170不变，GPU4/5/6为22563MiB/99%、20297MiB/100%、24211MiB/98%。已写更新后checkpoint，日志socket路径错误0。不能把这些早期更新或CPU replay当作已稳定越过1570；后续必须给>1570持续更新和日志/进程/持久checkpoint证据。
+
+此前资源监控并未调用任何训练，归档的0更新状态只是训练前准入记录。原ONE_SHOT/global recipe lock在这次唯一原launcher启动后生效；本轮没有自动重启任何训练。
