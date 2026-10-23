@@ -235,6 +235,9 @@ def summarize(out):
     manifest_upper=candidate*2048+len(input_rows)*(65536+8192)+512*2**20
     staging=max(r['conversion_bytes'] for r in input_rows)*12
     peak=allocated+manifest_upper+staging+2*2**30
+    smoke_files=[f for f in (out/'smoke').rglob('*') if f.is_file()]
+    smoke_allocated=sum(f.stat().st_blocks*512 for f in smoke_files)
+    allocation_4k=sum(sum(((size+4095)//4096)*4096 for size in p.fixed_conversion_file_sizes(r['frames'],r['objects'])) for r in input_rows)
     quantiles=np.quantile([r['wall_s'] for r in rows],[0,.5,.9,.95,1]).tolist()
     result=dict(status='SMOKE_PASS_ONE_HOUR_GATE_NOT_DEMONSTRATED',run_commit=m['commit'],parents=32,admitted=32,wall_s=m['wall_s'],
         single_sequence_quantiles_s=dict(zip(['min','p50','p90','p95','max'],quantiles)),output_bytes=m['output_bytes'],conversion_bytes=m['conversion_bytes'],
@@ -253,7 +256,8 @@ def summarize(out):
         planning_48_workers_minutes=[35,60],planning_scope='unmeasured scaling scenario, engineering allowance, not statistical interval or <=1h qualification',
         recommendation='4 disjoint shards x 12 workers = 48 total, one GPU per shard; leave 720/768 logical CPUs; validate bounded concurrency before full launch',
         input_coverage=coverage,
-        storage=dict(block_bytes=block,fresh_fixed_logical_bytes=a['full_fresh_conversion_exact_bytes'],local_new_only_bytes=182331193978,
+        storage=dict(statvfs_frsize_bytes=block,frsize_is_not_verified_physical_allocation_unit=True,smoke_measured_allocated_bytes=smoke_allocated,rounding_4k_scenario_bytes=allocation_4k,
+                     fresh_fixed_logical_bytes=a['full_fresh_conversion_exact_bytes'],local_new_only_bytes=182331193978,
                      allocation_upper_bytes=allocated,candidate_windows_upper=candidate,manifest_upper_bytes=manifest_upper,
                      staging_12worker_upper_bytes=staging,filesystem_reserve_bytes=2*2**30,peak_upper_bytes=peak,
                      safety_floor_bytes=30*2**30,nas_free_now=shutil.disk_usage(out).free,
@@ -274,11 +278,14 @@ def summarize(out):
         '生产路径别名：母序列s0/1/2→NAS goal-point-wam.../repo/outputs/.../processed/sequences；s4/5/6/8/9/10→NAS ptv3-shared-wam-v3-nine-source-20261015-r1/data/native/payloads；packet→NAS v5/data/packets；geometry→NAS v5/data（manifest及2747几何文件均在，manifest与RLG参考SHA相同）；MANO→NAS v5/assets-mano；Shadow→NAS v5/assets-shadow/robot.xml。精确逐文件路径/字节在input-rows.jsonl，原始缺失在input-audit.json，补齐在input-overrides.json与input-coverage-after-repair.json。\n',
         '初始52,005个必需文件引用中52,004存在：51,994与RLG只读stat大小一致，10个HOT3D仅segment数组不同，其余数组逐字节身份相同；segment不被本次生产hand/contact/event/准入链读取（preparation.load_base仅透传、prepare_hand_overlay.prepare只使用hand/valid/object_pose/observed），因此保持NAS原件并显式保留差异，不把整个压缩包说成完全相等。未全量hash51,994个同大小文件，文件齐备不等于全量内容完整性PASS。\n',
         '唯一原缺：s1-local-extra-00000的MANO packet，RLG full-rigid.../remaining-legacy-parent/packet.npz→本run/input-patches/extra-grab-packet.npz，**67,200B**，SSH加密流已复制，远端独立核125帧/67200B；没有写入他人旧data目录。RLG↔4090直连只有**0.3–0.45MB/s**，182.331GB需约**4.69–7.03天**；本轮只传小metadata及67KB packet，没有迁移/删除本地182GB。\n',
-        '空间固定逻辑转换%dB；按NAS %dB分配粒度估算上界%dB；manifest/逐窗证据预算上界%dB，12workers staging上界%dB，文件系统metadata预留%dB，总峰值上界**%dB**，另守30GiB安全底线。当前NAS可用%dB，扣全量峰值仍%dB。此预算含可能的full summary/provenance上界，和转换实际字节分开，未启动该全量。\n'%(a['full_fresh_conversion_exact_bytes'],block,allocated,manifest_upper,staging,2*2**30,peak,result['storage']['nas_free_now'],result['storage']['free_after_full_peak']),
+        '空间固定逻辑转换%dB；NFS statvfs报告f_frsize=%dB，**不是已验证的物理分配块**，把它逐文件取整仅作极保守预算情景%dB；manifest/逐窗证据预算上界%dB，12workers staging上界%dB，文件系统metadata预留%dB，该情景总峰值预算**%dB**，另守30GiB安全底线。当前NAS可用%dB，扣此全量峰值预算仍%dB。4KiB取整情景固定文件%dB；本次smoke实际st_blocks×512合计%dB。实际文件占用、逻辑精确字节及预算情景严格分开，未启动全量。\n'%(a['full_fresh_conversion_exact_bytes'],block,allocated,manifest_upper,staging,2*2**30,peak,result['storage']['nas_free_now'],result['storage']['free_after_full_peak'],allocation_4k,smoke_allocated),
         '## 逐source与逐母序列\n|source|全量N|样本n|样本帧|task wall合计s|task CPU合计s|\n|---|---:|---:|---:|---:|---:|\n']
     for s in source:lines.append('|%d|%d|%d|%d|%.6f|%.6f|\n'%(s['source_id'],s['population'],s['n'],s['frames'],s['task_wall_sum_s'],s['task_cpu_sum_s']))
     lines.append('\n|母序列|source|帧|秒|CPU秒|固定输出B|\n|---|---:|---:|---:|---:|---:|\n')
     for r in sorted(rows,key=lambda r:(r['source_id'],r['key'])):lines.append('|%s|%d|%d|%.6f|%.6f|%d|\n'%(r['key'],r['source_id'],r['frames'],r['wall_s'],r['cpu_s'],r['result']['conversion_actual_bytes']))
+    if (out/'hot3d-segment-boundaries.json').exists():
+        boundary=read(out/'hot3d-segment-boundaries.json')
+        lines.append('\n**输入语义差异，不在本轮修：** 10个HOT3D的RLG segment均为单一0，NAS保留共%d个段界，不能称仅压缩差异。其余数组一致，当前转换未消费segment，所以本轮计时仍沿用同合同；但合同忽略段界可能造成跨段未来窗。本轮没有统计影响窗数，不据此放行训练，正式全量前应裁决段界合同，保留NAS原始信号。证据hot3d-segment-boundaries.json，未改任一原件。\n'%sum(x['transitions'] for x in boundary))
     lines.append('\n## 实际命令与边界\n\n```bash\ncd /home/wbcd/workspace/oyx_ws/Ref2Dex-agent\ngit fetch origin main\ngit pull --ff-only --no-stat origin main\nPYTHONDONTWRITEBYTECODE=1 /home/wbcd/miniconda3/envs/graspenv/bin/python -u src/task/ptv3-shared-wam-v6/tools/audit/remote_rigid_throughput.py --output /mnt/ugreen_nas/storage/oyx_storage/remote-rigid-throughput-20261023-r1 --mode audit\n# 已完成，禁止覆盖重跑：\nPYTHONDONTWRITEBYTECODE=1 /home/wbcd/miniconda3/envs/graspenv/bin/python -u src/task/ptv3-shared-wam-v6/tools/audit/remote_rigid_throughput.py --output /mnt/ugreen_nas/storage/oyx_storage/remote-rigid-throughput-20261023-r1 --mode smoke --workers 12 --device cuda:0\n# 仅离线重算摘要，可复跑，不做转换：\nPYTHONDONTWRITEBYTECODE=1 /home/wbcd/miniconda3/envs/graspenv/bin/python src/task/ptv3-shared-wam-v6/tools/audit/remote_rigid_throughput.py --output /mnt/ugreen_nas/storage/oyx_storage/remote-rigid-throughput-20261023-r1 --mode summarize\n```\n\n原始input-audit保留补齐前状态；不要把再次audit覆盖它当“最初就齐”。metadata参考frozen-census.json.gz来自RLG冻结计划+recovery+唯一新增母序列；仅输入metadata，不含182GB转换数组。tmp/r49是指向NAS的短链接，scratch实际落NAS。home-cache-audit.json核到本次之后CUDA/torch/torch_extensions默认home缓存新增文件0。允许的系统盘写入是Git代码；没有系统盘数据产物。远端只fetch/pull、0次push；工具在RLG修改提交推送。未动他人进程/目录、未删除历史、0训练更新。\n')
     prefix=(out/'report.md').read_text().split('\n## 实测结算')[0]
     (out/'report.md').write_text(prefix+''.join(lines))
