@@ -256,3 +256,7 @@ by_phase
 Full reproducible paired group CIs and relative changes: `/mnt/ugreen_nas/storage/oyx_storage/wam-nine-source-full-20261023-pending/diagnosis/C1/grouped-panel.json`.
 
 Preregistered interpretation: All three stable/improve: continuation cleared under matched C1; inspect distribution via C2.
+
+### C1 interpretation scope
+
+C1 meets the owner aggregate three-metric recovery rule with all paired CI95 below0. However source1 supplies the improvement: first8-hand delta-1.349mm, while every other source has positive first8-hand point estimates (+0.134 to+1.300mm). Thus this is a source-weight tradeoff on a source1-heavy fixed TRAIN panel, not universal source improvement. The generic inherited result.primary.pass_all=false is caused by undefined loss-block monotonicity (only ONE500-update block); the requested C1 decision uses its three EPE deltas/CIs, not that inapplicable multi-block field. No threshold was relaxed.

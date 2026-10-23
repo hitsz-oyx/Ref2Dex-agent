@@ -43,6 +43,7 @@ def main():
  lines+=['\nCausal limits: original half and new full supports differ; C3 versus half and C5 versus half are not exact single-factor comparisons. C5 removes1590 zero-hand-target windows (0.017%), not46-50% of all windows; all still have object supervision. Source4/8 whole-window invalid counts are0. Source-scale heterogeneity remains H2 screen-positive, but no scale-alignment intervention was authorized or run. Fixed TRAIN512/124 evidence only; no held-out generalization, rollout or execution claim. C4 global96 versus C1/C2/C3/C5 global384 prevents interpreting cross-arm differences as exclusively a source effect. No thresholds changed and no extra baseline/repair was run.']
  write(OUT/'final-summary.json',dict(arms=result,decisions=decisions,C4_strong_interference=strong,C4_all_other=other,scope='fixed TRAIN panel only'),immutable=True)
  with (OUT/'README.md').open('a') as f:f.write('\n'.join(lines)+'\n')
+ (OUT/'README.md').chmod(0o664)
  report=ROOT/'src/task/ptv3-shared-wam-v6/docs/audit/nine-source-degradation-20261023.md';report.write_text((OUT/'README.md').read_text())
  card=ROOT/'src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261023-nine-source-degradation.md';card.write_text(card.read_text().replace('status: RUNNING','status: COMPLETED')+'\nAll seven arms completed; exact steps/data identities and decisions in diagnosis/final-summary.json and progressive README. No push.\n')
  subprocess.run(['git','add',str(report),str(card)],cwd=ROOT,check=True)

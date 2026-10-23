@@ -56,6 +56,7 @@ def append(arm):
  lines+=['\nPreregistered interpretation: '+verdict]
 
  with (OUT/'README.md').open('a') as f:f.write('\n'.join(lines)+'\n')
+ (OUT/'README.md').chmod(0o664)
 def append_matrix_if_ready():
  arms=['C4-source1','C4-source10','C4-source0']
  if (OUT/'C4-interference-matrix.json').exists() or not all((OUT/arm/'grouped-panel.json').exists() for arm in arms):return
@@ -70,6 +71,7 @@ def append_matrix_if_ready():
     v=matrix[arm][source];delta=v['delta_mm'][i];relative=v['relative_change_percent'][i];cells.append('NA' if delta is None or relative is None else '%+.3f (%+.1f%%)'%(delta,relative))
    lines.append('|'+arm.split('source')[1]+'|'+'|'.join(cells)+'|')
  with (OUT/'README.md').open('a') as f:f.write('\n'.join(lines)+'\n')
+ (OUT/'README.md').chmod(0o664)
 
 def commit_snapshot(arm):
  report=ROOT/'src/task/ptv3-shared-wam-v6/docs/audit/nine-source-degradation-20261023.md'
