@@ -14,7 +14,7 @@ seed_pool: probe
 seeds: [170, 171, 172]
 decision_changed_if_positive: retain only source recipes supported by paired panel controls
 decision_changed_if_negative: repair input and supervision contracts before further scale
-status: RUNNING
+status: HOLD
 run_id: diagnosis-C1-C2-C3-C4-20261023
 ---
 
@@ -65,3 +65,6 @@ Report raw signed EPE deltas and relative changes for C4, preserving the owner's
 A completed in379.912s; H2 scale screen positive, causal normalization attribution unresolved. C1 missing original support metadata; all B arms0 updates. CPU recipe/sampler checks passed; report snapshot: [audit](../../audit/nine-source-degradation-20261023.md). Initial scripts/report commit93c5ebc2; per-arm code identity recorded in recipe.
 
 Owner followup restores C1 with brief31 tuples plus brief32 stable key mapping:6000/6000 exact matches. C1 launched world4/global384 at codefb8b0d41. C5 filters1590 whole windows with zero24-step hand target masks (1299 source10,291 source6);source4/8 have zero invalid whole windows. See preregistration-v2.json and C5-validity-audit.json. Missing other-hand slots are retained.
+
+Result: C1 recovers; C2 regresses; C4-s10/s0 measured; C4-s1 lost; C3 input-range failure/C5 blocked.
+Decision: repair workspace admission under a separate contract before retrying uniform controls; no original-arm quality verdict for C3/C5.

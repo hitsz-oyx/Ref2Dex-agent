@@ -1,3 +1,7 @@
+## 2026-10-23 remote C1-C5 diagnosis: partial, input-contract blocker
+
+C1 matched global384/fresh-optimizer500updates improves panel8.081/19.366/4.959mm; C2 curated weights/full support500updates regresses11.417/34.071/6.779mm, all paired CI95 positive. C4 source10/source0 completed500 updates; source1 lost at480 logged due shared rendezvous-store launcher fault; partial matrix in report. C3 initial0-update NAS permission fault repaired in C3-r2, then valid source4 hand pointsx=-2.724m violate fixed voxel origin-2m at step104; no final C3 quality panel. C5 deterministically retains/hits same valid-supervision window, blocked0updates. Do not equate missing other-hand slots with invalid windows (exact whole-window gate removes0.017%). No workspace/model/LR/threshold change or automatic retry. [Report](audit/nine-source-degradation-20261023.md).
+
 ## 2026-10-23 全量数据八门复核：读取/内容抽样通过，大训练HOLD
 
 全39,527 shard与11,197,332 ordered tuples逐行一致；TRAIN9,341,050/DEV1,856,282，母序列

@@ -626,3 +626,47 @@ first8_object
 |1|NA|NA|NA|NA|NA|NA|NA|NA|NA|
 |10|+0.207 (+5.8%)|+1.966 (+33.0%)|+1.333 (+37.0%)|+3.672 (+58.4%)|+9.413 (+245.2%)|+0.086 (+2.5%)|+2.905 (+82.8%)|+8.917 (+286.3%)|+0.625 (+10.1%)|
 |0|-0.137 (-3.8%)|+1.950 (+32.8%)|+1.899 (+52.6%)|+3.726 (+59.2%)|+9.315 (+242.7%)|+0.162 (+4.6%)|+3.785 (+107.9%)|+6.242 (+200.4%)|+1.281 (+20.6%)|
+
+## Read-only numerical recomputation and engineering verification
+
+From remote checkout, `PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=1 /home/wbcd/miniconda3/envs/graspenv/bin/python src/task/ptv3-shared-wam-v6/tools/audit/recompute_diagnosis.py` recomputes every available final mean/delta/4000-draw mother-cluster CI and verifies saved summaries to1e-12. C1/C2/C4-source10/C4-source0 all verified; source1 correctly prints NO_FINAL_PANEL. Workspace reproduction tool is now idempotent/read-only on an existing receipt and asserts exact saved-case equality.
+
+Future launcher now sets explicit c10d localhost:0 and an arm-specific rendezvous ID without --standalone. CPU TCPStore lifecycle check passed: distinct ephemeral ports, second store survives first-store closure;0 optimizer updates/GPU model executions. Evidence: rendezvous-isolation-engineering.json. This verifies the isolation mechanism, not a rerun of lost source1 training. No further training is launched.
+
+## Final measured synthesis with terminal blockers
+
+
+|arm|status|updates|GPUs/global batch|first8 hand mm (delta)|contact mm (delta)|first8 object mm (delta)|
+|---|---|---:|---|---:|---:|---:|
+|C1|completed|500|4/384|8.0809 (-0.8999)|19.3663 (-5.2931)|4.9592 (-0.6802)|
+|C2|completed|500|4/384|11.4166 (+2.4357)|34.0713 (+9.4120)|6.7795 (+1.1401)|
+|C3 / C3-r2|reader fault then input-range failure|0;100 logged/failed104|4/384|NA|NA|NA|
+|C4-source1|rendezvous store failure|480 logged|1/96|NA|NA|NA|
+|C4-source10|completed|500|1/96|21.0150 (+12.0341)|47.1839 (+22.5245)|7.4091 (+1.7697)|
+|C4-source0|completed|500|1/96|12.2372 (+3.2564)|46.3004 (+21.6410)|7.4952 (+1.8558)|
+|C5|known deterministic input-range fault|0|4/384|NA|NA|NA|
+
+Paired cluster CI95 (4000 bootstrap draws, seed170):
+
+|arm|first8 hand delta CI95|contact delta CI95|object delta CI95|
+|---|---|---|---|
+|C1|[-1.1279,-0.6740]|[-6.0285,-4.4934]|[-0.8712,-0.4963]|
+|C2|[+2.1108,+2.7498]|[+7.7897,+11.1745]|[+0.9375,+1.3797]|
+|C4-source10|[+10.5719,+13.5656]|[+19.8807,+25.2073]|[+1.3704,+2.2265]|
+|C4-source0|[+2.8705,+3.6486]|[+18.5765,+24.8054]|[+1.4188,+2.3426]|
+
+C4 pooled OTHER-source signed EPE deltas (hand/contact/object):
+- C4-source10: +12.6799mm, +23.5276mm, +1.9755mm; relative +142.06%, +95.65%, +35.68%
+- C4-source0: +3.3084mm, +21.9637mm, +1.9667mm; relative +36.16%, +88.05%, +34.17%
+
+Preregistered decisions and causal limits:
+- C1: all three EPE improve with CI95<0 at matched global384/fresh optimizer. Generic continuation settings alone are not sufficient to explain the old half regression; source1-heavy aggregate recovery is not all-source improvement.
+- C2: all three EPE regress with CI95>0 despite restored curated weights. Source weighting alone is insufficient; expanded within-source support/retention/semantics/scale-optimization interactions remain. This does not isolate a toxic newly added source ID.
+- C3: no final quality measurement after fixed-workspace fault; shared-backbone-versus-flow mechanism remains UNRESOLVED.
+- C5:0 updates because its exact valid-gated sampler still hits the proven bad input; invalid-window recovery/degradation and C2+C5 joint rules are NOT EVALUABLE.
+- C4: other-source EPE worsening>=50% occurs; see exact cells and sparse-source CIs.
+- H2: target-scale screen remains positive; source1 C1/C2 sample RMS ratio1.436 is below its additional2x criterion. A real valid-input workspace violation is proved for source4, but that causes hard failure and does not itself explain the earlier successfully completed500-step EPE regression.
+- Validity:46-50% refers to missing point-frame supervision, not missing whole windows. Whole24-step zero-hand supervision is1590/9341050=0.0170%; source4/8 invalid whole-window counts0. All those windows still have object supervision.
+- C4-source10 also worsens its OWN source on all three point estimates; source mixing is not necessary for that observed regression. Any>=50% off-diagonal threshold hit is reported under the owner rule, but is not a clean source-tradeoff proof when the trained source itself also deteriorates. Broader within-source support/retention/semantics/optimization remain candidates.
+
+No model/loss/LR/threshold/workspace was relaxed. Original half/remaining outputs are retained. Original half support differs from new full support; C4 global96 differs from global384 controls. Fixed TRAIN512/124 evidence only; no heldout generalization/execution claim. Independent workspace repair preflight remains a proposal unless separately authorized; original C3/C5 cannot be labelled recovered/degraded from runtime failures.
