@@ -24,6 +24,16 @@ def append(arm):
  with np.load(panels[-1].parent/'paired-panel.npz') as z: s,c,m=[z[k] for k in ('sums','counts','mothers')]
  with np.load(D/'half-training/panel-step000000/paired-panel.npz') as z:ref=z['sums'];assert np.array_equal(c,z['counts']) and np.array_equal(m,z['mothers'])
  rows=read(D/'fixed-panel/manifest.json')['rows'];report=dict(summary=final,by_source=groups(s,c,m,ref,rows,'source_id'),by_phase=groups(s,c,m,ref,rows,'phase'))
+ if arm=='C3':
+  import torch
+  initial=torch.load(D/'local3000-weights.pt',map_location='cpu',weights_only=False)['model']
+  checkpoint=torch.load(folder/('step%06d.pt'%step),map_location='cpu',weights_only=False)['model']
+  names=read(folder/'run-manifest.json')['trainable_names'];assert names and all(n.startswith('flow_future.') for n in names)
+  frozen=[n for n in initial if not n.startswith('flow_future.')];changed=[n for n in frozen if not torch.equal(initial[n],checkpoint[n])]
+  flow_changed=[n for n in initial if n.startswith('flow_future.') and not torch.equal(initial[n],checkpoint[n])]
+  proof=dict(trainable_names_all_flow=True,frozen_state_tensors=len(frozen),changed_nonflow_tensors=changed,changed_flow_tensors=len(flow_changed),frozen_exactly_equal=not changed)
+  write(folder/'frozen-state-audit.json',proof,immutable=True);report['frozen_state_audit']=proof
+  assert not changed,'C3 non-flow state changed despite freeze'
  write(folder/'grouped-panel.json',report,immutable=True)
  lines=['\n## '+arm+' completed (measured)','\nProgress: `'+json.dumps(read(folder/'progress.json'),sort_keys=True)+'`','\nPanel summary:\n```json\n'+json.dumps(final,indent=2)+'\n```']
  for key in ('by_source','by_phase'):
@@ -46,6 +56,21 @@ def append(arm):
  lines+=['\nPreregistered interpretation: '+verdict]
 
  with (OUT/'README.md').open('a') as f:f.write('\n'.join(lines)+'\n')
+def append_matrix_if_ready():
+ arms=['C4-source1','C4-source10','C4-source0']
+ if (OUT/'C4-interference-matrix.json').exists() or not all((OUT/arm/'grouped-panel.json').exists() for arm in arms):return
+ matrix={arm:read(OUT/arm/'grouped-panel.json')['by_source'] for arm in arms}
+ write(OUT/'C4-interference-matrix.json',matrix,immutable=True)
+ sources=sorted({source for values in matrix.values() for source in values},key=int);lines=['\n## C4 interference matrix (measured)\n','Cells are EPE delta mm (relative %), trained-source rows versus evaluated-source columns. Positive means worse; negative means improved. Diagonal is within-source transfer, off-diagonal is interference/transfer. Owner50% interference threshold is evaluated as EPE worsening>=50%; raw signed changes are retained.']
+ for i,name in enumerate(['first8_hand','fixed_contact_hand','first8_object']):
+  lines+=['\n'+name,'\n|trained source|'+ '|'.join(sources)+'|','|---|'+ '|'.join(['---:']*len(sources))+'|']
+  for arm in arms:
+   cells=[]
+   for source in sources:
+    v=matrix[arm][source];delta=v['delta_mm'][i];relative=v['relative_change_percent'][i];cells.append('NA' if delta is None or relative is None else '%+.3f (%+.1f%%)'%(delta,relative))
+   lines.append('|'+arm.split('source')[1]+'|'+'|'.join(cells)+'|')
+ with (OUT/'README.md').open('a') as f:f.write('\n'.join(lines)+'\n')
+
 def commit_snapshot(arm):
  report=ROOT/'src/task/ptv3-shared-wam-v6/docs/audit/nine-source-degradation-20261023.md'
  report.write_text((OUT/'README.md').read_text())
@@ -55,4 +80,4 @@ def commit_snapshot(arm):
  subprocess.run(['git','commit','-m',message],cwd=ROOT,check=True)
  write(OUT/arm/'report-commit.json',dict(commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),pushed=False),immutable=True)
 if __name__=='__main__':
- append(sys.argv[1]);commit_snapshot(sys.argv[1])
+ append(sys.argv[1]);append_matrix_if_ready();commit_snapshot(sys.argv[1])
