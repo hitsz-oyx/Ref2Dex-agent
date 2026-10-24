@@ -15,7 +15,7 @@ seeds: [170]
 decision_changed_if_positive: retain shared-trunk updates as the working main-cause account on C2 realized support
 decision_changed_if_negative: reject shared-trunk updates as the main cause on C2 realized support
 status: RUNNING
-run_id: c2-matched-clip-20261024-planned
+run_id: c2-matched-control-20261024
 ---
 
 # C2 matched flow clipping ablation
