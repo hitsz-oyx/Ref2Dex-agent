@@ -30,9 +30,11 @@ AI 的目标不是把每个可能的问题都研究完整，而是在资源和�
 2. `docs/MISSION.md`
 3. `docs/CAMPAIGN.md`
 4. `docs/README.md`
-5. `docs/STATE.md`
+5. `docs/context/INDEX.md`，然后只读它标成必读的文件。归档不在默认上下文里
 6. `docs/experiments/INDEX.md`
 7. 与当前问题直接相关的代码和活跃实验记录
+
+`docs/STATE.md` 是全库历史。当前战役的上下文以 `docs/context/` 为准，不把 `STATE.md` 整份读入。
 
 进入具体 Task 时，再读取所属 Task 已有的研究文档；不遍历无关 Task。
 `docs/research/README.md` 只是根级研究文档的组织说明；只有当前问题涉及跨
