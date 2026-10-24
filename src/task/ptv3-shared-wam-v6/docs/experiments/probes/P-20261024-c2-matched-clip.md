@@ -14,7 +14,7 @@ seed_pool: probe
 seeds: [170]
 decision_changed_if_positive: retain shared-trunk updates as the working main-cause account on C2 realized support
 decision_changed_if_negative: reject shared-trunk updates as the main cause on C2 realized support
-status: MEASURED
+status: STOPPED
 run_id: c2-matched-control-20261024
 ---
 
@@ -144,3 +144,5 @@ The flow-only arm completed all 500 updates. The script verdict is
 UNIDENTIFIED. The contact residual (+6.942 mm) is below the FAIL threshold
 (+7.059 mm), while the PASS conditions are not met. There is still no route
 conclusion. Clip rate is diagnostic only. Do not launch any new arm.
+
+The flow-only verdict is UNIDENTIFIED. GPT subsequently returned CLOSE_NO_ROUTE. Whether shared-trunk updates are the main cause remains without a route conclusion. Do not launch any new arm.

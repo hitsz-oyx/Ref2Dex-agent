@@ -6,9 +6,10 @@
       "token": "REPRODUCED"
     },
     "c2-matched-flow": {
-      "phase": "codex_done",
+      "phase": "next_done",
       "directory": "/mnt/ugreen_nas/storage/oyx_storage/wam-nine-source-full-20261023-pending/diagnosis/C2-matched-flow",
-      "token": "UNIDENTIFIED"
+      "token": "UNIDENTIFIED",
+      "reply_token": "CLOSE_NO_ROUTE"
     }
   }
 }

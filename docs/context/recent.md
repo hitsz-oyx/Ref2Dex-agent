@@ -42,3 +42,5 @@ script_token: UNIDENTIFIED
 flow_preclip_gt1: 500/500
 trunk_group: empty
 ```
+
+The flow-only verdict is UNIDENTIFIED. GPT subsequently returned CLOSE_NO_ROUTE. Whether shared-trunk updates are the main cause remains without a route conclusion. Do not launch any new arm.
