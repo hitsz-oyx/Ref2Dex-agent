@@ -95,7 +95,7 @@ def main():
         panel, forward, trainable = gpu_checks(flow)
         print("gpu", json.dumps(dict(panel=panel, forward=forward, trainable=trainable)), flush=True)
     path_ok = same_path and not bad
-    panel_ok = panel is not None and panel["max_abs_delta_mm"] <= 0.001
+    panel_ok = panel is not None and "error" not in panel and panel["max_abs_delta_mm"] <= 0.001
     freeze_ok = forward is not None and forward["equal"] and trainable["outside_flow_future"] == 0 and trainable["flow_future"] > 0
     passed = bool(recipe_ok and origin_ok and path_ok and panel_ok and freeze_ok)
     result = dict(
@@ -112,6 +112,23 @@ def main():
         raise SystemExit(2)
 
 
+def first_file_repeat(model, recipe):
+    import torch
+    from ptv3_shared_wam_v6.precision import configure_strict_fp32
+
+    meta = read(recipe["panel_manifest"])
+    path = Path(recipe["panel_manifest"]).parent / meta["files"][0]["path"]
+    with np.load(path, allow_pickle=False) as blob:
+        batch = {key: torch.from_numpy(blob[key]).cuda() for key in blob.files}
+    configure_strict_fp32(model, dict(model.config, fp32_attention_backend="math"))
+    model.eval()
+    with torch.inference_mode():
+        first, second = model(batch), model(batch)
+    return dict(
+        first_file_finite=bool(torch.isfinite(first["trajectory"]).all() and torch.isfinite(first["scene"]).all()),
+        first_file_repeat_equal=bool(torch.equal(first["trajectory"], second["trajectory"]) and torch.equal(first["scene"], second["scene"])))
+
+
 def gpu_checks(recipe):
     import torch
     from ptv3_shared_wam_v6.model import SharedWAMV6
@@ -123,6 +140,8 @@ def gpu_checks(recipe):
     torch.cuda.set_device(0)
     torch.backends.cuda.matmul.allow_tf32 = False
     torch.manual_seed(170)
+    legacy_torch = tuple(map(int, torch.__version__.split("+")[0].split(".")[:2])) < (2, 1)
+    torch.use_deterministic_algorithms(True, warn_only=legacy_torch)
     config = read(recipe["config"])
     model = SharedWAMV6(read(recipe["stats"]), config).cuda()
     for name, param in model.named_parameters():
@@ -153,7 +172,10 @@ def gpu_checks(recipe):
         equal=bool(torch.equal(left["trajectory"], right["trajectory"]) and torch.equal(left["scene"], right["scene"])),
         file=meta["files"][0]["path"])
     del other, left, right, batch
-    scored = panel(model, recipe["panel_manifest"], OUT / "panel-replay", 0, recipe["local3000_panel"])
+    try:
+        scored = panel(model, recipe["panel_manifest"], OUT / "panel-replay", 0, recipe["local3000_panel"])
+    except AssertionError:
+        return dict(error="panel-assert", **first_file_repeat(model, recipe)), forward, trainable
     reference = read(DIAG / "C2/panel-step000000/summary.json")["means_mm"]
     delta = [float(a - b) for a, b in zip(scored["means_mm"], reference)]
     panel_result = dict(
