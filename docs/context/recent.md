@@ -28,3 +28,17 @@ script_token: REPRODUCED
 flow_preclip_gt1: 500/500
 trunk_preclip_gt1: 500/500
 ```
+
+2026-10-24: The flow-only arm has completed all 500 updates. The script verdict is UNIDENTIFIED; there is still no route conclusion. Do not launch any new arm. Recorded in `src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261024-c2-matched-clip.md`.
+
+```text
+MEASURED
+directory: diagnosis/C2-matched-flow
+updates: 500
+means_mm: +10.842 / +31.601 / +6.705
+delta_vs_local3000_mm: +1.862 / +6.942 / +1.065
+ci95_mm: +1.604 / +2.123, +5.763 / +8.249, +0.880 / +1.277
+script_token: UNIDENTIFIED
+flow_preclip_gt1: 500/500
+trunk_group: empty
+```

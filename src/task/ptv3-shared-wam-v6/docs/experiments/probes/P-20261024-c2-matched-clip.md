@@ -14,7 +14,7 @@ seed_pool: probe
 seeds: [170]
 decision_changed_if_positive: retain shared-trunk updates as the working main-cause account on C2 realized support
 decision_changed_if_negative: reject shared-trunk updates as the main cause on C2 realized support
-status: RUNNING
+status: MEASURED
 run_id: c2-matched-control-20261024
 ---
 
@@ -22,8 +22,9 @@ run_id: c2-matched-control-20261024
 
 This card registers one clipping intervention following
 `P-20261024-c2-flow-old-workspace`. GPT confirmed the operator as
-OPERATOR_OK. Both arms together are not authorized. The unrestricted control
-below is the only authorized run. The flow-only arm has not started.
+OPERATOR_OK. The unrestricted control and subsequently authorized flow-only
+arm have now both completed. The flow-only script verdict is UNIDENTIFIED;
+there is still no route conclusion. Do not launch any new arm.
 
 ## Question and minimum decision experiment
 
@@ -124,3 +125,22 @@ recipe otherwise differs from C2 only in arm, stage, recipe_path and
 git_commit. Same 500 updates, support, initializer, origin and voxel size.
 The PASS/FAIL table above is the only result rule. No further arm is
 authorized.
+
+## Measured flow-only result
+
+```text
+MEASURED
+directory: diagnosis/C2-matched-flow
+updates: 500
+means_mm: +10.842 / +31.601 / +6.705
+delta_vs_local3000_mm: +1.862 / +6.942 / +1.065
+ci95_mm: +1.604 / +2.123, +5.763 / +8.249, +0.880 / +1.277
+script_token: UNIDENTIFIED
+flow_preclip_gt1: 500/500
+trunk_group: empty
+```
+
+The flow-only arm completed all 500 updates. The script verdict is
+UNIDENTIFIED. The contact residual (+6.942 mm) is below the FAIL threshold
+(+7.059 mm), while the PASS conditions are not met. There is still no route
+conclusion. Clip rate is diagnostic only. Do not launch any new arm.

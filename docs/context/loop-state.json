@@ -1,5 +1,14 @@
 {
-  "phase": "codex_done",
-  "directory": "/mnt/ugreen_nas/storage/oyx_storage/wam-nine-source-full-20261023-pending/diagnosis/C2-matched-control",
-  "token": "REPRODUCED"
+  "cycles": {
+    "c2-matched-control": {
+      "phase": "codex_done",
+      "directory": "/mnt/ugreen_nas/storage/oyx_storage/wam-nine-source-full-20261023-pending/diagnosis/C2-matched-control",
+      "token": "REPRODUCED"
+    },
+    "c2-matched-flow": {
+      "phase": "codex_done",
+      "directory": "/mnt/ugreen_nas/storage/oyx_storage/wam-nine-source-full-20261023-pending/diagnosis/C2-matched-flow",
+      "token": "UNIDENTIFIED"
+    }
+  }
 }
