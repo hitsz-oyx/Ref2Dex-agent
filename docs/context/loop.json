@@ -21,5 +21,10 @@
     "PASS": "docs/context/prompts/matched-flow-pass.md",
     "FAIL": "docs/context/prompts/matched-flow-fail.md",
     "UNIDENTIFIED": "docs/context/prompts/matched-flow-unidentified.md"
+  },
+  "next": {
+    "allow": {
+      "CLOSE_NO_ROUTE": "docs/context/prompts/close-no-route.md"
+    }
   }
 }

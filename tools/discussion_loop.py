@@ -27,7 +27,7 @@ def load_loop():
     expected = {
         "schema", "enabled", "cycle", "gpt_conversation", "codex_session", "codex_home",
         "codex_model", "codex_done_line", "wait", "expect", "pass_max_mm",
-        "pass_ci_hi_mm", "fail_min_mm", "prompts",
+        "pass_ci_hi_mm", "fail_min_mm", "prompts", "next",
     }
     if set(loop) != expected or loop["schema"] != "ref2dex.discussion-loop.v1":
         raise SystemExit("loop schema mismatch")
@@ -39,6 +39,8 @@ def load_loop():
         raise SystemExit("loop is pinned to the flow-only directory")
     if loop["expect"] != {"matched_clip": True, "flow_only": True}:
         raise SystemExit("flow-only switches are fixed")
+    if set(loop["next"]["allow"]) != {"CLOSE_NO_ROUTE"}:
+        raise SystemExit("next instruction allow list is fixed")
     return loop
 
 
@@ -230,6 +232,68 @@ def save_cycles(items):
     STATE.write_text(json.dumps({"cycles": items}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def next_packet(loop, sha):
+    allowed = "、".join(loop["next"]["allow"])
+    return "\n".join([
+        "仓库 https://github.com/hitsz-oyx/Ref2Dex-agent",
+        "提交 " + sha,
+        "同一条对话。结果已经记上卡，这一问是要下一条指令。",
+        "",
+        "对照臂 C2-matched-control 复现成立：相对 local3000 +2.406 / +9.333 / +1.139 mm。",
+        "flow-only 臂 C2-matched-flow 完成 500 updates。相对 local3000 +1.862 / +6.942 / +1.065 mm。",
+        "CI95 下界 +1.604 / +5.763 / +0.880，上界 +2.123 / +8.249 / +1.277。",
+        "脚本判定 UNIDENTIFIED，你的第一行也是 UNIDENTIFIED。没有路线结论。",
+        "PASS 需要三项都 ≤ +1.218 / +4.706 / +0.570 且上界都 < +1.827 / +7.059 / +0.855。",
+        "FAIL 需要三项都 ≥ +1.827 / +7.059 / +0.855 且下界都 > 0。中间项 +6.942 低于 +7.059。",
+        "不要改原点，不要重跑 C2-flow-r2，不要重跑 C4-source1，不要靠降学习率处理裁剪率。",
+        "",
+        "第一行只写一个指令词。脚本目前只能执行：" + allowed + "。",
+        "CLOSE_NO_ROUTE 表示接受未识别，停在没有路线结论，不再开新臂。",
+        "第一行如果不是这个词，脚本不执行，会把你的全文交回。",
+        "",
+    ])
+
+
+def ask_next(loop, state, current, execute):
+    sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+    body = next_packet(loop, sha)
+    report = {"action": "ask_next", "packet_chars": len(body), "sent": False}
+    if not execute:
+        print(json.dumps(report, ensure_ascii=False))
+        return
+    if current.get("phase") == "next_pending":
+        reply = (ROOT / "tmp" / "loop-next-reply.txt").read_text(encoding="utf-8")
+    else:
+        reply = send_gpt(loop, body)
+        (ROOT / "tmp").mkdir(exist_ok=True)
+        (ROOT / "tmp" / "loop-next-reply.txt").write_text(reply, encoding="utf-8")
+        report["sent"] = True
+    reply_token = first_line(reply)
+    report["reply_token"] = reply_token
+    prompt_path = loop["next"]["allow"].get(reply_token)
+    if not prompt_path:
+        kept = ROOT / "docs" / "context" / "gpt-next-reply.md"
+        kept.write_text(reply.strip() + "\n", encoding="utf-8")
+        current.update(phase="next_unmatched", reply_token=reply_token or "空")
+        state[loop["cycle"]] = current
+        save_cycles(state)
+        notify("讨论循环停住。下一条指令不在允许列表里，没有执行。\n" + reply[:800])
+        report["commit"] = publish("next instruction not executed", extra=["docs/context/gpt-next-reply.md"])
+        print(json.dumps(report, ensure_ascii=False))
+        return
+    current.update(phase="next_pending", reply_token=reply_token)
+    state[loop["cycle"]] = current
+    save_cycles(state)
+    prompt = (ROOT / prompt_path).read_text(encoding="utf-8")
+    resume_codex(loop, prompt + "\nGPT_REPLY\n" + reply.strip() + "\n")
+    current.update(phase="next_done")
+    state[loop["cycle"]] = current
+    save_cycles(state)
+    report["codex"] = "CARD_UPDATED"
+    report["commit"] = publish("Record GPT closing the matched-clip claim with no route.")
+    print(json.dumps(report, ensure_ascii=False))
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--execute", action="store_true")
@@ -239,8 +303,11 @@ def main():
         raise SystemExit("loop is disabled")
     state = cycles()
     current = state.get(loop["cycle"]) or {}
-    if current.get("phase") == "codex_done":
-        print(json.dumps({"action": "already_done", "token": current.get("token")}, ensure_ascii=False))
+    if current.get("phase") in ("codex_done", "next_pending"):
+        ask_next(loop, state, current, args.execute)
+        return
+    if current.get("phase") in ("next_done", "next_unmatched"):
+        print(json.dumps({"action": "already_done", "phase": current.get("phase"), "reply_token": current.get("reply_token")}, ensure_ascii=False))
         return
     measured = fetch(loop)
     token = flow_verdict(
@@ -277,36 +344,37 @@ def main():
     state[loop["cycle"]] = {"phase": "codex_done", "directory": loop["wait"]["directory"], "token": token}
     save_cycles(state)
     report["codex"] = "CARD_UPDATED"
-    report["commit"] = publish(token)
+    report["commit"] = publish("Record the matched-clip flow-only verdict.")
     print(json.dumps(report, ensure_ascii=False))
 
 
-def publish(token):
+def publish(message, extra=()):
     allowed = {
         "docs/context/recent.md",
         "docs/context/loop-state.json",
         "src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261024-c2-matched-clip.md",
+        *extra,
     }
     status = subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT, text=True)
     dirty = []
     for line in status.splitlines():
         path = line[3:].strip().replace("\\", "/")
         if path not in allowed:
-            notify("讨论循环写完但有计划外文件，没有提交。判定 %s。\n%s" % (token, status[:500]))
+            notify("讨论循环写完但有计划外文件，没有提交。%s\n%s" % (message, status[:500]))
             return "not_committed"
         dirty.append(path)
     if not dirty:
-        notify("讨论循环写完，没有文件变化。判定 %s。" % token)
+        notify("讨论循环写完，没有文件变化。%s" % message)
         return "unchanged"
     subprocess.check_call(["git", "add", "--", *dirty], cwd=ROOT)
-    subprocess.check_call(["git", "commit", "-m", "Record the matched-clip flow-only verdict."], cwd=ROOT)
+    subprocess.check_call(["git", "commit", "-m", message], cwd=ROOT)
     subprocess.check_call(["git", "push", "origin", "HEAD"], cwd=ROOT)
     subprocess.check_call([
         "ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=20", "4-4090_tailscale",
         "cd /home/wbcd/workspace/oyx_ws/Ref2Dex-agent && git fetch origin && git merge --ff-only origin/main",
     ])
     sha = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, text=True).strip()
-    notify("讨论循环写完。判定 %s。提交 %s。" % (token, sha))
+    notify("讨论循环写完。%s 提交 %s。" % (message, sha))
     return sha
 
 
