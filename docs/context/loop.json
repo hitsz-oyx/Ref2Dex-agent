@@ -1,6 +1,7 @@
 {
   "schema": "ref2dex.discussion-loop.v1",
-  "enabled": true,
+  "enabled": false,
+  "cycle": "c2-matched-flow",
   "gpt_conversation": "https://chatgpt.com/c/6adc1912-f734-83ea-bbf2-dc3b6e341bab",
   "codex_session": "01a16c55-5a34-77f0-b0a2-c5205fa3e161",
   "codex_home": "D:/project/stock_ws/.codex_oyx_frj",
@@ -9,11 +10,16 @@
   "wait": {
     "kind": "ssh",
     "host": "4-4090_tailscale",
-    "directory": "/mnt/ugreen_nas/storage/oyx_storage/wam-nine-source-full-20261023-pending/diagnosis/C2-matched-control"
+    "directory": "/mnt/ugreen_nas/storage/oyx_storage/wam-nine-source-full-20261023-pending/diagnosis/C2-matched-flow",
+    "poll_seconds": 3900
   },
-  "thresholds_mm": [1.827, 7.059, 0.855],
+  "expect": {"matched_clip": true, "flow_only": true},
+  "pass_max_mm": [1.218, 4.706, 0.570],
+  "pass_ci_hi_mm": [1.827, 7.059, 0.855],
+  "fail_min_mm": [1.827, 7.059, 0.855],
   "prompts": {
-    "REPRODUCED": "docs/context/prompts/matched-control-reproduced.md",
-    "NOT_REPRODUCED": "docs/context/prompts/matched-control-not-reproduced.md"
+    "PASS": "docs/context/prompts/matched-flow-pass.md",
+    "FAIL": "docs/context/prompts/matched-flow-fail.md",
+    "UNIDENTIFIED": "docs/context/prompts/matched-flow-unidentified.md"
   }
 }

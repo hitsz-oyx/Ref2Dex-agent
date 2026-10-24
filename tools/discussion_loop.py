@@ -5,6 +5,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 TOOLS = Path(__file__).resolve().parent
@@ -14,14 +15,19 @@ STATE = ROOT / "docs" / "context" / "loop-state.json"
 GPT = TOOLS / "gpt_continue.mjs"
 HERMES = Path(r"D:\Hermes\hermes-agent\.hermes\bin\hermes.exe")
 CHAT = "feishu:oc_90c411e7a20ac2964232bd6d6e130dff"
-ALLOW = ("REPRODUCED", "NOT_REPRODUCED")
+ALLOW = ("PASS", "FAIL", "UNIDENTIFIED")
+
+
+class NotReady(Exception):
+    pass
 
 
 def load_loop():
     loop = json.loads(LOOP.read_text(encoding="utf-8"))
     expected = {
-        "schema", "enabled", "gpt_conversation", "codex_session", "codex_home",
-        "codex_model", "codex_done_line", "wait", "thresholds_mm", "prompts",
+        "schema", "enabled", "cycle", "gpt_conversation", "codex_session", "codex_home",
+        "codex_model", "codex_done_line", "wait", "expect", "pass_max_mm",
+        "pass_ci_hi_mm", "fail_min_mm", "prompts",
     }
     if set(loop) != expected or loop["schema"] != "ref2dex.discussion-loop.v1":
         raise SystemExit("loop schema mismatch")
@@ -29,15 +35,27 @@ def load_loop():
         raise SystemExit("codex model is fixed")
     if set(loop["prompts"]) != set(ALLOW):
         raise SystemExit("loop prompts do not match the allow list")
-    if Path(loop["wait"]["directory"]).name != "C2-matched-control":
-        raise SystemExit("loop is pinned to the control directory")
+    if Path(loop["wait"]["directory"]).name != "C2-matched-flow":
+        raise SystemExit("loop is pinned to the flow-only directory")
+    if loop["expect"] != {"matched_clip": True, "flow_only": True}:
+        raise SystemExit("flow-only switches are fixed")
     return loop
 
 
-def reproduced(delta, thresholds):
-    if len(delta) != 3 or len(thresholds) != 3:
-        raise SystemExit("delta and thresholds must have three values")
-    return all(float(value) >= float(limit) for value, limit in zip(delta, thresholds))
+def flow_verdict(delta, ci, pass_max, pass_hi, fail_min):
+    if not (len(delta) == len(ci) == len(pass_max) == len(pass_hi) == len(fail_min) == 3):
+        raise SystemExit("flow verdict expects three metrics")
+    passed = all(float(value) <= float(limit) for value, limit in zip(delta, pass_max)) and all(
+        float(pair[1]) < float(limit) for pair, limit in zip(ci, pass_hi))
+    failed = all(float(value) >= float(limit) for value, limit in zip(delta, fail_min)) and all(
+        float(pair[0]) > 0 for pair in ci)
+    if passed and failed:
+        raise SystemExit("flow verdict overlaps")
+    if passed:
+        return "PASS"
+    if failed:
+        return "FAIL"
+    return "UNIDENTIFIED"
 
 
 def first_line(text):
@@ -51,7 +69,7 @@ def fmt(values):
     return " / ".join(f"{float(value):+.3f}" for value in values)
 
 
-def fetch(loop):
+def fetch_once(loop):
     directory = loop["wait"]["directory"]
     code = r"""
 import json, sys
@@ -82,50 +100,64 @@ print(json.dumps({
         input=code, text=True, capture_output=True,
     )
     if proc.returncode != 0:
-        raise SystemExit(proc.stderr.strip() or "result is not ready")
+        raise NotReady(proc.stderr.strip() or "result is not ready")
     measured = json.loads(proc.stdout)
     if measured["status"] != "COMPLETED" or measured["updates"] != 500:
-        raise SystemExit("control run is not a completed 500-update result")
-    if measured["matched_clip"] is not True or measured["flow_only"] is not False:
-        raise SystemExit("control recipe switches are not the authorized pair")
-    if measured["flow_n"] != 500 or measured["trunk_n"] != 500:
-        raise SystemExit("control clip logs are incomplete")
+        raise NotReady("result is not a completed 500-update run")
+    if measured["matched_clip"] is not True or measured["flow_only"] is not True:
+        raise SystemExit("flow-only recipe switches are not the authorized pair")
+    if measured["flow_n"] != 500 or measured["trunk_n"] != 0:
+        raise SystemExit("flow-only clip logs are not the authorized shape")
     return measured
+
+
+def fetch(loop):
+    deadline = time.time() + int(loop["wait"].get("poll_seconds") or 0)
+    while True:
+        try:
+            return fetch_once(loop)
+        except NotReady as exc:
+            if time.time() >= deadline:
+                raise SystemExit(str(exc))
+            time.sleep(30)
 
 
 def packet(loop, measured, token, sha):
     ci = ", ".join(fmt(pair) for pair in measured["ci95_mm"])
+    name = Path(loop["wait"]["directory"]).name
     return "\n".join([
         "仓库 https://github.com/hitsz-oyx/Ref2Dex-agent",
         "提交 " + sha,
-        "同一条对话。这是脚本从结果文件提取的对照臂，不是新实验。",
+        "同一条对话。这是脚本从结果文件提取的 flow-only 臂，不是新实验。",
         "",
-        "diagnosis/C2-matched-control 已完成 500 updates。matched_clip 开，flow_only 关。原点 [-2,-2,-2]，体素 0.005。",
+        "diagnosis/" + name + " 已完成 500 updates。matched_clip 开，flow_only 开。原点 [-2,-2,-2]，体素 0.005。",
         "means " + fmt(measured["means_mm"]) + " mm。",
         "相对 local3000 " + fmt(measured["delta_mm"]) + " mm。",
         "母序列 CI95 " + ci + "。",
-        "复现门槛是三项都 ≥ +1.827 / +7.059 / +0.855 mm。脚本判定 " + token + "。",
-        "flow_future 与 trunk 的 pre-clip 范数大于 1：" + f"{measured['flow_gt1']}/500 和 {measured['trunk_gt1']}/500。这不是结果门。",
+        "脚本判定 " + token + "。",
+        "PASS：三项都 ≤ +1.218 / +4.706 / +0.570 mm，且 CI95 上界都 < +1.827 / +7.059 / +0.855 mm。",
+        "FAIL：三项都 ≥ +1.827 / +7.059 / +0.855 mm，且 CI95 下界都 > 0。",
+        "其余是 UNIDENTIFIED。clip rate 不是结果门。",
+        "flow_future 的 pre-clip 范数大于 1：" + f"{measured['flow_gt1']}/500。主干组为空。",
         "",
-        "第一行只能是 REPRODUCED 或 NOT_REPRODUCED。",
-        "不要提出开跑 flow-only。这一轮没有授权。",
+        "第一行只能是 PASS、FAIL 或 UNIDENTIFIED。",
+        "不要提出下一刀。",
         "",
     ])
 
 
-def measured_block(measured, token):
+def measured_block(loop, measured, token):
     ci = ", ".join(fmt(pair) for pair in measured["ci95_mm"])
     return "\n".join([
         "MEASURED",
-        "directory: diagnosis/C2-matched-control",
+        "directory: diagnosis/" + Path(loop["wait"]["directory"]).name,
         "updates: 500",
         "means_mm: " + fmt(measured["means_mm"]),
         "delta_vs_local3000_mm: " + fmt(measured["delta_mm"]),
         "ci95_mm: " + ci,
-        "thresholds_mm: +1.827 / +7.059 / +0.855",
         "script_token: " + token,
         "flow_preclip_gt1: %d/500" % measured["flow_gt1"],
-        "trunk_preclip_gt1: %d/500" % measured["trunk_gt1"],
+        "trunk_group: empty",
         "",
     ])
 
@@ -183,6 +215,21 @@ def resume_codex(loop, prompt):
         raise SystemExit("codex did not finish with the done line")
 
 
+def cycles():
+    if not STATE.exists():
+        return {}
+    raw = json.loads(STATE.read_text(encoding="utf-8"))
+    if "cycles" in raw:
+        return raw["cycles"]
+    if raw.get("directory"):
+        return {"c2-matched-control": raw}
+    return {}
+
+
+def save_cycles(items):
+    STATE.write_text(json.dumps({"cycles": items}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--execute", action="store_true")
@@ -190,12 +237,15 @@ def main():
     loop = load_loop()
     if not loop["enabled"]:
         raise SystemExit("loop is disabled")
-    state = json.loads(STATE.read_text(encoding="utf-8")) if STATE.exists() else {}
-    if state.get("phase") == "codex_done" and state.get("directory") == loop["wait"]["directory"]:
-        print(json.dumps({"action": "already_done", "token": state.get("token")}, ensure_ascii=False))
+    state = cycles()
+    current = state.get(loop["cycle"]) or {}
+    if current.get("phase") == "codex_done":
+        print(json.dumps({"action": "already_done", "token": current.get("token")}, ensure_ascii=False))
         return
     measured = fetch(loop)
-    token = "REPRODUCED" if reproduced(measured["delta_mm"], loop["thresholds_mm"]) else "NOT_REPRODUCED"
+    token = flow_verdict(
+        measured["delta_mm"], measured["ci95_mm"], loop["pass_max_mm"],
+        loop["pass_ci_hi_mm"], loop["fail_min_mm"])
     sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     body = packet(loop, measured, token, sha)
     report = {
@@ -207,8 +257,8 @@ def main():
     if not args.execute:
         print(json.dumps(report, ensure_ascii=False))
         return
-    if state.get("phase") == "gpt_accepted" and state.get("directory") == loop["wait"]["directory"]:
-        reply_token = state["token"]
+    if current.get("phase") == "gpt_accepted":
+        reply_token = current["token"]
     else:
         reply = send_gpt(loop, body)
         reply_token = first_line(reply)
@@ -218,15 +268,14 @@ def main():
             notify("讨论循环停住。脚本判定 %s，GPT 第一行是 %s。\n%s" % (token, reply_token or "空", reply[:500]))
             print(json.dumps(report, ensure_ascii=False))
             raise SystemExit("gpt reply is not the script token")
-        STATE.write_text(json.dumps({
-            "phase": "gpt_accepted", "directory": loop["wait"]["directory"], "token": token,
-        }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        current = {"phase": "gpt_accepted", "directory": loop["wait"]["directory"], "token": token}
+        state[loop["cycle"]] = current
+        save_cycles(state)
     prompt = (ROOT / loop["prompts"][reply_token]).read_text(encoding="utf-8")
-    prompt += "\n" + measured_block(measured, reply_token)
+    prompt += "\n" + measured_block(loop, measured, reply_token)
     resume_codex(loop, prompt)
-    STATE.write_text(json.dumps({
-        "phase": "codex_done", "directory": loop["wait"]["directory"], "token": token,
-    }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    state[loop["cycle"]] = {"phase": "codex_done", "directory": loop["wait"]["directory"], "token": token}
+    save_cycles(state)
     report["codex"] = "CARD_UPDATED"
     print(json.dumps(report, ensure_ascii=False))
 

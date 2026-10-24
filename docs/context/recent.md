@@ -14,6 +14,8 @@ GPT 现在负责拍板。它先 HOLD 两臂一起开，因为还没有「分组�
 
 2026-10-24: The matched-clip unrestricted control has completed; reproduction holds (REPRODUCED). Recorded in `src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261024-c2-matched-clip.md`. The flow-only arm remains unauthorized and unlaunched; do not start it.
 
+下一轮配置已写好，还没有启动。结果目录是 `diagnosis/C2-matched-flow`。允许的第一行是 PASS、FAIL、UNIDENTIFIED，对应三份 Codex 提示。`loop.json` 的 `enabled` 仍是假。
+
 ```text
 MEASURED
 directory: diagnosis/C2-matched-control
