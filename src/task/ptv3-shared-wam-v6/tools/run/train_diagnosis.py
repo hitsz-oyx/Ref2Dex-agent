@@ -147,7 +147,7 @@ def main():
             trainable_parameters=sum(p.numel() for p in model.parameters() if p.requires_grad),
             trainable_names=[n for n,p in model.named_parameters() if p.requires_grad],
             environment={k:os.environ.get(k) for k in ('TMPDIR','CONDA_PREFIX','CUDA_VISIBLE_DEVICES','REF2DEX_RUN_ROOT')}),immutable=True)
-    dist.barrier();started=time.monotonic();step=first-1;draws=Counter();loss_records=[];last_saved=None
+    dist.barrier();started=time.monotonic();step=first-1;draws=Counter();loss_records=[];preclip_norms=[];last_saved=None
     reference=recipe.get('local3000_panel')
 
     def save(current):
@@ -193,6 +193,7 @@ def main():
             finite=torch.isfinite(loss).to(torch.int32);dist.all_reduce(finite,op=dist.ReduceOp.MIN)
             if not finite.item():raise FloatingPointError('nonfinite loss')
             loss.backward();norm=torch.nn.utils.clip_grad_norm_(model.parameters(),config['clip_grad'],error_if_nonfinite=True)
+            if rank==0:preclip_norms.append(float(norm))
             optimizer.step();torch.cuda.synchronize()
             average=loss.detach().clone();dist.all_reduce(average);average/=world
             value=float(average);loss_records.append(value)
@@ -223,7 +224,9 @@ def main():
                         loss_monotone=monotone,pass_all=bool((delta<0).all() and all(bounds[1]<0 for bounds in ci) and monotone is True))
             write(out/'result.json',dict(status='SMOKE_PASS' if a.smoke else 'COMPLETED',last_step=step,
                 updates=step-first+1,elapsed_s=time.monotonic()-started,loss_block500_means=block_means,
-                loss_block500_monotone_nonincreasing=monotone,primary=primary,automatic_restart=False),immutable=True)
+                loss_block500_monotone_nonincreasing=monotone,primary=primary,
+                preclip_grad_norm=preclip_norms,preclip_grad_norm_gt1=sum(v>1 for v in preclip_norms),
+                automatic_restart=False),immutable=True)
         write(out/'progress.json',dict(status='COMPLETED',step=step,updates=step-first+1,elapsed_s=time.monotonic()-started,global_batch=recipe['global_batch'],automatic_restart=False)) if rank==0 else None
         dist.barrier()
     except BaseException as exc:

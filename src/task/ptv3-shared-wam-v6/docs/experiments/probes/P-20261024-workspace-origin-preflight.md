@@ -40,7 +40,9 @@ batch 384 and 500 updates, with the single change that `flow_future` is trainabl
 Measured 2026-10-24, 0 updates, 249 seconds, GPU 0 then released. Receipt:
 `/mnt/ugreen_nas/storage/oyx_storage/wam-nine-source-full-20261023-pending/diagnosis/workspace-repair-preflight/result.json`.
 
-The known source4 window passes at origin -4 m and still fails at -2 m. All 192000 C2 prescribed draws, 125718 unique windows, have 0 out-of-range points. The initializer panel does not stay equivalent: maximum point prediction change 41.351 mm, 86 of 512 rows change voxel-group count, and the three mean deltas versus local3000 are +0.0246 / +0.0569 / +0.0043 mm. Verdict: NOT_TRANSPARENT. The flow-only arm is not launched.
+The known source4 window passes at origin -4 m and still fails at -2 m. All 192000 C2 prescribed draws, 125718 unique windows, have 0 out-of-range points. The initializer panel does not stay equivalent: maximum point prediction change 41.351 mm, 86 of 512 rows change voxel-group count, and the three mean deltas versus local3000 are +0.0246 / +0.0569 / +0.0043 mm. Verdict: NOT_TRANSPARENT. The flow-only arm described by this card is not launched.
+
+This negative result retires origin -4 m. It does not authorize a training run, and it does not forbid a separately registered ablation on the original origin. That ablation is `P-20261024-c2-flow-old-workspace`.
 
 Flow-only thresholds, unused because the preflight did not pass, against C2's measured regression of +2.436 / +9.412 / +1.140 mm:
 
