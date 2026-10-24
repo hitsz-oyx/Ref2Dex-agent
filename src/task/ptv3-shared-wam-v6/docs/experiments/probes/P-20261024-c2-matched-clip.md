@@ -14,7 +14,7 @@ seed_pool: probe
 seeds: [170]
 decision_changed_if_positive: retain shared-trunk updates as the working main-cause account on C2 realized support
 decision_changed_if_negative: reject shared-trunk updates as the main cause on C2 realized support
-status: PLANNED
+status: RUNNING
 run_id: c2-matched-clip-20261024-planned
 ---
 
@@ -22,8 +22,8 @@ run_id: c2-matched-clip-20261024-planned
 
 This card registers one clipping intervention following
 `P-20261024-c2-flow-old-workspace`. GPT confirmed the operator as
-OPERATOR_OK. This card does not authorize a launch. Neither arm has started.
-No recipe is written to NAS and no launch command is registered here.
+OPERATOR_OK. Both arms together are not authorized. The unrestricted control
+below is the only authorized run. The flow-only arm has not started.
 
 ## Question and minimum decision experiment
 
@@ -64,12 +64,31 @@ diagnostic only and is not an outcome gate. `matched_clip` defaults to false;
 when false the existing single global clipping call and output fields remain
 unchanged. The flow-only freezing rule is unchanged.
 
-## Decision rule, only after separately authorized execution
+## Authorized control
 
-Only the flow-only arm relative to local3000 determines the result. The
-unrestricted arm supplies the matched intervention comparison and has no
-additional outcome gate. Metric order is the same three panel metrics as
-the preceding C2-flow card. Use paired mother-cluster CI95 on the fixed panel.
+GPT first returned HOLD for launching both arms. The missing fact was whether
+the unrestricted matched-clip arm still reproduces the C2 regression. GPT then
+returned RUN_CONTROL. Only this arm is authorized:
+
+| Item | Value |
+|---|---|
+| Output | `diagnosis/C2-matched-control` |
+| Switches | `matched_clip: true`, `flow_only: false` |
+| Recipe difference from C2 | `arm`, `stage`, `recipe_path`, `git_commit`, and `matched_clip` |
+| Updates | 500, same C2 support, initializer, origin, and voxel size |
+
+Reproduction holds only if all three deltas versus local3000 are
+≥ +1.827 / +7.059 / +0.855 mm, respectively. That is 0.75 times C2's
++2.436 / +9.412 / +1.140 mm. GPT set no confidence-interval requirement on
+this control. If reproduction fails, do not launch the flow-only arm, and do
+not read a later flow-only change as evidence about freezing the trunk.
+
+## Decision rule for the flow-only arm, not authorized by the control
+
+Only the flow-only arm relative to local3000 determines the shared-trunk
+claim. Metric order is the same three panel metrics as the preceding C2-flow
+card. Use paired mother-cluster CI95 on the fixed panel. The flow-only arm
+stays unlaunched until the control comparison above is recorded.
 
 | Observed result | Verdict | Decision |
 |---|---|---|
@@ -77,5 +96,4 @@ the preceding C2-flow card. Use paired mother-cluster CI95 on the fixed panel.
 | All three residuals are >= +1.827 / +7.059 / +0.855 mm, respectively, and all three mother-cluster CI95 lower bounds are > 0 | FAIL | Reject shared-trunk updates as the main cause on this support |
 | Any other outcome | Not identified | No route verdict |
 
-Status remains PLANNED. No measurements, training authorization or launch
-are implied by this card.
+The flow-only PASS/FAIL table is not authorized by the control launch.

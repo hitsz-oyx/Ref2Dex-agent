@@ -8,4 +8,6 @@
 
 GPT 用 5.6 极高看过 r2，不是 Pro。它同意停在这个裁决上，不要用原设置再跑 500 步。若还要回答主因，只留一刀：同一支持、同一初始化、同样 500 步，两臂对 `flow_future` 用同一条事先固定的裁剪，主干分开裁。不改原点，不重跑 C4-source1。当时这刀还没有卡。
 
-2026-10-24: GPT confirmed the operator (OPERATOR_OK). Card: `src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261024-c2-matched-clip.md`. Recipe switch: `matched_clip` (default false). Status: PLANNED; the card does not authorize launch. Nothing has started.
+2026-10-24: GPT confirmed the operator (OPERATOR_OK). Card: `src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261024-c2-matched-clip.md`. Recipe switch: `matched_clip` (default false).
+
+GPT 现在负责拍板。它先 HOLD 两臂一起开，因为还没有「分组裁剪下的全训练臂仍复现 C2 退化」。随后 RUN_CONTROL：只跑 `diagnosis/C2-matched-control`，`matched_clip` 开、`flow_only` 关。复现成立当且仅当相对 local3000 的三项都 ≥ +1.827 / +7.059 / +0.855 mm。flow-only 臂先不跑。
