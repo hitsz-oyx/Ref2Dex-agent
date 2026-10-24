@@ -63,7 +63,13 @@ if (check) {
   process.exit(0)
 }
 const fs = await import('node:fs')
+const waitAt = process.argv.indexOf('--wait-reply')
+const replyPath = waitAt >= 0 ? process.argv[waitAt + 1] : ''
 const text = fs.readFileSync(msgPath, 'utf8')
+const previous = String(await js(`(() => {
+  const md = [...document.querySelectorAll('[data-markdown-text-style="assistant-message"]')].map(e => e.innerText);
+  return md[md.length - 1] || '';
+})()`) || '')
 await clickAt(box.x, box.y)
 await sleep(300)
 await call('Input.insertText', { text })
@@ -84,5 +90,31 @@ await clickAt(send.x, send.y)
 await sleep(2000)
 const after = String(await js('location.href'))
 console.log('SENT', after.includes(id) ? id : 'LEFT')
+if (!after.includes(id)) {
+  ws.close()
+  process.exit(1)
+}
+if (replyPath) {
+  let last = ''
+  let stable = 0
+  const deadline = Date.now() + 480000
+  while (Date.now() < deadline) {
+    await sleep(5000)
+    const snap = JSON.parse(await js(`(() => {
+      const md = [...document.querySelectorAll('[data-markdown-text-style="assistant-message"]')].map(e => e.innerText);
+      return JSON.stringify({ streaming: !!document.querySelector('[data-testid="stop-button"]'), last: md[md.length - 1] || '' });
+    })()`))
+    if (!snap.streaming && snap.last && snap.last !== previous && snap.last === last) stable += 1
+    else stable = 0
+    last = snap.last || ''
+    if (stable >= 2) break
+  }
+  if (stable < 2) {
+    console.log('REPLY_TIMEOUT')
+    ws.close()
+    process.exit(1)
+  }
+  fs.writeFileSync(replyPath, last)
+  console.log('REPLY_READY', last.length)
+}
 ws.close()
-if (!after.includes(id)) process.exit(1)

@@ -1,0 +1,19 @@
+{
+  "schema": "ref2dex.discussion-loop.v1",
+  "enabled": true,
+  "gpt_conversation": "https://chatgpt.com/c/6adc1912-f734-83ea-bbf2-dc3b6e341bab",
+  "codex_session": "01a16c55-5a34-77f0-b0a2-c5205fa3e161",
+  "codex_home": "D:/project/stock_ws/.codex_oyx_frj",
+  "codex_model": "gpt-6.1-sol",
+  "codex_done_line": "CARD_UPDATED",
+  "wait": {
+    "kind": "ssh",
+    "host": "4-4090_tailscale",
+    "directory": "/mnt/ugreen_nas/storage/oyx_storage/wam-nine-source-full-20261023-pending/diagnosis/C2-matched-control"
+  },
+  "thresholds_mm": [1.827, 7.059, 0.855],
+  "prompts": {
+    "REPRODUCED": "docs/context/prompts/matched-control-reproduced.md",
+    "NOT_REPRODUCED": "docs/context/prompts/matched-control-not-reproduced.md"
+  }
+}
