@@ -52,7 +52,7 @@ def main():
     dispatch = json.loads(files["dispatch.json"])
     expected = {
         "schema", "stop", "ask_gpt", "gpt_conversation", "codex_session",
-        "codex_model", "prompt_file", "next_command", "result_file",
+        "codex_home", "codex_model", "prompt_file", "next_command", "result_file",
     }
     if set(dispatch) != expected or dispatch["schema"] != "ref2dex.context-dispatch.v1":
         raise SystemExit("dispatch schema mismatch")

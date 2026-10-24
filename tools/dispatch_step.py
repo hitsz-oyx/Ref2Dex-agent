@@ -72,8 +72,8 @@ def main():
         if proc.returncode != 0:
             raise SystemExit("gpt continue failed")
         sent = True
-    if args.execute and action == "codex":
-        raise SystemExit("codex execute is refused until a session is written and this guard is removed")
+    if args.execute and action == "codex" and not dispatch.get("codex_home"):
+        raise SystemExit("codex home is unset")
     print(json.dumps({
         "opened": [str(path.relative_to(ROOT)).replace("\\", "/") for path in opened],
         "archive_opened": False,

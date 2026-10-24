@@ -20,5 +20,5 @@
 - 仓库：https://github.com/hitsz-oyx/Ref2Dex-agent
 - 当前战役文档以本窗口所在提交为准。不要靠聊天记录补提交号。
 - GPT 只延续这一条对话：https://chatgpt.com/c/6adc1912-f734-83ea-bbf2-dc3b6e341bab 。其他对话不在它的上下文里。
-- Codex 线程还没有写入本窗口。模型保持 `gpt-6.1-sol`，用原来的线程续写，不新开一条。
+- Codex 用本机这条线程：`01a16c55-5a34-77f0-b0a2-c5205fa3e161`。家目录是 `D:/project/stock_ws/.codex_oyx_frj`，模型保持 `gpt-6.1-sol`。续写这条，不另开。
 - 调度入口是 `tools/dispatch_step.py`。不加 `--execute` 时只报告动作，不联系 GPT，也不启动 Codex。
