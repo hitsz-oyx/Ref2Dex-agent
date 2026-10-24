@@ -14,7 +14,7 @@ seed_pool: probe
 seeds: [170]
 decision_changed_if_positive: on C2 realized support, shared-trunk updates are the main cause of the C2 regression
 decision_changed_if_negative: reject that claim; do not call flow-only a nine-source repair
-status: PLANNED
+status: IDENTITY_PASSED
 run_id: c2-flow-old-workspace-20261024
 ---
 
@@ -52,6 +52,10 @@ Receipt directory:
 `/mnt/ugreen_nas/storage/oyx_storage/wam-nine-source-full-20261023-pending/diagnosis/C2-flow-identity`.
 Training output, only after a pass:
 `.../diagnosis/C2-flow`.
+
+Measured 2026-10-24, 0 updates, 103 seconds, GPU 0 then released. Verdict: PASS_IDENTITY. Training is authorized on origin [-2, -2, -2] only.
+
+The recipe differs from C2 only in arm, stage, flow_only, recipe_path and sampling. All 192000 replayed rows match, sha256 `d7373c71c9a9d97b81c8e3a198d92e9e071c722352a30963238bfefb9a16af7a`, 125718 unique windows, 0 outside the old grid. Initializer means match C2 `panel-step000000` exactly: 8.980819415257184 / 24.65934925206174 / 5.639403410192585 mm. One eval batch matches the unrestricted model. Trainable parameters are 49 under `flow_future` and 0 elsewhere; 568 parameters are frozen. A first scoring pass without the training deterministic flag failed its repeat check and did not authorize training. This pass uses the same deterministic setting as `train_diagnosis.py`.
 
 ## Training result, only after the identity gate passes
 
