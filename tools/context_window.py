@@ -35,7 +35,7 @@ def required_paths(index_text):
     return paths
 
 
-def main():
+def load_window():
     index_text = INDEX.read_text(encoding="utf-8")
     opened = [INDEX]
     files = {}
@@ -44,6 +44,11 @@ def main():
         files[path.name] = path.read_text(encoding="utf-8")
     if any("archive" in path.parts for path in opened):
         raise SystemExit("archive was opened")
+    return opened, files
+
+
+def main():
+    opened, files = load_window()
     dispatch = json.loads(files["dispatch.json"])
     expected = {
         "schema", "stop", "ask_gpt", "gpt_conversation", "codex_session",
