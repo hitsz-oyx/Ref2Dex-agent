@@ -139,9 +139,10 @@ def main():
     loader=DataLoader(dataset,batch_sampler=Steps(dataset,first,last,rank),collate_fn=collate,num_workers=2,
         pin_memory=True,generator=torch.Generator().manual_seed(170*1009+rank),**loader_options(2,180,'spawn'))
     out=a.output;out.mkdir(parents=True,exist_ok=True)
+    recipe_sha256=sha(a.recipe) if rank==0 else None
     if rank==0:
         if (out/'run-manifest.json').exists():raise FileExistsError('fresh run output required')
-        write(out/'run-manifest.json',dict(recipe=recipe,recipe_sha256=sha(a.recipe),parent=parent,
+        write(out/'run-manifest.json',dict(recipe=recipe,recipe_sha256=recipe_sha256,parent=parent,
             world_size=world,local_batch=96,global_batch=recipe['global_batch'],git_commit=recipe['git_commit'],
             python=sys.version,torch=torch.__version__,cuda=torch.version.cuda,smoke=a.smoke,automatic_restart=False,
             trainable_parameters=sum(p.numel() for p in model.parameters() if p.requires_grad),
@@ -157,8 +158,14 @@ def main():
         if rank==0:
             target=out/('step%06d.pt'%current);assert not target.exists()
             pending=target.with_suffix('.pt.part')
+            digest,reread_error=recipe_sha256,None
+            for _ in range(5):
+                try:
+                    digest=sha(a.recipe);reread_error=None;break
+                except PermissionError as exc:
+                    reread_error=repr(exc);time.sleep(1)
             torch.save(dict(schema='ref2dex.remote-staged-checkpoint.v1',stage=recipe['stage'],step=current,
-                data_identity=recipe.get('data_identity_sha256',recipe['manifest_sha256']),recipe_sha256=sha(a.recipe),parent=parent,
+                data_identity=recipe.get('data_identity_sha256',recipe['manifest_sha256']),recipe_sha256=digest,recipe_reread_error=reread_error,parent=parent,
                 source_probabilities=recipe['source_probabilities'],config=config,model=model.state_dict(),
                 optimizer=optimizer.state_dict(),random_state=states,elapsed_s=time.monotonic()-started),pending)
             pending.replace(target);target.chmod(0o664)

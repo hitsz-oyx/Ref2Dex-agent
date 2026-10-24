@@ -51,11 +51,18 @@ arm. Do not describe a win as a deployable nine-source repair.
 Receipt directory:
 `/mnt/ugreen_nas/storage/oyx_storage/wam-nine-source-full-20261023-pending/diagnosis/C2-flow-identity`.
 Training output, only after a pass:
-`.../diagnosis/C2-flow`.
+`.../diagnosis/C2-flow`. The recovery run after the save failure is
+`.../diagnosis/C2-flow-r2`. Same recipe, same thresholds.
 
 Measured 2026-10-24, 0 updates, 103 seconds, GPU 0 then released. Verdict: PASS_IDENTITY. Training is authorized on origin [-2, -2, -2] only.
 
 The recipe differs from C2 only in arm, stage, flow_only, recipe_path and sampling. All 192000 replayed rows match, sha256 `d7373c71c9a9d97b81c8e3a198d92e9e071c722352a30963238bfefb9a16af7a`, 125718 unique windows, 0 outside the old grid. Initializer means match C2 `panel-step000000` exactly: 8.980819415257184 / 24.65934925206174 / 5.639403410192585 mm. One eval batch matches the unrestricted model. Trainable parameters are 49 under `flow_future` and 0 elsewhere; 568 parameters are frozen. A first scoring pass without the training deterministic flag failed its repeat check and did not authorize training. This pass uses the same deterministic setting as `train_diagnosis.py`.
+
+## Attempt 1
+
+`diagnosis/C2-flow` completed 500 updates in 656 seconds. The step-500 loss was 2.832. Rank 0 then hit `PermissionError` reopening `recipe-v2.json` while hashing it for the checkpoint. No `step000500.pt`, no final panel, and no `result.json` were written. The file was readable at startup and is readable again after the process exited. Logged pre-clip norms, taken every 20 steps, were above 1. That sample is not the 500-update clip rate.
+
+Attempt 2 is the same arm in `diagnosis/C2-flow-r2`. It is not a new hypothesis. The checkpoint keeps the startup recipe hash if that reread fails again.
 
 ## Training result, only after the identity gate passes
 
