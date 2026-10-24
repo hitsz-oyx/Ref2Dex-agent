@@ -105,6 +105,11 @@ def main():
     model=SharedWAMV6(stats,config).cuda()
     if recipe.get('flow_only',False):
         for name,param in model.named_parameters():param.requires_grad_(name.startswith('flow_future.'))
+    matched_clip=recipe.get('matched_clip',False)
+    if matched_clip:
+        flow_parameters=[p for n,p in model.named_parameters() if n.startswith('flow_future.') and p.requires_grad]
+        trunk_parameters=[p for n,p in model.named_parameters() if not n.startswith('flow_future.') and p.requires_grad]
+        flow_preclip_norms=[];trunk_preclip_norms=[] if trunk_parameters else None
     optimizer=torch.optim.AdamW(model.parameter_groups(config['geometry_lr'],config['shared_lr']),weight_decay=config['weight_decay'],fused=True)
     first=1;parent=None
     if a.expand_from:
@@ -199,7 +204,16 @@ def main():
             prediction=wrapped(batch);loss,terms=forecast_loss(prediction,batch,config,model.normalizer,True,step=step)
             finite=torch.isfinite(loss).to(torch.int32);dist.all_reduce(finite,op=dist.ReduceOp.MIN)
             if not finite.item():raise FloatingPointError('nonfinite loss')
-            loss.backward();norm=torch.nn.utils.clip_grad_norm_(model.parameters(),config['clip_grad'],error_if_nonfinite=True)
+            loss.backward()
+            if matched_clip:
+                flow_norm=torch.nn.utils.clip_grad_norm_(flow_parameters,config['clip_grad'],error_if_nonfinite=True)
+                trunk_norm=torch.nn.utils.clip_grad_norm_(trunk_parameters,config['clip_grad'],error_if_nonfinite=True) if trunk_parameters else None
+                norm=flow_norm
+                if rank==0:
+                    flow_preclip_norms.append(float(flow_norm))
+                    if trunk_preclip_norms is not None:trunk_preclip_norms.append(float(trunk_norm))
+            else:
+                norm=torch.nn.utils.clip_grad_norm_(model.parameters(),config['clip_grad'],error_if_nonfinite=True)
             if rank==0:preclip_norms.append(float(norm))
             optimizer.step();torch.cuda.synchronize()
             average=loss.detach().clone();dist.all_reduce(average);average/=world
@@ -210,6 +224,9 @@ def main():
                     eta_seconds=(last-step)*(time.monotonic()-started)/(step-first+1),
                     peak_allocated_gib=torch.cuda.max_memory_allocated()/GIB,source_draws_rank0=dict(draws),
                     global_batch=recipe['global_batch'],data_identity=recipe.get('data_identity_sha256',recipe['manifest_sha256']))
+                if matched_clip:
+                    record.update(flow_preclip_grad_norm=float(flow_norm),
+                        trunk_preclip_grad_norm=float(trunk_norm) if trunk_norm is not None else None)
                 write(out/'progress.json',record)
                 with (out/'train.jsonl').open('a') as f:f.write(json.dumps(record)+'\n')
                 print(json.dumps(record),flush=True)
@@ -229,12 +246,20 @@ def main():
                     primary=dict(delta_vs_stage_initial_mm=delta.tolist(),paired_cluster_ci95_mm=ci,
                         all_three_improve_with_ci=bool((delta<0).all() and all(bounds[1]<0 for bounds in ci)),
                         loss_monotone=monotone,pass_all=bool((delta<0).all() and all(bounds[1]<0 for bounds in ci) and monotone is True))
-            write(out/'result.json',dict(status='SMOKE_PASS' if a.smoke else 'COMPLETED',last_step=step,
+            result=dict(status='SMOKE_PASS' if a.smoke else 'COMPLETED',last_step=step,
                 updates=step-first+1,elapsed_s=time.monotonic()-started,loss_block500_means=block_means,
                 loss_block500_monotone_nonincreasing=monotone,primary=primary,
                 preclip_grad_norm=preclip_norms,preclip_grad_norm_gt1=sum(v>1 for v in preclip_norms),
-                automatic_restart=False),immutable=True)
-        write(out/'progress.json',dict(status='COMPLETED',step=step,updates=step-first+1,elapsed_s=time.monotonic()-started,global_batch=recipe['global_batch'],automatic_restart=False)) if rank==0 else None
+                automatic_restart=False)
+            if matched_clip:
+                result.update(flow_preclip_grad_norm=flow_preclip_norms,trunk_preclip_grad_norm=trunk_preclip_norms)
+            write(out/'result.json',result,immutable=True)
+        if rank==0:
+            progress=dict(status='COMPLETED',step=step,updates=step-first+1,elapsed_s=time.monotonic()-started,global_batch=recipe['global_batch'],automatic_restart=False)
+            if matched_clip:
+                progress.update(flow_preclip_grad_norm=flow_preclip_norms[-1] if flow_preclip_norms else None,
+                    trunk_preclip_grad_norm=trunk_preclip_norms[-1] if trunk_preclip_norms else None)
+            write(out/'progress.json',progress)
         dist.barrier()
     except BaseException as exc:
         write(out/('failure-rank%d.json'%rank),dict(reason=repr(exc),last_attempted_step=step,automatic_restart=False),immutable=True)

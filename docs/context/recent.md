@@ -6,4 +6,6 @@
 
 同一天，把体素原点改到 -4 m 的预检是否定的。已知坏窗口能进去，但初始面板不再等价，最大点位移 41.351 mm。不要在 -4 m 网格上训练，也不要把它当成同一次 C2。卡是 `P-20261024-workspace-origin-preflight.md`。source4 窗口 s4-34183 tick 61 在 -2 m 仍然非法，它不在 C2 实际训练到的支持里。
 
-GPT 用 5.6 极高看过 r2，不是 Pro。它同意停在这个裁决上，不要用原设置再跑 500 步。若还要回答主因，只留一刀：同一支持、同一初始化、同样 500 步，两臂对 `flow_future` 用同一条事先固定的裁剪，主干分开裁。不改原点，不重跑 C4-source1。这刀没有卡，也没有启动。
+GPT 用 5.6 极高看过 r2，不是 Pro。它同意停在这个裁决上，不要用原设置再跑 500 步。若还要回答主因，只留一刀：同一支持、同一初始化、同样 500 步，两臂对 `flow_future` 用同一条事先固定的裁剪，主干分开裁。不改原点，不重跑 C4-source1。当时这刀还没有卡。
+
+2026-10-24: GPT confirmed the operator (OPERATOR_OK). Card: `src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261024-c2-matched-clip.md`. Recipe switch: `matched_clip` (default false). Status: PLANNED; the card does not authorize launch. Nothing has started.
