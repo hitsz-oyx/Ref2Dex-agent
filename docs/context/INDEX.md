@@ -7,6 +7,7 @@
 ## 必读
 
 - [recent.md](recent.md)
+- [dispatch.json](dispatch.json)
 
 ## 归档
 

@@ -1,0 +1,11 @@
+{
+  "schema": "ref2dex.context-dispatch.v1",
+  "stop": true,
+  "ask_gpt": false,
+  "gpt_conversation": "https://chatgpt.com/c/6adc1912-f734-83ea-bbf2-dc3b6e341bab",
+  "codex_session": null,
+  "codex_model": "gpt-6.1-sol",
+  "prompt_file": null,
+  "next_command": null,
+  "result_file": null
+}
