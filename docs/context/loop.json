@@ -1,6 +1,6 @@
 {
   "schema": "ref2dex.discussion-loop.v1",
-  "enabled": false,
+  "enabled": true,
   "cycle": "c2-matched-flow",
   "gpt_conversation": "https://chatgpt.com/c/6adc1912-f734-83ea-bbf2-dc3b6e341bab",
   "codex_session": "01a16c55-5a34-77f0-b0a2-c5205fa3e161",

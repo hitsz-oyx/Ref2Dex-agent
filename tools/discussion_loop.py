@@ -277,7 +277,37 @@ def main():
     state[loop["cycle"]] = {"phase": "codex_done", "directory": loop["wait"]["directory"], "token": token}
     save_cycles(state)
     report["codex"] = "CARD_UPDATED"
+    report["commit"] = publish(token)
     print(json.dumps(report, ensure_ascii=False))
+
+
+def publish(token):
+    allowed = {
+        "docs/context/recent.md",
+        "docs/context/loop-state.json",
+        "src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261024-c2-matched-clip.md",
+    }
+    status = subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT, text=True)
+    dirty = []
+    for line in status.splitlines():
+        path = line[3:].strip().replace("\\", "/")
+        if path not in allowed:
+            notify("讨论循环写完但有计划外文件，没有提交。判定 %s。\n%s" % (token, status[:500]))
+            return "not_committed"
+        dirty.append(path)
+    if not dirty:
+        notify("讨论循环写完，没有文件变化。判定 %s。" % token)
+        return "unchanged"
+    subprocess.check_call(["git", "add", "--", *dirty], cwd=ROOT)
+    subprocess.check_call(["git", "commit", "-m", "Record the matched-clip flow-only verdict."], cwd=ROOT)
+    subprocess.check_call(["git", "push", "origin", "HEAD"], cwd=ROOT)
+    subprocess.check_call([
+        "ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=20", "4-4090_tailscale",
+        "cd /home/wbcd/workspace/oyx_ws/Ref2Dex-agent && git fetch origin && git merge --ff-only origin/main",
+    ])
+    sha = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, text=True).strip()
+    notify("讨论循环写完。判定 %s。提交 %s。" % (token, sha))
+    return sha
 
 
 if __name__ == "__main__":

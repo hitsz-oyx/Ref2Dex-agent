@@ -14,7 +14,7 @@ seed_pool: probe
 seeds: [170]
 decision_changed_if_positive: retain shared-trunk updates as the working main-cause account on C2 realized support
 decision_changed_if_negative: reject shared-trunk updates as the main cause on C2 realized support
-status: HOLD
+status: RUNNING
 run_id: c2-matched-control-20261024
 ---
 
@@ -116,5 +116,11 @@ trunk_preclip_gt1: 500/500
 The unrestricted control completed all 500 updates. All three deltas exceed
 the registered reproduction thresholds: reproduction holds (REPRODUCED).
 This is the control result only, not a flow-only PASS or FAIL. Clip rates
-remain diagnostic and are not an outcome gate. The flow-only arm is still
-not authorized and has not started. Do not launch it.
+remain diagnostic and are not an outcome gate.
+
+GPT then returned LAUNCH_FLOW. The flow-only arm is authorized as
+`diagnosis/C2-matched-flow`: `matched_clip` true, `flow_only` true, and the
+recipe otherwise differs from C2 only in arm, stage, recipe_path and
+git_commit. Same 500 updates, support, initializer, origin and voxel size.
+The PASS/FAIL table above is the only result rule. No further arm is
+authorized.
