@@ -14,7 +14,7 @@ seed_pool: probe
 seeds: [170]
 decision_changed_if_positive: on C2 realized support, shared-trunk updates are the main cause of the C2 regression
 decision_changed_if_negative: reject that claim; do not call flow-only a nine-source repair
-status: IDENTITY_PASSED
+status: MEASURED
 run_id: c2-flow-old-workspace-20261024
 ---
 
@@ -76,3 +76,5 @@ Compare the finished panel with local3000. C2's measured regression is
 | All three residuals ≤ half of C2 (+1.218 / +4.706 / +0.570 mm) but not all below 0 | Mechanism moved; 500 updates or the learning rate did not finish the recovery | Do not reject flow-only |
 | Run completes, at most 20% of updates have pre-clip grad norm > 1, and all three residuals stay ≥ 75% of C2 (+1.827 / +7.059 / +0.855 mm) with CI95 lower bounds > 0 | Shared-trunk updates were not the main cause | Reject the claim |
 | Residuals fall between 50% and 75%, or more than 20% of updates have pre-clip grad norm > 1 | Not identified | No route verdict |
+
+Measured on `diagnosis/C2-flow-r2`, 500 updates, 440 seconds, checkpoint `step000500.pt` written. Final means 10.843 / 31.601 / 6.705 mm. Deltas versus local3000 are +1.862 / +6.941 / +1.066 mm. Mother-cluster CI95 lower bounds are +1.604 / +5.763 / +0.880, all above 0, so local3000 wins all three. Relative to C2's +2.436 / +9.412 / +1.140, the residuals are about 76% / 74% / 93%. Contact stays between half and 75% of C2. All 500 updates have pre-clip grad norm > 1. Verdict: no route verdict. Flow-only is not the repair, and this run does not reject the shared-trunk claim.
