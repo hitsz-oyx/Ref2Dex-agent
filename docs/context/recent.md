@@ -11,3 +11,18 @@ GPT 用 5.6 极高看过 r2，不是 Pro。它同意停在这个裁决上，不�
 2026-10-24: GPT confirmed the operator (OPERATOR_OK). Card: `src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261024-c2-matched-clip.md`. Recipe switch: `matched_clip` (default false).
 
 GPT 现在负责拍板。它先 HOLD 两臂一起开，因为还没有「分组裁剪下的全训练臂仍复现 C2 退化」。随后 RUN_CONTROL：只跑 `diagnosis/C2-matched-control`，`matched_clip` 开、`flow_only` 关。复现成立当且仅当相对 local3000 的三项都 ≥ +1.827 / +7.059 / +0.855 mm。flow-only 臂先不跑。
+
+2026-10-24: The matched-clip unrestricted control has completed; reproduction holds (REPRODUCED). Recorded in `src/task/ptv3-shared-wam-v6/docs/experiments/probes/P-20261024-c2-matched-clip.md`. The flow-only arm remains unauthorized and unlaunched; do not start it.
+
+```text
+MEASURED
+directory: diagnosis/C2-matched-control
+updates: 500
+means_mm: +11.387 / +33.992 / +6.778
+delta_vs_local3000_mm: +2.406 / +9.333 / +1.139
+ci95_mm: +2.082 / +2.714, +7.718 / +11.099, +0.938 / +1.374
+thresholds_mm: +1.827 / +7.059 / +0.855
+script_token: REPRODUCED
+flow_preclip_gt1: 500/500
+trunk_preclip_gt1: 500/500
+```

@@ -2,6 +2,7 @@
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -150,6 +151,17 @@ def send_gpt(loop, body):
     return reply.read_text(encoding="utf-8")
 
 
+def codex_command(args):
+    found = shutil.which("codex")
+    if found and found.lower().endswith(".cmd"):
+        script = Path(found).parent / "node_modules" / "@openai" / "codex" / "bin" / "codex.js"
+        if script.exists():
+            return ["node", str(script), *args]
+    if not found:
+        raise SystemExit("codex is not on PATH")
+    return [found, *args]
+
+
 def resume_codex(loop, prompt):
     last = ROOT / "tmp" / "loop-codex-last.txt"
     env = os.environ.copy()
@@ -159,9 +171,9 @@ def resume_codex(loop, prompt):
     log.parent.mkdir(exist_ok=True)
     with log.open("w", encoding="utf-8") as handle:
         proc = subprocess.run(
-            ["codex", "exec", "resume", "--json", "-m", loop["codex_model"],
-             "--dangerously-bypass-approvals-and-sandbox", "-o", str(last),
-             loop["codex_session"], "-"],
+            codex_command(["exec", "resume", "--json", "-m", loop["codex_model"],
+                           "--dangerously-bypass-approvals-and-sandbox", "-o", str(last),
+                           loop["codex_session"], "-"]),
             input=prompt, text=True, cwd=ROOT, env=env, stdout=handle, stderr=subprocess.STDOUT,
         )
     if proc.returncode != 0:

@@ -14,7 +14,7 @@ seed_pool: probe
 seeds: [170]
 decision_changed_if_positive: retain shared-trunk updates as the working main-cause account on C2 realized support
 decision_changed_if_negative: reject shared-trunk updates as the main cause on C2 realized support
-status: RUNNING
+status: HOLD
 run_id: c2-matched-control-20261024
 ---
 
@@ -97,3 +97,24 @@ stays unlaunched until the control comparison above is recorded.
 | Any other outcome | Not identified | No route verdict |
 
 The flow-only PASS/FAIL table is not authorized by the control launch.
+
+## Measured control result
+
+```text
+MEASURED
+directory: diagnosis/C2-matched-control
+updates: 500
+means_mm: +11.387 / +33.992 / +6.778
+delta_vs_local3000_mm: +2.406 / +9.333 / +1.139
+ci95_mm: +2.082 / +2.714, +7.718 / +11.099, +0.938 / +1.374
+thresholds_mm: +1.827 / +7.059 / +0.855
+script_token: REPRODUCED
+flow_preclip_gt1: 500/500
+trunk_preclip_gt1: 500/500
+```
+
+The unrestricted control completed all 500 updates. All three deltas exceed
+the registered reproduction thresholds: reproduction holds (REPRODUCED).
+This is the control result only, not a flow-only PASS or FAIL. Clip rates
+remain diagnostic and are not an outcome gate. The flow-only arm is still
+not authorized and has not started. Do not launch it.
